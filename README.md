@@ -1,5 +1,7 @@
 # IntresseKlubben
 
+Deployment URL: https://intresse-klubben.vercel.app/
+
 - `backend/` – FastAPI + SQLAlchemy/Alembic, se `backend/README.md`
 - `frontend/` – React + Vite, se `frontend/README.md`
 
