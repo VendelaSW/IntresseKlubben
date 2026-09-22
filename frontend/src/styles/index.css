@@ -1,8 +1,116 @@
+@font-face {
+  font-family: 'Caveat';
+  src: url('/fonts/Caveat-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Caveat';
+  src: url('/fonts/Caveat-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Caveat';
+  src: url('/fonts/Caveat-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter_18pt-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter_18pt-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
+
+  --color-bg: #f7f1e3;
+  --color-text: #1a1a1a;
+  --color-accent: #f4c430;
+  --color-line: #bfd7ed;
+
+  --font-heading: 'Caveat', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  --content-width: 640px;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  line-height: 1.6;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+}
+
+.tagline {
+  font-family: var(--font-heading);
+  font-size: 2.75rem;
+  line-height: 1.1;
+  font-weight: 700;
+  margin: 0;
+}
+
+.problem-statement {
+  max-width: var(--content-width);
+  font-size: 1rem;
+  margin: 0;
+  text-align: left;
+}
+
+.map-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.map-image {
+  width: 100%;
+  max-width: 380px;
+  height: auto;
+  border-radius: 12px;
+}
+
+@media (min-width: 768px) {
+  .map-image {
+    max-width: 720px;
+  }
 }
