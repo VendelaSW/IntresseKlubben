@@ -1,14 +1,14 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
+    
     database_url: str = ""
     # Kommaseparerad lista över tillåtna frontend-URL:er, t.ex.
-    # "http://localhost:5173,https://intresseklubben-frontend.onrender.com"
-    cors_origins: str = "http://localhost:5173"
+    # Sätts i .env lokalt och i vercel panelen i produktion
+    cors_origins: str = ""
 
-    class Config:
-        env_file = ".env"
 
     @property
     def cors_origins_list(self) -> list[str]:
