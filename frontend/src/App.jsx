@@ -1,25 +1,23 @@
-import logo from './assets/intresseklubben.png'
-import mapImage from './assets/map.jpg'
-import ProblemStatement from './components/ProblemStatement'
+import { Routes, Route } from 'react-router-dom'
+import Home from './pages/Home'
+import ServiceInfo from './pages/ServiceInfo'
+import AccountChoice from './pages/AccountChoice'
+import LoginForm from './pages/LoginForm'
+import RegisterForm from './pages/RegisterForm'
 import ApiStatus from './components/ApiStatus'
 
 function App() {
   return (
-    <div className="page">
-      <header className="hero">
-        <img src={logo} alt="Intresseklubben" className="logo" />
-        <p className="tagline">Vi antecknar, ni träffas.</p>
-      </header>
-      <ProblemStatement />
-      <section className="map-section">
-        <img
-          src={mapImage}
-          alt="Karta som visar personer med olika intressen, som dykning, keramik och fotboll, utplacerade i en stad"
-          className="map-image"
-        />
-      </section>
+    <>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/om" element={<ServiceInfo />} />
+        <Route path="/konto" element={<AccountChoice />} />
+        <Route path="/logga-in" element={<LoginForm />} />
+        <Route path="/registrera" element={<RegisterForm />} />
+      </Routes>
       <ApiStatus />
-    </div>
+    </>
   )
 }
 
