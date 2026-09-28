@@ -10,6 +10,22 @@ cp .env.example .env  # fyll i DATABASE_URL (och ev. CORS_ORIGINS)
 uvicorn app.main:app --reload
 ```
 
+## Testa databasanslutningen
+
+Efter att `uvicorn` kör:
+
+- `http://127.0.0.1:8000/health` — kollar bara att appen svarar, ingen databas inblandad.
+- `http://127.0.0.1:8000/health/db` — kör en enkel fråga mot Neon via `DATABASE_URL`. Ska ge `{"status":"ok"}`.
+- `http://127.0.0.1:8000/docs` — interaktiv API-dokumentation där du kan testa båda direkt i webbläsaren.
+
+**Om `/health/db` hänger eller får timeout**: vissa nätverk (skol-/jobb-wifi, campus-nät) blockerar utgående trafik på databasporten 5432. Testa på ett annat nätverk (t.ex. mobil hotspot) innan du felsöker koden eller `.env`. För att isolera om det är ett nätverksproblem:
+
+```
+nc -zv -G 5 <ditt-neon-värdnamn-pooler> 5432
+```
+
+Svarar den `Connection ... succeeded!` är nätverket okej. Hänger den eller ger timeout, är det nätverket som blockerar, inte koden.
+
 ## Databasmigrationer (Alembic)
 
 Kör en gång mot Neon-databasen innan första migrationen:
