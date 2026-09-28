@@ -11,8 +11,8 @@ function Home() {
         <p className="tagline">Vi antecknar, ni träffas.</p>
       </header>
       <ProblemStatement />
-      <Link to="/om" className="info-link">
-        Läs mer om tjänsten
+      <Link to="/konto" className="info-link">
+        Logga in eller registrera dig
       </Link>
       <section className="map-section">
         <img
@@ -21,6 +21,9 @@ function Home() {
           className="map-image"
         />
       </section>
+      <Link to="/om" className="info-link">
+        Läs mer om tjänsten
+      </Link>
     </div>
   )
 }
