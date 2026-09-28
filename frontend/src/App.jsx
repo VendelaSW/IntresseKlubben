@@ -1,6 +1,7 @@
 import logo from './assets/intresseklubben.png'
 import mapImage from './assets/map.jpg'
 import ProblemStatement from './components/ProblemStatement'
+import ApiStatus from './components/ApiStatus'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           className="map-image"
         />
       </section>
+      <ApiStatus />
     </div>
   )
 }
