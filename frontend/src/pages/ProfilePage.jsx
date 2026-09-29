@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import HomeLink from '../components/HomeLink'
+import ProfileInterests from '../components/ProfileInterests'
 import { GENDER_OPTIONS, genderLabel, getProfile, updateProfile } from '../services/profile'
 
 // Dagens datum som YYYY-MM-DD i lokal tid (toISOString ger UTC och kan
@@ -121,6 +122,8 @@ function ProfilePage() {
             ))}
           </select>
 
+          <ProfileInterests />
+
           {formError && <p className="form-error">{formError}</p>}
 
           <button type="submit" disabled={saving}>
@@ -148,6 +151,7 @@ function ProfilePage() {
         <dt>Kön</dt>
         <dd>{genderLabel(profile.gender) ?? '–'}</dd>
       </dl>
+      <ProfileInterests />
       <button type="button" className="banner-button" onClick={startEditing}>
         Redigera profil
       </button>
