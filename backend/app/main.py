@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.contacts import router as contacts_router
 from app.api.routes.health import router as health_router
+from app.api.routes.municipalities import router as municipalities_router
+from app.api.routes.profile import router as profile_router
+from app.api.routes.user import router as user_router
 from app.core.config import settings
 
 app = FastAPI(title="Intresseklubben API")
