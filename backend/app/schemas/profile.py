@@ -1,6 +1,6 @@
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, field_validator
 
 from app.models.profile import GenderEnum
 
@@ -32,7 +32,8 @@ class ProfileUpdate(BaseModel):
 
 class ProfileResponse(BaseModel):
     name: str | None
+    # Bara birth_date lagras. age räknas ut från den vid varje anrop och
+    # birth_date skickas med så att redigeringsformuläret kan förifyllas.
+    birth_date: date | None
     age: int | None
     gender: GenderEnum | None
-
-    model_config = ConfigDict(from_attributes=True)

@@ -21,6 +21,7 @@ def get_current_user():
 def _to_response(profile) -> ProfileResponse:
     return ProfileResponse(
         name=profile.name,
+        birth_date=profile.birth_date,
         age=calculate_age(profile.birth_date) if profile.birth_date else None,
         gender=profile.gender,
     )
