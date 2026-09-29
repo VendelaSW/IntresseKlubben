@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import HomeLink from '../components/HomeLink'
 import ProfileInterests from '../components/ProfileInterests'
-import { GENDER_OPTIONS, genderLabel, getProfile, updateProfile } from '../services/profile'
+import {
+  GENDER_OPTIONS,
+  genderLabel,
+  getMunicipalities,
+  getProfile,
+  updateProfile,
+} from '../services/profile'
 
 // Dagens datum som YYYY-MM-DD i lokal tid (toISOString ger UTC och kan
 // visa fel dag runt midnatt).
@@ -15,17 +21,21 @@ function ProfilePage() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   const [editing, setEditing] = useState(false)
+  const [municipalities, setMunicipalities] = useState([])
 
   const [name, setName] = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [gender, setGender] = useState('')
+  const [municipalityCode, setMunicipalityCode] = useState('')
+  const [district, setDistrict] = useState('')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
 
   useEffect(() => {
-    getProfile()
-      .then((data) => {
+    Promise.all([getProfile(), getMunicipalities()])
+      .then(([data, list]) => {
         setProfile(data)
+        setMunicipalities(list)
         // Ingen profil än → visa formuläret direkt.
         setEditing(data === null)
         setStatus('ready')
@@ -37,6 +47,8 @@ function ProfilePage() {
     setName(profile?.name ?? '')
     setBirthDate(profile?.birth_date ?? '')
     setGender(profile?.gender ?? '')
+    setMunicipalityCode(profile?.municipality_code ?? '')
+    setDistrict(profile?.district ?? '')
     setFormError('')
     setEditing(true)
   }
@@ -50,6 +62,8 @@ function ProfilePage() {
     const data = { name }
     if (birthDate) data.birth_date = birthDate
     if (gender) data.gender = gender
+    if (municipalityCode) data.municipality_code = municipalityCode
+    if (district.trim()) data.district = district
 
     try {
       const saved = await updateProfile(data)
@@ -122,6 +136,29 @@ function ProfilePage() {
             ))}
           </select>
 
+          <label htmlFor="profile-municipality">Kommun</label>
+          <select
+            id="profile-municipality"
+            value={municipalityCode}
+            onChange={(e) => setMunicipalityCode(e.target.value)}
+          >
+            <option value="">Välj...</option>
+            {municipalities.map((m) => (
+              <option key={m.code} value={m.code}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+
+          <label htmlFor="profile-district">Stadsdel</label>
+          <input
+            id="profile-district"
+            type="text"
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+            maxLength={100}
+          />
+
           <ProfileInterests />
 
           {formError && <p className="form-error">{formError}</p>}
@@ -150,6 +187,10 @@ function ProfilePage() {
         <dd>{profile.age ?? '–'}</dd>
         <dt>Kön</dt>
         <dd>{genderLabel(profile.gender) ?? '–'}</dd>
+        <dt>Kommun</dt>
+        <dd>{profile.municipality_name ?? '–'}</dd>
+        <dt>Stadsdel</dt>
+        <dd>{profile.district ?? '–'}</dd>
       </dl>
       <ProfileInterests />
       <button type="button" className="banner-button" onClick={startEditing}>
