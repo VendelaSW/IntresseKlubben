@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import HomeLink from '../components/HomeLink'
 
 function RegisterForm() {
   const [name, setName] = useState('')
@@ -13,6 +14,7 @@ function RegisterForm() {
 
   return (
     <div className="page">
+      <HomeLink />
       <h1>Registrera dig</h1>
       <form className="auth-form" onSubmit={handleSubmit}>
         <label htmlFor="register-name">Namn</label>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import HomeLink from '../components/HomeLink'
 
 function LoginForm() {
   const [email, setEmail] = useState('')
@@ -12,6 +13,7 @@ function LoginForm() {
 
   return (
     <div className="page">
+      <HomeLink />
       <h1>Logga in</h1>
       <form className="auth-form" onSubmit={handleSubmit}>
         <label htmlFor="login-email">E-post</label>

@@ -1,9 +1,16 @@
+import { Link } from 'react-router-dom'
 import DirectionTeaser from '../components/DirectionTeaser'
+import HomeLink from '../components/HomeLink'
+import logo from '../assets/intresseklubben.png'
 
 function ServiceInfo() {
   return (
-    <div className="page">
-      <h1>Om IntresseKlubben</h1>
+    <div className="page service-page">
+      <HomeLink />
+      <Link to="/" className="service-logo-link">
+        <img src={logo} alt="Intresseklubben" className="logo-small" />
+      </Link>
+      <h1 className="service-heading">Om IntresseKlubben</h1>
       <p className="problem-statement">
         Intresseklubben hjälper dig hitta andra som delar exakt ditt intresse,
         oavsett om det är dykning, keramik eller brädspel. Du skapar en profil,
