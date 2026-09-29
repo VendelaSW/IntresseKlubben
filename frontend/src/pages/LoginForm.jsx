@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import HomeLink from '../components/HomeLink'
 
 function LoginForm() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
 
   function handleSubmit(event) {
@@ -16,12 +16,12 @@ function LoginForm() {
       <HomeLink />
       <h1>Logga in</h1>
       <form className="auth-form" onSubmit={handleSubmit}>
-        <label htmlFor="login-email">E-post</label>
+        <label htmlFor="login-username">Användarnamn</label>
         <input
-          id="login-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          id="login-username"
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           required
         />
 

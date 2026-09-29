@@ -34,10 +34,22 @@ export function apiGet(path) {
   return request(path)
 }
 
+export function apiPost(path, data) {
+  return request(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
+
 export function apiPatch(path, data) {
   return request(path, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
+}
+
+export function registerUser(username, password) {
+  return apiPost('/users/register', { username, password })
 }
