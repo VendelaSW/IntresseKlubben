@@ -22,6 +22,14 @@ export async function getProfile() {
   }
 }
 
+const swedishOrder = new Intl.Collator('sv')
+
+// Alla 290 kommuner, sorterade i svensk ordning (å, ä, ö sist).
+export async function getMunicipalities() {
+  const list = await apiGet('/municipalities/')
+  return list.sort((a, b) => swedishOrder.compare(a.name, b.name))
+}
+
 export function updateProfile(data) {
   return apiPatch('/profile/', data)
 }

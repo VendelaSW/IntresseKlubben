@@ -25,7 +25,8 @@ class Profile(Base):
     gender = Column(Enum(GenderEnum), nullable=True)
     profile_text = Column(Text, nullable=True)
     profile_image_url = Column(String, nullable=True)
-    city = Column(String, nullable=True)
+    municipality_code = Column(String(4), ForeignKey("municipalities.code"), nullable=True)
     district = Column(String, nullable=True)
 
     user = relationship("User", back_populates="profile")
+    municipality = relationship("Municipality")
