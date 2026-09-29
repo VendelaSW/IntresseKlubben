@@ -29,6 +29,10 @@ def update_profile(db: Session, user_id: int, data: ProfileUpdate) -> Profile:
         profile.birth_date = data.birth_date
     if data.gender is not None:
         profile.gender = data.gender
+    if data.municipality_code is not None:
+        profile.municipality_code = data.municipality_code
+    if data.district is not None:
+        profile.district = data.district
 
     db.commit()
     db.refresh(profile)
