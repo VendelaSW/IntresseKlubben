@@ -41,3 +41,11 @@ export function apiPatch(path, data) {
     body: JSON.stringify(data),
   })
 }
+
+export function apiPut(path) {
+  return request(path, { method: 'PUT' })
+}
+
+export function apiDelete(path) {
+  return request(path, { method: 'DELETE' })
+}
