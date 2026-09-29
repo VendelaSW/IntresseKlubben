@@ -9,6 +9,9 @@ class ProfileUpdate(BaseModel):
     name: str | None = None
     birth_date: date | None = None
     gender: GenderEnum | None = None
+    # SCB-kod från /municipalities/. Att koden finns kontrolleras i routen.
+    municipality_code: str | None = None
+    district: str | None = None
 
     @field_validator("name")
     @classmethod
@@ -29,6 +32,18 @@ class ProfileUpdate(BaseModel):
             raise ValueError("Födelsedatum kan inte vara i framtiden")
         return v
 
+    @field_validator("district")
+    @classmethod
+    def district_not_empty_or_too_long(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip()
+        if len(v) == 0:
+            raise ValueError("Stadsdel får inte vara tom")
+        if len(v) > 100:
+            raise ValueError("Stadsdel får max vara 100 tecken")
+        return v
+
 
 class ProfileResponse(BaseModel):
     name: str | None
@@ -37,3 +52,6 @@ class ProfileResponse(BaseModel):
     birth_date: date | None
     age: int | None
     gender: GenderEnum | None
+    municipality_code: str | None
+    municipality_name: str | None
+    district: str | None
