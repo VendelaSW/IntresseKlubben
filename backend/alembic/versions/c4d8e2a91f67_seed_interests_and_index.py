@@ -1,7 +1,7 @@
 """seed interests, index user_interests.interest_id
 
 Revision ID: c4d8e2a91f67
-Revises: a3f1c9d27e54
+Revises: b7e2d4f81c30
 Create Date: 2026-09-29 20:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'c4d8e2a91f67'
-down_revision = 'a3f1c9d27e54'
+down_revision = 'b7e2d4f81c30'
 branch_labels = None
 depends_on = None
 
