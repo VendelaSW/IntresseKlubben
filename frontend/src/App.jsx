@@ -4,6 +4,7 @@ import ServiceInfo from './pages/ServiceInfo'
 import AccountChoice from './pages/AccountChoice'
 import LoginForm from './pages/LoginForm'
 import RegisterForm from './pages/RegisterForm'
+import StyleGuide from './pages/StyleGuide'
 import ApiStatus from './components/ApiStatus'
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/konto" element={<AccountChoice />} />
         <Route path="/logga-in" element={<LoginForm />} />
         <Route path="/registrera" element={<RegisterForm />} />
+        <Route path="/stilguide" element={<StyleGuide />} />
       </Routes>
       <ApiStatus />
     </>
