@@ -354,6 +354,30 @@ button.banner-button {
   margin: 0;
 }
 
+.profile-interests {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 320px;
+  text-align: left;
+}
+
+/* Taggar som bara visas (InterestTags) går inte att klicka på, så de ska
+   varken ha klickmarkör eller stilguidens hover-effekter. */
+span.tag {
+  cursor: default;
+}
+
+span.tag:hover {
+  opacity: 1;
+  border-color: var(--color-line);
+}
+
+span.tag-selected:hover {
+  border-color: var(--color-accent);
+}
+
 .home-link {
   position: absolute;
   top: 1.5rem;

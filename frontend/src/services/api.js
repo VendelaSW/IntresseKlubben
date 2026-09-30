@@ -50,6 +50,14 @@ export function apiPatch(path, data) {
   })
 }
 
+export function apiPut(path) {
+  return request(path, { method: 'PUT' })
+}
+
+export function apiDelete(path) {
+  return request(path, { method: 'DELETE' })
+}
+
 export function registerUser(username, password) {
   return apiPost('/users/register', { username, password })
 }

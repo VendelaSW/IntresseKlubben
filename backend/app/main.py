@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import app.models  # noqa: F401 — laddar alla modeller innan något frågar databasen
 from app.api.routes.health import router as health_router
+from app.api.routes.interests import router as interests_router
 from app.api.routes.municipalities import router as municipalities_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.user import router as user_router
@@ -20,5 +21,6 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(profile_router)
+app.include_router(interests_router)
 app.include_router(user_router)
 app.include_router(municipalities_router)
