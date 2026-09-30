@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import HomeLink from '../components/HomeLink'
+import InterestPicker from '../components/InterestPicker'
+import InterestTags from '../components/InterestTags'
 import { imageToWebp } from '../services/imageToWebp'
+import { addInterest, getAllInterests, getMyInterests, removeInterest } from '../services/interests'
 import {
   GENDER_OPTIONS,
   genderLabel,
@@ -114,12 +117,16 @@ function ProfilePage() {
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   const [editing, setEditing] = useState(false)
   const [municipalities, setMunicipalities] = useState([])
+  const [allInterests, setAllInterests] = useState([])
+  const [myInterests, setMyInterests] = useState([])
 
   const [name, setName] = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [gender, setGender] = useState('')
   const [municipalityCode, setMunicipalityCode] = useState('')
   const [district, setDistrict] = useState('')
+  // Valda intressen i formuläret. Sparas först när man trycker Spara.
+  const [draftInterests, setDraftInterests] = useState([])
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
   // Bild vald i "Skapa din profil", laddas upp efter att profilen sparats.
@@ -127,10 +134,13 @@ function ProfilePage() {
   const [imageNotice, setImageNotice] = useState('')
 
   useEffect(() => {
-    Promise.all([getProfile(), getMunicipalities()])
-      .then(([data, list]) => {
+    Promise.all([getProfile(), getMunicipalities(), getAllInterests(), getMyInterests()])
+      .then(([data, list, all, mine]) => {
         setProfile(data)
         setMunicipalities(list)
+        setAllInterests(all)
+        setMyInterests(mine)
+        setDraftInterests(mine)
         // Ingen profil än → visa formuläret direkt.
         setEditing(data === null)
         setStatus('ready')
@@ -144,8 +154,27 @@ function ProfilePage() {
     setGender(profile?.gender ?? '')
     setMunicipalityCode(profile?.municipality_code ?? '')
     setDistrict(profile?.district ?? '')
+    setDraftInterests(myInterests)
     setFormError('')
     setEditing(true)
+  }
+
+  function toggleInterest(id, add) {
+    setDraftInterests((current) =>
+      add ? [...current, allInterests.find((i) => i.id === id)] : current.filter((i) => i.id !== id),
+    )
+  }
+
+  // Skickar bara skillnaden mot det som redan är sparat.
+  async function saveInterests() {
+    const savedIds = new Set(myInterests.map((i) => i.id))
+    const draftIds = new Set(draftInterests.map((i) => i.id))
+    await Promise.all([
+      ...draftInterests.filter((i) => !savedIds.has(i.id)).map((i) => addInterest(i.id)),
+      ...myInterests.filter((i) => !draftIds.has(i.id)).map((i) => removeInterest(i.id)),
+    ])
+    // allInterests är sorterad på namn, så listan behåller samma ordning.
+    setMyInterests(allInterests.filter((i) => draftIds.has(i.id)))
   }
 
   async function handleSubmit(event) {
@@ -160,6 +189,7 @@ function ProfilePage() {
     if (municipalityCode) data.municipality_code = municipalityCode
     if (district.trim()) data.district = district
 
+    // 1. Profilen. Misslyckas den sparas inget annat heller.
     let saved
     try {
       saved = await updateProfile(data)
@@ -169,8 +199,8 @@ function ProfilePage() {
       return
     }
 
-    // Profilen finns nu, så en bild vald i "Skapa din profil" kan laddas upp.
-    // Misslyckas det är profilen ändå sparad, och bilden kan läggas till igen.
+    // 2. Profilen finns nu, så en bild vald i "Skapa din profil" kan laddas upp.
+    //    Misslyckas det är profilen ändå sparad, och bilden kan läggas till igen.
     setImageNotice('')
     if (pendingImage) {
       try {
@@ -180,8 +210,17 @@ function ProfilePage() {
       }
       setPendingImage(null)
     }
-
     setProfile(saved)
+
+    // 3. Intressena. Misslyckas de stannar formuläret kvar så att man kan försöka igen.
+    try {
+      await saveInterests()
+    } catch (err) {
+      setFormError(err.message)
+      setSaving(false)
+      return
+    }
+
     setEditing(false)
     setSaving(false)
   }
@@ -276,6 +315,12 @@ function ProfilePage() {
             maxLength={100}
           />
 
+          <section className="profile-interests">
+            <h2>Intressen</h2>
+            <p className="hint-text">Klicka för att välja.</p>
+            <InterestPicker allInterests={allInterests} selected={draftInterests} onToggle={toggleInterest} />
+          </section>
+
           {formError && <p className="form-error">{formError}</p>}
 
           <button type="submit" disabled={saving}>
@@ -315,6 +360,14 @@ function ProfilePage() {
         <dt>Stadsdel</dt>
         <dd>{profile.district ?? '–'}</dd>
       </dl>
+      <section className="profile-interests">
+        <h2>Intressen</h2>
+        {myInterests.length > 0 ? (
+          <InterestTags interests={myInterests} />
+        ) : (
+          <p className="hint-text">Inga intressen valda än.</p>
+        )}
+      </section>
       <button type="button" className="banner-button" onClick={startEditing}>
         Redigera profil
       </button>

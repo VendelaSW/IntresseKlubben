@@ -50,7 +50,10 @@ export function apiPatch(path, data) {
   })
 }
 
+// data är valfri: utan data skickas ingen body (t.ex. PUT /profile/interests/5),
+// med data skickas den som JSON (t.ex. PUT /profile/image med { key }).
 export function apiPut(path, data) {
+  if (data === undefined) return request(path, { method: 'PUT' })
   return request(path, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -58,6 +61,14 @@ export function apiPut(path, data) {
   })
 }
 
+export function apiDelete(path) {
+  return request(path, { method: 'DELETE' })
+}
+
 export function registerUser(username, password) {
   return apiPost('/users/register', { username, password })
+}
+
+export function loginUser(username, password) {
+  return apiPost('/users/login', { username, password })
 }
