@@ -4,3 +4,5 @@
 pytest
 pytest-cov
 httpx2
+# Fejkad S3 i minnet, så att bildtesterna aldrig rör den riktiga bucketen.
+moto[s3]

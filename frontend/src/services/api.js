@@ -50,8 +50,15 @@ export function apiPatch(path, data) {
   })
 }
 
-export function apiPut(path) {
-  return request(path, { method: 'PUT' })
+// data är valfri: utan data skickas ingen body (t.ex. PUT /profile/interests/5),
+// med data skickas den som JSON (t.ex. PUT /profile/image med { key }).
+export function apiPut(path, data) {
+  if (data === undefined) return request(path, { method: 'PUT' })
+  return request(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
 }
 
 export function apiDelete(path) {

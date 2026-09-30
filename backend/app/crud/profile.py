@@ -37,3 +37,12 @@ def update_profile(db: Session, user_id: int, data: ProfileUpdate) -> Profile:
     db.commit()
     db.refresh(profile)
     return profile
+
+
+def set_profile_image(db: Session, profile: Profile, key: str) -> str | None:
+    """Sparar nya bildens nyckel i bucketen och returnerar den gamla (om någon)."""
+    old_key = profile.profile_image_url
+    profile.profile_image_url = key
+    db.commit()
+    db.refresh(profile)
+    return old_key

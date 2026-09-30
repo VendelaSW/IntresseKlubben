@@ -829,3 +829,54 @@ span.tag-selected:hover {
     width: auto;
   }
 }
+
+/* ---------- Profilbild ---------- */
+
+.profile-image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-avatar {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-line);
+  background: var(--color-white);
+}
+
+.profile-avatar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 3.5rem;
+  font-weight: 700;
+  background: var(--color-line);
+}
+
+.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Döljer ett element visuellt men låter skärmläsare och tangentbord nå det. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.profile-image label:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

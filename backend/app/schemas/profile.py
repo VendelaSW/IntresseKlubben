@@ -55,3 +55,15 @@ class ProfileResponse(BaseModel):
     municipality_code: str | None
     municipality_name: str | None
     district: str | None
+    image_url: str | None
+
+
+class ProfileImageUploadUrl(BaseModel):
+    # Länk som webbläsaren laddar upp bilden till direkt (PUT, giltig i 5 min).
+    upload_url: str
+    # Filens namn i bucketen. Skickas tillbaka till PUT /profile/image efteråt.
+    key: str
+
+
+class ProfileImageConfirm(BaseModel):
+    key: str
