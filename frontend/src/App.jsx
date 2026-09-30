@@ -5,6 +5,7 @@ import AccountChoice from './pages/AccountChoice'
 import LoginForm from './pages/LoginForm'
 import RegisterForm from './pages/RegisterForm'
 import StyleGuide from './pages/StyleGuide'
+import ProfilePage from './pages/ProfilePage'
 import ApiStatus from './components/ApiStatus'
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <Route path="/logga-in" element={<LoginForm />} />
         <Route path="/registrera" element={<RegisterForm />} />
         <Route path="/stilguide" element={<StyleGuide />} />
+        <Route path="/profil" element={<ProfilePage />} />
       </Routes>
       <ApiStatus />
     </>
