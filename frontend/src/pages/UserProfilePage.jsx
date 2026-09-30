@@ -6,19 +6,19 @@ import { getUserProfile } from '../services/profile'
 // Visar en annan användares profil, skrivskyddat. Ingen redigering och
 // ingen bilduppladdning här - det är bara ägaren som kan ändra sin profil.
 function UserProfilePage() {
-  const { id } = useParams()
+  const { username } = useParams()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'not-found' | 'error'
   const [profile, setProfile] = useState(null)
 
   useEffect(() => {
     setStatus('loading')
-    getUserProfile(id)
+    getUserProfile(username)
       .then((data) => {
         setProfile(data)
         setStatus(data === null ? 'not-found' : 'ready')
       })
       .catch(() => setStatus('error'))
-  }, [id])
+  }, [username])
 
   if (status === 'loading') {
     return (

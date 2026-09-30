@@ -12,7 +12,8 @@ användarnamnet eller lösenordet som var fel (standard säkerhetspraxis).
 
 GET /users/me - den inloggade användaren (kräver token).
 
-GET /users/{user_id}/profile - visar en annan användares profil,
+GET /users/{username}/profile - visar en annan användares profil
+via användarnamn (inte id, så adressen går att dela/komma ihåg),
 skrivskyddat. Kräver inloggning, precis som resten av profil- och
 intresse-anropen. Återanvänder samma profildata och format som
 /profile/ (min egen profil).
@@ -64,13 +65,14 @@ def read_current_user(current_user: User = Depends(get_current_user)) -> UserOut
     return current_user
 
 
-@router.get("/{user_id}/profile", response_model=ProfileResponse)
+@router.get("/{username}/profile", response_model=ProfileResponse)
 def read_user_profile(
-    user_id: int,
+    username: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ProfileResponse:
-    profile = get_profile(db, user_id)
+    user = get_user_by_username(db, username)
+    profile = get_profile(db, user.id) if user else None
     if profile is None:
         raise HTTPException(status_code=404, detail="Ingen profil hittad")
     return _to_response(profile)

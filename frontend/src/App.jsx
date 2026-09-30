@@ -27,7 +27,7 @@ function App() {
         <Route path="/registrera" element={<RegisterForm />} />
         <Route path="/stilguide" element={<StyleGuide />} />
         <Route path="/profil" element={<ProfilePage />} />
-        <Route path="/anvandare/:id" element={<UserProfilePage />} />
+        <Route path="/anvandare/:username" element={<UserProfilePage />} />
 
         {/* Klickbar prototyp med påhittad data, rör inte backend. */}
         <Route path="/demo" element={<DemoLayout />}>
