@@ -321,9 +321,19 @@ button.banner-button {
   text-align: left;
 }
 
-/* Taggar som bara visas (InterestTags) går inte att klicka på. */
+/* Taggar som bara visas (InterestTags) går inte att klicka på, så de ska
+   varken ha klickmarkör eller stilguidens hover-effekter. */
 span.tag {
   cursor: default;
+}
+
+span.tag:hover {
+  opacity: 1;
+  border-color: var(--color-line);
+}
+
+span.tag-selected:hover {
+  border-color: var(--color-accent);
 }
 
 .home-link {
