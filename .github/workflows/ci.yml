@@ -1,0 +1,53 @@
+# Körs på varje pull request mot dev/main och på varje push till dev.
+# Rör aldrig Neon eller den riktiga bucketen: backend-testerna använder en
+# SQLite-databas i minnet (se backend/tests/conftest.py). Inga hemligheter behövs.
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+
+jobs:
+  backend:
+    name: Backend-tester
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Installera beroenden
+        run: pip install -r requirements-dev.txt
+      # Inställningarna ligger i backend/pytest.ini, så `pytest` lokalt gör
+      # exakt samma sak som här. Täckningstabellen i loggen visar vilka rader
+      # som saknar tester, men fäller inte bygget.
+      - name: Kör tester
+        run: pytest
+
+  frontend:
+    name: Frontend-bygge
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Installera beroenden
+        run: npm ci
+      - name: Bygg
+        run: npm run build
+        env:
+          # Bygget kräver bara att variabeln finns, adressen används inte.
+          VITE_API_URL: http://localhost:8000
