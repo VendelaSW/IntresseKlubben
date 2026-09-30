@@ -61,3 +61,7 @@ export function apiDelete(path) {
 export function registerUser(username, password) {
   return apiPost('/users/register', { username, password })
 }
+
+export function loginUser(username, password) {
+  return apiPost('/users/login', { username, password })
+}
