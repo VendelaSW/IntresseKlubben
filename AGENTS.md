@@ -4,28 +4,23 @@
 
 ---
 
-## 1. Change Discipline & Execution Rules (HARD RULES)
+## 1. Scope & Confirmation (HARD RULE)
 
-* **Read Before Modifying:** Always read and understand relevant existing code before modifying or refactoring it.
-* **Minimal Scope:** Make the smallest change necessary to complete the requested task. Do not rewrite surrounding code or apply unsolicited formatting/styling changes.
-* **Protect Uncommitted Changes:** NEVER overwrite, discard, or modify existing uncommitted user changes in the working tree.
-* **Full Stack Alignment:** When changing backend API endpoints or database schemas, verify that corresponding frontend API calls (`frontend/src/services/api.js`) remain compatible.
-* **No Unapproved Dependencies:** Do not update or add existing dependencies (`package.json`, `requirements.txt`) without explicit human approval.
-* **Clarify Ambiguity:** If prompt requirements are ambiguous or incomplete, ask for clarification rather than making assumptions.
-
----
-
-## 2. Scope & Confirmation Thresholds
-
-You **MUST** pause and request explicit user confirmation before executing changes if your plan involves:
+Before executing any code modifications, you **MUST** pause and ask for human confirmation if your proposed solution involves any of the following:
 
 1. **Large Changes:** Modifications affecting **more than 3 files**.
-2. **Database Schema Modifications:** Any changes affecting database models or Alembic migrations.
-3. **Destructive Operations:** Deleting files, modifying `.env` configs, or running database resets.
+2. **Out-of-Scope Changes:** Unrequested refactoring, style tweaks, or edits to unrelated modules.
+3. **New Dependencies:** Adding packages to `backend/requirements.txt` or `frontend/package.json`.
+4. **Database Schema Modifications:** Any changes affecting database models or Alembic migrations.
+
+**Process for Major Changes:**
+* Present a brief bullet-point summary (which files you intend to change and why).
+* Ask: *"Would you like me to proceed with these changes?"*
+* **Wait for explicit user approval** before editing files.
 
 ---
 
-## 3. Repository Structure & Context
+## 2. Repository Structure & Context
 
 This project is a monorepo deployed as two separate Vercel projects:
 
@@ -35,6 +30,15 @@ This project is a monorepo deployed as two separate Vercel projects:
 **Strict Rules for File Placement:**
 * Backend code belongs **exclusively** inside `backend/app/` (routes in `api/routes/`, DB models in `models/`, schemas in `schemas/`).
 * Frontend code belongs **exclusively** inside `frontend/src/` (components in `components/`, pages in `pages/`, API calls in `services/api.js`).
+* Do **not** create top-level files outside `backend/` or `frontend/` unless explicitly instructed.
+
+---
+
+## 3. Database & Secret Safety Rules
+
+* **DO NOT MODIFY `.env` OR SECRETS:** Never overwrite or expose `.env`, `.env.example`, or connection strings.
+* **NO AUTOMATIC MIGRATIONS:** Do **not** generate or run Alembic migration commands (`alembic revision`, `alembic upgrade`) automatically without user consent.
+* Database connections must preserve `pool_pre_ping=True` in `session.py` to remain serverless-compatible.
 
 ---
 
@@ -50,14 +54,14 @@ This project is a monorepo deployed as two separate Vercel projects:
 
 Before declaring a task "Done", you must verify:
 
-- [ ] **No Execution Errors:** Python backend runs cleanly without syntax/lint errors.
-- [ ] **No Build Errors:** Frontend builds pass cleanly (`frontend/` Vite check).
+- [ ] **No Execution Errors:** Python files pass linting/syntax checks (`pytest` or local run passes if applicable).
+- [ ] **No Build Errors:** Frontend builds pass without broken imports or Vite errors.
 - [ ] **Clean Code:** No leftover `console.log`, `print()` debugging statements, or temporary scratch files.
-- [ ] **Full Stack Verified:** Backend endpoint changes match frontend API client expectations.
+- [ ] **Scope respected:** No files outside the requested task were modified.
 
 ---
 
 ## 6. Agent Reading Verification Test
 
 If the user asks you to *"Confirm that you have read AGENTS.md"*, respond with:
-> *"I have read AGENTS.md. I will follow Change Discipline, protect uncommitted changes, preserve backend/frontend endpoint compatibility, and ask for approval before touching database migrations or modifying more than 3 files."*
+> *"I have read AGENTS.md. I will ask for approval before touching database migrations, adding dependencies, or modifying more than 3 files. I will never commit directly to main."*

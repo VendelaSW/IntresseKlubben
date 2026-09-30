@@ -24,8 +24,7 @@ class ContactRoutesTest(unittest.TestCase):
         Base.metadata.create_all(self.engine)
         self.db = Session(self.engine)
         self.db.add_all([
-            User(id=user_id, username=f"user{user_id}", password_hash="unused",
-                 display_name=f"User {user_id}")
+            User(id=user_id, username=f"user{user_id}", password_hash="unused")
             for user_id in (1, 2, 3)
         ])
         self.db.commit()
