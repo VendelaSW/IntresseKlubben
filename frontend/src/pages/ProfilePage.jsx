@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import HomeLink from '../components/HomeLink'
+import { imageToWebp } from '../services/imageToWebp'
 import {
   GENDER_OPTIONS,
   genderLabel,
   getMunicipalities,
   getProfile,
   updateProfile,
+  uploadProfileImage,
+  uploadProfileWebp,
 } from '../services/profile'
 
 // Dagens datum som YYYY-MM-DD i lokal tid (toISOString ger UTC och kan
@@ -14,6 +17,96 @@ function todayString() {
   const d = new Date()
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+function ProfileImage({ profile, onUploaded }) {
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleFile(event) {
+    const file = event.target.files[0]
+    // Nollställ så att samma fil kan väljas igen efter ett fel.
+    event.target.value = ''
+    if (!file) return
+    setUploading(true)
+    setError('')
+    try {
+      onUploaded(await uploadProfileImage(file))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const initial = profile.name?.trim()?.[0]?.toUpperCase() ?? '?'
+  return (
+    <div className="profile-image">
+      {profile.image_url ? (
+        <img src={profile.image_url} alt={`Profilbild för ${profile.name ?? 'dig'}`} className="profile-avatar" />
+      ) : (
+        <div className="profile-avatar profile-avatar-empty" aria-hidden="true">
+          {initial}
+        </div>
+      )}
+      <label className={`secondary-button${uploading ? ' is-disabled' : ''}`}>
+        {uploading ? 'Laddar upp...' : profile.image_url ? 'Byt bild' : 'Lägg till bild'}
+        <input
+          type="file"
+          accept="image/*"
+          className="visually-hidden"
+          onChange={handleFile}
+          disabled={uploading}
+        />
+      </label>
+      {error && <p className="form-error">{error}</p>}
+    </div>
+  )
+}
+
+// Bildväljare för "Skapa din profil". Profilen finns inte än, så bilden görs
+// om till WebP direkt men laddas upp först när formuläret sparas.
+function NewProfileImage({ name, image, onChange }) {
+  const [preview, setPreview] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!image) return undefined
+    const url = URL.createObjectURL(image)
+    setPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [image])
+
+  async function handleFile(event) {
+    const file = event.target.files[0]
+    event.target.value = ''
+    if (!file) return
+    setError('')
+    try {
+      onChange(await imageToWebp(file))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const initial = name.trim()[0]?.toUpperCase() ?? '?'
+  return (
+    <div className="profile-image">
+      {image && preview ? (
+        <img src={preview} alt="Förhandsvisning av din profilbild" className="profile-avatar" />
+      ) : (
+        <div className="profile-avatar profile-avatar-empty" aria-hidden="true">
+          {initial}
+        </div>
+      )}
+      <label className="secondary-button">
+        {image ? 'Byt bild' : 'Lägg till bild'}
+        <input type="file" accept="image/*" className="visually-hidden" onChange={handleFile} />
+      </label>
+      {image && <p className="hint-text">Bilden laddas upp när du sparar profilen.</p>}
+      {error && <p className="form-error">{error}</p>}
+    </div>
+  )
 }
 
 function ProfilePage() {
@@ -29,6 +122,9 @@ function ProfilePage() {
   const [district, setDistrict] = useState('')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
+  // Bild vald i "Skapa din profil", laddas upp efter att profilen sparats.
+  const [pendingImage, setPendingImage] = useState(null)
+  const [imageNotice, setImageNotice] = useState('')
 
   useEffect(() => {
     Promise.all([getProfile(), getMunicipalities()])
@@ -64,15 +160,30 @@ function ProfilePage() {
     if (municipalityCode) data.municipality_code = municipalityCode
     if (district.trim()) data.district = district
 
+    let saved
     try {
-      const saved = await updateProfile(data)
-      setProfile(saved)
-      setEditing(false)
+      saved = await updateProfile(data)
     } catch (err) {
       setFormError(err.message)
-    } finally {
       setSaving(false)
+      return
     }
+
+    // Profilen finns nu, så en bild vald i "Skapa din profil" kan laddas upp.
+    // Misslyckas det är profilen ändå sparad, och bilden kan läggas till igen.
+    setImageNotice('')
+    if (pendingImage) {
+      try {
+        saved = await uploadProfileWebp(pendingImage)
+      } catch (err) {
+        setImageNotice(`Profilen sparades, men bilden kunde inte laddas upp: ${err.message}`)
+      }
+      setPendingImage(null)
+    }
+
+    setProfile(saved)
+    setEditing(false)
+    setSaving(false)
   }
 
   if (status === 'loading') {
@@ -104,6 +215,13 @@ function ProfilePage() {
           <p className="profile-intro">
             Berätta lite om dig själv så att andra i klubben vet vem du är.
           </p>
+        )}
+        {/* Befintlig profil: bilden sparas direkt, oberoende av Spara-knappen.
+            Ny profil: bilden väntar och laddas upp efter att profilen sparats. */}
+        {isNew ? (
+          <NewProfileImage name={name} image={pendingImage} onChange={setPendingImage} />
+        ) : (
+          <ProfileImage profile={profile} onUploaded={setProfile} />
         )}
         <form className="auth-form" onSubmit={handleSubmit}>
           <label htmlFor="profile-name">Namn</label>
@@ -177,6 +295,14 @@ function ProfilePage() {
     <div className="page">
       <HomeLink />
       <h1>Min profil</h1>
+      {imageNotice && <p className="form-error">{imageNotice}</p>}
+      <ProfileImage
+        profile={profile}
+        onUploaded={(updated) => {
+          setImageNotice('')
+          setProfile(updated)
+        }}
+      />
       <dl className="profile-details">
         <dt>Namn</dt>
         <dd>{profile.name ?? '–'}</dd>

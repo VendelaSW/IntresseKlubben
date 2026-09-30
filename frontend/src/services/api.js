@@ -50,6 +50,14 @@ export function apiPatch(path, data) {
   })
 }
 
+export function apiPut(path, data) {
+  return request(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
+
 export function registerUser(username, password) {
   return apiPost('/users/register', { username, password })
 }
