@@ -1,26 +1,28 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import HomeLink from '../components/HomeLink'
 import { loginUser } from '../services/api'
+import { setToken } from '../services/auth'
 
 function LoginForm() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const navigate = useNavigate()
 
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
-    setSuccess(false)
     setSubmitting(true)
     try {
-      await loginUser(username, password)
-      setSuccess(true)
+      const { access_token } = await loginUser(username, password)
+      setToken(access_token)
+      // Profilsidan visar "Skapa din profil" om det inte finns någon profil
+      // än, annars "Min profil". Byts mot huvudsidan när den finns.
+      navigate('/profil')
     } catch (err) {
       setError(err.message)
-    } finally {
       setSubmitting(false)
     }
   }
@@ -49,7 +51,6 @@ function LoginForm() {
         />
 
         {error && <p className="form-error">{error}</p>}
-        {success && <p className="form-success">Inloggad!</p>}
 
         <button type="submit" disabled={submitting}>
           {submitting ? 'Loggar in…' : 'Logga in'}
