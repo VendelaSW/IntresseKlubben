@@ -526,3 +526,282 @@ button.banner-button {
 .tag-selected:focus-visible {
   opacity: 0.85;
 }
+
+/* ---------- Demo-flödet (/demo) ---------- */
+
+.demo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.35rem 1rem;
+  background: var(--color-line);
+  font-size: var(--text-small);
+  text-align: center;
+}
+
+.text-button {
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 700;
+  color: var(--color-text);
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--color-accent);
+  padding: 0 0 1px;
+  cursor: pointer;
+}
+
+.text-button:hover,
+.text-button:focus-visible {
+  opacity: 0.7;
+}
+
+.secondary-button {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--text-body);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.4rem 0.8rem;
+  border: 2px solid var(--color-line);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.secondary-button:hover,
+.secondary-button:focus-visible {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.tag-static {
+  cursor: default;
+}
+
+.tag-static:hover {
+  border-color: var(--color-line);
+}
+
+.tag-static.tag-selected:hover {
+  border-color: var(--color-accent);
+  opacity: 1;
+}
+
+/* Taggar inne i formulär ska inte ärva .auth-form-knappstilen. */
+.auth-form .tag {
+  font-size: var(--text-small);
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 0.3rem 0.8rem;
+  margin-top: 0;
+  border: 2px solid var(--color-line);
+  border-radius: 999px;
+  background: transparent;
+}
+
+.auth-form .tag-selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.demo-profile-form {
+  max-width: 480px;
+}
+
+.demo-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.demo-fieldset legend {
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+
+.status-pill {
+  display: inline-block;
+  font-size: var(--text-small);
+  font-weight: 700;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--color-bg);
+  border: 2px solid var(--color-line);
+}
+
+.status-pill-success {
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.card-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.demo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: none;
+  text-align: left;
+}
+
+.demo-card .card-title,
+.demo-card .card-subheading,
+.demo-card .card-avatar {
+  margin: 0;
+}
+
+/* Caveat med sidans radavstånd (1.6) ger stora glapp när långa namn radbryts. */
+.demo-card .card-title {
+  line-height: 1.1;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid var(--color-accent);
+}
+
+.app-brand {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.app-nav {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  order: 3;
+  width: 100%;
+}
+
+.app-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  text-decoration: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.app-nav-link:hover,
+.app-nav-link:focus-visible {
+  background: var(--color-white);
+}
+
+.app-nav-link.active {
+  background: var(--color-accent);
+}
+
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--color-text);
+  color: var(--color-white);
+  font-size: 0.75rem;
+}
+
+.app-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.app-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.app-title {
+  font-size: 3rem;
+  line-height: 1.1;
+}
+
+.section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.demo-create-form {
+  max-width: 480px;
+}
+
+.coming-soon {
+  align-items: flex-start;
+}
+
+@media (min-width: 900px) {
+  .app-nav {
+    order: 0;
+    width: auto;
+  }
+}
