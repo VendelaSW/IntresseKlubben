@@ -77,7 +77,9 @@ def test_unknown_interest_gives_404(client, user, interests, method):
         ("delete", "/profile/interests/1"),
     ],
 )
-def test_missing_user_gives_404(client, interests, method, path):
+def test_not_logged_in_gives_401(client, interests, method, path):
+    # Med riktig inloggning stoppas anropet redan av get_current_user, så
+    # "användaren finns inte" (tidigare 404) kan inte längre inträffa.
     response = getattr(client, method)(path)
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Användaren finns inte"
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Du är inte inloggad."

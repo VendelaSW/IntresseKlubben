@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-# from app.auth.security import get_current_user  # TODO: använd när E/F:s auth är klar
+from app.auth.security import get_current_user
 from app.core import storage
 from app.crud.profile import calculate_age, get_profile, set_profile_image, update_profile
 from app.db.session import get_db
@@ -14,15 +14,6 @@ from app.schemas.profile import (
 )
 
 router = APIRouter(prefix="/profile", tags=["profile"])
-
-
-# TEMPORÄR mock tills E/F:s inloggning finns. Alla anrop blir user 1.
-# Ta bort den här funktionen och avkommentera importen ovan innan merge.
-def get_current_user():
-    class FakeUser:
-        id = 1
-
-    return FakeUser()
 
 
 def _to_response(profile) -> ProfileResponse:

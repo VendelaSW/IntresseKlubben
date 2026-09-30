@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import HomeLink from '../components/HomeLink'
+import { clearToken, isLoggedIn } from '../services/auth'
 import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
 import { imageToWebp } from '../services/imageToWebp'
@@ -132,8 +134,15 @@ function ProfilePage() {
   // Bild vald i "Skapa din profil", laddas upp efter att profilen sparats.
   const [pendingImage, setPendingImage] = useState(null)
   const [imageNotice, setImageNotice] = useState('')
+  const navigate = useNavigate()
 
   useEffect(() => {
+    // Profilen hör till den inloggade användaren, så utan inloggning finns
+    // inget att visa.
+    if (!isLoggedIn()) {
+      navigate('/logga-in', { replace: true })
+      return
+    }
     Promise.all([getProfile(), getMunicipalities(), getAllInterests(), getMyInterests()])
       .then(([data, list, all, mine]) => {
         setProfile(data)
@@ -145,8 +154,17 @@ function ProfilePage() {
         setEditing(data === null)
         setStatus('ready')
       })
-      .catch(() => setStatus('error'))
-  }, [])
+      .catch((err) => {
+        // 401 = token ogiltig eller utgången (api.js har redan slängt den).
+        if (err.status === 401) navigate('/logga-in', { replace: true })
+        else setStatus('error')
+      })
+  }, [navigate])
+
+  function logout() {
+    clearToken()
+    navigate('/logga-in')
+  }
 
   function startEditing() {
     setName(profile?.name ?? '')
@@ -370,6 +388,9 @@ function ProfilePage() {
       </section>
       <button type="button" className="banner-button" onClick={startEditing}>
         Redigera profil
+      </button>
+      <button type="button" className="text-button" onClick={logout}>
+        Logga ut
       </button>
     </div>
   )

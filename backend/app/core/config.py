@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     aws_secret_access_key: str = ""
     aws_region: str = ""
 
+    # Hemlig nyckel som inloggningstoken signeras med (se app/auth/security.py).
+    # Lång slumpad sträng, olika i Preview och Production, aldrig i Git.
+    jwt_secret: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
