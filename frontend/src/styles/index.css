@@ -321,6 +321,11 @@ button.banner-button {
   text-align: left;
 }
 
+/* Taggar som bara visas (InterestTags) går inte att klicka på. */
+span.tag {
+  cursor: default;
+}
+
 .home-link {
   position: absolute;
   top: 1.5rem;

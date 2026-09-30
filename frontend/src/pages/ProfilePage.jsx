@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import HomeLink from '../components/HomeLink'
-import ProfileInterests from '../components/ProfileInterests'
+import InterestPicker from '../components/InterestPicker'
+import InterestTags from '../components/InterestTags'
+import { addInterest, getAllInterests, getMyInterests, removeInterest } from '../services/interests'
 import {
   GENDER_OPTIONS,
   genderLabel,
@@ -22,20 +24,27 @@ function ProfilePage() {
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   const [editing, setEditing] = useState(false)
   const [municipalities, setMunicipalities] = useState([])
+  const [allInterests, setAllInterests] = useState([])
+  const [myInterests, setMyInterests] = useState([])
 
   const [name, setName] = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [gender, setGender] = useState('')
   const [municipalityCode, setMunicipalityCode] = useState('')
   const [district, setDistrict] = useState('')
+  // Valda intressen i formuläret. Sparas först när man trycker Spara.
+  const [draftInterests, setDraftInterests] = useState([])
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
 
   useEffect(() => {
-    Promise.all([getProfile(), getMunicipalities()])
-      .then(([data, list]) => {
+    Promise.all([getProfile(), getMunicipalities(), getAllInterests(), getMyInterests()])
+      .then(([data, list, all, mine]) => {
         setProfile(data)
         setMunicipalities(list)
+        setAllInterests(all)
+        setMyInterests(mine)
+        setDraftInterests(mine)
         // Ingen profil än → visa formuläret direkt.
         setEditing(data === null)
         setStatus('ready')
@@ -49,8 +58,27 @@ function ProfilePage() {
     setGender(profile?.gender ?? '')
     setMunicipalityCode(profile?.municipality_code ?? '')
     setDistrict(profile?.district ?? '')
+    setDraftInterests(myInterests)
     setFormError('')
     setEditing(true)
+  }
+
+  function toggleInterest(id, add) {
+    setDraftInterests((current) =>
+      add ? [...current, allInterests.find((i) => i.id === id)] : current.filter((i) => i.id !== id),
+    )
+  }
+
+  // Skickar bara skillnaden mot det som redan är sparat.
+  async function saveInterests() {
+    const savedIds = new Set(myInterests.map((i) => i.id))
+    const draftIds = new Set(draftInterests.map((i) => i.id))
+    await Promise.all([
+      ...draftInterests.filter((i) => !savedIds.has(i.id)).map((i) => addInterest(i.id)),
+      ...myInterests.filter((i) => !draftIds.has(i.id)).map((i) => removeInterest(i.id)),
+    ])
+    // allInterests är sorterad på namn, så listan behåller samma ordning.
+    setMyInterests(allInterests.filter((i) => draftIds.has(i.id)))
   }
 
   async function handleSubmit(event) {
@@ -68,6 +96,7 @@ function ProfilePage() {
     try {
       const saved = await updateProfile(data)
       setProfile(saved)
+      await saveInterests()
       setEditing(false)
     } catch (err) {
       setFormError(err.message)
@@ -159,7 +188,11 @@ function ProfilePage() {
             maxLength={100}
           />
 
-          <ProfileInterests />
+          <section className="profile-interests">
+            <h2>Intressen</h2>
+            <p className="hint-text">Klicka för att välja.</p>
+            <InterestPicker allInterests={allInterests} selected={draftInterests} onToggle={toggleInterest} />
+          </section>
 
           {formError && <p className="form-error">{formError}</p>}
 
@@ -192,7 +225,14 @@ function ProfilePage() {
         <dt>Stadsdel</dt>
         <dd>{profile.district ?? '–'}</dd>
       </dl>
-      <ProfileInterests />
+      <section className="profile-interests">
+        <h2>Intressen</h2>
+        {myInterests.length > 0 ? (
+          <InterestTags interests={myInterests} />
+        ) : (
+          <p className="hint-text">Inga intressen valda än.</p>
+        )}
+      </section>
       <button type="button" className="banner-button" onClick={startEditing}>
         Redigera profil
       </button>
