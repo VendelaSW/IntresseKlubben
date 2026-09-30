@@ -7,6 +7,8 @@ const COLORS = [
   { name: '--color-line', hex: '#bfd7ed', label: 'Kantlinje' },
   { name: '--color-white', hex: '#ffffff', label: 'Vit (kort/boxar)' },
   { name: '--color-muted', hex: '#6b6b6b', label: 'Dämpad (platshållartext)' },
+  { name: '--color-success', hex: '#3b6d11', label: 'Success (bekräftelser)' },
+  { name: '--color-error', hex: '#a32d2d', label: 'Error (felmeddelanden)' },
 ]
 
 const SIZES = [
@@ -110,6 +112,18 @@ function StyleGuide() {
       </section>
 
       <section className="style-section">
+        <h2>Taggar</h2>
+        <p className="hint-text">
+          Kontur = ej vald, klicka för att välja. Fylld gul = vald, klicka igen för att ta bort.
+          Hovra med musen för att se de två extra hover-lägena, de syns inte i en stillbild.
+        </p>
+        <ul className="tags" style={{ marginTop: '1rem' }}>
+          <li><button type="button" className="tag">Ej vald</button></li>
+          <li><button type="button" className="tag tag-selected">Vald</button></li>
+        </ul>
+      </section>
+
+      <section className="style-section">
         <h2>Boxar</h2>
         <div className="card">
           <div className="card-avatar" />
@@ -124,8 +138,11 @@ function StyleGuide() {
         <form className="auth-form" onSubmit={(e) => e.preventDefault()}>
           <label htmlFor="style-guide-example">Exempel-fält</label>
           <input id="style-guide-example" type="text" placeholder="Skriv något..." />
+          <p className="hint-text">Hjälptext under ett fält, t.ex. "Minst 8 tecken".</p>
           <button type="submit">Skicka</button>
         </form>
+        <p className="status-success" style={{ marginTop: '1rem' }}>Sparat!</p>
+        <p className="status-error">Något gick fel, försök igen.</p>
       </section>
     </div>
   )
