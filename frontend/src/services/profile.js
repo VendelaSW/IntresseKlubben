@@ -35,6 +35,17 @@ export function updateProfile(data) {
   return apiPatch('/profile/', data)
 }
 
+// En annan användares profil, skrivskyddat. null om personen inte har
+// skapat någon profil än (samma 404-hantering som getProfile).
+export async function getUserProfile(userId) {
+  try {
+    return await apiGet(`/users/${userId}/profile`)
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null
+    throw err
+  }
+}
+
 // Profilbild: gör om till WebP, be backend om en uppladdningslänk, ladda upp
 // direkt till bucketen och bekräfta. Returnerar den uppdaterade profilen.
 export async function uploadProfileImage(file) {

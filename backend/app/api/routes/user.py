@@ -9,14 +9,21 @@ verifierar mot get_user_by_username + verify_password, returnerar
 UserOut vid korrekta uppgifter. Ger ett generiskt 401-fel annars -
 avslöjar medvetet inte om det var användarnamnet eller lösenordet
 som var fel (standard säkerhetspraxis).
+
+GET /users/{user_id}/profile - visar en annan användares profil,
+skrivskyddat. Återanvänder samma profildata och format som /profile/
+(min egen profil).
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.routes.profile import _to_response
 from app.auth.security import verify_password
+from app.crud.profile import get_profile
 from app.crud.user import UsernameTakenError, create_user, get_user_by_username
 from app.db.session import get_db
+from app.schemas.profile import ProfileResponse
 from app.schemas.user import UserCreate, UserLogin, UserOut
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -46,3 +53,11 @@ def login_user(credentials: UserLogin, db: Session = Depends(get_db)) -> UserOut
             detail="Fel användarnamn eller lösenord.",
         )
     return user
+
+
+@router.get("/{user_id}/profile", response_model=ProfileResponse)
+def read_user_profile(user_id: int, db: Session = Depends(get_db)) -> ProfileResponse:
+    profile = get_profile(db, user_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Ingen profil hittad")
+    return _to_response(profile)
