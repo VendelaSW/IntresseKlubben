@@ -58,6 +58,14 @@ Before declaring a task "Done", you must verify:
 - [ ] **No Build Errors:** Frontend builds pass without broken imports or Vite errors.
 - [ ] **Clean Code:** No leftover `console.log`, `print()` debugging statements, or temporary scratch files.
 - [ ] **Scope respected:** No files outside the requested task were modified.
+- [ ] **Tests written:** New or changed backend endpoints, CRUD functions and validation rules have tests in `backend/tests/`, and `pytest` (run from `backend/`) passes.
+
+### Testing Rules (HARD RULE)
+
+* **Every backend change comes with tests of the behaviour that matters:** the main flow, and the errors a user can actually run into (e.g. a taken username, invalid input, something that doesn't exist). A bug fix needs a test that fails without the fix. Every test must check a real outcome; do not write tests that only exist to execute lines or raise coverage.
+* **Tests must never touch real services.** Use the fixtures in `backend/tests/conftest.py` (in-memory SQLite, never Neon). Fake external services such as the S3 bucket instead of calling them. Never read `.env` in tests.
+* **Do not weaken the safety net.** Do not delete, skip or loosen existing tests, or edit `backend/pytest.ini` or `.github/workflows/`, just to make CI pass. If a test fails, fix the code or explain to the user why the test is wrong.
+* **CI must be green.** The same checks run automatically on every pull request (`.github/workflows/ci.yml`). A task is not done while they fail.
 
 ---
 
