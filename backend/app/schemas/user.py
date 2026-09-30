@@ -37,3 +37,12 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class LoginResponse(BaseModel):
+    """Svar från POST /users/login. access_token skickas sedan med som
+    "Authorization: Bearer <access_token>" i anrop som kräver inloggning."""
+
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut

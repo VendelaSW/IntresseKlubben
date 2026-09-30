@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-# Samma tillfälliga mock som profil-routen, så att den bara behöver bytas
-# ut på ett ställe när inloggningen är klar.
-from app.api.routes.profile import get_current_user
+from app.auth.security import get_current_user
 from app.crud.interest import (
     add_user_interest,
     get_interest,
