@@ -15,19 +15,28 @@ down_revision = 'b7e2d4f81c30'
 branch_labels = None
 depends_on = None
 
-# Kort startlista för MVP:n. Fler intressen läggs till i senare migrationer.
+# Startlista för MVP:n: samma intressen som demon (DEMO_INTERESTS i
+# frontend/src/services/demoData.js) plus några till. Fler läggs till i
+# senare migrationer.
 INTERESTS = [
-    'Dykning',
-    'Keramik',
-    'Fotboll',
-    'Resor',
     'Brädspel',
-    'Katter',
-    'Löpning',
-    'Matlagning',
-    'Fotografering',
-    'Musik',
     'Klättring',
+    'Keramik',
+    'Dykning',
+    'Fotboll',
+    'Löpning',
+    'Fotografering',
+    'Stickning',
+    'Schack',
+    'Matlagning',
+    'Vandring',
+    'Yoga',
+    'Tv-spel',
+    'Bokcirkel',
+    'Musik',
+    'Trädgård',
+    'Resor',
+    'Katter',
     'Gaming',
 ]
 

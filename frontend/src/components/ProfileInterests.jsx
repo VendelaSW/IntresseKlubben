@@ -24,7 +24,7 @@ function ProfileInterests() {
   }, [])
 
   // Taggen uppdateras direkt och återställs om anropet misslyckas.
-  async function changeInterest(id, add) {
+  async function toggleInterest(id, add) {
     const previous = myInterests
     const interest = allInterests.find((i) => i.id === id)
     setMyInterests(add ? [...previous, interest] : previous.filter((i) => i.id !== id))
@@ -40,26 +40,23 @@ function ProfileInterests() {
     }
   }
 
-  if (status === 'loading') {
-    return <p className="profile-hint">Laddar intressen...</p>
-  }
-
-  if (status === 'error') {
-    return <p className="form-error">Kunde inte hämta intressen. Försök igen senare.</p>
-  }
-
   return (
     <section className="profile-interests">
-      <InterestPicker
-        allInterests={allInterests}
-        selected={myInterests}
-        onAdd={(id) => changeInterest(id, true)}
-        onRemove={(id) => changeInterest(id, false)}
-      />
-      {error && <p className="form-error">{error}</p>}
-      <p className="profile-saved" aria-live="polite">
-        {savedMessage}
-      </p>
+      <h2>Intressen</h2>
+      {status === 'loading' && <p className="hint-text">Laddar intressen...</p>}
+      {status === 'error' && (
+        <p className="status-error">Kunde inte hämta intressen. Försök igen senare.</p>
+      )}
+      {status === 'ready' && (
+        <>
+          <p className="hint-text">Klicka för att välja. Ändringen sparas direkt.</p>
+          <InterestPicker allInterests={allInterests} selected={myInterests} onToggle={toggleInterest} />
+          {error && <p className="status-error">{error}</p>}
+          <p className="status-success" aria-live="polite">
+            {savedMessage}
+          </p>
+        </>
+      )}
     </section>
   )
 }

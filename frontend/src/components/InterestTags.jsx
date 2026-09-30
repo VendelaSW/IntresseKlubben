@@ -1,23 +1,11 @@
-// Visar intressen som gula taggar. Utan onRemove är taggarna bara för
-// visning (t.ex. på någon annans profil), med onRemove får de ett ×.
-function InterestTags({ interests, onRemove }) {
+// Visar någons valda intressen som gula taggar, bara för visning
+// (t.ex. på någon annans profil).
+function InterestTags({ interests }) {
   return (
-    <ul className="interest-tags">
+    <ul className="tags">
       {interests.map((interest) => (
         <li key={interest.id}>
-          {onRemove ? (
-            <button
-              type="button"
-              className="interest-tag interest-tag-selected"
-              onClick={() => onRemove(interest.id)}
-              aria-label={`Ta bort ${interest.name}`}
-            >
-              {interest.name}
-              <span aria-hidden="true">×</span>
-            </button>
-          ) : (
-            <span className="interest-tag interest-tag-selected">{interest.name}</span>
-          )}
+          <span className="tag tag-selected">{interest.name}</span>
         </li>
       ))}
     </ul>
