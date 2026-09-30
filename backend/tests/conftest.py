@@ -11,6 +11,11 @@ import os
 # så den riktiga DATABASE_URL läses aldrig in under tester.
 os.environ["DATABASE_URL"] = "sqlite://"
 
+# Samma sak för bucketen: tomma värden gör att de riktiga nycklarna i .env
+# aldrig läses in. Bildtesterna sätter egna, fejkade värden (se test_profile_image.py).
+for _name in ("S3_BUCKET", "AWS_ENDPOINT_URL_S3", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"):
+    os.environ[_name] = ""
+
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import create_engine  # noqa: E402
