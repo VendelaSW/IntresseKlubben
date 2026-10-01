@@ -1,5 +1,6 @@
 import pytest
 
+from app.models.contact import Contact
 from app.models.message import Message
 from app.models.user import User
 
@@ -32,6 +33,24 @@ def test_conversation_shows_both_directions_in_order(client, db, user, friend):
     response = client.get("/messages/friend")
     assert response.status_code == 200
     assert [m["text"] for m in response.json()] == ["Hej!", "Hej tillbaka!"]
+
+
+def test_blocked_user_cannot_send_or_read_conversation(client, db, user, friend):
+    # friend har blockerat user - ska nekas åt båda hållen, oavsett vem
+    # som blockerat vem.
+    db.add(Contact(
+        requester_id=friend.id,
+        addressee_id=user.id,
+        pair_key=f"{min(user.id, friend.id)}:{max(user.id, friend.id)}",
+        status="BLOCKED",
+    ))
+    db.commit()
+
+    response = client.post("/messages", json={"recipient_username": "friend", "text": "Hej!"})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Användaren finns inte"
+
+    assert client.get("/messages/friend").status_code == 404
 
 
 def test_send_to_unknown_username_gives_404(client, user):

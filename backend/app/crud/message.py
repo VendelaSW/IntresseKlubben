@@ -28,6 +28,9 @@ def get_conversation(db: Session, user_a_id: int, user_b_id: int) -> list[Messag
                 and_(Message.sender_id == user_b_id, Message.recipient_id == user_a_id),
             )
         )
-        .order_by(Message.created_at)
+        # id som tiebreak: created_at har bara sekundupplösning i SQLite, så
+        # två meddelanden i samma sekund (vanligt i tester) skulle annars
+        # kunna hamna i oförutsägbar ordning.
+        .order_by(Message.created_at, Message.id)
         .all()
     )
