@@ -7,10 +7,9 @@ import { getContacts } from '../services/contacts'
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
   { label: 'Hem', to: '/hem' },
+  { label: 'Meddelanden', to: '/meddelanden' },
   { label: 'Personer', to: '/personer' },
-  { label: 'Klubbar', to: null },
-  { label: 'Karta', to: null },
-  { label: 'Evenemang', to: null },
+  { label: 'Klubbar', to: '/klubbar' },
 ]
 
 // Ram runt alla inloggade sidor: header (logga, meny, användare) + sidans
@@ -61,7 +60,7 @@ function AppShell() {
               <span key={label} className="app-nav-link">
                 {label}
               </span>
-            )
+            ),
           )}
         </nav>
         <div className="app-user">
