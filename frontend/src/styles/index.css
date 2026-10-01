@@ -724,12 +724,26 @@ span.tag-selected:hover {
   gap: 0.75rem;
   text-decoration: none;
   color: inherit;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .person-card:hover,
 .person-card:focus-visible {
-  background: var(--color-bg);
-  border-color: var(--color-text);
+  transform: translateY(-3px);
+  border-color: var(--color-accent);
+  box-shadow: 0 6px 0 var(--color-accent);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .person-card {
+    transition: none;
+  }
+
+  .person-card:hover,
+  .person-card:focus-visible {
+    transform: none;
+  }
 }
 
 .app-shell {
