@@ -20,9 +20,8 @@ function LoginFields({ onSwitchToRegister }) {
     try {
       const { access_token, user } = await loginUser(username, password)
       login(access_token, user)
-      // Profilsidan visar "Skapa din profil" om det inte finns någon profil
-      // än, annars "Min profil". Byts mot huvudsidan när den finns.
-      navigate('/profil')
+      // Hubben skickar vidare till "Skapa din profil" om profilen saknas.
+      navigate('/hem')
     } catch (err) {
       setError(err.message)
       setSubmitting(false)
