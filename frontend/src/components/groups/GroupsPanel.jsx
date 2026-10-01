@@ -171,7 +171,7 @@ function GroupsPanel({ titleTag: Title = 'h2' }) {
           ) : (
             <>
               {tab === 'all' && (
-                <div className="groups-panel-filters">
+                <div className="filter-select-row">
                   <select
                     aria-label="Filtrera på intresse"
                     value={filters.interestId}

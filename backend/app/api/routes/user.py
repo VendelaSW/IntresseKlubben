@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.security import create_access_token, get_current_user, verify_password
 from app.core import storage
+from app.crud.interest import sorted_interests
 from app.crud.profile import calculate_age, get_profile, list_people
 from app.crud.user import UsernameTakenError, create_user, get_user_by_username
 from app.db.session import get_db
@@ -80,7 +81,7 @@ def _to_person_response(profile) -> PersonResponse:
         municipality_name=profile.municipality.name if profile.municipality else None,
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
-        interests=[InterestResponse.model_validate(i) for i in profile.user.interests],
+        interests=[InterestResponse.model_validate(i) for i in sorted_interests(profile.user)],
     )
 
 

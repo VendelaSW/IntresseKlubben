@@ -2,8 +2,14 @@ import { Link, Outlet, useNavigate } from 'react-router-dom'
 import logo from '../assets/intresseklubben.png'
 import { useAuth } from '../hooks/useAuth'
 
-// Menyord utan egen sida än, bara text tills vidare.
-const NAV_ITEMS = ['Hem', 'Personer', 'Klubbar', 'Karta', 'Evenemang']
+// Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
+const NAV_ITEMS = [
+  { label: 'Hem', to: null },
+  { label: 'Personer', to: '/personer' },
+  { label: 'Klubbar', to: null },
+  { label: 'Karta', to: null },
+  { label: 'Evenemang', to: null },
+]
 
 // Ram runt alla inloggade sidor: header (logga, meny, användare) + sidans
 // eget innehåll. Byggd efter samma mönster som demots DemoApp.jsx, men
@@ -25,11 +31,17 @@ function AppShell() {
           <img src={logo} alt="Intresseklubben" className="app-brand-logo" />
         </Link>
         <nav className="app-nav" aria-label="Huvudmeny">
-          {NAV_ITEMS.map((label) => (
-            <span key={label} className="app-nav-link">
-              {label}
-            </span>
-          ))}
+          {NAV_ITEMS.map(({ label, to }) =>
+            to ? (
+              <Link key={label} to={to} className="app-nav-link">
+                {label}
+              </Link>
+            ) : (
+              <span key={label} className="app-nav-link">
+                {label}
+              </span>
+            )
+          )}
         </nav>
         <div className="app-user">
           <Link to="/profil" className="info-link">

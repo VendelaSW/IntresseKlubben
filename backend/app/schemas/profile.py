@@ -72,7 +72,7 @@ class PublicProfileResponse(BaseModel):
 
 
 class PersonResponse(BaseModel):
-    # Används i listan över andra anvandare (filtrera/föreslå) - precis som
+    # Används i listan över andra användare (filtrera/föreslå) - precis som
     # PublicProfileResponse, men med username (för att länka till
     # /anvandare/{username}) och interests (för taggar och matchning).
     # Aldrig birth_date, gender eller e-post.

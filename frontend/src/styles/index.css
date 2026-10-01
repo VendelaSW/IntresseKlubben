@@ -467,6 +467,7 @@ span.tag-selected:hover {
   height: 64px;
   border-radius: 50%;
   background: var(--color-line);
+  object-fit: cover;
   margin-bottom: 1rem;
 }
 
@@ -716,6 +717,21 @@ span.tag-selected:hover {
   width: 100%;
 }
 
+/* Ett klickbart card-kort, hela kortet länkar vidare (t.ex. till en profil). */
+.person-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.person-card:hover,
+.person-card:focus-visible {
+  background: var(--color-bg);
+  border-color: var(--color-text);
+}
+
 .app-shell {
   min-height: 100vh;
 }
@@ -958,13 +974,15 @@ span.tag-selected:hover {
   white-space: nowrap;
 }
 
-.groups-panel-filters {
+/* Rad med två lika breda filter-dropdowns (intresse/kommun). Delad mellan
+   klubbar och personer, inte knuten till bara den ena sidan. */
+.filter-select-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
 
-.groups-panel-filters select {
+.filter-select-row select {
   font-family: var(--font-body);
   font-size: var(--text-small);
   padding: 0.4rem 0.5rem;
