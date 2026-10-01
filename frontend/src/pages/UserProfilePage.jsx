@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import HomeLink from '../components/HomeLink'
 import { getUserProfile } from '../services/profile'
 
 // Visar en annan användares profil, skrivskyddat. Ingen redigering och
@@ -22,8 +21,7 @@ function UserProfilePage() {
 
   if (status === 'loading') {
     return (
-      <div className="page">
-        <HomeLink />
+      <div className="content-stack">
         <p>Laddar profil...</p>
       </div>
     )
@@ -31,8 +29,7 @@ function UserProfilePage() {
 
   if (status === 'not-found') {
     return (
-      <div className="page">
-        <HomeLink />
+      <div className="content-stack">
         <p className="form-error">Den profilen finns inte.</p>
       </div>
     )
@@ -40,8 +37,7 @@ function UserProfilePage() {
 
   if (status === 'error') {
     return (
-      <div className="page">
-        <HomeLink />
+      <div className="content-stack">
         <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>
       </div>
     )
@@ -50,8 +46,7 @@ function UserProfilePage() {
   const initial = profile.name?.trim()?.[0]?.toUpperCase() ?? '?'
 
   return (
-    <div className="page">
-      <HomeLink />
+    <div className="content-stack">
       <h1>{profile.name ?? 'Profil'}</h1>
       <div className="profile-image">
         {profile.image_url ? (

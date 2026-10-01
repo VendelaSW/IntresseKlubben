@@ -54,6 +54,4 @@ def test_other_users_private_fields_not_in_response(client, db, user):
     response = client.get("/users/bob/profile")
 
     body = response.json()
-    assert "birth_date" not in body
-    assert "gender" not in body
-    assert "municipality_code" not in body
+    assert set(body) == {"name", "age", "municipality_name", "district", "image_url"}

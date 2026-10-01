@@ -1,13 +1,12 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import ServiceInfo from './pages/ServiceInfo'
-import AccountChoice from './pages/AccountChoice'
-import LoginForm from './pages/LoginForm'
-import RegisterForm from './pages/RegisterForm'
 import StyleGuide from './pages/StyleGuide'
 import ProfilePage from './pages/ProfilePage'
 import UserProfilePage from './pages/UserProfilePage'
 import ApiStatus from './components/ApiStatus'
+import AppShell from './components/AppShell'
+import ProtectedRoute from './components/ProtectedRoute'
 import DemoLayout from './pages/demo/DemoLayout'
 import DemoStart from './pages/demo/DemoStart'
 import DemoAuth from './pages/demo/DemoAuth'
@@ -22,12 +21,19 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/om" element={<ServiceInfo />} />
-        <Route path="/konto" element={<AccountChoice />} />
-        <Route path="/logga-in" element={<LoginForm />} />
-        <Route path="/registrera" element={<RegisterForm />} />
+        {/* Ersatta av inloggning/registrering inline på /, kvar som omdirigering
+            ifall någon har ett gammalt bokmärke eller en gammal länk. */}
+        <Route path="/konto" element={<Navigate to="/" replace />} />
+        <Route path="/logga-in" element={<Navigate to="/" replace />} />
+        <Route path="/registrera" element={<Navigate to="/" replace />} />
         <Route path="/stilguide" element={<StyleGuide />} />
-        <Route path="/profil" element={<ProfilePage />} />
-        <Route path="/anvandare/:username" element={<UserProfilePage />} />
+
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            <Route path="/profil" element={<ProfilePage />} />
+            <Route path="/anvandare/:username" element={<UserProfilePage />} />
+          </Route>
+        </Route>
 
         {/* Klickbar prototyp med påhittad data, rör inte backend. */}
         <Route path="/demo" element={<DemoLayout />}>
