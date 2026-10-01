@@ -34,9 +34,15 @@ async function request(path, options = {}) {
   const res = await fetch(`${API_URL}${path}`, { ...options, headers })
   const body = await res.json().catch(() => null)
   if (!res.ok) {
-    // Token ogiltig eller utgången: släng den så att sidan kan skicka
-    // användaren till inloggningen i stället för att fortsätta försöka.
-    if (res.status === 401 && token) clearToken()
+    // Token ogiltig eller utgången: släng den och signalera det globalt
+    // (useAuth lyssnar på detta och loggar ut), i stället för att varje
+    // sida ska behöva hantera 401 själv. Gäller bara om vi faktiskt skickade
+    // en token, så ett vanligt fel lösenord vid inloggning inte loggar ut
+    // någon som råkar ha en gammal token kvar.
+    if (res.status === 401 && token) {
+      clearToken()
+      window.dispatchEvent(new Event('auth:expired'))
+    }
     throw new ApiError(res.status, errorMessage(body, res.status))
   }
   return body
@@ -83,4 +89,8 @@ export function registerUser(username, password) {
 
 export function loginUser(username, password) {
   return apiPost('/users/login', { username, password })
+}
+
+export function getCurrentUser() {
+  return apiGet('/users/me')
 }

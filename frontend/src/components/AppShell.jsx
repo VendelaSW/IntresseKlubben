@@ -1,0 +1,50 @@
+import { Link, Outlet, useNavigate } from 'react-router-dom'
+import logo from '../assets/intresseklubben.png'
+import { useAuth } from '../hooks/useAuth'
+
+// Menyord utan egen sida än, bara text tills vidare.
+const NAV_ITEMS = ['Hem', 'Personer', 'Klubbar', 'Karta', 'Evenemang']
+
+// Ram runt alla inloggade sidor: header (logga, meny, användare) + sidans
+// eget innehåll. Byggd efter samma mönster som demots DemoApp.jsx, men
+// kopplad till riktig inloggning via useAuth() istället för påhittad data.
+function AppShell() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    logout()
+    navigate('/')
+  }
+
+  return (
+    <div className="app-shell">
+      <header className="app-header">
+        {/* TODO: peka om till /hem när den sidan finns. */}
+        <Link to="/profil" className="app-brand">
+          <img src={logo} alt="Intresseklubben" className="app-brand-logo" />
+        </Link>
+        <nav className="app-nav" aria-label="Huvudmeny">
+          {NAV_ITEMS.map((label) => (
+            <span key={label} className="app-nav-link">
+              {label}
+            </span>
+          ))}
+        </nav>
+        <div className="app-user">
+          <Link to="/profil" className="info-link">
+            {user?.username}
+          </Link>
+          <button type="button" className="text-button" onClick={handleLogout}>
+            Logga ut
+          </button>
+        </div>
+      </header>
+      <main className="app-main">
+        <Outlet />
+      </main>
+    </div>
+  )
+}
+
+export default AppShell
