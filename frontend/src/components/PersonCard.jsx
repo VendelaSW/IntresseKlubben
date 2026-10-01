@@ -18,6 +18,8 @@ function initials(name) {
 // hamnar nästlade i en <a> (ogiltig HTML och krockande klick).
 // `sharedInterestIds` är valfri (en Set) och markerar gemensamma intressen.
 function PersonCard({ person, sharedInterestIds, actions }) {
+  // Kontakter/förfrågningar har bara username garanterat (inget namn valt än).
+  const displayName = person.name ?? person.username
   const place = [person.district, person.municipality_name].filter(Boolean).join(', ')
 
   return (
@@ -27,11 +29,11 @@ function PersonCard({ person, sharedInterestIds, actions }) {
           <img src={person.image_url} alt="" className="card-avatar" />
         ) : (
           <div className="card-avatar card-avatar-initials" aria-hidden="true">
-            {initials(person.name)}
+            {initials(displayName)}
           </div>
         )}
         <p className="card-title">
-          {person.name}
+          {displayName}
           {person.age ? `, ${person.age}` : ''}
         </p>
         {place && <p className="card-subheading">{place}</p>}
