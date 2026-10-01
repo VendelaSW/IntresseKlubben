@@ -1,14 +1,14 @@
 """add contacts
 
 Revision ID: a43bc22f9c10
-Revises: c4d8e2a91f67
+Revises: e5f1a7c3b920
 """
 from alembic import op
 import sqlalchemy as sa
 
 
 revision = 'a43bc22f9c10'
-down_revision = 'c4d8e2a91f67'
+down_revision = 'e5f1a7c3b920'
 branch_labels = None
 depends_on = None
 
