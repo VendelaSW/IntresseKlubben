@@ -5,9 +5,16 @@ from app.auth.security import get_current_user
 from app.crud import contact as contact_crud
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.contact import BlockResponse, ContactAnswer, ContactRequest, ContactResponse
+from app.schemas.contact import (BlockResponse, ContactAnswer, ContactListResponse,
+                                 ContactRequest, ContactResponse)
 
 router = APIRouter(tags=["contacts"])
+
+
+@router.get("/contacts", response_model=ContactListResponse)
+def list_contacts(db: Session = Depends(get_db),
+                  current_user: User = Depends(get_current_user)):
+    return contact_crud.list_contacts(db, current_user.id)
 
 
 @router.post("/contacts/request", response_model=ContactResponse,

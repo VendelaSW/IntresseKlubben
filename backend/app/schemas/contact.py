@@ -22,3 +22,9 @@ class ContactResponse(BaseModel):
 
 class BlockResponse(ContactResponse):
     pass
+
+
+class ContactListResponse(BaseModel):
+    contacts: list[ContactResponse]
+    incoming_requests: list[ContactResponse]
+    outgoing_requests: list[ContactResponse]

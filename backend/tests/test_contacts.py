@@ -105,6 +105,33 @@ class ContactRoutesTest(unittest.TestCase):
         self.assertEqual(blocked.json()["status"], "BLOCKED")
         self.assertEqual(self.client.delete(f"/contacts/{contact_id}").status_code, 404)
 
+    def test_list_contacts_splits_accepted_incoming_and_outgoing(self):
+        self.db.add_all([User(id=user_id, username=f"user{user_id}", password_hash="unused")
+                         for user_id in (4, 5)])
+        self.db.commit()
+        outgoing_id = self.client.post("/contacts/request", json={"addressee_id": 2}).json()["id"]
+        accepted_id = self.client.post("/contacts/request", json={"addressee_id": 4}).json()["id"]
+        self.actor_id = 4
+        self.client.patch(f"/contacts/requests/{accepted_id}", json={"action": "accept"})
+        self.actor_id = 3
+        incoming_id = self.client.post("/contacts/request", json={"addressee_id": 1}).json()["id"]
+        self.actor_id = 5
+        self.assertEqual(self.client.post("/users/1/block").status_code, 200)
+        self.actor_id = 2
+        self.client.post("/contacts/request", json={"addressee_id": 3})
+
+        self.actor_id = 1
+        listed = self.client.get("/contacts")
+        self.assertEqual(listed.status_code, 200)
+        body = listed.json()
+        self.assertEqual([c["id"] for c in body["contacts"]], [accepted_id])
+        self.assertEqual([c["id"] for c in body["incoming_requests"]], [incoming_id])
+        self.assertEqual([c["id"] for c in body["outgoing_requests"]], [outgoing_id])
+
+        self.actor_id = 5
+        self.assertEqual(self.client.get("/contacts").json(),
+                         {"contacts": [], "incoming_requests": [], "outgoing_requests": []})
+
 
 if __name__ == "__main__":
     unittest.main()

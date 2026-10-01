@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -30,6 +31,21 @@ def _save(db: Session, contact: Contact) -> Contact:
         raise ContactError(409, "Relationship changed; please retry") from exc
     db.refresh(contact)
     return contact
+
+
+def list_contacts(db: Session, user_id: int) -> dict[str, list[Contact]]:
+    # Blocks are excluded so users cannot see who has blocked them.
+    rows = (db.query(Contact)
+            .filter(or_(Contact.requester_id == user_id, Contact.addressee_id == user_id),
+                    Contact.status.in_(("PENDING", "ACCEPTED")))
+            .order_by(Contact.id).all())
+    return {
+        "contacts": [c for c in rows if c.status == "ACCEPTED"],
+        "incoming_requests": [c for c in rows
+                              if c.status == "PENDING" and c.addressee_id == user_id],
+        "outgoing_requests": [c for c in rows
+                              if c.status == "PENDING" and c.requester_id == user_id],
+    }
 
 
 def send_request(db: Session, requester_id: int, addressee_id: int) -> Contact:
