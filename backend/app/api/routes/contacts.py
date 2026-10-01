@@ -2,19 +2,36 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
+from app.core import storage
 from app.crud import contact as contact_crud
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.contact import (BlockResponse, ContactAnswer, ContactListResponse,
-                                 ContactRequest, ContactResponse)
+from app.schemas.contact import (BlockResponse, ContactAnswer, ContactListItem,
+                                 ContactListResponse, ContactRequest, ContactResponse,
+                                 ContactUser)
 
 router = APIRouter(tags=["contacts"])
+
+
+def _to_list_item(contact, other: User) -> ContactListItem:
+    profile = other.profile
+    image_key = profile.profile_image_url if profile else None
+    return ContactListItem(
+        **ContactResponse.model_validate(contact).model_dump(),
+        user=ContactUser(
+            id=other.id,
+            name=profile.name if profile else None,
+            image_url=storage.public_url(image_key) if image_key else None,
+        ),
+    )
 
 
 @router.get("/contacts", response_model=ContactListResponse)
 def list_contacts(db: Session = Depends(get_db),
                   current_user: User = Depends(get_current_user)):
-    return contact_crud.list_contacts(db, current_user.id)
+    lists = contact_crud.list_contacts(db, current_user.id)
+    return {key: [_to_list_item(c, other) for c, other in items]
+            for key, items in lists.items()}
 
 
 @router.post("/contacts/request", response_model=ContactResponse,
