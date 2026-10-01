@@ -75,6 +75,19 @@ def test_includes_username_and_interests(client, db, user):
     assert [i["name"] for i in body["interests"]] == ["Klättring"]
 
 
+def test_interests_are_sorted_by_name(client, db, user):
+    # Tillagda i omvänd bokstavsordning, för att inte råka stämma av misstag.
+    schack = Interest(name="Schack")
+    klattring = Interest(name="Klättring")
+    db.add_all([schack, klattring])
+    db.commit()
+    _create_person(db, "bob", "Bob", interests=[schack, klattring])
+
+    body = client.get("/users/").json()[0]
+
+    assert [i["name"] for i in body["interests"]] == ["Klättring", "Schack"]
+
+
 def test_private_fields_not_in_response(client, db, user):
     _create_person(db, "bob", "Bob")
 

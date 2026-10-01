@@ -4,6 +4,7 @@ import ServiceInfo from './pages/ServiceInfo'
 import StyleGuide from './pages/StyleGuide'
 import ProfilePage from './pages/ProfilePage'
 import GroupsPage from './pages/GroupsPage'
+import PeoplePage from './pages/PeoplePage'
 import UserProfilePage from './pages/UserProfilePage'
 import ApiStatus from './components/ApiStatus'
 import AppShell from './components/AppShell'
@@ -33,6 +34,7 @@ function App() {
           <Route element={<AppShell />}>
             <Route path="/profil" element={<ProfilePage />} />
             <Route path="/klubbar" element={<GroupsPage />} />
+            <Route path="/personer" element={<PeoplePage />} />
             <Route path="/anvandare/:username" element={<UserProfilePage />} />
           </Route>
         </Route>
