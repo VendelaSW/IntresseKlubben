@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
 import { imageToWebp } from '../services/imageToWebp'
@@ -133,6 +134,7 @@ function ProfilePage() {
   const [pendingImage, setPendingImage] = useState(null)
   const [imageNotice, setImageNotice] = useState('')
   const navigate = useNavigate()
+  const { logout } = useAuth()
 
   useEffect(() => {
     // Själva inloggningskollen sköts redan av ProtectedRoute, så vi kan
@@ -150,8 +152,11 @@ function ProfilePage() {
       })
       .catch((err) => {
         // 401 = token ogiltig eller utgången (api.js har redan slängt den).
-        if (err.status === 401) navigate('/logga-in', { replace: true })
-        else setStatus('error')
+        // logout() nollställer useAuth också, inte bara token i localStorage.
+        if (err.status === 401) {
+          logout()
+          navigate('/', { replace: true })
+        } else setStatus('error')
       })
   }, [navigate])
 

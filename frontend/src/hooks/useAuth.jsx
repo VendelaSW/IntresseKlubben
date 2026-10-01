@@ -30,6 +30,12 @@ export function AuthProvider({ children }) {
     setLoading(true)
     return getCurrentUser()
       .then(setUser)
+      .catch((err) => {
+        // Token sparades men visade sig ändå inte duga, lämna ingen halvfärdig
+        // inloggning kvar. Kastas vidare så LoginFields kan visa felet.
+        clearToken()
+        throw err
+      })
       .finally(() => setLoading(false))
   }
 
