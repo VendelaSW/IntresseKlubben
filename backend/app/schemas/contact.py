@@ -22,3 +22,21 @@ class ContactResponse(BaseModel):
 
 class BlockResponse(ContactResponse):
     pass
+
+
+class ContactUser(BaseModel):
+    # Public view of another user: never email or birth date.
+    id: int
+    username: str
+    name: str | None
+    image_url: str | None
+
+
+class ContactListItem(ContactResponse):
+    user: ContactUser
+
+
+class ContactListResponse(BaseModel):
+    contacts: list[ContactListItem]
+    incoming_requests: list[ContactListItem]
+    outgoing_requests: list[ContactListItem]
