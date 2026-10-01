@@ -86,6 +86,13 @@ def block_user(db: Session, blocker_id: int, blocked_id: int) -> Contact:
     return _save(db, contact)
 
 
+def is_blocked(db: Session, user_a_id: int, user_b_id: int) -> bool:
+    """True om någon av de två har blockerat den andra, oavsett riktning."""
+    key = _pair_key(user_a_id, user_b_id)
+    contact = db.query(Contact).filter(Contact.pair_key == key).one_or_none()
+    return contact is not None and contact.status == "BLOCKED"
+
+
 def unblock_user(db: Session, blocker_id: int, blocked_id: int) -> None:
     contact = (db.query(Contact)
                .filter(Contact.pair_key == _pair_key(blocker_id, blocked_id))
