@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import HomeLink from '../components/HomeLink'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import { loginUser } from '../services/api'
-import { setToken } from '../services/auth'
 
-function LoginForm() {
+// Inloggningsfälten, tänkta att visas inline på Home (se LoginFields/
+// RegisterFields-paret) istället för på en egen sida.
+function LoginFields({ onSwitchToRegister }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const { login } = useAuth()
   const navigate = useNavigate()
 
   async function handleSubmit(event) {
@@ -16,8 +18,8 @@ function LoginForm() {
     setError('')
     setSubmitting(true)
     try {
-      const { access_token } = await loginUser(username, password)
-      setToken(access_token)
+      const { access_token, user } = await loginUser(username, password)
+      login(access_token, user)
       // Profilsidan visar "Skapa din profil" om det inte finns någon profil
       // än, annars "Min profil". Byts mot huvudsidan när den finns.
       navigate('/profil')
@@ -28,8 +30,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="page">
-      <HomeLink />
+    <>
       <h1>Logga in</h1>
       <form className="auth-form" onSubmit={handleSubmit}>
         <label htmlFor="login-username">Användarnamn</label>
@@ -56,11 +57,11 @@ function LoginForm() {
           {submitting ? 'Loggar in…' : 'Logga in'}
         </button>
       </form>
-      <Link to="/registrera" className="info-link">
+      <button type="button" className="text-button" onClick={onSwitchToRegister}>
         Har du inget konto? Registrera dig
-      </Link>
-    </div>
+      </button>
+    </>
   )
 }
 
-export default LoginForm
+export default LoginFields

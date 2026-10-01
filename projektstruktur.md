@@ -1,63 +1,59 @@
-# Projektstruktur – Intresseklubben
+# Projektstruktur och deploy – Intresseklubben
 
-Backend och frontend deployas som **två separata Vercel-projekt** (ett per mapp, med "Root Directory" satt till respektive mapp i Vercel-panelen).
+**Kodens struktur** (mappar, hur ett anrop går genom koden, vilken feature man kan kopiera) beskrivs i [`CONTRIBUTING.md`](CONTRIBUTING.md), avsnitt 1. Den här filen beskriver hur projektet är uppsatt i Vercel, Neon och GitHub.
 
-```
-IntresseKlubben/
-├── README.md                      Pekar till backend/frontend + kort deploy-not
-├── .gitignore
-│
-├── backend/                       FastAPI-API (eget Vercel-projekt, Root Directory = backend)
-│   ├── README.md                  Lokal setup, Alembic-kommandon, deploy-steg
-│   ├── requirements.txt           fastapi, uvicorn, sqlalchemy, psycopg2-binary, geoalchemy2, alembic, ...
-│   ├── vercel.json                 Function-config (maxDuration) för app/main.py
-│   ├── .env.example                 DATABASE_URL (Neon, pooled-sträng), CORS_ORIGINS
-│   ├── alembic.ini                  Alembic-config
-│   ├── alembic/
-│   │   ├── env.py                   Kopplar Alembic mot Settings.database_url + Base.metadata
-│   │   ├── script.py.mako           Mall för nya migrationsfiler
-│   │   └── versions/                Genererade migrationer (tom nu)
-│   ├── app/
-│   │   ├── main.py                  FastAPI-app + CORS. Vercels entrypoint (app/main.py → "app")
-│   │   ├── core/config.py           Settings (miljövariabler)
-│   │   ├── db/
-│   │   │   ├── base.py              Delad SQLAlchemy Base – modeller ärver från denna
-│   │   │   └── session.py           Engine (pool_pre_ping för serverless) + SessionLocal
-│   │   ├── models/                  Tom – SQLAlchemy-modeller läggs här
-│   │   ├── schemas/                  Tom – Pydantic-scheman läggs här
-│   │   ├── services/                  Tom – affärslogik läggs här
-│   │   └── api/routes/                Tom – API-endpoints läggs här
-│   └── tests/                        Tom – testfiler läggs här
-│
-└── frontend/                       React + Vite (eget Vercel-projekt, Root Directory = frontend)
-    ├── README.md                   Lokal setup + deploy-steg
-    ├── package.json                react, react-dom, react-router-dom, vite
-    ├── vercel.json                  Rewrite till index.html (SPA-routing)
-    ├── vite.config.js
-    ├── index.html
-    ├── .env.example                  VITE_API_URL
-    ├── public/
-    └── src/
-        ├── main.jsx / App.jsx
-        ├── components/, pages/, hooks/   Tomma – byggs vidare på
-        ├── services/api.js             Anropar backend via VITE_API_URL
-        ├── styles/index.css
-        └── assets/
-```
+## Två Vercel-projekt
 
-## Deploy-upplägg
+Backend och frontend ligger i samma repo men deployas som **två separata Vercel-projekt**, ett per mapp, med "Root Directory" satt till respektive mapp.
 
-Två separata Vercel-projekt kopplade till samma repo:
+| Vercel-projekt | Root Directory | Production byggs från | Preview byggs från |
+|---|---|---|---|
+| `intresse-klubben-eick` (backend) | `backend` | `main` | `dev` |
+| `intresse-klubben` (frontend) | `frontend` | `main` | `dev` |
 
-| Projekt | Root Directory | Miljövariabler |
+Vercel känner igen FastAPI (`app/main.py`) och Vite automatiskt, så inget byggkommando behöver anges.
+
+**Adresser för dev-previewn:**
+- Frontend: `https://intresse-klubben-git-dev-intresse-klubben.vercel.app`
+- Backend: `https://intresse-klubben-eick-git-dev-intresse-klubben.vercel.app`
+
+## Miljövariabler
+
+Alla variabler finns som namn i respektive `.env.example`. Lokalt sätts de i `.env`; i Vercel i rätt projekt, för både **Preview** och **Production**.
+
+### Backend (`intresse-klubben-eick`)
+
+| Variabel | Vad | Sensitive |
 |---|---|---|
-| backend | `backend` | `DATABASE_URL` (Neon, pooled), `CORS_ORIGINS` (frontendens URL) |
-| frontend | `frontend` | `VITE_API_URL` (backendens URL) |
+| `DATABASE_URL` | Neons *pooled* connection-sträng | Ja |
+| `CORS_ORIGINS` | Frontendens adress(er), kommaseparerade | Nej |
+| `JWT_SECRET` | Nyckel som inloggningstoken signeras med, **olika** för Preview och Production | Ja |
+| `S3_BUCKET` | Bucketen för profilbilder | Nej |
+| `AWS_ENDPOINT_URL_S3` | Bucketens adress hos Neon | Nej |
+| `AWS_ACCESS_KEY_ID` | Bucketens nyckel-id | Ja |
+| `AWS_SECRET_ACCESS_KEY` | Bucketens hemliga nyckel | Ja |
+| `AWS_REGION` | Bucketens region | Nej |
 
-Vercel känner igen FastAPI (`app/main.py`) och Vite automatiskt — inget byggkommando behöver anges manuellt.
+### Frontend (`intresse-klubben`)
 
-## Övrigt att notera
+| Variabel | Vad |
+|---|---|
+| `VITE_API_URL` | Backendens adress. **Preview** ska peka på backendens dev-preview, **Production** på backendens produktionsadress. |
 
-- `session.py` använder `pool_pre_ping=True` och `.env.example` rekommenderar Neons *pooled* connection-sträng, eftersom backend körs serverless (varje anrop kan vara en ny funktionsinstans).
-- Alembic-migrationer körs manuellt (lokalt mot samma databas) — Vercel kör inga migrationer automatiskt vid deploy.
-- Inga modeller/endpoints implementerade än – mapparna finns som platshållare.
+### Att tänka på
+- Inga citattecken runt värdena i Vercel. Vercel sparar exakt det du skriver.
+- Nya eller ändrade variabler gäller först efter en **Redeploy** av rätt deployment.
+- `VITE_API_URL` byggs in i frontendens JavaScript när den byggs, så en ändring kräver alltid en ny build.
+
+## Databas och lagring (Neon)
+
+- **En gemensam Postgres-databas** för lokal utveckling, dev-previewn och produktion. En migration påverkar därför alla direkt. Se migrationsrutinen i `CONTRIBUTING.md`, avsnitt 3.
+- `session.py` använder `pool_pre_ping=True` eftersom backend körs serverless; varje anrop kan vara en ny funktionsinstans.
+- Vercel kör inga migrationer automatiskt vid deploy.
+- **Profilbilder** ligger i en S3-kompatibel bucket i Neon som är publikt läsbar. Webbläsaren laddar upp direkt till bucketen via en signerad länk från backend.
+
+## GitHub
+
+- `dev` är huvudbranch för utveckling, `main` för releaser. Ingen pushar direkt till någon av dem.
+- Branch protection på `dev` kräver att CI är grön (`Backend-tester`, `Frontend-bygge`) och att branchen är uppdaterad mot `dev`.
+- CI-konfigurationen finns i `.github/workflows/ci.yml`.

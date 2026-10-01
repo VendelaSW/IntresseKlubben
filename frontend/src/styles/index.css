@@ -725,7 +725,7 @@ span.tag-selected:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem 1.5rem;
-  padding: 1rem 1.5rem;
+  padding: 0.15rem 1.5rem;
   border-bottom: 2px solid var(--color-accent);
 }
 
@@ -736,6 +736,12 @@ span.tag-selected:hover {
   line-height: 1;
   color: var(--color-text);
   text-decoration: none;
+}
+
+.app-brand-logo {
+  display: block;
+  height: 76px;
+  width: auto;
 }
 
 .app-nav {
@@ -786,6 +792,14 @@ span.tag-selected:hover {
   align-items: center;
   gap: 1rem;
   margin-left: auto;
+}
+
+.content-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  text-align: center;
 }
 
 .app-main {
