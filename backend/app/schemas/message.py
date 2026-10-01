@@ -28,3 +28,13 @@ class MessageOut(BaseModel):
     recipient_id: int
     text: str
     created_at: datetime
+
+
+class ConversationResponse(BaseModel):
+    # En rad i inkorgen: den andra personen (publikt, aldrig e-post/
+    # födelsedatum) + en förhandsvisning av senaste meddelandet.
+    username: str
+    name: str | None
+    image_url: str | None
+    last_message: str
+    last_message_at: datetime

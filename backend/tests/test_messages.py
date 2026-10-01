@@ -76,9 +76,58 @@ def test_blank_message_gives_422(client, user, friend):
     [
         ("post", "/messages", {"json": {"recipient_username": "friend", "text": "Hej!"}}),
         ("get", "/messages/friend", {}),
+        ("get", "/messages", {}),
     ],
 )
 def test_not_logged_in_gives_401(client, friend, method, path, kwargs):
     response = getattr(client, method)(path, **kwargs)
     assert response.status_code == 401
     assert response.json()["detail"] == "Du är inte inloggad."
+
+
+@pytest.fixture
+def other_friend(db):
+    other = User(id=3, username="annan-van", password_hash="unused")
+    db.add(other)
+    db.commit()
+    return other
+
+
+def test_list_conversations_shows_latest_message_newest_conversation_first(
+    client, db, user, friend, other_friend
+):
+    db.add(Message(sender_id=user.id, recipient_id=friend.id, text="Först till friend"))
+    db.commit()
+    client.post("/messages", json={"recipient_username": "annan-van", "text": "Sen till annan-van"})
+
+    response = client.get("/messages")
+    assert response.status_code == 200
+    body = response.json()
+    assert [c["username"] for c in body] == ["annan-van", "friend"]
+    assert body[0]["last_message"] == "Sen till annan-van"
+    assert body[1]["last_message"] == "Först till friend"
+
+
+def test_list_conversations_shows_only_the_latest_message_per_person(client, db, user, friend):
+    db.add(Message(sender_id=user.id, recipient_id=friend.id, text="Första"))
+    db.commit()
+    db.add(Message(sender_id=friend.id, recipient_id=user.id, text="Senaste"))
+    db.commit()
+
+    response = client.get("/messages")
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["last_message"] == "Senaste"
+
+
+def test_list_conversations_hides_blocked_users(client, db, user, friend):
+    client.post("/messages", json={"recipient_username": "friend", "text": "Hej!"})
+    db.add(Contact(
+        requester_id=friend.id,
+        addressee_id=user.id,
+        pair_key=f"{min(user.id, friend.id)}:{max(user.id, friend.id)}",
+        status="BLOCKED",
+    ))
+    db.commit()
+
+    assert client.get("/messages").json() == []

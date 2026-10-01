@@ -18,6 +18,12 @@ const SECTIONS = [
     text: 'Gå med i en klubb för något du gillar, eller starta en egen i din kommun och samla andra som delar intresset.',
     action: 'Utforska klubbar',
   },
+  {
+    to: '/meddelanden',
+    title: 'Håll kontakten',
+    text: 'Se dina konversationer och skicka meddelanden till folk du hittat i klubben.',
+    action: 'Öppna meddelanden',
+  },
 ]
 
 const swedishList = new Intl.ListFormat('sv', { type: 'conjunction' })

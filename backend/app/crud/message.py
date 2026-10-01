@@ -34,3 +34,23 @@ def get_conversation(db: Session, user_a_id: int, user_b_id: int) -> list[Messag
         .order_by(Message.created_at, Message.id)
         .all()
     )
+
+
+def list_conversations(db: Session, user_id: int) -> list[tuple[int, Message]]:
+    """En rad per person användaren utbytt meddelanden med: den andras id
+    och det senaste meddelandet dem emellan, nyast konversation först."""
+    rows = (
+        db.query(Message)
+        .filter(or_(Message.sender_id == user_id, Message.recipient_id == user_id))
+        .order_by(Message.created_at.desc(), Message.id.desc())
+        .all()
+    )
+    seen = set()
+    result = []
+    for message in rows:
+        other_id = message.recipient_id if message.sender_id == user_id else message.sender_id
+        if other_id in seen:
+            continue
+        seen.add(other_id)
+        result.append((other_id, message))
+    return result
