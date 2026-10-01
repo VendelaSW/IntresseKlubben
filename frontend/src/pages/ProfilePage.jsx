@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import HomeLink from '../components/HomeLink'
-import { clearToken, isLoggedIn } from '../services/auth'
 import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
 import { imageToWebp } from '../services/imageToWebp'
@@ -137,12 +135,8 @@ function ProfilePage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Profilen hör till den inloggade användaren, så utan inloggning finns
-    // inget att visa.
-    if (!isLoggedIn()) {
-      navigate('/logga-in', { replace: true })
-      return
-    }
+    // Själva inloggningskollen sköts redan av ProtectedRoute, så vi kan
+    // anta att det finns en giltig token när den här sidan visas.
     Promise.all([getProfile(), getMunicipalities(), getAllInterests(), getMyInterests()])
       .then(([data, list, all, mine]) => {
         setProfile(data)
@@ -160,11 +154,6 @@ function ProfilePage() {
         else setStatus('error')
       })
   }, [navigate])
-
-  function logout() {
-    clearToken()
-    navigate('/logga-in')
-  }
 
   function startEditing() {
     setName(profile?.name ?? '')
@@ -245,8 +234,7 @@ function ProfilePage() {
 
   if (status === 'loading') {
     return (
-      <div className="page">
-        <HomeLink />
+      <div className="content-stack">
         <p>Laddar profil...</p>
       </div>
     )
@@ -254,8 +242,7 @@ function ProfilePage() {
 
   if (status === 'error') {
     return (
-      <div className="page">
-        <HomeLink />
+      <div className="content-stack">
         <h1>Min profil</h1>
         <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>
       </div>
@@ -265,8 +252,7 @@ function ProfilePage() {
   if (editing) {
     const isNew = profile === null
     return (
-      <div className="page">
-        <HomeLink />
+      <div className="content-stack">
         <h1>{isNew ? 'Skapa din profil' : 'Redigera profil'}</h1>
         {isNew && (
           <p className="profile-intro">
@@ -355,8 +341,7 @@ function ProfilePage() {
   }
 
   return (
-    <div className="page">
-      <HomeLink />
+    <div className="content-stack">
       <h1>Min profil</h1>
       {imageNotice && <p className="form-error">{imageNotice}</p>}
       <ProfileImage
@@ -386,11 +371,8 @@ function ProfilePage() {
           <p className="hint-text">Inga intressen valda än.</p>
         )}
       </section>
-      <button type="button" className="banner-button" onClick={startEditing}>
+      <button type="button" className="primary-button" onClick={startEditing}>
         Redigera profil
-      </button>
-      <button type="button" className="text-button" onClick={logout}>
-        Logga ut
       </button>
     </div>
   )

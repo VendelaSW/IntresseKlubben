@@ -7,6 +7,8 @@ import RegisterForm from './pages/RegisterForm'
 import StyleGuide from './pages/StyleGuide'
 import ProfilePage from './pages/ProfilePage'
 import ApiStatus from './components/ApiStatus'
+import AppShell from './components/AppShell'
+import ProtectedRoute from './components/ProtectedRoute'
 import DemoLayout from './pages/demo/DemoLayout'
 import DemoStart from './pages/demo/DemoStart'
 import DemoAuth from './pages/demo/DemoAuth'
@@ -25,7 +27,12 @@ function App() {
         <Route path="/logga-in" element={<LoginForm />} />
         <Route path="/registrera" element={<RegisterForm />} />
         <Route path="/stilguide" element={<StyleGuide />} />
-        <Route path="/profil" element={<ProfilePage />} />
+
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            <Route path="/profil" element={<ProfilePage />} />
+          </Route>
+        </Route>
 
         {/* Klickbar prototyp med påhittad data, rör inte backend. */}
         <Route path="/demo" element={<DemoLayout />}>
