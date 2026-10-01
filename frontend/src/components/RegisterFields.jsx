@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import HomeLink from '../components/HomeLink'
 import { registerUser } from '../services/api'
 
-function RegisterForm() {
+// Registreringsfälten, tänkta att visas inline på Home (se LoginFields/
+// RegisterFields-paret) istället för på en egen sida.
+function RegisterFields({ onSwitchToLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -28,8 +28,7 @@ function RegisterForm() {
   }
 
   return (
-    <div className="page">
-      <HomeLink />
+    <>
       <h1>Registrera dig</h1>
       <form className="auth-form" onSubmit={handleSubmit}>
         <label htmlFor="register-username">Användarnamn</label>
@@ -51,19 +50,17 @@ function RegisterForm() {
         />
 
         {error && <p className="form-error">{error}</p>}
-        {success && (
-          <p className="form-success">Kontot är skapat! Du kan nu logga in.</p>
-        )}
+        {success && <p className="form-success">Kontot är skapat! Du kan nu logga in.</p>}
 
         <button type="submit" disabled={submitting}>
           {submitting ? 'Registrerar…' : 'Registrera dig'}
         </button>
       </form>
-      <Link to="/logga-in" className="info-link">
+      <button type="button" className="text-button" onClick={onSwitchToLogin}>
         Har du redan ett konto? Logga in
-      </Link>
-    </div>
+      </button>
+    </>
   )
 }
 
-export default RegisterForm
+export default RegisterFields
