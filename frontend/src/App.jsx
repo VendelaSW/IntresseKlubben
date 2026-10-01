@@ -9,7 +9,6 @@ import PeoplePage from './pages/PeoplePage'
 import InboxPage from './pages/InboxPage'
 import ConversationPage from './pages/ConversationPage'
 import UserProfilePage from './pages/UserProfilePage'
-import ApiStatus from './components/ApiStatus'
 import AppShell from './components/AppShell'
 import ProtectedRoute from './components/ProtectedRoute'
 import DemoLayout from './pages/demo/DemoLayout'
@@ -60,7 +59,6 @@ function App() {
           </Route>
         </Route>
       </Routes>
-      <ApiStatus />
     </>
   )
 }
