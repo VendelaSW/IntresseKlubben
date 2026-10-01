@@ -5,10 +5,9 @@ import { useAuth } from '../hooks/useAuth'
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
   { label: 'Hem', to: '/hem' },
+  { label: 'Meddelanden', to: '/meddelanden' },
   { label: 'Personer', to: '/personer' },
   { label: 'Klubbar', to: '/klubbar' },
-  { label: 'Karta', to: null },
-  { label: 'Evenemang', to: null },
 ]
 
 // Ram runt alla inloggade sidor: header (logga, meny, användare) + sidans
