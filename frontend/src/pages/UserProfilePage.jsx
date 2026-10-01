@@ -22,6 +22,19 @@ function UserProfilePage() {
 
   const initial = profile?.name?.trim()?.[0]?.toUpperCase() ?? '?'
 
+  // Går tillbaka dit man kom ifrån. Om sidan öppnades direkt (t.ex. en
+  // delad länk) finns ingen tidigare sida i appen att gå tillbaka till,
+  // och då skulle navigate(-1) ta en ut ur appen - gå till personlistan
+  // i stället. window.history.state.idx är satt av react-router och är
+  // 0 bara för sidans allra första post i historiken.
+  function handleBack() {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1)
+    } else {
+      navigate('/personer')
+    }
+  }
+
   return (
     <div className="content-stack">
       {status === 'loading' && <p>Laddar profil...</p>}
@@ -57,8 +70,7 @@ function UserProfilePage() {
         </>
       )}
 
-      {/* Går tillbaka dit man kom ifrån (t.ex. personlistan), oavsett varifrån. */}
-      <button type="button" className="text-button" onClick={() => navigate(-1)}>
+      <button type="button" className="text-button" onClick={handleBack}>
         ← Tillbaka
       </button>
     </div>

@@ -1,4 +1,4 @@
-import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import logo from '../assets/intresseklubben.png'
 import { useAuth } from '../hooks/useAuth'
 
@@ -33,9 +33,13 @@ function AppShell() {
         <nav className="app-nav" aria-label="Huvudmeny">
           {NAV_ITEMS.map(({ label, to }) =>
             to ? (
-              <Link key={label} to={to} className="app-nav-link">
+              <NavLink
+                key={label}
+                to={to}
+                className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}
+              >
                 {label}
-              </Link>
+              </NavLink>
             ) : (
               <span key={label} className="app-nav-link">
                 {label}
