@@ -717,22 +717,37 @@ span.tag-selected:hover {
   width: 100%;
 }
 
+/* Kort med en maxbredd i stället för att sträcka ut sig över hela raden
+   (card-grids 1fr) när det bara är något enstaka kort. Ligger kvar i samma
+   vänsterställda ram som resten av sidan. Lägg till utöver card-grid. */
+.card-grid-compact {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 300px));
+}
+
 /* Ett klickbart card-kort, hela kortet länkar vidare (t.ex. till en profil). */
+/* person-card är ett <article> (inte en länk), så att åtgärdsknappar kan
+   ligga i kortet utan att hamna nästlade i en <a>. person-card-link är den
+   klickbara länken till profilen runt avatar/namn/plats. */
 .person-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.person-card:hover,
+.person-card:focus-within {
+  transform: translateY(-3px);
+  border-color: var(--color-accent);
+  box-shadow: 0 6px 0 var(--color-accent);
+}
+
+.person-card-link {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   text-decoration: none;
   color: inherit;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.person-card:hover,
-.person-card:focus-visible {
-  transform: translateY(-3px);
-  border-color: var(--color-accent);
-  box-shadow: 0 6px 0 var(--color-accent);
-  outline: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -741,7 +756,7 @@ span.tag-selected:hover {
   }
 
   .person-card:hover,
-  .person-card:focus-visible {
+  .person-card:focus-within {
     transform: none;
   }
 }
@@ -1004,6 +1019,14 @@ span.tag-selected:hover {
   border-radius: 8px;
   background: var(--color-white);
   color: var(--color-text);
+  width: 100%;
+}
+
+/* Filtren kompakta, tillsammans inte bredare än ett personkort (300px), i
+   stället för att sträcka ut sig över hela sidan. Sida vid sida som
+   filter-select-row redan gör. Lägg till utöver filter-select-row. */
+.filter-select-row-compact {
+  max-width: 300px;
 }
 
 .group-list {
