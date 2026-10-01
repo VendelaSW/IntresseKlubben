@@ -26,8 +26,7 @@ function AppShell() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        {/* TODO: peka om till /hem när den sidan finns. */}
-        <Link to="/profil" className="app-brand">
+        <Link to="/hem" className="app-brand">
           <img src={logo} alt="Intresseklubben" className="app-brand-logo" />
         </Link>
         <nav className="app-nav" aria-label="Huvudmeny">
