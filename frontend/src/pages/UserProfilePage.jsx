@@ -1,6 +1,167 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import {
+  answerContactRequest,
+  blockUser,
+  getContacts,
+  removeContact,
+  sendContactRequest,
+} from '../services/contacts'
+import { sendMessage } from '../services/messages'
 import { getUserProfile } from '../services/profile'
+
+// Skickar ett meddelande till personen man tittar på. Visar bara
+// formuläret, själva konversationen läses på en egen sida senare.
+function MessageForm({ username }) {
+  const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
+  const [sent, setSent] = useState(false)
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setSending(true)
+    setError('')
+    try {
+      await sendMessage(username, text)
+      setText('')
+      setSent(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <form className="auth-form" onSubmit={handleSubmit}>
+      <label htmlFor="message-text">Skicka ett meddelande</label>
+      <input
+        id="message-text"
+        type="text"
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value)
+          setSent(false)
+        }}
+        required
+      />
+      {error && <p className="form-error">{error}</p>}
+      {sent && <p className="form-success">Skickat!</p>}
+      <button type="submit" disabled={sending}>
+        {sending ? 'Skickar...' : 'Skicka'}
+      </button>
+    </form>
+  )
+}
+
+// Vem man är i förhållande till personen man tittar på, hämtat från
+// GET /contacts och matchat på username. contactId pekar på själva
+// relations-raden (inte personen), behövs för att acceptera/avböja/ta
+// bort/svara på just den.
+function useRelation(username) {
+  const [relation, setRelation] = useState(null)
+
+  function refresh() {
+    getContacts().then((data) => {
+      const findIn = (list) => list.find((c) => c.user.username === username)
+      const friend = findIn(data.contacts)
+      const outgoing = findIn(data.outgoing_requests)
+      const incoming = findIn(data.incoming_requests)
+      if (friend) setRelation({ type: 'friends', contactId: friend.id })
+      else if (outgoing) setRelation({ type: 'outgoing', contactId: outgoing.id })
+      else if (incoming) setRelation({ type: 'incoming', contactId: incoming.id })
+      else setRelation({ type: 'none' })
+    })
+  }
+
+  useEffect(refresh, [username])
+
+  return [relation, refresh]
+}
+
+// Vänförfrågan/blockera-knapparna för en annan användares profil. Alla
+// relationsknappar delar samma utseende (secondary-button), bara
+// texten och vad de gör skiljer sig åt beroende på relation.type.
+function RelationButtons({ username }) {
+  const [relation, refresh] = useRelation(username)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function run(action) {
+    setBusy(true)
+    setError('')
+    try {
+      await action()
+      refresh()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (relation === null) return null
+
+  return (
+    <>
+      {relation.type === 'none' && (
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={busy}
+          onClick={() => run(() => sendContactRequest(username))}
+        >
+          Skicka vänförfrågan
+        </button>
+      )}
+      {relation.type === 'outgoing' && (
+        <button type="button" className="secondary-button" disabled>
+          Väntar på svar
+        </button>
+      )}
+      {relation.type === 'incoming' && (
+        <>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={busy}
+            onClick={() => run(() => answerContactRequest(relation.contactId, 'accept'))}
+          >
+            Acceptera vänförfrågan
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={busy}
+            onClick={() => run(() => answerContactRequest(relation.contactId, 'reject'))}
+          >
+            Avböj
+          </button>
+        </>
+      )}
+      {relation.type === 'friends' && (
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={busy}
+          onClick={() => run(() => removeContact(relation.contactId))}
+        >
+          Ta bort vän
+        </button>
+      )}
+      <button
+        type="button"
+        className="text-button"
+        disabled={busy}
+        onClick={() => run(() => blockUser(username))}
+      >
+        Blockera
+      </button>
+      {error && <p className="form-error">{error}</p>}
+    </>
+  )
+}
 
 // Visar en annan användares profil, skrivskyddat. Ingen redigering och
 // ingen bilduppladdning här - det är bara ägaren som kan ändra sin profil.
@@ -67,6 +228,8 @@ function UserProfilePage() {
             <dt>Stadsdel</dt>
             <dd>{profile.district ?? '–'}</dd>
           </dl>
+          <RelationButtons username={username} />
+          <MessageForm username={username} />
         </>
       )}
 

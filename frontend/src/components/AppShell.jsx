@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 const NAV_ITEMS = [
   { label: 'Hem', to: null },
   { label: 'Personer', to: '/personer' },
-  { label: 'Klubbar', to: null },
+  { label: 'Klubbar', to: '/klubbar' },
   { label: 'Karta', to: null },
   { label: 'Evenemang', to: null },
 ]
@@ -44,7 +44,7 @@ function AppShell() {
               <span key={label} className="app-nav-link">
                 {label}
               </span>
-            )
+            ),
           )}
         </nav>
         <div className="app-user">
