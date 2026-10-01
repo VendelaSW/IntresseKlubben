@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { loginUser } from '../services/api'
 
-// Samma fält/logik som LoginForm.jsx, men utan sidans eget skal, så den kan
-// visas inline på Home istället för att navigera till en egen sida.
+// Inloggningsfälten, tänkta att visas inline på Home (se LoginFields/
+// RegisterFields-paret) istället för på en egen sida.
 function LoginFields({ onSwitchToRegister }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -18,8 +18,8 @@ function LoginFields({ onSwitchToRegister }) {
     setError('')
     setSubmitting(true)
     try {
-      const { access_token } = await loginUser(username, password)
-      await login(access_token)
+      const { access_token, user } = await loginUser(username, password)
+      login(access_token, user)
       // Profilsidan visar "Skapa din profil" om det inte finns någon profil
       // än, annars "Min profil". Byts mot huvudsidan när den finns.
       navigate('/profil')

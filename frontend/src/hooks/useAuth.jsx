@@ -25,18 +25,22 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
-  function login(token) {
+  useEffect(() => {
+    // api.js skickar detta när ett anrop får 401 med en token satt, t.ex.
+    // om token hinner gå ut medan man redan är inne i appen. Gäller alla
+    // sidor, inte bara den som råkade göra anropet som misslyckades.
+    function handleExpired() {
+      logout()
+    }
+    window.addEventListener('auth:expired', handleExpired)
+    return () => window.removeEventListener('auth:expired', handleExpired)
+  }, [])
+
+  // POST /users/login ger redan tillbaka användaren i svaret, så inget extra
+  // anrop till /users/me behövs här.
+  function login(token, user) {
     setToken(token)
-    setLoading(true)
-    return getCurrentUser()
-      .then(setUser)
-      .catch((err) => {
-        // Token sparades men visade sig ändå inte duga, lämna ingen halvfärdig
-        // inloggning kvar. Kastas vidare så LoginFields kan visa felet.
-        clearToken()
-        throw err
-      })
-      .finally(() => setLoading(false))
+    setUser(user)
   }
 
   function logout() {

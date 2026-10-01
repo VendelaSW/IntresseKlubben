@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
 import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
 import { imageToWebp } from '../services/imageToWebp'
@@ -133,8 +131,6 @@ function ProfilePage() {
   // Bild vald i "Skapa din profil", laddas upp efter att profilen sparats.
   const [pendingImage, setPendingImage] = useState(null)
   const [imageNotice, setImageNotice] = useState('')
-  const navigate = useNavigate()
-  const { logout } = useAuth()
 
   useEffect(() => {
     // Själva inloggningskollen sköts redan av ProtectedRoute, så vi kan
@@ -151,14 +147,12 @@ function ProfilePage() {
         setStatus('ready')
       })
       .catch((err) => {
-        // 401 = token ogiltig eller utgången (api.js har redan slängt den).
-        // logout() nollställer useAuth också, inte bara token i localStorage.
-        if (err.status === 401) {
-          logout()
-          navigate('/', { replace: true })
-        } else setStatus('error')
+        // 401 hanteras globalt (api.js skickar 'auth:expired', useAuth loggar
+        // ut, ProtectedRoute skickar vidare), inget att göra här mer än att
+        // inte visa felsidan i onödan.
+        if (err.status !== 401) setStatus('error')
       })
-  }, [navigate])
+  }, [])
 
   function startEditing() {
     setName(profile?.name ?? '')

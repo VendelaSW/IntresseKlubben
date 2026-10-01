@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { registerUser } from '../services/api'
 
-// Samma fält/logik som RegisterForm.jsx, men utan sidans eget skal, så den
-// kan visas inline på Home istället för att navigera till en egen sida.
+// Registreringsfälten, tänkta att visas inline på Home (se LoginFields/
+// RegisterFields-paret) istället för på en egen sida.
 function RegisterFields({ onSwitchToLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
