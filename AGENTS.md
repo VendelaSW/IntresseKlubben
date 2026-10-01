@@ -29,8 +29,20 @@ This project is a monorepo deployed as two separate Vercel projects:
 
 **Strict Rules for File Placement:**
 * Backend code belongs **exclusively** inside `backend/app/` (routes in `api/routes/`, DB models in `models/`, schemas in `schemas/`).
-* Frontend code belongs **exclusively** inside `frontend/src/` (components in `components/`, pages in `pages/`, API calls in `services/api.js`).
+* Frontend code belongs **exclusively** inside `frontend/src/` (components in `components/`, pages in `pages/`, API calls in `services/`, one file per resource, all going through `services/api.js`).
 * Do **not** create top-level files outside `backend/` or `frontend/` unless explicitly instructed.
+
+**Read `CONTRIBUTING.md` before building a feature.** It describes how the code fits together, the full workflow, and the team's conventions. The interests feature (`models/interest.py`, `schemas/interest.py`, `crud/interest.py`, `api/routes/interests.py`, `tests/test_interests.py`, `services/interests.js`) is the reference implementation to follow. `projektstruktur.md` describes the Vercel, Neon and GitHub setup.
+
+### Project Conventions (HARD RULE)
+
+* **Authentication:** every route that concerns a user must use `current_user = Depends(get_current_user)` from `app.auth.security`. Never add fake or hardcoded users (e.g. `FakeUser`, `User(id=1)`) to code that will be merged.
+* **Other users' data:** responses about *other* users must use a separate, smaller public schema. Never expose birth date, username, email or other private fields, and add a test that private fields are absent.
+* **Layers:** database access goes in `crud/`, HTTP handling in `api/routes/`. CRUD functions raise plain errors; routes decide HTTP status codes.
+* **API style:** no `/api` prefix on routers; follow the existing paths (`/profile/`, `/users/...`, `/interests/`). User-facing error messages are in Swedish.
+* **Before building something new, check whether it already exists.** If your change overlaps existing code, extend it or replace it explicitly, and state which and why in the PR. Never leave two parallel implementations (e.g. two login flows).
+* **Migrations:** set `down_revision` to the latest existing migration, and never run `alembic upgrade` against the shared Neon database before the PR is merged (see section 3).
+* **New environment variables:** you may not edit `.env.example` (see section 3), so tell the user which variable names must be added to `.env.example` (names only, never values) and in Vercel, for both Preview and Production.
 
 ---
 
