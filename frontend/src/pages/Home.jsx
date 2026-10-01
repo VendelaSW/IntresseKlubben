@@ -10,10 +10,9 @@ function Home() {
   const { user, loading } = useAuth()
   const [view, setView] = useState(null) // null | 'login' | 'register'
 
-  // Redan inloggad: inget att göra här, skicka vidare direkt.
-  // TODO: byt till /hem när den sidan finns.
+  // Redan inloggad: inget att göra här, skicka vidare till hubben.
   if (loading) return null
-  if (user) return <Navigate to="/profil" replace />
+  if (user) return <Navigate to="/hem" replace />
 
   return (
     <div className="page">
