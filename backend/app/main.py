@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import app.models  # noqa: F401 — laddar alla modeller innan något frågar databasen
+from app.api.routes.groups import router as groups_router
 from app.api.routes.health import router as health_router
 from app.api.routes.interests import router as interests_router
 from app.api.routes.municipalities import router as municipalities_router
@@ -24,3 +25,4 @@ app.include_router(profile_router)
 app.include_router(interests_router)
 app.include_router(user_router)
 app.include_router(municipalities_router)
+app.include_router(groups_router)
