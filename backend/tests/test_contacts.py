@@ -140,18 +140,19 @@ class ContactRoutesTest(unittest.TestCase):
         self.assertEqual([c["id"] for c in body["incoming_requests"]], [incoming_id])
         self.assertEqual([c["id"] for c in body["outgoing_requests"]], [outgoing_id])
         self.assertEqual(body["contacts"][0]["user"], {
-            "id": 4, "name": "Fyra", "image_url": "https://s3.test/bucket/profiles/4/abc.webp"})
+            "id": 4, "username": "user4", "name": "Fyra",
+            "image_url": "https://s3.test/bucket/profiles/4/abc.webp"})
         self.assertEqual(body["incoming_requests"][0]["user"],
-                         {"id": 3, "name": "Tre", "image_url": None})
+                         {"id": 3, "username": "user3", "name": "Tre", "image_url": None})
         self.assertEqual(body["outgoing_requests"][0]["user"],
-                         {"id": 2, "name": None, "image_url": None})
+                         {"id": 2, "username": "user2", "name": None, "image_url": None})
 
         self.actor_id = 5
         self.assertEqual(self.client.get("/contacts").json(),
                          {"contacts": [], "incoming_requests": [], "outgoing_requests": []})
 
     def test_list_contacts_hides_private_fields_of_other_users(self):
-        self.db.add(User(id=4, username="secretname", password_hash="unused",
+        self.db.add(User(id=4, username="fyran", password_hash="secret-hash",
                          email="secret@example.com"))
         self.db.add(Profile(user_id=4, name="Fyra", birth_date=date(1990, 1, 1)))
         self.db.commit()
@@ -159,9 +160,10 @@ class ContactRoutesTest(unittest.TestCase):
 
         listed = self.client.get("/contacts")
         user = listed.json()["outgoing_requests"][0]["user"]
-        for private in ("username", "email", "birth_date", "password_hash"):
+        self.assertEqual(user["username"], "fyran")
+        for private in ("email", "birth_date", "password_hash"):
             self.assertNotIn(private, user)
-        for value in ("secretname", "secret@example.com", "1990-01-01"):
+        for value in ("secret@example.com", "1990-01-01", "secret-hash"):
             self.assertNotIn(value, listed.text)
 
 

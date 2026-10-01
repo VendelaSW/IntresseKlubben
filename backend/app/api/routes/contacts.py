@@ -20,6 +20,7 @@ def _to_list_item(contact, other: User) -> ContactListItem:
         **ContactResponse.model_validate(contact).model_dump(),
         user=ContactUser(
             id=other.id,
+            username=other.username,
             name=profile.name if profile else None,
             image_url=storage.public_url(image_key) if image_key else None,
         ),

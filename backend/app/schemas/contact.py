@@ -25,8 +25,9 @@ class BlockResponse(ContactResponse):
 
 
 class ContactUser(BaseModel):
-    # Public view of another user: never username, email or birth date.
+    # Public view of another user: never email or birth date.
     id: int
+    username: str
     name: str | None
     image_url: str | None
 
