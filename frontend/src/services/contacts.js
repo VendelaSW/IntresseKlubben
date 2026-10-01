@@ -1,5 +1,6 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from './api'
 
+// Egna kontakter, inkommande och skickade förfrågningar.
 export function getContacts() {
   return apiGet('/contacts')
 }
@@ -8,6 +9,7 @@ export function sendContactRequest(username) {
   return apiPost('/contacts/request', { addressee_username: username })
 }
 
+// action är 'accept' eller 'reject'.
 export function answerContactRequest(contactId, action) {
   return apiPatch(`/contacts/requests/${contactId}`, { action })
 }

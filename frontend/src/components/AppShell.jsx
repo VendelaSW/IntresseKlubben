@@ -1,6 +1,8 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import logo from '../assets/intresseklubben.png'
 import { useAuth } from '../hooks/useAuth'
+import { getContacts } from '../services/contacts'
 
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
@@ -16,6 +18,17 @@ const NAV_ITEMS = [
 function AppShell() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [incomingCount, setIncomingCount] = useState(0)
+
+  // Antal obesvarade kontaktförfrågningar, för badgen vid Personer. Hämtas
+  // om vid varje sidbyte - enkel och "nog bra" uppdatering utan att bygga
+  // en delad kontakter-context bara för en badge.
+  useEffect(() => {
+    getContacts()
+      .then((data) => setIncomingCount(data.incoming_requests.length))
+      .catch(() => {})
+  }, [location.pathname])
 
   function handleLogout() {
     logout()
@@ -37,6 +50,11 @@ function AppShell() {
                 className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}
               >
                 {label}
+                {label === 'Personer' && incomingCount > 0 && (
+                  <span className="nav-badge" aria-label={`${incomingCount} nya förfrågningar`}>
+                    {incomingCount}
+                  </span>
+                )}
               </NavLink>
             ) : (
               <span key={label} className="app-nav-link">
