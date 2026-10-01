@@ -58,6 +58,18 @@ class ProfileResponse(BaseModel):
     image_url: str | None
 
 
+class PublicProfileResponse(BaseModel):
+    # Mindre "skyltfönster" av en profil - det som visas för NÅGON ANNANS
+    # profil (t.ex. GET /users/{username}/profile). Innehåller aldrig
+    # födelsedatum, kön eller kommunkoden, bara det ett ticket faktiskt
+    # ska visa för andra.
+    name: str | None
+    age: int | None
+    municipality_name: str | None
+    district: str | None
+    image_url: str | None
+
+
 class ProfileImageUploadUrl(BaseModel):
     # Länk som webbläsaren laddar upp bilden till direkt (PUT, giltig i 5 min).
     upload_url: str

@@ -46,3 +46,14 @@ def test_user_without_profile_gives_404(client, db, user):
     response = client.get("/users/bob/profile")
 
     assert response.status_code == 404
+
+
+def test_other_users_private_fields_not_in_response(client, db, user):
+    _create_user_with_profile(db, "bob")
+
+    response = client.get("/users/bob/profile")
+
+    body = response.json()
+    assert "birth_date" not in body
+    assert "gender" not in body
+    assert "municipality_code" not in body

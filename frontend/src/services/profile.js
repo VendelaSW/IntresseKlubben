@@ -37,9 +37,9 @@ export function updateProfile(data) {
 
 // En annan användares profil, skrivskyddat. null om personen inte har
 // skapat någon profil än (samma 404-hantering som getProfile).
-export async function getUserProfile(userId) {
+export async function getUserProfile(username) {
   try {
-    return await apiGet(`/users/${userId}/profile`)
+    return await apiGet(`/users/${encodeURIComponent(username)}/profile`)
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) return null
     throw err
