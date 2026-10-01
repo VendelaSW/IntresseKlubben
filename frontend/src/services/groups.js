@@ -22,6 +22,11 @@ export function getSuggestedGroups() {
   return apiGet('/groups/suggested')
 }
 
+// Vilka som är med i gruppen, längst med först.
+export function getGroupMembers(id) {
+  return apiGet(`/groups/${id}/members`)
+}
+
 export function createGroup(data) {
   return apiPost('/groups/', data)
 }

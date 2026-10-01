@@ -1083,6 +1083,42 @@ span.tag-selected:hover {
   max-width: none;
 }
 
+.group-members {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.group-members ul {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.group-member {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.group-member:hover span:not(.hint-text):not(.group-member-avatar) {
+  text-decoration: underline;
+}
+
+.group-member-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-line);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 /* ---------- Hem (hubben) ---------- */
 
 .hub {
