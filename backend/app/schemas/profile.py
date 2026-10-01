@@ -3,6 +3,7 @@ from datetime import date
 from pydantic import BaseModel, field_validator
 
 from app.models.profile import GenderEnum
+from app.schemas.interest import InterestResponse
 
 
 class ProfileUpdate(BaseModel):
@@ -68,6 +69,20 @@ class PublicProfileResponse(BaseModel):
     municipality_name: str | None
     district: str | None
     image_url: str | None
+
+
+class PersonResponse(BaseModel):
+    # Används i listan över andra anvandare (filtrera/föreslå) - precis som
+    # PublicProfileResponse, men med username (för att länka till
+    # /anvandare/{username}) och interests (för taggar och matchning).
+    # Aldrig birth_date, gender eller e-post.
+    username: str
+    name: str | None
+    age: int | None
+    municipality_name: str | None
+    district: str | None
+    image_url: str | None
+    interests: list[InterestResponse]
 
 
 class ProfileImageUploadUrl(BaseModel):
