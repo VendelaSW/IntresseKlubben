@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
-  { label: 'Hem', to: null },
+  { label: 'Hem', to: '/hem' },
   { label: 'Personer', to: '/personer' },
   { label: 'Klubbar', to: null },
   { label: 'Karta', to: null },
@@ -26,8 +26,7 @@ function AppShell() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        {/* TODO: peka om till /hem när den sidan finns. */}
-        <Link to="/profil" className="app-brand">
+        <Link to="/hem" className="app-brand">
           <img src={logo} alt="Intresseklubben" className="app-brand-logo" />
         </Link>
         <nav className="app-nav" aria-label="Huvudmeny">
