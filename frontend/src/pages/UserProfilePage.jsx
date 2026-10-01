@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import {
   answerContactRequest,
   blockUser,
   getContacts,
   removeContact,
   sendContactRequest,
+  unblockUser,
 } from '../services/contacts'
 import { sendMessage } from '../services/messages'
 import { getUserProfile } from '../services/profile'
@@ -83,22 +85,51 @@ function useRelation(username) {
 // Vänförfrågan/blockera-knapparna för en annan användares profil. Alla
 // relationsknappar delar samma utseende (secondary-button), bara
 // texten och vad de gör skiljer sig åt beroende på relation.type.
-function RelationButtons({ username }) {
+function RelationButtons({ username, name, blocked, onBlockedChange }) {
   const [relation, refresh] = useRelation(username)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const displayName = name ?? username
 
+  // Returnerar true om åtgärden lyckades, så att anroparen kan reagera.
   async function run(action) {
     setBusy(true)
     setError('')
     try {
       await action()
       refresh()
+      return true
     } catch (err) {
       setError(err.message)
+      return false
     } finally {
       setBusy(false)
     }
+  }
+
+  async function handleBlock() {
+    const question = `Blockera ${displayName}? Ni kan inte längre kontakta varandra. Du kan avblockera senare.`
+    if (!window.confirm(question)) return
+    if (await run(() => blockUser(username))) onBlockedChange(true)
+  }
+
+  async function handleUnblock() {
+    if (await run(() => unblockUser(username))) onBlockedChange(false)
+  }
+
+  // Blockeringar syns inte i GET /contacts, så "blockerad" hålls här på
+  // sidan efter att man själv har blockerat. Laddar man om sidan syns det
+  // inte längre (kräver en lista över egna blockeringar i backend).
+  if (blocked) {
+    return (
+      <>
+        <p className="hint-text">Du har blockerat {displayName}.</p>
+        <button type="button" className="secondary-button" disabled={busy} onClick={handleUnblock}>
+          Avblockera
+        </button>
+        {error && <p className="form-error">{error}</p>}
+      </>
+    )
   }
 
   if (relation === null) return null
@@ -154,7 +185,7 @@ function RelationButtons({ username }) {
         type="button"
         className="text-button"
         disabled={busy}
-        onClick={() => run(() => blockUser(username))}
+        onClick={handleBlock}
       >
         Blockera
       </button>
@@ -168,11 +199,17 @@ function RelationButtons({ username }) {
 function UserProfilePage() {
   const { username } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'not-found' | 'error'
   const [profile, setProfile] = useState(null)
+  const [blocked, setBlocked] = useState(false)
+  // Den egna profilen kan öppnas via adressen, men man ska inte kunna
+  // skicka vänförfrågan, meddelande eller blockera sig själv.
+  const isMe = user?.username === username
 
   useEffect(() => {
     setStatus('loading')
+    setBlocked(false)
     getUserProfile(username)
       .then((data) => {
         setProfile(data)
@@ -228,8 +265,17 @@ function UserProfilePage() {
             <dt>Stadsdel</dt>
             <dd>{profile.district ?? '–'}</dd>
           </dl>
-          <RelationButtons username={username} />
-          <MessageForm username={username} />
+          {!isMe && (
+            <>
+              <RelationButtons
+                username={username}
+                name={profile.name}
+                blocked={blocked}
+                onBlockedChange={setBlocked}
+              />
+              {!blocked && <MessageForm username={username} />}
+            </>
+          )}
         </>
       )}
 
