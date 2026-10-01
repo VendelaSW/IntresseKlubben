@@ -27,9 +27,9 @@ const EMPTY_TEXT = {
 
 // Allt innehåll för klubbar (intressegrupper). Ligger på en egen sida nu, men
 // är byggd för att senare kunna visas i ett litet fönster som öppnas från en
-// knapp. onUnauthorized anropas om inloggningen har gått ut. titleTag är h1 på
-// den egna sidan och kan vara h2 i fönstret.
-function GroupsPanel({ onUnauthorized, titleTag: Title = 'h2' }) {
+// knapp. titleTag är h1 på den egna sidan och kan vara h2 i fönstret.
+// Utgången inloggning hanteras globalt i services/api.js.
+function GroupsPanel({ titleTag: Title = 'h2' }) {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [tab, setTab] = useState('mine')
   // 'list', 'create' eller id för den grupp som visas.
@@ -42,13 +42,7 @@ function GroupsPanel({ onUnauthorized, titleTag: Title = 'h2' }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  const handleError = useCallback(
-    (err) => {
-      if (err.status === 401) onUnauthorized()
-      else setError(err.message)
-    },
-    [onUnauthorized],
-  )
+  const handleError = (err) => setError(err.message)
 
   useEffect(() => {
     Promise.all([getAllInterests(), getMunicipalities(), getProfile()])
@@ -57,11 +51,8 @@ function GroupsPanel({ onUnauthorized, titleTag: Title = 'h2' }) {
         setMunicipalities(m)
         setFilters({ interestId: '', municipalityCode: profile?.municipality_code ?? '' })
       })
-      .catch((err) => {
-        if (err.status === 401) onUnauthorized()
-        else setStatus('error')
-      })
-  }, [onUnauthorized])
+      .catch(() => setStatus('error'))
+  }, [])
 
   const loadGroups = useCallback(
     () =>
@@ -83,11 +74,8 @@ function GroupsPanel({ onUnauthorized, titleTag: Title = 'h2' }) {
     if (filters === null) return
     loadGroups()
       .then(() => setStatus('ready'))
-      .catch((err) => {
-        if (err.status === 401) onUnauthorized()
-        else setStatus('error')
-      })
-  }, [filters, loadGroups, onUnauthorized])
+      .catch(() => setStatus('error'))
+  }, [filters, loadGroups])
 
   async function runAction(group, action) {
     setBusy(true)
