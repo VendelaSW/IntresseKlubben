@@ -1,8 +1,10 @@
 from datetime import date
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
+from app.models.interest import Interest
 from app.models.profile import Profile
+from app.models.user import User
 from app.schemas.profile import ProfileUpdate
 
 
@@ -37,6 +39,26 @@ def update_profile(db: Session, user_id: int, data: ProfileUpdate) -> Profile:
     db.commit()
     db.refresh(profile)
     return profile
+
+
+def list_people(
+    db: Session,
+    exclude_user_id: int,
+    interest_id: int | None = None,
+    municipality_code: str | None = None,
+) -> list[Profile]:
+    """Andra användare med sparad profil, valfritt filtrerade på intresse och kommun."""
+    query = (
+        db.query(Profile)
+        .join(User, User.id == Profile.user_id)
+        .options(selectinload(Profile.municipality), selectinload(Profile.user).selectinload(User.interests))
+        .filter(Profile.name.isnot(None), Profile.user_id != exclude_user_id)
+    )
+    if interest_id is not None:
+        query = query.filter(User.interests.any(Interest.id == interest_id))
+    if municipality_code is not None:
+        query = query.filter(Profile.municipality_code == municipality_code)
+    return query.order_by(Profile.name).all()
 
 
 def set_profile_image(db: Session, profile: Profile, key: str) -> str | None:

@@ -12,6 +12,11 @@ användarnamnet eller lösenordet som var fel (standard säkerhetspraxis).
 
 GET /users/me - den inloggade användaren (kräver token).
 
+GET /users/ - andra användare med sparad profil, valfritt filtrerade på
+?interest_id= och/eller ?municipality_code=. Utesluter dig själv. Samma
+dataminimering som PublicProfileResponse, men med username (länk till
+/anvandare/{username}) och interests (taggar/matchning) - se PersonResponse.
+
 GET /users/{username}/profile - visar en annan användares profil
 via användarnamn (inte id, så adressen går att dela/komma ihåg),
 skrivskyddat. Kräver inloggning, precis som resten av profil- och
@@ -25,11 +30,12 @@ from sqlalchemy.orm import Session
 
 from app.auth.security import create_access_token, get_current_user, verify_password
 from app.core import storage
-from app.crud.profile import calculate_age, get_profile
+from app.crud.profile import calculate_age, get_profile, list_people
 from app.crud.user import UsernameTakenError, create_user, get_user_by_username
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.profile import PublicProfileResponse
+from app.schemas.interest import InterestResponse
+from app.schemas.profile import PersonResponse, PublicProfileResponse
 from app.schemas.user import LoginResponse, UserCreate, UserLogin, UserOut
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -64,6 +70,29 @@ def login_user(credentials: UserLogin, db: Session = Depends(get_db)) -> LoginRe
 @router.get("/me", response_model=UserOut)
 def read_current_user(current_user: User = Depends(get_current_user)) -> UserOut:
     return current_user
+
+
+def _to_person_response(profile) -> PersonResponse:
+    return PersonResponse(
+        username=profile.user.username,
+        name=profile.name,
+        age=calculate_age(profile.birth_date) if profile.birth_date else None,
+        municipality_name=profile.municipality.name if profile.municipality else None,
+        district=profile.district,
+        image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
+        interests=[InterestResponse.model_validate(i) for i in profile.user.interests],
+    )
+
+
+@router.get("/", response_model=list[PersonResponse])
+def read_people(
+    interest_id: int | None = None,
+    municipality_code: str | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[PersonResponse]:
+    profiles = list_people(db, current_user.id, interest_id, municipality_code)
+    return [_to_person_response(p) for p in profiles]
 
 
 def _to_public_response(profile) -> PublicProfileResponse:
