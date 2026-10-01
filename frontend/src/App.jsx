@@ -4,6 +4,7 @@ import ServiceInfo from './pages/ServiceInfo'
 import StyleGuide from './pages/StyleGuide'
 import ProfilePage from './pages/ProfilePage'
 import GroupsPage from './pages/GroupsPage'
+import HubPage from './pages/HubPage'
 import PeoplePage from './pages/PeoplePage'
 import InboxPage from './pages/InboxPage'
 import ConversationPage from './pages/ConversationPage'
@@ -34,6 +35,7 @@ function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
+            <Route path="/hem" element={<HubPage />} />
             <Route path="/profil" element={<ProfilePage />} />
             <Route path="/klubbar" element={<GroupsPage />} />
             <Route path="/personer" element={<PeoplePage />} />
