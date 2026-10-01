@@ -119,7 +119,9 @@ En ticket ger en liten PR. Ju längre en branch lever, desto mer av `dev` missar
 - I frontend sköts inloggning av `services/auth.js` och `services/api.js`. Skapa inga egna varianter.
 
 ### Data om andra användare
-- Den inloggade användaren får se allt om sig själv. Andra ser bara det ticketen säger, t.ex. namn, ålder, kommun och bild, aldrig födelsedatum, användarnamn eller e-post.
+- Den inloggade användaren får se allt om sig själv. Andra ser bara det ticketen säger, t.ex. användarnamn, namn, ålder, kommun och bild, aldrig e-post, födelsedatum (visa ålder i stället), kön eller lösenord.
+- **Användarnamnet är det publika ID:t** för en person: profilsidan är `/anvandare/{username}` och meddelanden skickas till ett användarnamn. Det får därför finnas med i svar om andra.
+- **Blockeringar ska respekteras överallt** där andra användare visas eller kan kontaktas, åt båda hållen. Använd `is_blocked()` i `crud/contact.py`, och svara som om personen inte fanns, så att blockeringen inte avslöjas.
 - Skriv ett test som kontrollerar att privata fält **inte** finns i svaret.
 
 ### API

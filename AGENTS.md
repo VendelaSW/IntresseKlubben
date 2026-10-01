@@ -37,7 +37,8 @@ This project is a monorepo deployed as two separate Vercel projects:
 ### Project Conventions (HARD RULE)
 
 * **Authentication:** every route that concerns a user must use `current_user = Depends(get_current_user)` from `app.auth.security`. Never add fake or hardcoded users (e.g. `FakeUser`, `User(id=1)`) to code that will be merged.
-* **Other users' data:** responses about *other* users must use a separate, smaller public schema. Never expose birth date, username, email or other private fields, and add a test that private fields are absent.
+* **Other users' data:** responses about *other* users must use a separate, smaller public schema. The **username is the public identifier** (profile URLs `/anvandare/{username}` and messages use it), so it may be included. Never expose email, birth date (show age instead), gender, password hash or other private fields, and add a test that the private fields are absent.
+* **Blocking:** anything that shows other users or lets users contact each other must respect blocks in both directions, using `is_blocked()` from `crud/contact.py`. A blocked user gets the same neutral response as for a user that doesn't exist, so the block is never revealed.
 * **Layers:** database access goes in `crud/`, HTTP handling in `api/routes/`. CRUD functions raise plain errors; routes decide HTTP status codes.
 * **API style:** no `/api` prefix on routers; follow the existing paths (`/profile/`, `/users/...`, `/interests/`). User-facing error messages are in Swedish.
 * **Before building something new, check whether it already exists.** If your change overlaps existing code, extend it or replace it explicitly, and state which and why in the PR. Never leave two parallel implementations (e.g. two login flows).
