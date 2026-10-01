@@ -1,0 +1,96 @@
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.models.contact import Contact
+from app.models.user import User
+
+
+class ContactError(Exception):
+    def __init__(self, status_code: int, detail: str):
+        self.status_code = status_code
+        self.detail = detail
+
+
+def _pair_key(first_id: int, second_id: int) -> str:
+    return f"{min(first_id, second_id)}:{max(first_id, second_id)}"
+
+
+def _require_other_user(db: Session, actor_id: int, other_id: int) -> None:
+    if actor_id == other_id:
+        raise ContactError(400, "Cannot create a relationship with yourself")
+    if db.get(User, other_id) is None:
+        raise ContactError(404, "User not found")
+
+
+def _save(db: Session, contact: Contact) -> Contact:
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise ContactError(409, "Relationship changed; please retry") from exc
+    db.refresh(contact)
+    return contact
+
+
+def send_request(db: Session, requester_id: int, addressee_id: int) -> Contact:
+    _require_other_user(db, requester_id, addressee_id)
+    key = _pair_key(requester_id, addressee_id)
+    existing = db.query(Contact).filter(Contact.pair_key == key).one_or_none()
+    if existing is not None:
+        raise ContactError(409, "Relationship already exists or a user is blocked")
+    contact = Contact(requester_id=requester_id, addressee_id=addressee_id,
+                      pair_key=key, status="PENDING")
+    db.add(contact)
+    return _save(db, contact)
+
+
+def answer_request(db: Session, request_id: int, addressee_id: int,
+                   action: str) -> Contact | None:
+    contact = db.query(Contact).filter(Contact.id == request_id).with_for_update().one_or_none()
+    if contact is None or contact.status != "PENDING":
+        raise ContactError(404, "Pending request not found")
+    if contact.addressee_id != addressee_id:
+        raise ContactError(403, "Only the addressee can answer this request")
+    if action == "reject":
+        db.delete(contact)
+        db.commit()
+        return None
+    contact.status = "ACCEPTED"
+    return _save(db, contact)
+
+
+def remove_contact(db: Session, contact_id: int, actor_id: int) -> None:
+    contact = db.query(Contact).filter(Contact.id == contact_id).with_for_update().one_or_none()
+    if contact is None or contact.status != "ACCEPTED":
+        raise ContactError(404, "Contact not found")
+    if actor_id not in (contact.requester_id, contact.addressee_id):
+        raise ContactError(403, "Only a participant can remove this contact")
+    db.delete(contact)
+    db.commit()
+
+
+def block_user(db: Session, blocker_id: int, blocked_id: int) -> Contact:
+    _require_other_user(db, blocker_id, blocked_id)
+    key = _pair_key(blocker_id, blocked_id)
+    contact = db.query(Contact).filter(Contact.pair_key == key).with_for_update().one_or_none()
+    if contact is None:
+        contact = Contact(pair_key=key, requester_id=blocker_id,
+                          addressee_id=blocked_id, status="BLOCKED")
+        db.add(contact)
+    elif contact.status == "BLOCKED" and contact.requester_id != blocker_id:
+        raise ContactError(409, "This user has already blocked you")
+    else:
+        contact.requester_id = blocker_id
+        contact.addressee_id = blocked_id
+        contact.status = "BLOCKED"
+    return _save(db, contact)
+
+
+def unblock_user(db: Session, blocker_id: int, blocked_id: int) -> None:
+    contact = (db.query(Contact)
+               .filter(Contact.pair_key == _pair_key(blocker_id, blocked_id))
+               .with_for_update().one_or_none())
+    if contact is None or contact.status != "BLOCKED" or contact.requester_id != blocker_id:
+        raise ContactError(404, "Block not found")
+    db.delete(contact)
+    db.commit()
