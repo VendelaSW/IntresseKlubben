@@ -1,3 +1,5 @@
+import { clearToken, getToken } from './auth'
+
 const API_URL = import.meta.env.VITE_API_URL
 
 // Fel från API:et. status = HTTP-koden, message = backendens förklaring
@@ -24,9 +26,19 @@ async function request(path, options = {}) {
   if (!API_URL) {
     throw new Error('VITE_API_URL saknas. Sätt den i frontend/.env eller i Vercel.')
   }
-  const res = await fetch(`${API_URL}${path}`, options)
+  // Skicka med inloggningstoken om vi har en (se services/auth.js).
+  const token = getToken()
+  const headers = { ...options.headers }
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(`${API_URL}${path}`, { ...options, headers })
   const body = await res.json().catch(() => null)
-  if (!res.ok) throw new ApiError(res.status, errorMessage(body, res.status))
+  if (!res.ok) {
+    // Token ogiltig eller utgången: släng den så att sidan kan skicka
+    // användaren till inloggningen i stället för att fortsätta försöka.
+    if (res.status === 401 && token) clearToken()
+    throw new ApiError(res.status, errorMessage(body, res.status))
+  }
   return body
 }
 
@@ -50,6 +62,25 @@ export function apiPatch(path, data) {
   })
 }
 
+// data är valfri: utan data skickas ingen body (t.ex. PUT /profile/interests/5),
+// med data skickas den som JSON (t.ex. PUT /profile/image med { key }).
+export function apiPut(path, data) {
+  if (data === undefined) return request(path, { method: 'PUT' })
+  return request(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
+
+export function apiDelete(path) {
+  return request(path, { method: 'DELETE' })
+}
+
 export function registerUser(username, password) {
   return apiPost('/users/register', { username, password })
+}
+
+export function loginUser(username, password) {
+  return apiPost('/users/login', { username, password })
 }

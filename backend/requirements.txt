@@ -7,3 +7,5 @@ alembic
 python-dotenv
 pydantic-settings
 bcrypt
+boto3
+PyJWT

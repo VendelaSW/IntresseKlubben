@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from app.api.routes.profile import get_current_user
+from app.auth.security import get_current_user
 from app.crud import contact as contact_crud
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.contact import BlockResponse, ContactAnswer, ContactRequest, ContactResponse
 
-router = APIRouter(prefix="/api", tags=["contacts"])
+router = APIRouter(tags=["contacts"])
 
 
 @router.post("/contacts/request", response_model=ContactResponse,

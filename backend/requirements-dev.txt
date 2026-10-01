@@ -1,0 +1,8 @@
+# Bara för tester och CI. Vercel installerar requirements.txt, inte den här.
+# Installera lokalt med: pip install -r requirements-dev.txt
+-r requirements.txt
+pytest
+pytest-cov
+httpx2
+# Fejkad S3 i minnet, så att bildtesterna aldrig rör den riktiga bucketen.
+moto[s3]

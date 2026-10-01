@@ -9,6 +9,17 @@ class Settings(BaseSettings):
     # Sätts i .env lokalt och i vercel panelen i produktion
     cors_origins: str = ""
 
+    # S3-kompatibel bucket i Neon för profilbilder. boto3 läser inte .env
+    # själv, så värdena skickas vidare från här (se app/core/storage.py).
+    s3_bucket: str = ""
+    aws_endpoint_url_s3: str = ""
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    aws_region: str = ""
+
+    # Hemlig nyckel som inloggningstoken signeras med (se app/auth/security.py).
+    # Lång slumpad sträng, olika i Preview och Production, aldrig i Git.
+    jwt_secret: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:
