@@ -6,6 +6,7 @@ import LoginForm from './pages/LoginForm'
 import RegisterForm from './pages/RegisterForm'
 import StyleGuide from './pages/StyleGuide'
 import ProfilePage from './pages/ProfilePage'
+import GroupsPage from './pages/GroupsPage'
 import ApiStatus from './components/ApiStatus'
 import DemoLayout from './pages/demo/DemoLayout'
 import DemoStart from './pages/demo/DemoStart'
@@ -26,6 +27,7 @@ function App() {
         <Route path="/registrera" element={<RegisterForm />} />
         <Route path="/stilguide" element={<StyleGuide />} />
         <Route path="/profil" element={<ProfilePage />} />
+        <Route path="/klubbar" element={<GroupsPage />} />
 
         {/* Klickbar prototyp med påhittad data, rör inte backend. */}
         <Route path="/demo" element={<DemoLayout />}>
