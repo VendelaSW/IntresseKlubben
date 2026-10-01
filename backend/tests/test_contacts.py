@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from app.api.routes.contacts import fake_get_current_user
+from app.api.routes.profile import get_current_user
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
@@ -30,7 +30,7 @@ class ContactRoutesTest(unittest.TestCase):
         self.db.commit()
         self.actor_id = 1
         app.dependency_overrides[get_db] = lambda: self.db
-        app.dependency_overrides[fake_get_current_user] = lambda: User(id=self.actor_id)
+        app.dependency_overrides[get_current_user] = lambda: User(id=self.actor_id)
         self.client = TestClient(app)
 
     def tearDown(self):
