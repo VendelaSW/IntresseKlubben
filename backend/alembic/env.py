@@ -11,8 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from app.core.config import settings  # noqa: E402
 from app.db.base import Base  # noqa: E402
 
-# Importera modellmoduler här så Alembic ser dem vid autogenerate, t.ex.:
-# from app.models import club, member  # noqa: E402,F401
+from app.models import contact, interest, user  # noqa: E402,F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

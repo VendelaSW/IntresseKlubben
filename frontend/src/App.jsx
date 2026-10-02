@@ -1,23 +1,65 @@
-import logo from './assets/intresseklubben.png'
-import mapImage from './assets/map.jpg'
-import ProblemStatement from './components/ProblemStatement'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import Home from './pages/Home'
+import ServiceInfo from './pages/ServiceInfo'
+import StyleGuide from './pages/StyleGuide'
+import ProfilePage from './pages/ProfilePage'
+import GroupsPage from './pages/GroupsPage'
+import HubPage from './pages/HubPage'
+import PeoplePage from './pages/PeoplePage'
+import InboxPage from './pages/InboxPage'
+import ConversationPage from './pages/ConversationPage'
+import UserProfilePage from './pages/UserProfilePage'
+import AppShell from './components/AppShell'
+import ProtectedRoute from './components/ProtectedRoute'
+import DemoLayout from './pages/demo/DemoLayout'
+import DemoStart from './pages/demo/DemoStart'
+import DemoAuth from './pages/demo/DemoAuth'
+import DemoProfile from './pages/demo/DemoProfile'
+import DemoApp, { DemoComingSoon, DemoOverview } from './pages/demo/DemoApp'
+import DemoPeople from './pages/demo/DemoPeople'
+import DemoClubs from './pages/demo/DemoClubs'
 
 function App() {
   return (
-    <div className="page">
-      <header className="hero">
-        <img src={logo} alt="Intresseklubben" className="logo" />
-        <p className="tagline">Vi antecknar, ni träffas.</p>
-      </header>
-      <ProblemStatement />
-      <section className="map-section">
-        <img
-          src={mapImage}
-          alt="Karta som visar personer med olika intressen, som dykning, keramik och fotboll, utplacerade i en stad"
-          className="map-image"
-        />
-      </section>
-    </div>
+    <>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/om" element={<ServiceInfo />} />
+        {/* Ersatta av inloggning/registrering inline på /, kvar som omdirigering
+            ifall någon har ett gammalt bokmärke eller en gammal länk. */}
+        <Route path="/konto" element={<Navigate to="/" replace />} />
+        <Route path="/logga-in" element={<Navigate to="/" replace />} />
+        <Route path="/registrera" element={<Navigate to="/" replace />} />
+        <Route path="/stilguide" element={<StyleGuide />} />
+
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            <Route path="/hem" element={<HubPage />} />
+            <Route path="/profil" element={<ProfilePage />} />
+            <Route path="/klubbar" element={<GroupsPage />} />
+            <Route path="/personer" element={<PeoplePage />} />
+            <Route path="/meddelanden" element={<InboxPage />} />
+            <Route path="/meddelanden/:username" element={<ConversationPage />} />
+            <Route path="/anvandare/:username" element={<UserProfilePage />} />
+          </Route>
+        </Route>
+
+        {/* Klickbar prototyp med påhittad data, rör inte backend. */}
+        <Route path="/demo" element={<DemoLayout />}>
+          <Route index element={<DemoStart />} />
+          <Route path="registrera" element={<DemoAuth key="register" mode="register" />} />
+          <Route path="logga-in" element={<DemoAuth key="login" mode="login" />} />
+          <Route path="profil" element={<DemoProfile />} />
+          <Route path="app" element={<DemoApp />}>
+            <Route index element={<DemoOverview />} />
+            <Route path="personer" element={<DemoPeople />} />
+            <Route path="klubbar" element={<DemoClubs />} />
+            <Route path="karta" element={<DemoComingSoon key="map" kind="map" />} />
+            <Route path="evenemang" element={<DemoComingSoon key="events" kind="events" />} />
+          </Route>
+        </Route>
+      </Routes>
+    </>
   )
 }
 
