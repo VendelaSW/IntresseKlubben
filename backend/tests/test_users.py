@@ -22,6 +22,19 @@ def test_register_rejects_taken_username(client):
     assert response.status_code == 409
 
 
+def test_register_rejects_taken_username_different_case(client):
+    client.post("/users/register", json={"username": "Vendela", "password": "hemligt123"})
+    response = client.post("/users/register", json={"username": "vendela", "password": "annat12345"})
+    assert response.status_code == 409
+
+
+def test_login_is_not_case_sensitive(client):
+    client.post("/users/register", json={"username": "Vendela", "password": "hemligt123"})
+    response = client.post("/users/login", json={"username": "VENDELA", "password": "hemligt123"})
+    assert response.status_code == 200
+    assert response.json()["user"]["username"] == "Vendela"  # ursprungligt skiftläge bevaras
+
+
 @pytest.mark.parametrize(
     "payload",
     [
