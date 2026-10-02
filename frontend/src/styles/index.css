@@ -536,9 +536,11 @@ span.tag-selected:hover {
   cursor: pointer;
 }
 
+/* Gul kantlinje vid hover, samma som .secondary-button och .tag-selected,
+   inte nästan-svart (--color-text) som tidigare. */
 .tag:hover,
 .tag:focus-visible {
-  border-color: var(--color-text);
+  border-color: var(--color-accent);
 }
 
 .tag-selected {
