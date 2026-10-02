@@ -20,7 +20,7 @@ function InboxPage() {
   if (status === 'error') {
     return (
       <div className="content-stack">
-        <p className="status-error">Kunde inte hämta meddelandena. Försök igen senare.</p>
+        <p className="status-error">Kunde inte hämta breven. Försök igen senare.</p>
       </div>
     )
   }
@@ -28,10 +28,10 @@ function InboxPage() {
   return (
     <div className="content-stack">
       <section className="app-section">
-        <h1 className="app-title">Meddelanden</h1>
+        <h1 className="app-title">Brev</h1>
 
         {status === 'loading' ? (
-          <p className="hint-text">Laddar meddelanden...</p>
+          <p className="hint-text">Laddar brev...</p>
         ) : conversations.length > 0 ? (
           <div className="card-grid">
             {conversations.map((conversation) => (
@@ -39,7 +39,7 @@ function InboxPage() {
             ))}
           </div>
         ) : (
-          <p className="hint-text">Inga meddelanden än.</p>
+          <p className="hint-text">Inga brev än.</p>
         )}
       </section>
     </div>

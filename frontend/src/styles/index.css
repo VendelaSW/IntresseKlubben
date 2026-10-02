@@ -536,9 +536,11 @@ span.tag-selected:hover {
   cursor: pointer;
 }
 
+/* Gul kantlinje vid hover, samma som .secondary-button och .tag-selected,
+   inte nästan-svart (--color-text) som tidigare. */
 .tag:hover,
 .tag:focus-visible {
-  border-color: var(--color-text);
+  border-color: var(--color-accent);
 }
 
 .tag-selected {
@@ -791,6 +793,8 @@ span.tag-selected:hover {
 
 .app-nav {
   display: flex;
+  align-self: flex-end;
+  justify-content: center;
   gap: 0.25rem;
   overflow-x: auto;
   order: 3;
@@ -799,24 +803,34 @@ span.tag-selected:hover {
 
 .app-nav-link {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: flex-end;
+  gap: 0.15rem;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   color: var(--color-text);
   text-decoration: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 999px;
+  padding: 0.3rem 0.9rem 0.1rem;
+  border-radius: 12px;
   white-space: nowrap;
 }
 
-.app-nav-link:hover,
-.app-nav-link:focus-visible {
-  background: var(--color-white);
+.nav-icon {
+  height: 34px;
+  width: auto;
+  transition: transform 0.15s ease;
 }
 
-.app-nav-link.active {
-  background: var(--color-accent);
+.app-nav-link:hover .nav-icon,
+.app-nav-link:focus-visible .nav-icon,
+.app-nav-link.active .nav-icon {
+  transform: scale(1.15);
+}
+
+.app-nav-link.active .app-nav-label {
+  background: linear-gradient(transparent 58%, var(--color-accent) 58%, var(--color-accent) 88%, transparent 88%);
+  padding: 0 0.15em;
 }
 
 .nav-badge {
@@ -893,7 +907,7 @@ span.tag-selected:hover {
 @media (min-width: 900px) {
   .app-nav {
     order: 0;
-    width: auto;
+    flex: 1;
   }
 }
 

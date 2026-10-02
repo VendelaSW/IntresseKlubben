@@ -21,8 +21,8 @@ const SECTIONS = [
   {
     to: '/meddelanden',
     title: 'Håll kontakten',
-    text: 'Se dina konversationer och skicka meddelanden till folk du hittat i klubben.',
-    action: 'Öppna meddelanden',
+    text: 'Se dina konversationer och skicka brev till folk du hittat i klubben.',
+    action: 'Öppna brev',
   },
 ]
 
