@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import DirectionTeaser from '../components/DirectionTeaser'
 import HomeLink from '../components/HomeLink'
 import logo from '../assets/intresseklubben.png'
 
@@ -14,11 +13,10 @@ function ServiceInfo() {
       <p className="problem-statement">
         Intresseklubben hjälper dig hitta andra som delar exakt ditt intresse,
         oavsett om det är dykning, keramik eller brädspel. Du skapar en profil,
-        listar dina intressen och ser andra användare och intressegrupper på en
-        karta nära dig — så blir det enkelt att gå från gemensamt intresse till
-        en faktisk träff.
+        listar dina intressen och hittar andra användare och klubbar i din
+        kommun — så blir det enkelt att gå från gemensamt intresse till en
+        faktisk träff.
       </p>
-      <DirectionTeaser />
     </div>
   )
 }

@@ -7,6 +7,11 @@ import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import { useAuth } from '../hooks/useAuth'
 import { getContacts } from '../services/contacts'
+import {
+  countUnseenConversations,
+  getConversations,
+  markConversationsSeen,
+} from '../services/messages'
 
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
@@ -24,6 +29,7 @@ function AppShell() {
   const navigate = useNavigate()
   const location = useLocation()
   const [incomingCount, setIncomingCount] = useState(0)
+  const [unseenMessages, setUnseenMessages] = useState(0)
 
   // Antal obesvarade kontaktförfrågningar, för badgen vid Personer. Hämtas
   // om vid varje sidbyte - enkel och "nog bra" uppdatering utan att bygga
@@ -31,6 +37,18 @@ function AppShell() {
   useEffect(() => {
     getContacts()
       .then((data) => setIncomingCount(data.incoming_requests.length))
+      .catch(() => {})
+  }, [location.pathname])
+
+  // Konversationer med nya brev, för badgen vid Brev. När man är på Brev
+  // (/meddelanden) räknas allt som sett och badgen försvinner.
+  useEffect(() => {
+    const onMessages = location.pathname.startsWith('/meddelanden')
+    getConversations()
+      .then((conversations) => {
+        if (onMessages) markConversationsSeen(conversations)
+        setUnseenMessages(onMessages ? 0 : countUnseenConversations(conversations))
+      })
       .catch(() => {})
   }, [location.pathname])
 
@@ -53,9 +71,16 @@ function AppShell() {
                 to={to}
                 className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}
               >
-                {label === 'Personer' && incomingCount > 0 && (
+                {/* Badgarna går på adressen, inte texten, så att ett nytt
+                    menynamn inte tar bort dem. */}
+                {to === '/personer' && incomingCount > 0 && (
                   <span className="nav-badge" aria-label={`${incomingCount} nya förfrågningar`}>
                     {incomingCount}
+                  </span>
+                )}
+                {to === '/meddelanden' && unseenMessages > 0 && (
+                  <span className="nav-badge" aria-label={`${unseenMessages} konversationer med nya brev`}>
+                    {unseenMessages}
                   </span>
                 )}
                 <img src={icon} alt="" className="nav-icon" />
