@@ -50,7 +50,7 @@ function ConversationPage() {
         <p className="status-error">Kunde inte hämta konversationen. Försök igen senare.</p>
       )}
       {status === 'ready' && messages.length === 0 && (
-        <p className="hint-text">Inga meddelanden än.</p>
+        <p className="hint-text">Inga brev än.</p>
       )}
       {status === 'ready' &&
         messages.map((m) => (
@@ -60,7 +60,7 @@ function ConversationPage() {
         ))}
 
       <form className="auth-form" onSubmit={handleSubmit}>
-        <label htmlFor="reply-text">Skriv ett meddelande</label>
+        <label htmlFor="reply-text">Skriv ett brev</label>
         <input
           id="reply-text"
           type="text"
