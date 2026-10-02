@@ -23,6 +23,12 @@ skrivskyddat. Kräver inloggning, precis som resten av profil- och
 intresse-anropen. Använder ett eget, mindre svar (PublicProfileResponse):
 bara namn, ålder, kommun, stadsdel och bild - aldrig födelsedatum, kön,
 användarnamn eller e-post.
+
+POST /users/{username}/dismiss - tar bort en person från dina Förslag
+(GET /users/ ovan). Ensidigt, påverkar inget annat. Idempotent.
+
+DELETE /users/dismissed-suggestions - nollställer alla dina borttagna
+förslag, så de kan dyka upp igen.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -30,6 +36,11 @@ from sqlalchemy.orm import Session
 
 from app.auth.security import create_access_token, get_current_user, verify_password
 from app.core import storage
+from app.crud.dismissed_suggestion import (
+    dismiss_suggestion,
+    list_dismissed_user_ids,
+    reset_dismissed_suggestions,
+)
 from app.crud.interest import sorted_interests
 from app.crud.profile import calculate_age, get_profile, list_people
 from app.crud.user import UsernameTakenError, create_user, get_user_by_username
@@ -92,8 +103,34 @@ def read_people(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[PersonResponse]:
-    profiles = list_people(db, current_user.id, interest_id, municipality_code)
+    dismissed_ids = list_dismissed_user_ids(db, current_user.id)
+    profiles = list_people(db, current_user.id, interest_id, municipality_code, dismissed_ids)
     return [_to_person_response(p) for p in profiles]
+
+
+@router.post("/{username}/dismiss", status_code=status.HTTP_204_NO_CONTENT)
+def dismiss_person(
+    username: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    other = get_user_by_username(db, username)
+    if other is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Användaren finns inte")
+    if other.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Du kan inte ta bort dig själv som förslag.",
+        )
+    dismiss_suggestion(db, current_user.id, other.id)
+
+
+@router.delete("/dismissed-suggestions", status_code=status.HTTP_204_NO_CONTENT)
+def reset_suggestions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    reset_dismissed_suggestions(db, current_user.id)
 
 
 def _to_public_response(profile) -> PublicProfileResponse:
