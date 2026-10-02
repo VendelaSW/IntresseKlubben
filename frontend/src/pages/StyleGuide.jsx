@@ -1,12 +1,12 @@
+import brevIcon from '../assets/brev.png'
 import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
-import messIcon from '../assets/mess.png'
 import personerIcon from '../assets/personer.png'
 
 const NAV_ICONS = [
   { icon: hemIcon, label: 'Hem' },
-  { icon: messIcon, label: 'Brev' },
+  { icon: brevIcon, label: 'Brev' },
   { icon: personerIcon, label: 'Personer' },
   { icon: klubbarIcon, label: 'Klubbar' },
 ]
@@ -144,7 +144,7 @@ function StyleGuide() {
             <div className="swatch" key={label}>
               <span className="app-nav-link" style={{ padding: 0 }}>
                 <img src={icon} alt="" className="nav-icon" />
-                {label}
+                <span className="app-nav-label">{label}</span>
               </span>
             </div>
           ))}

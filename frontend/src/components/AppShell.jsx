@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
+import brevIcon from '../assets/brev.png'
 import logo from '../assets/intresseklubben.png'
-import messIcon from '../assets/mess.png'
 import personerIcon from '../assets/personer.png'
 import { useAuth } from '../hooks/useAuth'
 import { getContacts } from '../services/contacts'
@@ -11,7 +11,7 @@ import { getContacts } from '../services/contacts'
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
   { label: 'Hem', to: '/hem', icon: hemIcon },
-  { label: 'Brev', to: '/meddelanden', icon: messIcon },
+  { label: 'Brev', to: '/meddelanden', icon: brevIcon },
   { label: 'Personer', to: '/personer', icon: personerIcon },
   { label: 'Klubbar', to: '/klubbar', icon: klubbarIcon },
 ]
@@ -59,21 +59,21 @@ function AppShell() {
                   </span>
                 )}
                 <img src={icon} alt="" className="nav-icon" />
-                {label}
+                <span className="app-nav-label">{label}</span>
               </NavLink>
             ) : (
               <span key={label} className="app-nav-link">
                 <img src={icon} alt="" className="nav-icon" />
-                {label}
+                <span className="app-nav-label">{label}</span>
               </span>
             ),
           )}
         </nav>
         <div className="app-user">
-          <Link to="/profil" className="info-link">
+          <Link to="/profil" className="info-link highlight" style={{ borderBottom: 'none' }}>
             {user?.username}
           </Link>
-          <button type="button" className="text-button" onClick={handleLogout}>
+          <button type="button" className="primary-button button-small" onClick={handleLogout}>
             Logga ut
           </button>
         </div>

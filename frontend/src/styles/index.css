@@ -817,15 +817,18 @@ span.tag-selected:hover {
 .nav-icon {
   height: 34px;
   width: auto;
+  transition: transform 0.15s ease;
 }
 
-.app-nav-link:hover,
-.app-nav-link:focus-visible {
-  background: var(--color-white);
+.app-nav-link:hover .nav-icon,
+.app-nav-link:focus-visible .nav-icon,
+.app-nav-link.active .nav-icon {
+  transform: scale(1.15);
 }
 
-.app-nav-link.active {
-  background: var(--color-accent);
+.app-nav-link.active .app-nav-label {
+  background: linear-gradient(transparent 58%, var(--color-accent) 58%, var(--color-accent) 88%, transparent 88%);
+  padding: 0 0.15em;
 }
 
 .nav-badge {
