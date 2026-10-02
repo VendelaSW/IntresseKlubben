@@ -114,6 +114,12 @@ function PeoplePage() {
     }
   }
 
+  function handleRemoveContact(contact) {
+    const name = contact.user.name ?? contact.user.username
+    if (!window.confirm(`Ta bort ${name} som kontakt?`)) return
+    runAction(() => removeContact(contact.id))
+  }
+
   return (
     <section className="app-section">
       <h1 className="app-title">Personer</h1>
@@ -214,7 +220,7 @@ function PeoplePage() {
                   <PersonActions
                     relation="contact"
                     busy={busy}
-                    onRemove={() => runAction(() => removeContact(contact.id))}
+                    onRemove={() => handleRemoveContact(contact)}
                   />
                 }
               />
