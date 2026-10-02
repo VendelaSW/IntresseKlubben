@@ -1,4 +1,15 @@
+import hemIcon from '../assets/hem.png'
+import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
+import messIcon from '../assets/mess.png'
+import personerIcon from '../assets/personer.png'
+
+const NAV_ICONS = [
+  { icon: hemIcon, label: 'Hem' },
+  { icon: messIcon, label: 'Brev' },
+  { icon: personerIcon, label: 'Personer' },
+  { icon: klubbarIcon, label: 'Klubbar' },
+]
 
 const COLORS = [
   { name: '--color-bg', hex: '#f7f1e3', label: 'Bakgrund' },
@@ -121,6 +132,23 @@ function StyleGuide() {
           <li><button type="button" className="tag">Ej vald</button></li>
           <li><button type="button" className="tag tag-selected">Vald</button></li>
         </ul>
+      </section>
+
+      <section className="style-section">
+        <h2>Ikoner</h2>
+        <p className="swatch-label">
+          Handritade, matchar loggans stil (.nav-icon). Ikon ovanför text, används i huvudmenyn.
+        </p>
+        <div className="swatch-grid" style={{ marginTop: '1rem' }}>
+          {NAV_ICONS.map(({ icon, label }) => (
+            <div className="swatch" key={label}>
+              <span className="app-nav-link" style={{ padding: 0 }}>
+                <img src={icon} alt="" className="nav-icon" />
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="style-section">

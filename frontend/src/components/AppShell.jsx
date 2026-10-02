@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import hemIcon from '../assets/hem.png'
+import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
+import messIcon from '../assets/mess.png'
+import personerIcon from '../assets/personer.png'
 import { useAuth } from '../hooks/useAuth'
 import { getContacts } from '../services/contacts'
 
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
-  { label: 'Hem', to: '/hem' },
-  { label: 'Meddelanden', to: '/meddelanden' },
-  { label: 'Personer', to: '/personer' },
-  { label: 'Klubbar', to: '/klubbar' },
+  { label: 'Hem', to: '/hem', icon: hemIcon },
+  { label: 'Brev', to: '/meddelanden', icon: messIcon },
+  { label: 'Personer', to: '/personer', icon: personerIcon },
+  { label: 'Klubbar', to: '/klubbar', icon: klubbarIcon },
 ]
 
 // Ram runt alla inloggade sidor: header (logga, meny, användare) + sidans
@@ -42,22 +46,24 @@ function AppShell() {
           <img src={logo} alt="Intresseklubben" className="app-brand-logo" />
         </Link>
         <nav className="app-nav" aria-label="Huvudmeny">
-          {NAV_ITEMS.map(({ label, to }) =>
+          {NAV_ITEMS.map(({ label, to, icon }) =>
             to ? (
               <NavLink
                 key={label}
                 to={to}
                 className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}
               >
-                {label}
                 {label === 'Personer' && incomingCount > 0 && (
                   <span className="nav-badge" aria-label={`${incomingCount} nya förfrågningar`}>
                     {incomingCount}
                   </span>
                 )}
+                <img src={icon} alt="" className="nav-icon" />
+                {label}
               </NavLink>
             ) : (
               <span key={label} className="app-nav-link">
+                <img src={icon} alt="" className="nav-icon" />
                 {label}
               </span>
             ),

@@ -37,7 +37,7 @@ function MessageForm({ username }) {
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
-      <label htmlFor="message-text">Skicka ett meddelande</label>
+      <label htmlFor="message-text">Skicka ett brev</label>
       <input
         id="message-text"
         type="text"
