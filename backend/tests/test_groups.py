@@ -1,9 +1,11 @@
+from datetime import date
+
 import pytest
 
 from app.auth.security import get_current_user
 from app.crud.group import MAX_MEMBERSHIPS
 from app.main import app
-from app.models import Group, GroupMember, Interest, User
+from app.models import Group, GroupMember, Interest, Profile, User
 
 
 @pytest.fixture
@@ -196,3 +198,48 @@ def test_only_owner_can_delete_group(client, user, new_group, login_as):
     login_as("testuser")
     assert client.delete(f"/groups/{group['id']}").status_code == 204
     assert client.get(f"/groups/{group['id']}").status_code == 404
+
+
+# --- Medlemmar ---------------------------------------------------------------
+
+
+def test_members_lists_public_info_longest_member_first(client, db, user, new_group, login_as):
+    group = new_group()
+    anna = login_as("anna")
+    db.add(Profile(user_id=anna.id, name="Anna Berg", birth_date=date(2000, 1, 1)))
+    db.commit()
+    client.put(f"/groups/{group['id']}/members/me")
+
+    response = client.get(f"/groups/{group['id']}/members")
+    assert response.status_code == 200
+    assert response.json() == [
+        {"username": "testuser", "name": None, "image_url": None, "role": "owner"},
+        {"username": "anna", "name": "Anna Berg", "image_url": None, "role": "member"},
+    ]
+
+
+def test_members_of_public_group_visible_to_non_members(client, user, new_group, login_as):
+    group = new_group()
+    login_as("annan")
+    assert [m["username"] for m in client.get(f"/groups/{group['id']}/members").json()] == ["testuser"]
+
+
+def test_members_of_private_group_hidden_from_non_members(client, user, new_group, login_as):
+    group = new_group(name="Hemlig", visibility="private")
+    login_as("annan")
+    assert client.get(f"/groups/{group['id']}/members").status_code == 404
+
+
+def test_members_hides_blocked_users_in_both_directions(client, user, new_group, login_as):
+    group = new_group()
+    login_as("anna")
+    client.put(f"/groups/{group['id']}/members/me")
+    assert client.post("/users/testuser/block").status_code in (200, 201)
+
+    # Anna har blockerat testuser: ingen av dem ser den andra i listan.
+    assert [m["username"] for m in client.get(f"/groups/{group['id']}/members").json()] == ["anna"]
+    login_as("testuser")
+    assert [m["username"] for m in client.get(f"/groups/{group['id']}/members").json()] == ["testuser"]
+    # Någon annan ser båda.
+    login_as("bo")
+    assert [m["username"] for m in client.get(f"/groups/{group['id']}/members").json()] == ["testuser", "anna"]

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
+from app.core import storage
 from app.crud.group import (
     GroupRuleError,
     create_group,
@@ -10,6 +11,7 @@ from app.crud.group import (
     get_membership,
     join_group,
     leave_group,
+    list_members,
     list_public_groups,
     list_suggested_groups,
     list_user_groups,
@@ -18,7 +20,7 @@ from app.db.session import get_db
 from app.models.group import Group, GroupRole, GroupVisibility
 from app.models.interest import Interest
 from app.models.municipality import Municipality
-from app.schemas.group import GroupCreate, GroupResponse
+from app.schemas.group import GroupCreate, GroupMemberResponse, GroupResponse
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
@@ -96,6 +98,24 @@ def read_suggested_groups(current_user=Depends(get_current_user), db: Session = 
 @router.get("/{group_id}", response_model=GroupResponse)
 def read_group(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     return _to_response(_visible_group_or_404(db, group_id, current_user.id), current_user.id)
+
+
+# Alla som kan se klubben ser vilka som är med (en privat klubb syns bara
+# för medlemmarna). Blockerade användare filtreras bort i list_members.
+@router.get("/{group_id}/members", response_model=list[GroupMemberResponse])
+def read_members(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    group = _visible_group_or_404(db, group_id, current_user.id)
+    result = []
+    for membership, member in list_members(db, group, current_user.id):
+        profile = member.profile
+        image_key = profile.profile_image_url if profile else None
+        result.append(GroupMemberResponse(
+            username=member.username,
+            name=profile.name if profile else None,
+            image_url=storage.public_url(image_key) if image_key else None,
+            role=membership.role,
+        ))
+    return result
 
 
 # PUT eftersom det går att upprepa: den som redan är med får samma svar.

@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, field_validator
 
-from app.models.group import GroupVisibility
+from app.models.group import GroupRole, GroupVisibility
 
 
 def _required_text(value: str, field: str, max_length: int, empty_message: str) -> str:
@@ -58,3 +58,11 @@ class GroupResponse(BaseModel):
     is_member: bool
     is_owner: bool
     created_at: datetime
+
+
+class GroupMemberResponse(BaseModel):
+    # Publik vy av en medlem: aldrig e-post, födelsedatum eller kön.
+    username: str
+    name: str | None
+    image_url: str | None
+    role: GroupRole
