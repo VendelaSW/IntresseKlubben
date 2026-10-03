@@ -7,6 +7,7 @@ exempel: den ticketen kan byggas mot exakt den här signaturen utan
 att vänta på resten av registreringsflödet.
 """
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.auth.security import hash_password
@@ -22,11 +23,17 @@ def get_user_by_username(db: Session, username: str) -> User | None:
     """
     Hämtar en User baserat på username, eller None om den inte finns.
 
+    Case-insensitive: "Vendela" och "vendela" är samma användare, så
+    login, profiluppslag och username-kontrollen i create_user nedan
+    (alla går via den här funktionen) behandlar dem lika. Username
+    sparas med den stavning/skiftläge användaren registrerade sig med
+    - vi normaliserar bara jämförelsen, inte lagringen.
+
     Kastar inget undantag om användaren saknas - anroparen (t.ex.
     login-flödet) avgör själv hur ett None-resultat ska hanteras
     (typiskt: "fel användarnamn").
     """
-    return db.query(User).filter(User.username == username).first()
+    return db.query(User).filter(func.lower(User.username) == username.lower()).first()
 
 
 def create_user(db: Session, user_in: UserCreate) -> User:
