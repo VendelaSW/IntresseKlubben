@@ -4,7 +4,7 @@ import PersonCard from '../components/PersonCard'
 import { answerContactRequest, getContacts, removeContact, sendContactRequest } from '../services/contacts'
 import { getAllInterests, getMyInterests } from '../services/interests'
 import { getMunicipalities } from '../services/profile'
-import { getPeople } from '../services/people'
+import { dismissSuggestion, getPeople, resetDismissedSuggestions } from '../services/people'
 
 const TABS = [
   { id: 'suggested', label: 'Förslag' },
@@ -120,6 +120,15 @@ function PeoplePage() {
     runAction(() => removeContact(contact.id))
   }
 
+  function handleDismiss(person) {
+    runAction(() => dismissSuggestion(person.username))
+  }
+
+  function handleResetDismissed() {
+    if (!window.confirm('Visa alla borttagna förslag igen?')) return
+    runAction(() => resetDismissedSuggestions())
+  }
+
   return (
     <section className="app-section">
       <h1 className="app-title">Personer</h1>
@@ -168,6 +177,9 @@ function PeoplePage() {
               ))}
             </select>
           </div>
+          <button type="button" className="text-button" disabled={busy} onClick={handleResetDismissed}>
+            Visa borttagna förslag igen
+          </button>
         </>
       )}
 
@@ -190,6 +202,7 @@ function PeoplePage() {
                     relation={outgoing ? 'outgoing' : null}
                     busy={busy}
                     onSend={() => runAction(() => sendContactRequest(person.username))}
+                    onDismiss={() => handleDismiss(person)}
                   />
                 }
               />

@@ -9,3 +9,4 @@ from app.models.associations import user_interests  # noqa: F401
 from app.models.contact import Contact  # noqa: F401
 from app.models.message import Message  # noqa: F401
 from app.models.group import Group, GroupMember  # noqa: F401
+from app.models.dismissed_suggestion import DismissedSuggestion  # noqa: F401

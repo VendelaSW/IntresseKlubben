@@ -96,6 +96,15 @@ def test_private_fields_not_in_response(client, db, user):
     assert set(body) == {"username", "name", "age", "municipality_name", "district", "image_url", "interests"}
 
 
+def test_excludes_dismissed_suggestions(client, db, user):
+    _create_person(db, "bob", "Bob")
+    client.post("/users/bob/dismiss")
+
+    names = [p["name"] for p in client.get("/users/").json()]
+
+    assert names == []
+
+
 def test_requires_login(client, db):
     response = client.get("/users/")
     assert response.status_code == 401
