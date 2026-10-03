@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
+import { useAuth } from '../hooks/useAuth'
 import { imageToWebp } from '../services/imageToWebp'
 import { addInterest, getAllInterests, getMyInterests, removeInterest } from '../services/interests'
 import {
@@ -21,7 +22,9 @@ function todayString() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-function ProfileImage({ profile, onUploaded }) {
+// Visar profilbilden. Själva bildbytet (knappen) finns bara när editable är
+// satt, alltså i "Redigera profil", inte i den vanliga profilvyn.
+function ProfileImage({ profile, onUploaded, editable = false }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
@@ -51,16 +54,18 @@ function ProfileImage({ profile, onUploaded }) {
           {initial}
         </div>
       )}
-      <label className={`secondary-button${uploading ? ' is-disabled' : ''}`}>
-        {uploading ? 'Laddar upp...' : profile.image_url ? 'Byt bild' : 'Lägg till bild'}
-        <input
-          type="file"
-          accept="image/*"
-          className="visually-hidden"
-          onChange={handleFile}
-          disabled={uploading}
-        />
-      </label>
+      {editable && (
+        <label className={`secondary-button button-small${uploading ? ' is-disabled' : ''}`}>
+          {uploading ? 'Laddar upp...' : profile.image_url ? 'Byt bild' : 'Lägg till bild'}
+          <input
+            type="file"
+            accept="image/*"
+            className="visually-hidden"
+            onChange={handleFile}
+            disabled={uploading}
+          />
+        </label>
+      )}
       {error && <p className="form-error">{error}</p>}
     </div>
   )
@@ -101,7 +106,7 @@ function NewProfileImage({ name, image, onChange }) {
           {initial}
         </div>
       )}
-      <label className="secondary-button">
+      <label className="secondary-button button-small">
         {image ? 'Byt bild' : 'Lägg till bild'}
         <input type="file" accept="image/*" className="visually-hidden" onChange={handleFile} />
       </label>
@@ -112,6 +117,7 @@ function NewProfileImage({ name, image, onChange }) {
 }
 
 function ProfilePage() {
+  const { user } = useAuth()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   const [editing, setEditing] = useState(false)
@@ -242,7 +248,7 @@ function ProfilePage() {
   if (status === 'error') {
     return (
       <div className="content-stack">
-        <h1>Min profil</h1>
+        <h1>{user?.username} profil</h1>
         <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>
       </div>
     )
@@ -251,7 +257,7 @@ function ProfilePage() {
   if (editing) {
     const isNew = profile === null
     return (
-      <div className="content-stack">
+      <div className="card card-wide content-stack">
         <h1>{isNew ? 'Skapa din profil' : 'Redigera profil'}</h1>
         {isNew && (
           <p className="profile-intro">
@@ -263,7 +269,7 @@ function ProfilePage() {
         {isNew ? (
           <NewProfileImage name={name} image={pendingImage} onChange={setPendingImage} />
         ) : (
-          <ProfileImage profile={profile} onUploaded={setProfile} />
+          <ProfileImage profile={profile} onUploaded={setProfile} editable />
         )}
         <form className="auth-form" onSubmit={handleSubmit}>
           <label htmlFor="profile-name">Namn</label>
@@ -340,16 +346,10 @@ function ProfilePage() {
   }
 
   return (
-    <div className="content-stack">
-      <h1>Min profil</h1>
+    <div className="card card-wide content-stack">
+      <h1>{user?.username} profil</h1>
       {imageNotice && <p className="form-error">{imageNotice}</p>}
-      <ProfileImage
-        profile={profile}
-        onUploaded={(updated) => {
-          setImageNotice('')
-          setProfile(updated)
-        }}
-      />
+      <ProfileImage profile={profile} />
       <dl className="profile-details">
         <dt>Namn</dt>
         <dd>{profile.name ?? '–'}</dd>

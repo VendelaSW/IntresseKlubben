@@ -120,6 +120,10 @@ function StyleGuide() {
             Primär
           </button>
         </div>
+        <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Rund knapp (.round-button)</p>
+        <div className="account-choice-links" style={{ marginTop: '1rem' }}>
+          <button className="primary-button round-button" type="button" aria-label="Exempel" />
+        </div>
       </section>
 
       <section className="style-section">
@@ -153,7 +157,36 @@ function StyleGuide() {
 
       <section className="style-section">
         <h2>Boxar</h2>
-        <div className="card">
+        <p className="swatch-label">Vanligt kort (.card)</p>
+        <div className="card" style={{ marginTop: '1rem' }}>
+          <div className="card-avatar" />
+          <p className="card-title">Emmy, 24</p>
+          <p className="card-subheading">Stockholm</p>
+          <p className="card-text">Gillar brädspel, klättring och katter.</p>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Klickbart kort (.card .card-interactive), t.ex. en tumnagel i personlistan
+        </p>
+        <p className="hint-text">
+          Hovra med musen: kortet lyfts och får gul kant och skugga. Används bara på kort
+          som går att klicka på, inte på kort som är behållare.
+        </p>
+        <div className="card card-interactive" style={{ marginTop: '1rem' }}>
+          <div className="card-avatar" />
+          <p className="card-title">Emmy, 24</p>
+          <p className="card-subheading">Stockholm</p>
+          <p className="card-text">Gillar brädspel, klättring och katter.</p>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Profilkort (.card .card-wide), för att visa en hel profil, egen eller någon annans
+        </p>
+        <p className="hint-text">
+          Inte klickbart, därför en blå hård skugga hela tiden. Klickbara kort har ingen skugga
+          i vila och får gul kant, gul skugga och lyft vid hover.
+        </p>
+        <div className="card card-wide" style={{ marginTop: '1rem' }}>
           <div className="card-avatar" />
           <p className="card-title">Emmy, 24</p>
           <p className="card-subheading">Stockholm</p>

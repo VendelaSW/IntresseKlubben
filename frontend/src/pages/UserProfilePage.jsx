@@ -240,7 +240,7 @@ function UserProfilePage() {
       {status === 'error' && <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>}
 
       {status === 'ready' && (
-        <>
+        <div className="card card-wide content-stack">
           <h1>{profile.name ?? 'Profil'}</h1>
           <div className="profile-image">
             {profile.image_url ? (
@@ -276,7 +276,7 @@ function UserProfilePage() {
               {!blocked && <MessageForm username={username} />}
             </>
           )}
-        </>
+        </div>
       )}
 
       <button type="button" className="text-button" onClick={handleBack}>

@@ -414,11 +414,6 @@ span.tag-selected:hover {
   cursor: pointer;
 }
 
-.button-small {
-  padding: 0.1rem 0.4rem;
-  font-size: var(--text-small);
-}
-
 .primary-button:hover {
   opacity: 0.85;
 }
@@ -460,6 +455,48 @@ span.tag-selected:hover {
   border-radius: 4px;
   padding: 1.5rem;
   max-width: 320px;
+}
+
+/* Bredare kort för att visa en hel profil (egen eller någon annans). Inte
+   klickbart, så blå hård skugga hela tiden i stället för den gula hover-
+   effekten som klickbara kort får. */
+.card-wide {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem;
+  box-shadow: 0 6px 0 var(--color-line);
+}
+
+/* Caveat i stor storlek har mycket luft i radhöjden, vilket syns som tom
+   yta överst i kortet. */
+.card-wide h1 {
+  line-height: 1.1;
+}
+
+/* Klickbart kort, t.ex. en tumnagel i personlistan: lyfts och får gul kant
+   och skugga vid hover/fokus. Läggs på kort som är klickbara, inte på kort
+   som bara är behållare. */
+.card-interactive {
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-interactive:hover,
+.card-interactive:focus-within {
+  transform: translateY(-3px);
+  border-color: var(--color-accent);
+  box-shadow: 0 6px 0 var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-interactive {
+    transition: none;
+  }
+
+  .card-interactive:hover,
+  .card-interactive:focus-within {
+    transform: none;
+  }
 }
 
 .card-avatar {
@@ -602,6 +639,64 @@ span.tag-selected:hover {
 .secondary-button:focus-visible {
   border-color: var(--color-accent);
   background: var(--color-accent);
+}
+
+/* Liten variant. Måste ligga efter .primary-button och .secondary-button,
+   annars vinner deras padding och knappen blir inte mindre. */
+.button-small {
+  padding: 0.1rem 0.4rem;
+  font-size: var(--text-small);
+}
+
+/* Rund "+"-knapp, t.ex. för att skapa något. Plusset är ritat med två streck
+   (inget tecken i knappen), så det blir exakt centrerat. Läggs på
+   .primary-button, och måste ligga efter den av samma skäl som .button-small. */
+.round-button {
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border-radius: 50%;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.round-button::before,
+.round-button::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: currentColor;
+  border-radius: 2px;
+  transform: translate(-50%, -50%);
+}
+
+.round-button::before {
+  width: 0.9rem;
+  height: 3px;
+}
+
+.round-button::after {
+  width: 3px;
+  height: 0.9rem;
+}
+
+.round-button:hover,
+.round-button:focus-visible {
+  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 0 var(--color-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .round-button {
+    transition: none;
+  }
+
+  .round-button:hover,
+  .round-button:focus-visible {
+    transform: none;
+  }
 }
 
 .tag-static {
@@ -819,11 +914,20 @@ span.tag-selected:hover {
 .nav-icon {
   height: 34px;
   width: auto;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
-.app-nav-link:hover .nav-icon,
-.app-nav-link:focus-visible .nav-icon,
+/* Hover/fokus på en menypunkt som inte är aktiv: ikonen växer och får en gul
+   kontur längs de svarta linjerna. drop-shadow följer PNG:ens genomskinlighet,
+   och fyra hårda skuggor (en åt varje håll) blir tillsammans en kant. */
+.app-nav-link:not(.active):hover .nav-icon,
+.app-nav-link:not(.active):focus-visible .nav-icon {
+  transform: scale(1.15);
+  filter: drop-shadow(1px 0 0 var(--color-accent)) drop-shadow(-1px 0 0 var(--color-accent))
+    drop-shadow(0 1px 0 var(--color-accent)) drop-shadow(0 -1px 0 var(--color-accent));
+}
+
+/* Aktiv sida: ingen kontur, ikonen är lite större och texten har strecket. */
 .app-nav-link.active .nav-icon {
   transform: scale(1.15);
 }
@@ -964,13 +1068,12 @@ span.tag-selected:hover {
 
 /* ---------- Klubbar (intressegrupper) ---------- */
 
-/* Bygger på .card. Smal, eftersom den senare ska visas i ett litet fönster. */
+/* Bygger på .card .card-wide, som styr bredd, padding och skugga. Här bara
+   panelens egen layout inuti. */
 .groups-panel {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  width: 100%;
-  max-width: 460px;
   text-align: left;
 }
 
@@ -989,19 +1092,6 @@ span.tag-selected:hover {
   font-size: var(--text-h1);
   line-height: 1;
   margin: 0;
-}
-
-/* Rund "+" för att skapa en klubb. */
-.groups-panel-add {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  padding: 0;
-  border-radius: 50%;
-  font-size: 1.75rem;
-  line-height: 1;
 }
 
 /* Tre lika breda flikar: Mina klubbar, Förslag, Alla. */
