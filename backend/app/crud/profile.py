@@ -46,14 +46,19 @@ def list_people(
     exclude_user_id: int,
     interest_id: int | None = None,
     municipality_code: str | None = None,
+    exclude_user_ids: set[int] | None = None,
 ) -> list[Profile]:
-    """Andra användare med sparad profil, valfritt filtrerade på intresse och kommun."""
+    """Andra användare med sparad profil, valfritt filtrerade på intresse och
+    kommun. exclude_user_ids är en extra uteslutningslista utöver dig själv -
+    används för tidigare borttagna förslag (se crud/dismissed_suggestion.py)."""
     query = (
         db.query(Profile)
         .join(User, User.id == Profile.user_id)
         .options(selectinload(Profile.municipality), selectinload(Profile.user).selectinload(User.interests))
         .filter(Profile.name.isnot(None), Profile.user_id != exclude_user_id)
     )
+    if exclude_user_ids:
+        query = query.filter(Profile.user_id.notin_(exclude_user_ids))
     if interest_id is not None:
         query = query.filter(User.interests.any(Interest.id == interest_id))
     if municipality_code is not None:
