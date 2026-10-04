@@ -1,7 +1,9 @@
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.auth.security import hash_password, verify_password
 from app.crud.user import get_user_by_username
+from app.models import User
 
 
 def test_register_creates_user_without_leaking_password(client, db):
@@ -26,6 +28,17 @@ def test_register_rejects_taken_username_different_case(client):
     client.post("/users/register", json={"username": "Vendela", "password": "hemligt123"})
     response = client.post("/users/register", json={"username": "vendela", "password": "annat12345"})
     assert response.status_code == 409
+
+
+def test_database_rejects_usernames_differing_only_in_case(db):
+    # Skyddsnätet under koden: även om något skriver direkt till tabellen
+    # (eller två registreringar sker samtidigt) ska databasen säga nej.
+    db.add(User(username="Vendela", password_hash="x"))
+    db.commit()
+    db.add(User(username="vendela", password_hash="x"))
+    with pytest.raises(IntegrityError):
+        db.commit()
+    db.rollback()
 
 
 def test_login_is_not_case_sensitive(client):
