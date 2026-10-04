@@ -15,9 +15,15 @@ function Home() {
   if (user) return <Navigate to="/hem" replace />
 
   return (
-    <div className="page">
+    <div className="page" style={view === null ? undefined : { gap: '1.25rem' }}>
       <section className="hero">
-        <img src={logo} alt="Intresseklubben" className="logo" />
+        {/* Mindre logga i inloggnings-/registreringsvyerna så att hela formuläret
+            syns utan att man behöver scrolla. */}
+        <img
+          src={logo}
+          alt="Intresseklubben"
+          className={view === null ? 'logo' : 'logo-small'}
+        />
         {view === null && <p className="tagline">Vi antecknar, ni träffas.</p>}
       </section>
       {view === null && <ProblemStatement />}
