@@ -89,7 +89,7 @@ function HubPage() {
 
       <section className="hub-cards" aria-label="Kom igång">
         {SECTIONS.map((section) => (
-          <Link key={section.to} to={section.to} className="hub-card">
+          <Link key={section.to} to={section.to} className="hub-card card-interactive">
             <h2 className="hub-card-title">{section.title}</h2>
             <p className="hub-card-text">{section.text}</p>
             <span className="primary-button hub-card-action">{section.action} →</span>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
-import { useAuth } from '../hooks/useAuth'
 import { imageToWebp } from '../services/imageToWebp'
 import { addInterest, getAllInterests, getMyInterests, removeInterest } from '../services/interests'
 import {
@@ -117,7 +116,6 @@ function NewProfileImage({ name, image, onChange }) {
 }
 
 function ProfilePage() {
-  const { user } = useAuth()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   const [editing, setEditing] = useState(false)
@@ -248,7 +246,7 @@ function ProfilePage() {
   if (status === 'error') {
     return (
       <div className="content-stack">
-        <h1>{user?.username} profil</h1>
+        <h1>Min profil</h1>
         <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>
       </div>
     )
@@ -269,7 +267,17 @@ function ProfilePage() {
         {isNew ? (
           <NewProfileImage name={name} image={pendingImage} onChange={setPendingImage} />
         ) : (
-          <ProfileImage profile={profile} onUploaded={setProfile} editable />
+          <>
+            <ProfileImage
+              profile={profile}
+              onUploaded={(updated) => {
+                setImageNotice('')
+                setProfile(updated)
+              }}
+              editable
+            />
+            {imageNotice && <p className="form-error">{imageNotice}</p>}
+          </>
         )}
         <form className="auth-form" onSubmit={handleSubmit}>
           <label htmlFor="profile-name">Namn</label>
@@ -347,8 +355,10 @@ function ProfilePage() {
 
   return (
     <div className="card card-wide content-stack">
-      <h1>{user?.username} profil</h1>
-      {imageNotice && <p className="form-error">{imageNotice}</p>}
+      <h1>Min profil</h1>
+      {imageNotice && (
+        <p className="form-error">{imageNotice} Försök igen under Redigera profil.</p>
+      )}
       <ProfileImage profile={profile} />
       <dl className="profile-details">
         <dt>Namn</dt>

@@ -825,18 +825,12 @@ span.tag-selected:hover {
 /* person-card är ett <article> (inte en länk), så att åtgärdsknappar kan
    ligga i kortet utan att hamna nästlade i en <a>. person-card-link är den
    klickbara länken till profilen runt avatar/namn/plats. */
+/* Layouten för personkort och brevkort. Hover-effekten kommer från
+   .card-interactive, som korten också har. */
 .person-card {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.person-card:hover,
-.person-card:focus-within {
-  transform: translateY(-3px);
-  border-color: var(--color-accent);
-  box-shadow: 0 6px 0 var(--color-accent);
 }
 
 .person-card-link {
@@ -845,17 +839,6 @@ span.tag-selected:hover {
   gap: 0.75rem;
   text-decoration: none;
   color: inherit;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .person-card {
-    transition: none;
-  }
-
-  .person-card:hover,
-  .person-card:focus-within {
-    transform: none;
-  }
 }
 
 .app-shell {
@@ -1277,14 +1260,11 @@ span.tag-selected:hover {
   border-radius: 8px;
   color: var(--color-text);
   text-decoration: none;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.hub-card:hover,
+/* Hover-effekten kommer från .card-interactive. Gul kant och skugga visar
+   redan fokus, så webbläsarens egen ram behövs inte. */
 .hub-card:focus-visible {
-  transform: translateY(-3px);
-  border-color: var(--color-accent);
-  box-shadow: 0 6px 0 var(--color-accent);
   outline: none;
 }
 
@@ -1302,15 +1282,4 @@ span.tag-selected:hover {
 
 .hub-card-action {
   align-self: flex-start;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hub-card {
-    transition: none;
-  }
-
-  .hub-card:hover,
-  .hub-card:focus-visible {
-    transform: none;
-  }
 }
