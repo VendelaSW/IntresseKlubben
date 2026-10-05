@@ -1,8 +1,8 @@
-from sqlalchemy import func, or_
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.contact import Contact
+from app.crud.contact import blocked_user_ids
 from app.models.group import Group, GroupMember, GroupRole, GroupVisibility
 from app.models.user import User
 from app.schemas.group import GroupCreate
@@ -38,11 +38,7 @@ def list_members(db: Session, group: Group, viewer_id: int) -> list[tuple[GroupM
     Den som har blockerat tittaren, eller som tittaren har blockerat, visas
     inte - samma regel som i resten av appen.
     """
-    blocks = (db.query(Contact)
-              .filter(Contact.status == "BLOCKED",
-                      or_(Contact.requester_id == viewer_id, Contact.addressee_id == viewer_id))
-              .all())
-    hidden = {c.addressee_id if c.requester_id == viewer_id else c.requester_id for c in blocks}
+    hidden = blocked_user_ids(db, viewer_id)
     member_ids = [m.user_id for m in group.members if m.user_id not in hidden]
     users = {u.id: u for u in (db.query(User).options(selectinload(User.profile))
                                .filter(User.id.in_(member_ids)).all())}

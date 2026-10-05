@@ -116,6 +116,30 @@ def is_blocked(db: Session, user_a_id: int, user_b_id: int) -> bool:
     return contact is not None and contact.status == "BLOCKED"
 
 
+def blocked_user_ids(db: Session, user_id: int) -> set[int]:
+    """Id:n på alla som har blockerat user_id eller som user_id har blockerat,
+    oavsett riktning. Används överallt där andra användare visas, så att en
+    blockering döljer personerna för varandra (jämför is_blocked ovan, som
+    svarar för ett enskilt par)."""
+    blocks = (db.query(Contact)
+              .filter(Contact.status == "BLOCKED",
+                      or_(Contact.requester_id == user_id, Contact.addressee_id == user_id))
+              .all())
+    return {c.addressee_id if c.requester_id == user_id else c.requester_id for c in blocks}
+
+
+def list_blocked_by(db: Session, user_id: int) -> list[User]:
+    """De användare user_id själv har blockerat (profil förladdad), äldsta
+    blockeringen först. Den som blivit blockerad får aldrig veta det, så den
+    omvända listan finns inte."""
+    rows = (db.query(Contact)
+            .filter(Contact.status == "BLOCKED", Contact.requester_id == user_id)
+            .order_by(Contact.id).all())
+    users = {u.id: u for u in (db.query(User).options(selectinload(User.profile))
+                               .filter(User.id.in_([c.addressee_id for c in rows])).all())}
+    return [users[c.addressee_id] for c in rows if c.addressee_id in users]
+
+
 def unblock_user(db: Session, blocker_id: int, blocked_id: int) -> None:
     contact = (db.query(Contact)
                .filter(Contact.pair_key == _pair_key(blocker_id, blocked_id))

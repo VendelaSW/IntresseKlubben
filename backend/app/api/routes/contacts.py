@@ -21,17 +21,21 @@ def _user_id_or_404(db: Session, username: str) -> int:
     return user.id
 
 
-def _to_list_item(contact, other: User) -> ContactListItem:
+def _to_contact_user(other: User) -> ContactUser:
     profile = other.profile
     image_key = profile.profile_image_url if profile else None
+    return ContactUser(
+        id=other.id,
+        username=other.username,
+        name=profile.name if profile else None,
+        image_url=storage.public_url(image_key) if image_key else None,
+    )
+
+
+def _to_list_item(contact, other: User) -> ContactListItem:
     return ContactListItem(
         **ContactResponse.model_validate(contact).model_dump(),
-        user=ContactUser(
-            id=other.id,
-            username=other.username,
-            name=profile.name if profile else None,
-            image_url=storage.public_url(image_key) if image_key else None,
-        ),
+        user=_to_contact_user(other),
     )
 
 
@@ -48,6 +52,10 @@ def list_contacts(db: Session = Depends(get_db),
 def send_contact_request(request: ContactRequest, db: Session = Depends(get_db),
                          current_user: User = Depends(get_current_user)):
     addressee_id = _user_id_or_404(db, request.addressee_username)
+    # Samma neutrala 404 som för en användare som inte finns, så att
+    # blockeringen inte avslöjas för den som blivit blockerad.
+    if contact_crud.is_blocked(db, current_user.id, addressee_id):
+        raise HTTPException(status_code=404, detail="Användaren finns inte")
     try:
         return contact_crud.send_request(db, current_user.id, addressee_id)
     except contact_crud.ContactError as exc:
@@ -72,6 +80,14 @@ def delete_contact(contact_id: int, db: Session = Depends(get_db),
     except contact_crud.ContactError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/users/blocked", response_model=list[ContactUser])
+def list_blocked_users(db: Session = Depends(get_db),
+                       current_user: User = Depends(get_current_user)):
+    """De du själv har blockerat, så att du kan avblockera dem. Blockerade
+    syns annars ingenstans - och den som blivit blockerad ser aldrig detta."""
+    return [_to_contact_user(u) for u in contact_crud.list_blocked_by(db, current_user.id)]
 
 
 @router.post("/users/{username}/block", response_model=BlockResponse)

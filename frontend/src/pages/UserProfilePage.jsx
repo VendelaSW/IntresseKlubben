@@ -119,8 +119,9 @@ function RelationButtons({ username, name, blocked, onBlockedChange }) {
   }
 
   // Blockeringar syns inte i GET /contacts, så "blockerad" hålls här på
-  // sidan efter att man själv har blockerat. Laddar man om sidan syns det
-  // inte längre (kräver en lista över egna blockeringar i backend).
+  // sidan direkt efter att man själv har blockerat. Laddar man om sidan är
+  // profilen dold (en blockerad person syns ingenstans), och då avblockerar
+  // man från listan "Blockerade användare" på sin egen profilsida.
   if (blocked) {
     return (
       <>

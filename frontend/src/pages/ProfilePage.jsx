@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import BlockedUsers from '../components/BlockedUsers'
 import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
 import ProfileAbout from '../components/ProfileAbout'
@@ -420,6 +421,7 @@ function ProfilePage() {
           <p className="hint-text">Inga intressen valda än.</p>
         )}
       </section>
+      <BlockedUsers />
       <button type="button" className="primary-button" onClick={startEditing}>
         Redigera profil
       </button>
