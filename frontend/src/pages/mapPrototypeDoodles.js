@@ -15,10 +15,12 @@ function seededRandom(seed) {
   }
 }
 
-function draw(size, paint) {
+// Ritar på en canvas (bredd `size`, höjd `height`, standard kvadrat) och
+// returnerar pixlarna i det format MapLibre vill ha.
+function draw(size, paint, height = size) {
   const canvas = document.createElement('canvas')
   canvas.width = size * PIXEL_RATIO
-  canvas.height = size * PIXEL_RATIO
+  canvas.height = height * PIXEL_RATIO
   const ctx = canvas.getContext('2d')
   ctx.scale(PIXEL_RATIO, PIXEL_RATIO)
   ctx.lineCap = 'round'
@@ -79,23 +81,100 @@ function pineGroup() {
   })
 }
 
-// --- Platser: små klotterikoner för ställen där en klubb kan träffas ---
-// Alla ritas i en ruta på 34 px med en mjuk pappersfläck bakom, så att de
-// syns även ovanpå vägar och byggnader.
+// --- Platser: klotterikoner som pop-up-figurer ---
+// Varje ikon är ritad på ett litet pappkort som står på en fot, med en skugga
+// på pappret under. Kartan lutar alltid lika mycket, så en tillplattad
+// ellips längst ned ser ut som en skugga på marken. Bilden förankras i
+// nederkant (icon-anchor: bottom), så skuggan hamnar precis på platsen.
+//
+// Två varianter per grupp: vanlig, och "lyft" (kortet högre upp och skuggan
+// mindre) som visas när man hovrar.
 const INK = 'rgba(58, 47, 37, 0.95)'
-const PLACE_SIZE = 34
+const CARD = '#fffbe6'
+const CARD_EDGE = '#d9c9a0'
+const DOODLE_SIZE = 34 // ikonerna ritas i en ruta på 34 px...
+const CARD_SIZE = 28 // ...och skalas ned till kortet
+const FIGURE_WIDTH = 34
+const FIGURE_HEIGHT = 48
+export const FIGURE_HEIGHT_PX = FIGURE_HEIGHT
+export const FIGURE_WIDTH_PX = FIGURE_WIDTH
 
-function placeDoodle(paint) {
+function roundedRect(ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+
+function popUpFigure(paint, lifted, withShadow = true) {
   return () =>
-    draw(PLACE_SIZE, (ctx, size) => {
-      ctx.fillStyle = 'rgba(251, 240, 169, 0.85)'
-      ctx.beginPath()
-      ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.strokeStyle = INK
-      ctx.lineWidth = 1.6
-      paint(ctx, size)
-    })
+    draw(
+      FIGURE_WIDTH,
+      (ctx) => {
+        const cardTop = lifted ? 1 : 7
+        const cardLeft = (FIGURE_WIDTH - CARD_SIZE) / 2
+        const cardBottom = cardTop + CARD_SIZE
+        const ground = FIGURE_HEIGHT - 4
+
+        // Skugga på pappret: mindre och ljusare när kortet är lyft. (Utan
+        // skugga när figuren ritas stående i perspektiv; då ritas skuggan
+        // för sig, platt på pappret.)
+        if (withShadow) {
+          ctx.fillStyle = lifted ? 'rgba(58, 47, 37, 0.14)' : 'rgba(58, 47, 37, 0.24)'
+          ctx.beginPath()
+          ctx.ellipse(FIGURE_WIDTH / 2, ground, lifted ? 8 : 11, lifted ? 2.4 : 3.4, 0, 0, Math.PI * 2)
+          ctx.fill()
+        }
+
+        // Foten: en liten trapets av papp.
+        ctx.fillStyle = CARD
+        ctx.strokeStyle = INK
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(FIGURE_WIDTH / 2 - 4, cardBottom - 1)
+        ctx.lineTo(FIGURE_WIDTH / 2 + 4, cardBottom - 1)
+        ctx.lineTo(FIGURE_WIDTH / 2 + 7, ground)
+        ctx.lineTo(FIGURE_WIDTH / 2 - 7, ground)
+        ctx.closePath()
+        ctx.fill()
+        ctx.stroke()
+
+        // Kortets tjocklek: en mörkare kant snett bakom.
+        ctx.fillStyle = CARD_EDGE
+        roundedRect(ctx, cardLeft + 1.6, cardTop + 1.6, CARD_SIZE, CARD_SIZE, 4)
+        ctx.fill()
+
+        // Kortet.
+        ctx.fillStyle = CARD
+        ctx.lineWidth = 1.4
+        roundedRect(ctx, cardLeft, cardTop, CARD_SIZE, CARD_SIZE, 4)
+        ctx.fill()
+        ctx.stroke()
+
+        // Ikonen, nedskalad till kortet.
+        ctx.save()
+        ctx.translate(cardLeft, cardTop)
+        ctx.scale(CARD_SIZE / DOODLE_SIZE, CARD_SIZE / DOODLE_SIZE)
+        ctx.strokeStyle = INK
+        ctx.lineWidth = 1.6
+        paint(ctx, DOODLE_SIZE)
+        ctx.restore()
+      },
+      FIGURE_HEIGHT,
+    )
+}
+
+// Gör om en ritfunktion till en vanlig och en lyft pop-up-figur.
+function placeDoodle(paint) {
+  return {
+    normal: popUpFigure(paint, false),
+    lifted: popUpFigure(paint, true),
+    standing: popUpFigure(paint, false, false),
+    standingLifted: popUpFigure(paint, true, false),
+  }
 }
 
 // Sport: en springande streckgubbe med en boll vid foten. Ingen särskild
@@ -160,7 +239,7 @@ const fikaDoodle = placeDoodle((ctx) => {
 
 // En teatermask: mitten i (cx, cy), glad eller ledsen mun.
 function mask(ctx, cx, cy, happy) {
-  ctx.fillStyle = 'rgba(251, 240, 169, 1)'
+  ctx.fillStyle = CARD
   ctx.beginPath()
   ctx.moveTo(cx - 6, cy - 6)
   ctx.quadraticCurveTo(cx, cy - 8.5, cx + 6, cy - 6)
@@ -195,7 +274,7 @@ const cultureDoodle = placeDoodle((ctx) => {
 
 // En pratbubbla med svans nere till vänster eller höger.
 function bubble(ctx, x, y, w, h, tailLeft) {
-  ctx.fillStyle = 'rgba(251, 240, 169, 1)'
+  ctx.fillStyle = CARD
   ctx.beginPath()
   ctx.moveTo(x + 3, y)
   ctx.lineTo(x + w - 3, y)
@@ -280,15 +359,74 @@ const playDoodle = placeDoodle((ctx) => {
   ctx.stroke()
 })
 
+// Wellpapp för 3D-husen: brunt kraftpapper med svaga räfflor, som när man ser
+// vågorna i en kartong genom ytan. Används som fill-extrusion-pattern, så det
+// hamnar både på väggar och tak (ljuset gör väggarna mörkare).
+function cardboard() {
+  return draw(32, (ctx, size) => {
+    ctx.fillStyle = '#cfa36c'
+    ctx.fillRect(0, 0, size, size)
+    // Räfflor: mycket svaga ljusa och mörka band, bara en antydan.
+    for (let x = 0; x < size; x += 16) {
+      const band = ctx.createLinearGradient(x, 0, x + 16, 0)
+      band.addColorStop(0, 'rgba(90, 60, 25, 0.07)')
+      band.addColorStop(0.5, 'rgba(255, 235, 200, 0.09)')
+      band.addColorStop(1, 'rgba(90, 60, 25, 0.07)')
+      ctx.fillStyle = band
+      ctx.fillRect(x, 0, 16, size)
+    }
+    // Några få fibrer i papperet.
+    const rand = seededRandom(11)
+    ctx.strokeStyle = 'rgba(110, 75, 35, 0.08)'
+    ctx.lineWidth = 0.6
+    for (let i = 0; i < 4; i++) {
+      const x = rand() * size
+      const y = rand() * size
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.lineTo(x + (rand() - 0.5) * 6, y + (rand() - 0.5) * 2)
+      ctx.stroke()
+    }
+  })
+}
+
+const PLACE_DOODLES = {
+  sport: sportDoodle,
+  fika: fikaDoodle,
+  culture: cultureDoodle,
+  meet: meetDoodle,
+  nature: natureDoodle,
+  play: playDoodle,
+}
+
 const DOODLES = {
   'water-hatch': waterHatch,
   'pine-group': pineGroup,
-  'place-sport': sportDoodle,
-  'place-fika': fikaDoodle,
-  'place-culture': cultureDoodle,
-  'place-meet': meetDoodle,
-  'place-nature': natureDoodle,
-  'place-play': playDoodle,
+  cardboard,
+  // place-<grupp> och place-<grupp>-lifted för varje grupp.
+  ...Object.fromEntries(
+    Object.entries(PLACE_DOODLES).flatMap(([group, figure]) => [
+      [`place-${group}`, figure.normal],
+      [`place-${group}-lifted`, figure.lifted],
+    ]),
+  ),
+}
+
+// En stående figur (utan skugga) som bild-URL, för skyltarna som ritas i
+// perspektiv ovanpå kartan (se mapPrototypeSigns.js). Ritas en gång per grupp.
+const figureUrls = new Map()
+export function figureUrl(group, lifted) {
+  const key = `${group}-${lifted}`
+  if (!figureUrls.has(key)) {
+    const figure = PLACE_DOODLES[group]
+    const pixels = (lifted ? figure.standingLifted : figure.standing)()
+    const canvas = document.createElement('canvas')
+    canvas.width = pixels.width
+    canvas.height = pixels.height
+    canvas.getContext('2d').putImageData(pixels, 0, 0)
+    figureUrls.set(key, canvas.toDataURL())
+  }
+  return figureUrls.get(key)
 }
 
 // Kopplas till kartan: lägger till ett mönster eller en symbol första

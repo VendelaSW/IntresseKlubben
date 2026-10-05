@@ -16,7 +16,13 @@ const PENCIL_LIGHT = 'rgba(74, 63, 53, 0.55)'
 const WATER_INK = '#2f5f9e'
 const FOREST = '#8fb36b' // grön färgpenna
 const FOREST_INK = '#2f6b3a'
-const BUILDING = 'rgba(176, 120, 80, 0.35)' // lätt brun färgpenna
+// Husens skuggor på pappret, i tre höjdgrupper (meter). `length` är ungefär
+// hur lång skuggan är i pixlar på zoom 15.
+const BUILDING_SHADOWS = [
+  { id: 'building-shadows-low', min: 0, max: 8, length: 4 },
+  { id: 'building-shadows-mid', min: 8, max: 18, length: 8 },
+  { id: 'building-shadows-high', min: 18, max: 1000, length: 14 },
+]
 
 const MAJOR_ROADS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary']
 const MINOR_ROADS = ['minor', 'service']
@@ -47,6 +53,20 @@ const PLACE_GROUP = [
     '',
   ],
 ]
+// Samma regel som PLACE_GROUP, men i JavaScript, för skyltarna som ritas
+// ovanpå kartan (se mapPrototypeSigns.js).
+export function placeGroup({ class: type, subclass, name }) {
+  if (NAMED_ONLY.includes(type) && !name) return ''
+  if (type === 'town_hall' && subclass === 'community_centre') return 'meet'
+  if (type === 'attraction' && subclass === 'viewpoint') return 'nature'
+  if (SPORT.includes(type)) return 'sport'
+  if (FIKA.includes(type)) return 'fika'
+  if (CULTURE.includes(type)) return 'culture'
+  if (NATURE.includes(type)) return 'nature'
+  if (type === 'playground') return 'play'
+  return ''
+}
+
 // Om två ikoner krockar vinner den grupp som står först. Lekplatser sist,
 // eftersom de är så många.
 const GROUP_PRIORITY = ['meet', 'culture', 'fika', 'sport', 'nature', 'play']
@@ -62,6 +82,9 @@ const mapStyle = {
     openmaptiles: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' },
   },
   glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+  // Ljus snett uppifrån vänster, som en lampa över bordet. Ger 3D-husen
+  // ljusa tak och mörkare väggar.
+  light: { anchor: 'viewport', position: [1.3, 210, 35], color: '#fff6e0', intensity: 0.45 },
   layers: [
     // Genomskinlig bakgrund, så att blocket i CSS syns igenom.
     { id: 'paper', type: 'background', paint: { 'background-opacity': 0 } },
@@ -119,33 +142,6 @@ const mapStyle = {
       paint: { 'line-color': WATER_INK, 'line-width': widthByZoom([10, 0.6], [16, 1.8]) },
     },
 
-    // --- Byggnader: blyertskontur med lätt skuggning, så att man kan peka ut
-    // var saker händer. Bara inzoomat; utzoomat blir de bara brus.
-    {
-      id: 'buildings',
-      type: 'fill',
-      source: 'openmaptiles',
-      'source-layer': 'building',
-      minzoom: 14,
-      paint: {
-        'fill-color': BUILDING,
-        'fill-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, 1],
-      },
-    },
-    {
-      id: 'building-outlines',
-      type: 'line',
-      source: 'openmaptiles',
-      'source-layer': 'building',
-      minzoom: 14,
-      layout: { 'line-join': 'round' },
-      paint: {
-        'line-color': PENCIL,
-        'line-width': ['interpolate', ['linear'], ['zoom'], 14, 0.6, 17, 1.4],
-        'line-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, 0.85],
-      },
-    },
-
     // --- Vägar: små vägar som streckade stigar, större som blyertsstreck ---
     {
       id: 'roads-minor',
@@ -169,6 +165,53 @@ const mapStyle = {
       filter: ['in', ['get', 'class'], ['literal', MAJOR_ROADS]],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': PENCIL, 'line-width': widthByZoom([8, 0.8], [12, 1.6], [17, 4]) },
+    },
+
+    // --- Byggnader: en modellstad av wellpapp ---
+    // Först skuggorna på pappret: husets grundyta, mörk och förskjuten nedåt
+    // höger (samma håll som nålarnas skuggor). Högre hus kastar längre skuggor,
+    // så husen delas i tre höjdgrupper. Skuggorna växer när man zoomar in,
+    // precis som husen.
+    ...BUILDING_SHADOWS.map(({ id, min, max, length }) => ({
+      id,
+      type: 'fill',
+      source: 'openmaptiles',
+      'source-layer': 'building',
+      minzoom: 14,
+      filter: [
+        'all',
+        ['>=', ['coalesce', ['get', 'render_height'], 5], min],
+        ['<', ['coalesce', ['get', 'render_height'], 5], max],
+      ],
+      paint: {
+        'fill-color': 'rgba(60, 40, 20, 0.36)',
+        'fill-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 15, 1],
+        'fill-translate': [
+          'interpolate', ['exponential', 2], ['zoom'],
+          14, ['literal', [length * 0.35, length * 0.2]],
+          17, ['literal', [length * 2.8, length * 1.6]],
+        ],
+        'fill-translate-anchor': 'viewport',
+      },
+    })),
+
+    // Sedan husen: de reser sig från pappret med sin riktiga höjd ur kartdatan
+    // (render_height) och växer upp när man zoomar in, så att det inte poppar.
+    // Ytan är wellpapp (mönstret "cardboard" i mapPrototypeDoodles.js), och
+    // ljuset gör väggarna mörkare än taken (se `light` nedan).
+    {
+      id: 'buildings-3d',
+      type: 'fill-extrusion',
+      source: 'openmaptiles',
+      'source-layer': 'building',
+      minzoom: 14,
+      paint: {
+        'fill-extrusion-pattern': 'cardboard',
+        'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 14, 0, 15, ['coalesce', ['get', 'render_height'], 5]],
+        'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 14, 0, 15, ['coalesce', ['get', 'render_min_height'], 0]],
+        'fill-extrusion-opacity': 0.92,
+        'fill-extrusion-vertical-gradient': true,
+      },
     },
 
     // --- Granar, bara inzoomat ---
@@ -211,8 +254,11 @@ const mapStyle = {
       paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], 13.5, 0, 14, 1] },
     },
 
-    // --- Platser där en klubb kan träffas: klotterikoner ---
-    // Bara inzoomat. En ikon per grupp (se PLACE_GROUP överst).
+    // --- Platser där en klubb kan träffas: pop-up-figurer ---
+    // Bara inzoomat. En figur per grupp (se PLACE_GROUP överst). Ikonerna här
+    // är osynliga: kartan använder dem för att bestämma vilka platser som får
+    // plats utan att krocka, och för hovring och klick. Själva figurerna ritas
+    // stående i perspektiv ovanpå kartan (se mapPrototypeSigns.js).
     {
       id: 'places',
       type: 'symbol',
@@ -224,9 +270,10 @@ const mapStyle = {
         'icon-image': ['concat', 'place-', PLACE_GROUP],
         'icon-size': ['interpolate', ['linear'], ['zoom'], 14, 0.75, 17, 1],
         'symbol-sort-key': ['index-of', PLACE_GROUP, ['literal', GROUP_PRIORITY]],
+        'icon-anchor': 'bottom',
         'icon-padding': 4,
       },
-      paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, 1] },
+      paint: { 'icon-opacity': 0 },
     },
 
     // --- Osynligt: var ortnamnen får plats (texten läggs på i HTML) ---
