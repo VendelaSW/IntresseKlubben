@@ -8,15 +8,16 @@ hur POST /users/{username}/block fungerar."""
 
 from app.auth.security import get_current_user
 from app.main import app
-from app.models import Group, GroupMember, Interest, Profile, User
+from app.models import Group, GroupMember, Interest, User
 from app.models.contact import Contact
+from tests.helpers import make_profile
 
 
 def _person(db, username, name):
     person = User(username=username, password_hash="unused")
     db.add(person)
     db.commit()
-    db.add(Profile(user_id=person.id, name=name))
+    db.add(make_profile(person.id, name=name))
     db.commit()
     return person
 
