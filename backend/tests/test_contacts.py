@@ -96,8 +96,10 @@ class ContactRoutesTest(unittest.TestCase):
         self.assertEqual(blocked.json()["status"], "BLOCKED")
 
         self.actor_id = 2
+        # Den som blivit blockerad får samma neutrala 404 som för en användare
+        # som inte finns, så att blockeringen inte avslöjas.
         self.assertEqual(self.client.post("/contacts/request",
-                                           json={"addressee_username": "user1"}).status_code, 409)
+                                           json={"addressee_username": "user1"}).status_code, 404)
         self.assertEqual(self.client.post("/users/user1/block").status_code, 409)
         self.assertEqual(self.client.delete("/users/user1/block").status_code, 404)
         self.actor_id = 1
