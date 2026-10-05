@@ -268,7 +268,8 @@ h2 {
 }
 
 .auth-form input,
-.auth-form select {
+.auth-form select,
+.auth-form textarea {
   font-family: var(--font-body);
   font-weight: 400;
   font-size: var(--text-body);
@@ -279,14 +280,22 @@ h2 {
   color: var(--color-text);
 }
 
-.auth-form input::placeholder {
+.auth-form input::placeholder,
+.auth-form textarea::placeholder {
   color: var(--color-muted);
 }
 
 .auth-form input:focus-visible,
-.auth-form select:focus-visible {
+.auth-form select:focus-visible,
+.auth-form textarea:focus-visible {
   outline: none;
   border-color: var(--color-accent);
+}
+
+/* Flerradigt fält, t.ex. "Om mig". Går bara att dra större i höjdled. */
+.auth-form textarea {
+  resize: vertical;
+  min-height: 7rem;
 }
 
 .auth-form button {
@@ -361,6 +370,28 @@ button.banner-button {
   width: 100%;
   max-width: 320px;
   text-align: left;
+}
+
+/* "Om mig"-rutan i ett profilkort: ett eget fält med samma kant och rundning
+   som formulärfälten, på kräm-bakgrund så den skiljer sig från det vita kortet. */
+.profile-about {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 320px;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-bg);
+  text-align: left;
+}
+
+/* pre-line behåller radbrytningarna, anywhere bryter även mycket långa ord. */
+.profile-about-text {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 /* Taggar som bara visas (InterestTags) går inte att klicka på, så de ska

@@ -3,6 +3,7 @@ import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
+import ProfileAbout from '../components/ProfileAbout'
 
 const NAV_ICONS = [
   { icon: hemIcon, label: 'Hem' },
@@ -162,11 +163,25 @@ function StyleGuide() {
       </section>
 
       <section className="style-section">
+        <h2>Om mig-ruta</h2>
+        <p className="hint-text">
+          Ett eget fält inne i ett profilkort (.profile-about): samma kant och rundning som
+          formulärfälten, på kräm-bakgrund, med radbrytningar bevarade. Visas bara om texten finns.
+        </p>
+        <div style={{ marginTop: '1rem' }}>
+          <ProfileAbout text={'Hej! Jag gillar brädspel och klättring.\nSöker folk att spela med på söndagar.'} />
+        </div>
+      </section>
+
+      <section className="style-section">
         <h2>Formulärfält</h2>
         <form className="auth-form" onSubmit={(e) => e.preventDefault()}>
           <label htmlFor="style-guide-example">Exempel-fält</label>
           <input id="style-guide-example" type="text" placeholder="Skriv något..." />
           <p className="hint-text">Hjälptext under ett fält, t.ex. "Minst 8 tecken".</p>
+          <label htmlFor="style-guide-textarea">Flerradigt fält (textarea)</label>
+          <textarea id="style-guide-textarea" rows={6} maxLength={800} placeholder="Berätta lite om dig själv..." />
+          <p className="hint-text">Teckenräknare under fältet, t.ex. "0/800".</p>
           <button type="submit">Skicka</button>
         </form>
         <p className="status-success" style={{ marginTop: '1rem' }}>Sparat!</p>

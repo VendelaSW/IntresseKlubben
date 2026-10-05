@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import ProfileAbout from '../components/ProfileAbout'
 import { useAuth } from '../hooks/useAuth'
 import {
   answerContactRequest,
@@ -265,6 +266,7 @@ function UserProfilePage() {
             <dt>Stadsdel</dt>
             <dd>{profile.district ?? '–'}</dd>
           </dl>
+          <ProfileAbout text={profile.profile_text} />
           {!isMe && (
             <>
               <RelationButtons
