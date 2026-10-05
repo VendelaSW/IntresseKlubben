@@ -4,6 +4,7 @@ import ServiceInfo from './pages/ServiceInfo'
 import StyleGuide from './pages/StyleGuide'
 import ProfilePage from './pages/ProfilePage'
 import GroupsPage from './pages/GroupsPage'
+import EventsPage from './pages/EventsPage'
 import HubPage from './pages/HubPage'
 import PeoplePage from './pages/PeoplePage'
 import InboxPage from './pages/InboxPage'
@@ -38,6 +39,7 @@ function App() {
             <Route path="/profil" element={<ProfilePage />} />
             <Route path="/klubbar" element={<GroupsPage />} />
             <Route path="/personer" element={<PeoplePage />} />
+            <Route path="/events" element={<EventsPage />} />
             <Route path="/meddelanden" element={<InboxPage />} />
             <Route path="/meddelanden/:username" element={<ConversationPage />} />
             <Route path="/anvandare/:username" element={<UserProfilePage />} />
