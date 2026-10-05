@@ -16,6 +16,7 @@ const COLORS = [
   { name: '--color-bg', hex: '#f7f1e3', label: 'Bakgrund' },
   { name: '--color-text', hex: '#1a1a1a', label: 'Text' },
   { name: '--color-accent', hex: '#f4c430', label: 'Accent' },
+  { name: '--color-accent-soft', hex: '#fdf6e0', label: 'Blekgul (Om mig-ruta)' },
   { name: '--color-line', hex: '#bfd7ed', label: 'Kantlinje' },
   { name: '--color-white', hex: '#ffffff', label: 'Vit (kort/boxar)' },
   { name: '--color-muted', hex: '#6b6b6b', label: 'Dämpad (platshållartext)' },
@@ -198,10 +199,13 @@ function StyleGuide() {
       <section className="style-section">
         <h2>Om mig-ruta</h2>
         <p className="hint-text">
-          Ett eget fält inne i ett profilkort (.profile-about): samma kant och rundning som
-          formulärfälten, på kräm-bakgrund, med radbrytningar bevarade. Visas bara om texten finns.
+          Ett eget fält inne i ett profilkort (.profile-about): blekgult (--color-accent-soft)
+          utan kant, samma rundning som formulärfälten och radbrytningar bevarade. Visas bara
+          om texten finns.
         </p>
-        <div style={{ marginTop: '1rem' }}>
+        <div className="card card-wide content-stack" style={{ marginTop: '1rem' }}>
+          <p className="card-title">Emmy, 24</p>
+          <p className="card-subheading">Stockholm</p>
           <ProfileAbout text={'Hej! Jag gillar brädspel och klättring.\nSöker folk att spela med på söndagar.'} />
         </div>
       </section>

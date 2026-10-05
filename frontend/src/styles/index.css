@@ -39,6 +39,7 @@
   --color-bg: #f7f1e3;
   --color-text: #1a1a1a;
   --color-accent: #f4c430;
+  --color-accent-soft: #fdf6e0;
   --color-line: #bfd7ed;
   --color-white: #ffffff;
   --color-muted: #6b6b6b;
@@ -372,8 +373,8 @@ button.banner-button {
   text-align: left;
 }
 
-/* "Om mig"-rutan i ett profilkort: ett eget fält med samma kant och rundning
-   som formulärfälten, på kräm-bakgrund så den skiljer sig från det vita kortet. */
+/* "Om mig"-rutan i ett profilkort: ett eget fält med samma rundning som
+   formulärfälten, i blekt ljusgult (--color-accent-soft) och utan kant. */
 .profile-about {
   display: flex;
   flex-direction: column;
@@ -381,9 +382,8 @@ button.banner-button {
   width: 100%;
   max-width: 320px;
   padding: 0.75rem 1rem;
-  border: 2px solid var(--color-line);
   border-radius: 8px;
-  background: var(--color-bg);
+  background: var(--color-accent-soft);
   text-align: left;
 }
 
