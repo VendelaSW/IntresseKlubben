@@ -114,18 +114,16 @@ function GroupsPanel({ titleTag: Title = 'h2' }) {
       : null
 
   return (
-    <section className="card groups-panel">
+    <section className="card card-wide groups-panel">
       <div className="groups-panel-header">
         <Title className="groups-panel-title">Klubbar</Title>
         {view !== 'create' && (
           <button
             type="button"
-            className="primary-button groups-panel-add"
+            className="primary-button round-button"
             aria-label="Skapa klubb"
             onClick={() => setView('create')}
-          >
-            +
-          </button>
+          />
         )}
       </div>
 
