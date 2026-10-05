@@ -49,6 +49,7 @@ class Event(Base):
 
     interest = relationship("Interest")
     group = relationship("Group")
+    creator = relationship("User")
     invitations = relationship("EventInvitation", back_populates="event", cascade="all, delete-orphan")
     responses = relationship("EventResponse", back_populates="event", cascade="all, delete-orphan")
 
