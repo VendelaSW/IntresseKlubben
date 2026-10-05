@@ -21,11 +21,13 @@ const TABS = [
 const EMPTY_TEXT = {
   suggested: 'Inga fler förslag just nu. Lägg till fler intressen på din profil för fler träffar.',
   incoming: 'Inga förfrågningar att svara på just nu.',
+  outgoing: 'Inga skickade förfrågningar.',
   contacts: 'Inga kontakter än. Skicka en förfrågan till någon under Förslag.',
 }
 
 // Personer-sidan: bläddra och filtrera andra användare (Förslag), svara på
-// kontaktförfrågningar (Förfrågningar) och se sina kontakter (Kontakter).
+// inkommande kontaktförfrågningar och ångra skickade (Förfrågningar) och se
+// sina kontakter (Kontakter).
 // Sidan är ett <section className="app-section"> rakt av, precis som
 // pages/demo/DemoPeople.jsx - INTE inslaget i content-stack (den är byggd
 // för smala centrerade sidor och krymper annars hela sidan efter innehållet,
@@ -198,6 +200,51 @@ function PeoplePage() {
 
       {status === 'loading' ? (
         <p className="hint-text">Laddar...</p>
+      ) : tab === 'incoming' ? (
+        <>
+          <h2>Inkommande</h2>
+          {contactsData.incoming_requests.length === 0 ? (
+            <p className="hint-text">{EMPTY_TEXT.incoming}</p>
+          ) : (
+            <div className="card-grid card-grid-compact">
+              {contactsData.incoming_requests.map((request) => (
+                <PersonCard
+                  key={request.id}
+                  person={request.user}
+                  actions={
+                    <PersonActions
+                      relation="incoming"
+                      busy={busy}
+                      onAccept={() => runAction(() => answerContactRequest(request.id, 'accept'))}
+                      onDecline={() => runAction(() => answerContactRequest(request.id, 'reject'))}
+                    />
+                  }
+                />
+              ))}
+            </div>
+          )}
+
+          <h2>Skickade</h2>
+          {contactsData.outgoing_requests.length === 0 ? (
+            <p className="hint-text">{EMPTY_TEXT.outgoing}</p>
+          ) : (
+            <div className="card-grid card-grid-compact">
+              {contactsData.outgoing_requests.map((request) => (
+                <PersonCard
+                  key={request.id}
+                  person={request.user}
+                  actions={
+                    <PersonActions
+                      relation="outgoing"
+                      busy={busy}
+                      onCancel={() => handleCancelRequest(request)}
+                    />
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </>
       ) : lists[tab].length === 0 ? (
         <p className="hint-text">{EMPTY_TEXT[tab]}</p>
       ) : (
@@ -215,22 +262,6 @@ function PeoplePage() {
                     onSend={() => runAction(() => sendContactRequest(person.username))}
                     onCancel={() => handleCancelRequest(outgoing)}
                     onDismiss={() => handleDismiss(person)}
-                  />
-                }
-              />
-            ))}
-
-          {tab === 'incoming' &&
-            contactsData.incoming_requests.map((request) => (
-              <PersonCard
-                key={request.id}
-                person={request.user}
-                actions={
-                  <PersonActions
-                    relation="incoming"
-                    busy={busy}
-                    onAccept={() => runAction(() => answerContactRequest(request.id, 'accept'))}
-                    onDecline={() => runAction(() => answerContactRequest(request.id, 'reject'))}
                   />
                 }
               />
