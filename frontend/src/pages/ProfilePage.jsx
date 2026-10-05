@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import BlockedUsers from '../components/BlockedUsers'
 import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
+import ProfileAbout from '../components/ProfileAbout'
+import TextareaWithCount from '../components/TextareaWithCount'
 import { imageToWebp } from '../services/imageToWebp'
 import { addInterest, getAllInterests, getMyInterests, removeInterest } from '../services/interests'
 import {
@@ -22,7 +24,15 @@ function todayString() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-function ProfileImage({ profile, onUploaded }) {
+// Felmeddelanden från servern saknar ibland punkt i slutet, och då skulle en
+// mening som läggs efter dem gå ihop med dem.
+function withPeriod(text) {
+  return /[.!?]$/.test(text) ? text : `${text}.`
+}
+
+// Visar profilbilden. Själva bildbytet (knappen) finns bara när editable är
+// satt, alltså i "Redigera profil", inte i den vanliga profilvyn.
+function ProfileImage({ profile, onUploaded, editable = false }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
@@ -52,16 +62,18 @@ function ProfileImage({ profile, onUploaded }) {
           {initial}
         </div>
       )}
-      <label className={`secondary-button${uploading ? ' is-disabled' : ''}`}>
-        {uploading ? 'Laddar upp...' : profile.image_url ? 'Byt bild' : 'Lägg till bild'}
-        <input
-          type="file"
-          accept="image/*"
-          className="visually-hidden"
-          onChange={handleFile}
-          disabled={uploading}
-        />
-      </label>
+      {editable && (
+        <label className={`secondary-button button-small${uploading ? ' is-disabled' : ''}`}>
+          {uploading ? 'Laddar upp...' : profile.image_url ? 'Byt bild' : 'Lägg till bild'}
+          <input
+            type="file"
+            accept="image/*"
+            className="visually-hidden"
+            onChange={handleFile}
+            disabled={uploading}
+          />
+        </label>
+      )}
       {error && <p className="form-error">{error}</p>}
     </div>
   )
@@ -102,7 +114,7 @@ function NewProfileImage({ name, image, onChange }) {
           {initial}
         </div>
       )}
-      <label className="secondary-button">
+      <label className="secondary-button button-small">
         {image ? 'Byt bild' : 'Lägg till bild'}
         <input type="file" accept="image/*" className="visually-hidden" onChange={handleFile} />
       </label>
@@ -125,6 +137,7 @@ function ProfilePage() {
   const [gender, setGender] = useState('')
   const [municipalityCode, setMunicipalityCode] = useState('')
   const [district, setDistrict] = useState('')
+  const [aboutText, setAboutText] = useState('')
   // Valda intressen i formuläret. Sparas först när man trycker Spara.
   const [draftInterests, setDraftInterests] = useState([])
   const [saving, setSaving] = useState(false)
@@ -161,6 +174,7 @@ function ProfilePage() {
     setGender(profile?.gender ?? '')
     setMunicipalityCode(profile?.municipality_code ?? '')
     setDistrict(profile?.district ?? '')
+    setAboutText(profile?.profile_text ?? '')
     setDraftInterests(myInterests)
     setFormError('')
     setEditing(true)
@@ -195,6 +209,8 @@ function ProfilePage() {
     if (gender) data.gender = gender
     if (municipalityCode) data.municipality_code = municipalityCode
     if (district.trim()) data.district = district
+    // Om mig skickas alltid: en tom text tömmer fältet i backend.
+    data.profile_text = aboutText
 
     // 1. Profilen. Misslyckas den sparas inget annat heller.
     let saved
@@ -252,7 +268,7 @@ function ProfilePage() {
   if (editing) {
     const isNew = profile === null
     return (
-      <div className="content-stack">
+      <div className="card card-wide content-stack">
         <h1>{isNew ? 'Skapa din profil' : 'Redigera profil'}</h1>
         {isNew && (
           <p className="profile-intro">
@@ -264,7 +280,17 @@ function ProfilePage() {
         {isNew ? (
           <NewProfileImage name={name} image={pendingImage} onChange={setPendingImage} />
         ) : (
-          <ProfileImage profile={profile} onUploaded={setProfile} />
+          <>
+            <ProfileImage
+              profile={profile}
+              onUploaded={(updated) => {
+                setImageNotice('')
+                setProfile(updated)
+              }}
+              editable
+            />
+            {imageNotice && <p className="form-error">{imageNotice}</p>}
+          </>
         )}
         <form className="auth-form" onSubmit={handleSubmit}>
           <label htmlFor="profile-name">Namn</label>
@@ -319,6 +345,14 @@ function ProfilePage() {
             maxLength={100}
           />
 
+          <label htmlFor="profile-about">Om mig</label>
+          <TextareaWithCount
+            id="profile-about"
+            value={aboutText}
+            onChange={(e) => setAboutText(e.target.value)}
+            maxLength={800}
+          />
+
           <section className="profile-interests">
             <h2>Intressen</h2>
             <p className="hint-text">Klicka för att välja.</p>
@@ -341,16 +375,12 @@ function ProfilePage() {
   }
 
   return (
-    <div className="content-stack">
+    <div className="card card-wide content-stack">
       <h1>Min profil</h1>
-      {imageNotice && <p className="form-error">{imageNotice}</p>}
-      <ProfileImage
-        profile={profile}
-        onUploaded={(updated) => {
-          setImageNotice('')
-          setProfile(updated)
-        }}
-      />
+      {imageNotice && (
+        <p className="form-error">{withPeriod(imageNotice)} Försök igen under Redigera profil.</p>
+      )}
+      <ProfileImage profile={profile} />
       <dl className="profile-details">
         <dt>Namn</dt>
         <dd>{profile.name ?? '–'}</dd>
@@ -363,6 +393,7 @@ function ProfilePage() {
         <dt>Stadsdel</dt>
         <dd>{profile.district ?? '–'}</dd>
       </dl>
+      <ProfileAbout text={profile.profile_text} />
       <section className="profile-interests">
         <h2>Intressen</h2>
         {myInterests.length > 0 ? (

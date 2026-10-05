@@ -54,4 +54,15 @@ def test_other_users_private_fields_not_in_response(client, db, user):
     response = client.get("/users/bob/profile")
 
     body = response.json()
-    assert set(body) == {"name", "age", "municipality_name", "district", "image_url"}
+    assert set(body) == {"name", "age", "municipality_name", "district", "image_url", "profile_text"}
+
+
+def test_other_users_profile_text_is_visible(client, db, user):
+    other = _create_user_with_profile(db, "bob")
+    profile = db.query(Profile).filter(Profile.user_id == other.id).one()
+    profile.profile_text = "Jag gillar brädspel."
+    db.commit()
+
+    body = client.get("/users/bob/profile").json()
+
+    assert body["profile_text"] == "Jag gillar brädspel."

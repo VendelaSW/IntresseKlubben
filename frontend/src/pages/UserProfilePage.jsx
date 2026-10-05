@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import ProfileAbout from '../components/ProfileAbout'
 import { useAuth } from '../hooks/useAuth'
 import {
   answerContactRequest,
@@ -241,7 +242,7 @@ function UserProfilePage() {
       {status === 'error' && <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>}
 
       {status === 'ready' && (
-        <>
+        <div className="card card-wide content-stack">
           <h1>{profile.name ?? 'Profil'}</h1>
           <div className="profile-image">
             {profile.image_url ? (
@@ -266,6 +267,7 @@ function UserProfilePage() {
             <dt>Stadsdel</dt>
             <dd>{profile.district ?? '–'}</dd>
           </dl>
+          <ProfileAbout text={profile.profile_text} />
           {!isMe && (
             <>
               <RelationButtons
@@ -277,7 +279,7 @@ function UserProfilePage() {
               {!blocked && <MessageForm username={username} />}
             </>
           )}
-        </>
+        </div>
       )}
 
       <button type="button" className="text-button" onClick={handleBack}>
