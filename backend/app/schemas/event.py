@@ -2,7 +2,8 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, field_validator, model_validator
 
-from app.models.event import EventVisibility
+from app.models.event import EventAnswer, EventVisibility
+from app.schemas.contact import ContactUser
 
 
 def _required_text(value: str, field: str, max_length: int) -> str:
@@ -82,6 +83,15 @@ class EventInvite(BaseModel):
         return self
 
 
+class EventAnswerIn(BaseModel):
+    answer: EventAnswer
+
+
+class EventAttendee(ContactUser):
+    # En person som har svarat på eventet, med sitt svar.
+    answer: EventAnswer
+
+
 class EventOut(BaseModel):
     id: int
     title: str
@@ -101,4 +111,6 @@ class EventOut(BaseModel):
     # Gäller den inloggade användaren, så att frontend vet vilka knappar som ska visas.
     is_owner: bool
     is_invited: bool
+    # Den inloggades eget svar, eller None om hen inte har svarat.
+    my_answer: EventAnswer | None
     created_at: datetime

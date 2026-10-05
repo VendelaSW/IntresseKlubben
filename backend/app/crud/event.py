@@ -7,7 +7,7 @@ from app.crud.contact import blocked_user_ids
 from app.crud.group import get_group, get_membership
 from app.crud.user import get_user_by_username
 from app.models.contact import Contact
-from app.models.event import Event, EventInvitation, EventVisibility
+from app.models.event import Event, EventAnswer, EventInvitation, EventResponse, EventVisibility
 from app.models.group import Group, GroupMember, GroupVisibility
 from app.models.user import User
 from app.schemas.event import EventCreate
@@ -30,6 +30,7 @@ def _event_query(db: Session):
         selectinload(Event.group),
         selectinload(Event.creator),
         selectinload(Event.invitations),
+        selectinload(Event.responses),
     )
 
 
@@ -181,3 +182,33 @@ def remove_invitation(db: Session, event: Event, username: str) -> None:
         raise EventRuleError(404, "Personen är inte inbjuden")
     db.delete(invitation)
     db.commit()
+
+
+# ---------- Svar ----------
+
+
+def set_answer(db: Session, event: Event, user_id: int, answer: EventAnswer) -> None:
+    """Sparar användarens svar. Svarar hen igen byts det tidigare svaret ut."""
+    response = (
+        db.query(EventResponse)
+        .filter(EventResponse.event_id == event.id, EventResponse.user_id == user_id)
+        .first()
+    )
+    if response is None:
+        db.add(EventResponse(event_id=event.id, user_id=user_id, answer=answer))
+    else:
+        response.answer = answer
+    db.commit()
+
+
+def list_responses(db: Session, event: Event) -> list[tuple[EventResponse, User]]:
+    """Alla som har svarat (profil förladdad), den som svarade först överst."""
+    rows = db.query(EventResponse).filter(EventResponse.event_id == event.id).order_by(EventResponse.id).all()
+    users = {
+        u.id: u
+        for u in db.query(User)
+        .options(selectinload(User.profile))
+        .filter(User.id.in_([r.user_id for r in rows]))
+        .all()
+    }
+    return [(r, users[r.user_id]) for r in rows if r.user_id in users]
