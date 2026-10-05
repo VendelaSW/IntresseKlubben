@@ -83,8 +83,8 @@ export function apiDelete(path) {
   return request(path, { method: 'DELETE' })
 }
 
-export function registerUser(username, password) {
-  return apiPost('/users/register', { username, password })
+export function registerUser(username, email, password) {
+  return apiPost('/users/register', { username, email, password })
 }
 
 export function loginUser(username, password) {

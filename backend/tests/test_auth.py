@@ -17,7 +17,7 @@ PASSWORD = "hemligt123"
 
 
 def _register_and_login(client, username):
-    client.post("/users/register", json={"username": username, "password": PASSWORD})
+    client.post("/users/register", json={"username": username, "email": f"{username}@example.com", "password": PASSWORD})
     response = client.post("/users/login", json={"username": username, "password": PASSWORD})
     assert response.status_code == 200
     return response.json()["access_token"]
@@ -32,7 +32,7 @@ def _token(payload, secret=None):
 
 
 def test_login_returns_token_and_user_without_password(client):
-    client.post("/users/register", json={"username": "vendela", "password": PASSWORD})
+    client.post("/users/register", json={"username": "vendela", "email": "vendela@example.com", "password": PASSWORD})
     response = client.post("/users/login", json={"username": "vendela", "password": PASSWORD})
 
     assert response.status_code == 200
@@ -51,7 +51,7 @@ def test_token_identifies_the_logged_in_user(client):
 
 
 def test_wrong_password_and_unknown_user_give_the_same_error(client):
-    client.post("/users/register", json={"username": "vendela", "password": PASSWORD})
+    client.post("/users/register", json={"username": "vendela", "email": "vendela@example.com", "password": PASSWORD})
     wrong_password = client.post("/users/login", json={"username": "vendela", "password": "fel-lösenord"})
     unknown_user = client.post("/users/login", json={"username": "finnsinte", "password": PASSWORD})
 
@@ -108,7 +108,7 @@ def test_each_user_gets_their_own_profile(client):
 
 
 def test_login_gives_clear_error_when_secret_is_missing(client, monkeypatch):
-    client.post("/users/register", json={"username": "vendela", "password": PASSWORD})
+    client.post("/users/register", json={"username": "vendela", "email": "vendela@example.com", "password": PASSWORD})
     monkeypatch.setattr(settings, "jwt_secret", "")
     response = client.post("/users/login", json={"username": "vendela", "password": PASSWORD})
     assert response.status_code == 503
