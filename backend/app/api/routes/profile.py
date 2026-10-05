@@ -2,11 +2,22 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
+from app.core import error_messages as msg
 from app.core import storage
-from app.crud.profile import calculate_age, get_profile, set_profile_image, update_profile
+from app.crud.profile import (
+    ProfileExistsError,
+    ProfileNotFoundError,
+    UnknownInterestError,
+    calculate_age,
+    create_profile,
+    get_profile,
+    set_profile_image,
+    update_profile,
+)
 from app.db.session import get_db
 from app.models.municipality import Municipality
 from app.schemas.profile import (
+    ProfileCreate,
     ProfileImageConfirm,
     ProfileImageUploadUrl,
     ProfileResponse,
@@ -37,7 +48,26 @@ def read_profile(
 ):
     profile = get_profile(db, current_user.id)
     if profile is None:
-        raise HTTPException(status_code=404, detail="Ingen profil hittad")
+        raise HTTPException(status_code=404, detail=msg.PROFILE_NOT_FOUND)
+    return _to_response(profile)
+
+
+@router.post("/", response_model=ProfileResponse, status_code=201)
+def add_profile(
+    data: ProfileCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Kolla koden här så att en okänd kod ger ett tydligt fel i stället för
+    # ett databasfel (500) från främmande nyckeln.
+    if db.get(Municipality, data.municipality_code) is None:
+        raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
+    try:
+        profile = create_profile(db, current_user.id, data)
+    except ProfileExistsError:
+        raise HTTPException(status_code=409, detail=msg.PROFILE_ALREADY_EXISTS)
+    except UnknownInterestError:
+        raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
     return _to_response(profile)
 
 
@@ -50,8 +80,11 @@ def edit_profile(
     # Kolla koden här så att en okänd kod ger ett tydligt fel i stället för
     # ett databasfel (500) från främmande nyckeln.
     if data.municipality_code is not None and db.get(Municipality, data.municipality_code) is None:
-        raise HTTPException(status_code=422, detail="Okänd kommun")
-    profile = update_profile(db, current_user.id, data)
+        raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
+    try:
+        profile = update_profile(db, current_user.id, data)
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=404, detail=msg.PROFILE_NOT_FOUND)
     return _to_response(profile)
 
 
@@ -86,7 +119,7 @@ def confirm_profile_image(
     _require_storage()
     profile = get_profile(db, current_user.id)
     if profile is None:
-        raise HTTPException(status_code=404, detail="Ingen profil hittad")
+        raise HTTPException(status_code=404, detail=msg.PROFILE_NOT_FOUND)
 
     # Bara filer i användarens egen mapp, med ett namn vi själva har delat ut.
     prefix = f"profiles/{current_user.id}/"

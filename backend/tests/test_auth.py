@@ -12,6 +12,8 @@ import pytest
 
 from app.auth.security import TOKEN_ALGORITHM
 from app.core.config import settings
+from app.models.interest import Interest
+from tests.helpers import profile_payload
 
 PASSWORD = "hemligt123"
 
@@ -95,13 +97,16 @@ def test_invalid_tokens_are_rejected(client, make_token):
     assert response.json()["detail"] == "Du är inte inloggad."
 
 
-def test_each_user_gets_their_own_profile(client):
+def test_each_user_gets_their_own_profile(client, db, municipalities):
     """Det här var buggen: alla hamnade på användare 1 oavsett inloggning."""
     alice = _register_and_login(client, "alice")
     bob = _register_and_login(client, "bob")
+    interest = Interest(name="Yoga")
+    db.add(interest)
+    db.commit()
 
-    client.patch("/profile/", json={"name": "Bob"}, headers=_auth(bob))
-    client.patch("/profile/", json={"name": "Alice"}, headers=_auth(alice))
+    client.post("/profile/", json=profile_payload([interest.id], name="Bob"), headers=_auth(bob))
+    client.post("/profile/", json=profile_payload([interest.id], name="Alice"), headers=_auth(alice))
 
     assert client.get("/profile/", headers=_auth(bob)).json()["name"] == "Bob"
     assert client.get("/profile/", headers=_auth(alice)).json()["name"] == "Alice"
