@@ -11,7 +11,7 @@ from moto import mock_aws
 
 from app.core import storage
 from app.core.config import settings
-from app.models import Profile
+from tests.helpers import make_profile
 
 BUCKET = "test-profilepics"
 REGION = "eu-central-1"
@@ -43,7 +43,7 @@ def s3(monkeypatch):
 
 @pytest.fixture
 def profile(db, user):
-    db.add(Profile(user_id=1, name="Vendela"))
+    db.add(make_profile(1, name="Vendela"))
     db.commit()
 
 

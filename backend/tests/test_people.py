@@ -2,15 +2,15 @@
 och/eller kommun (skrivskyddat, kräver inloggning)."""
 
 from app.models.interest import Interest
-from app.models.profile import Profile
 from app.models.user import User
+from tests.helpers import make_profile
 
 
-def _create_person(db, username, name, *, municipality_code=None, interests=None):
+def _create_person(db, username, name, *, municipality_code="1480", interests=None):
     person = User(username=username, password_hash="unused")
     db.add(person)
     db.commit()
-    db.add(Profile(user_id=person.id, name=name, municipality_code=municipality_code))
+    db.add(make_profile(person.id, name=name, municipality_code=municipality_code))
     db.commit()
     if interests:
         person.interests = interests
@@ -32,7 +32,7 @@ def test_lists_other_people_with_a_profile(client, db, user):
 
 
 def test_excludes_yourself(client, db, user):
-    db.add(Profile(user_id=user.id, name="Jag"))
+    db.add(make_profile(user.id, name="Jag"))
     db.commit()
     _create_person(db, "bob", "Bob")
 

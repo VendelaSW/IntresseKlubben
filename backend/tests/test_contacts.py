@@ -17,8 +17,8 @@ from app.db.session import get_db
 from app.main import app
 from app.models import interest
 from app.models.contact import Contact
-from app.models.profile import Profile
 from app.models.user import User
+from tests.helpers import make_profile
 
 
 class ContactRoutesTest(unittest.TestCase):
@@ -125,9 +125,9 @@ class ContactRoutesTest(unittest.TestCase):
                               email=f"user{user_id}@example.com")
                          for user_id in (4, 5)])
         self.db.add_all([
-            Profile(user_id=4, name="Fyra", birth_date=date(1990, 1, 1),
-                    profile_image_url="profiles/4/abc.webp"),
-            Profile(user_id=3, name="Tre"),
+            make_profile(4, name="Fyra", birth_date=date(1990, 1, 1),
+                         profile_image_url="profiles/4/abc.webp"),
+            make_profile(3, name="Tre"),
         ])
         self.db.commit()
         outgoing_id = self.client.post("/contacts/request",
@@ -168,7 +168,7 @@ class ContactRoutesTest(unittest.TestCase):
     def test_list_contacts_hides_private_fields_of_other_users(self):
         self.db.add(User(id=4, username="fyran", password_hash="secret-hash",
                          email="secret@example.com"))
-        self.db.add(Profile(user_id=4, name="Fyra", birth_date=date(1990, 1, 1)))
+        self.db.add(make_profile(4, name="Fyra", birth_date=date(1990, 1, 1)))
         self.db.commit()
         self.client.post("/contacts/request", json={"addressee_username": "fyran"})
 

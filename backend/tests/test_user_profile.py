@@ -3,13 +3,14 @@ användares profil (skrivskyddat)."""
 
 from app.models.profile import Profile
 from app.models.user import User
+from tests.helpers import make_profile
 
 
 def _create_user_with_profile(db, username, name="Bob"):
     other_user = User(username=username, password_hash="unused")
     db.add(other_user)
     db.commit()
-    db.add(Profile(user_id=other_user.id, name=name))
+    db.add(make_profile(other_user.id, name=name))
     db.commit()
     return other_user
 

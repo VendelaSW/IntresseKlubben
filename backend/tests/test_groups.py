@@ -5,7 +5,8 @@ import pytest
 from app.auth.security import get_current_user
 from app.crud.group import MAX_MEMBERSHIPS
 from app.main import app
-from app.models import Group, GroupMember, Interest, Profile, User
+from app.models import Group, GroupMember, Interest, User
+from tests.helpers import make_profile
 
 
 @pytest.fixture
@@ -206,7 +207,7 @@ def test_only_owner_can_delete_group(client, user, new_group, login_as):
 def test_members_lists_public_info_longest_member_first(client, db, user, new_group, login_as):
     group = new_group()
     anna = login_as("anna")
-    db.add(Profile(user_id=anna.id, name="Anna Berg", birth_date=date(2000, 1, 1)))
+    db.add(make_profile(anna.id, name="Anna Berg", birth_date=date(2000, 1, 1)))
     db.commit()
     client.put(f"/groups/{group['id']}/members/me")
 

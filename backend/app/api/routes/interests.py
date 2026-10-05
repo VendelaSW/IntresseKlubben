@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
+from app.core import error_messages as msg
 from app.crud.interest import (
     add_user_interest,
     get_interest,
@@ -63,4 +64,8 @@ def remove_my_interest(
 ):
     user = _current_db_user(current_user, db)
     interest = _interest_or_404(db, interest_id)
+    # Ett intresse krävs alltid, så det sista går inte att ta bort. Att byta
+    # ut det görs genom att först lägga till det nya, sen ta bort det gamla.
+    if interest in user.interests and len(user.interests) == 1:
+        raise HTTPException(status_code=409, detail=msg.LAST_INTEREST_CANNOT_BE_REMOVED)
     return remove_user_interest(db, user, interest)

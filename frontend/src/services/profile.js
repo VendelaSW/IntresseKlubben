@@ -7,6 +7,7 @@ export const GENDER_OPTIONS = [
   { value: 'man', label: 'Man' },
   { value: 'ickebinär', label: 'Icke-binär' },
   { value: 'annat', label: 'Annat' },
+  { value: 'vill inte uppge', label: 'Vill inte uppge' },
 ]
 
 export function genderLabel(value) {
@@ -31,6 +32,13 @@ export async function getMunicipalities() {
   return list.sort((a, b) => swedishOrder.compare(a.name, b.name))
 }
 
+// Skapar profilen. Alla obligatoriska fält och minst ett intresse
+// (interest_ids) måste vara med, intressena sparas i samma anrop.
+export function createProfile(data) {
+  return apiPost('/profile/', data)
+}
+
+// Ändrar en befintlig profil, bara fälten som skickas med.
 export function updateProfile(data) {
   return apiPatch('/profile/', data)
 }
