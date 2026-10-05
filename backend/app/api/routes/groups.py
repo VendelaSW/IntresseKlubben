@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
 from app.core import storage
+from app.crud.contact import blocked_user_ids
 from app.crud.group import (
     GroupRuleError,
     create_group,
@@ -25,7 +26,10 @@ from app.schemas.group import GroupCreate, GroupMemberResponse, GroupResponse
 router = APIRouter(prefix="/groups", tags=["groups"])
 
 
-def _to_response(group: Group, user_id: int) -> GroupResponse:
+def _to_response(group: Group, user_id: int, hidden: set[int]) -> GroupResponse:
+    # hidden = de som har blockerat dig eller som du har blockerat. De räknas
+    # inte med i medlemsantalet, så att siffran stämmer med medlemslistan
+    # (se list_members) och inte avslöjar någon dold.
     membership = get_membership(group, user_id)
     return GroupResponse(
         id=group.id,
@@ -37,7 +41,7 @@ def _to_response(group: Group, user_id: int) -> GroupResponse:
         municipality_code=group.municipality_code,
         municipality_name=group.municipality.name,
         visibility=group.visibility,
-        member_count=len(group.members),
+        member_count=sum(1 for m in group.members if m.user_id not in hidden),
         is_member=membership is not None,
         is_owner=membership is not None and membership.role == GroupRole.owner,
         created_at=group.created_at,
@@ -71,7 +75,7 @@ def create(
         group = create_group(db, current_user, data)
     except GroupRuleError as err:
         raise HTTPException(status_code=409, detail=str(err))
-    return _to_response(group, current_user.id)
+    return _to_response(group, current_user.id, blocked_user_ids(db, current_user.id))
 
 
 @router.get("/", response_model=list[GroupResponse])
@@ -82,22 +86,26 @@ def read_public_groups(
     db: Session = Depends(get_db),
 ):
     groups = list_public_groups(db, interest_id, municipality_code)
-    return [_to_response(g, current_user.id) for g in groups]
+    hidden = blocked_user_ids(db, current_user.id)
+    return [_to_response(g, current_user.id, hidden) for g in groups]
 
 
 @router.get("/mine", response_model=list[GroupResponse])
 def read_my_groups(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return [_to_response(g, current_user.id) for g in list_user_groups(db, current_user.id)]
+    hidden = blocked_user_ids(db, current_user.id)
+    return [_to_response(g, current_user.id, hidden) for g in list_user_groups(db, current_user.id)]
 
 
 @router.get("/suggested", response_model=list[GroupResponse])
 def read_suggested_groups(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return [_to_response(g, current_user.id) for g in list_suggested_groups(db, current_user)]
+    hidden = blocked_user_ids(db, current_user.id)
+    return [_to_response(g, current_user.id, hidden) for g in list_suggested_groups(db, current_user)]
 
 
 @router.get("/{group_id}", response_model=GroupResponse)
 def read_group(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return _to_response(_visible_group_or_404(db, group_id, current_user.id), current_user.id)
+    group = _visible_group_or_404(db, group_id, current_user.id)
+    return _to_response(group, current_user.id, blocked_user_ids(db, current_user.id))
 
 
 # Alla som kan se klubben ser vilka som är med (en privat klubb syns bara
@@ -126,7 +134,7 @@ def join(group_id: int, current_user=Depends(get_current_user), db: Session = De
         group = join_group(db, group, current_user)
     except GroupRuleError as err:
         raise HTTPException(status_code=409, detail=str(err))
-    return _to_response(group, current_user.id)
+    return _to_response(group, current_user.id, blocked_user_ids(db, current_user.id))
 
 
 @router.delete("/{group_id}/members/me", status_code=status.HTTP_204_NO_CONTENT)

@@ -13,13 +13,15 @@ användarnamnet eller lösenordet som var fel (standard säkerhetspraxis).
 GET /users/me - den inloggade användaren (kräver token).
 
 GET /users/ - andra användare med sparad profil, valfritt filtrerade på
-?interest_id= och/eller ?municipality_code=. Utesluter dig själv. Samma
+?interest_id= och/eller ?municipality_code=. Utesluter dig själv, dina
+borttagna förslag och alla som har blockerat dig eller som du har blockerat. Samma
 dataminimering som PublicProfileResponse, men med username (länk till
 /anvandare/{username}) och interests (taggar/matchning) - se PersonResponse.
 
 GET /users/{username}/profile - visar en annan användares profil
 via användarnamn (inte id, så adressen går att dela/komma ihåg),
-skrivskyddat. Kräver inloggning, precis som resten av profil- och
+skrivskyddat. Ger samma 404 som för en profil som inte finns om någon av er
+har blockerat den andra. Kräver inloggning, precis som resten av profil- och
 intresse-anropen. Använder ett eget, mindre svar (PublicProfileResponse):
 bara namn, ålder, kommun, stadsdel och bild - aldrig födelsedatum, kön,
 användarnamn eller e-post.
@@ -36,6 +38,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.security import create_access_token, get_current_user, verify_password
 from app.core import storage
+from app.crud.contact import blocked_user_ids, is_blocked
 from app.crud.dismissed_suggestion import (
     dismiss_suggestion,
     list_dismissed_user_ids,
@@ -108,8 +111,8 @@ def read_people(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[PersonResponse]:
-    dismissed_ids = list_dismissed_user_ids(db, current_user.id)
-    profiles = list_people(db, current_user.id, interest_id, municipality_code, dismissed_ids)
+    hidden_ids = list_dismissed_user_ids(db, current_user.id) | blocked_user_ids(db, current_user.id)
+    profiles = list_people(db, current_user.id, interest_id, municipality_code, hidden_ids)
     return [_to_person_response(p) for p in profiles]
 
 
@@ -155,6 +158,10 @@ def read_user_profile(
     db: Session = Depends(get_db),
 ) -> PublicProfileResponse:
     user = get_user_by_username(db, username)
+    # Samma neutrala 404 som för en profil som inte finns, så att en blockering
+    # aldrig avslöjas (se AGENTS.md).
+    if user is not None and is_blocked(db, current_user.id, user.id):
+        user = None
     profile = get_profile(db, user.id) if user else None
     if profile is None:
         raise HTTPException(status_code=404, detail="Ingen profil hittad")
