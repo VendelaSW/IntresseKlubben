@@ -1,7 +1,7 @@
 """
 Registrerings- och inloggningsendpoints för User.
 
-POST /users/register - tar emot UserCreate (username, password),
+POST /users/register - tar emot UserCreate (username, email, password),
 skapar en ny User via crud.user.create_user, returnerar UserOut.
 
 POST /users/login - tar emot UserLogin (username, password),
@@ -43,7 +43,7 @@ from app.crud.dismissed_suggestion import (
 )
 from app.crud.interest import sorted_interests
 from app.crud.profile import calculate_age, get_profile, list_people
-from app.crud.user import UsernameTakenError, create_user, get_user_by_username
+from app.crud.user import EmailTakenError, UsernameTakenError, create_user, get_user_by_username
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.interest import InterestResponse
@@ -65,6 +65,11 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)) -> UserOut
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Användarnamnet är upptaget.",
+        )
+    except EmailTakenError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="E-postadressen används redan.",
         )
 
 

@@ -9,3 +9,4 @@ pydantic-settings
 bcrypt
 boto3
 PyJWT
+email-validator

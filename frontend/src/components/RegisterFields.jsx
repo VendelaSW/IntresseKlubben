@@ -5,6 +5,7 @@ import { registerUser } from '../services/api'
 // RegisterFields-paret) istället för på en egen sida.
 function RegisterFields({ onSwitchToLogin }) {
   const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -16,9 +17,10 @@ function RegisterFields({ onSwitchToLogin }) {
     setSuccess(false)
     setSubmitting(true)
     try {
-      await registerUser(username, password)
+      await registerUser(username, email, password)
       setSuccess(true)
       setUsername('')
+      setEmail('')
       setPassword('')
     } catch (err) {
       setError(err.message)
@@ -37,6 +39,16 @@ function RegisterFields({ onSwitchToLogin }) {
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          required
+        />
+
+        <label htmlFor="register-email">E-postadress</label>
+        <input
+          id="register-email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
         />
 
