@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 import app.models  # noqa: F401 — laddar alla modeller innan något frågar databasen
@@ -11,8 +12,12 @@ from app.api.routes.municipalities import router as municipalities_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.user import router as user_router
 from app.core.config import settings
+from app.core.error_messages import validation_error_handler
 
 app = FastAPI(title="Intresseklubben API")
+
+# Svenska texter på valideringsfel, för alla endpoints.
+app.add_exception_handler(RequestValidationError, validation_error_handler)
 
 app.add_middleware(
     CORSMiddleware,
