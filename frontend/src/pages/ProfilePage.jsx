@@ -7,6 +7,7 @@ import { imageToWebp } from '../services/imageToWebp'
 import { addInterest, getAllInterests, getMyInterests, removeInterest } from '../services/interests'
 import {
   GENDER_OPTIONS,
+  createProfile,
   genderLabel,
   getMunicipalities,
   getProfile,
@@ -189,32 +190,42 @@ function ProfilePage() {
   async function saveInterests() {
     const savedIds = new Set(myInterests.map((i) => i.id))
     const draftIds = new Set(draftInterests.map((i) => i.id))
-    await Promise.all([
-      ...draftInterests.filter((i) => !savedIds.has(i.id)).map((i) => addInterest(i.id)),
-      ...myInterests.filter((i) => !draftIds.has(i.id)).map((i) => removeInterest(i.id)),
-    ])
+    // Först lägga till, sen ta bort: backend tillåter inte att det sista
+    // intresset tas bort, så ett byte måste lägga till det nya först.
+    await Promise.all(draftInterests.filter((i) => !savedIds.has(i.id)).map((i) => addInterest(i.id)))
+    await Promise.all(myInterests.filter((i) => !draftIds.has(i.id)).map((i) => removeInterest(i.id)))
     // allInterests är sorterad på namn, så listan behåller samma ordning.
     setMyInterests(allInterests.filter((i) => draftIds.has(i.id)))
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
-    setSaving(true)
     setFormError('')
+    if (draftInterests.length === 0) {
+      setFormError('Välj minst ett intresse.')
+      return
+    }
+    setSaving(true)
 
-    // Skicka bara ifyllda fält. Tomma fält lämnar backend orörda.
-    const data = { name }
-    if (birthDate) data.birth_date = birthDate
-    if (gender) data.gender = gender
-    if (municipalityCode) data.municipality_code = municipalityCode
+    // Namn, födelsedatum, kön, kommun och Om mig är obligatoriska och skickas
+    // alltid med. Stadsdel är valfri och skickas bara om den är ifylld.
+    const isNew = profile === null
+    const data = {
+      name,
+      birth_date: birthDate,
+      gender,
+      municipality_code: municipalityCode,
+      profile_text: aboutText,
+    }
     if (district.trim()) data.district = district
-    // Om mig skickas alltid: en tom text tömmer fältet i backend.
-    data.profile_text = aboutText
 
-    // 1. Profilen. Misslyckas den sparas inget annat heller.
+    // 1. Profilen. Misslyckas den sparas inget annat heller. En ny profil
+    //    skapas tillsammans med intressena i samma anrop, en befintlig ändras.
     let saved
     try {
-      saved = await updateProfile(data)
+      saved = isNew
+        ? await createProfile({ ...data, interest_ids: draftInterests.map((i) => i.id) })
+        : await updateProfile(data)
     } catch (err) {
       setFormError(err.message)
       setSaving(false)
@@ -234,9 +245,14 @@ function ProfilePage() {
     }
     setProfile(saved)
 
-    // 3. Intressena. Misslyckas de stannar formuläret kvar så att man kan försöka igen.
+    // 3. Intressena. En ny profil sparade dem redan i steg 1. Vid en ändring
+    //    stannar formuläret kvar om det misslyckas, så att man kan försöka igen.
     try {
-      await saveInterests()
+      if (isNew) {
+        setMyInterests(allInterests.filter((i) => draftInterests.some((d) => d.id === i.id)))
+      } else {
+        await saveInterests()
+      }
     } catch (err) {
       setFormError(err.message)
       setSaving(false)
@@ -309,10 +325,11 @@ function ProfilePage() {
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
             max={todayString()}
+            required
           />
 
           <label htmlFor="profile-gender">Kön</label>
-          <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)}>
+          <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)} required>
             <option value="">Välj...</option>
             {GENDER_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -326,6 +343,7 @@ function ProfilePage() {
             id="profile-municipality"
             value={municipalityCode}
             onChange={(e) => setMunicipalityCode(e.target.value)}
+            required
           >
             <option value="">Välj...</option>
             {municipalities.map((m) => (
@@ -335,7 +353,7 @@ function ProfilePage() {
             ))}
           </select>
 
-          <label htmlFor="profile-district">Stadsdel</label>
+          <label htmlFor="profile-district">Stadsdel (valfritt)</label>
           <input
             id="profile-district"
             type="text"
@@ -350,11 +368,12 @@ function ProfilePage() {
             value={aboutText}
             onChange={(e) => setAboutText(e.target.value)}
             maxLength={800}
+            required
           />
 
           <section className="profile-interests">
             <h2>Intressen</h2>
-            <p className="hint-text">Klicka för att välja.</p>
+            <p className="hint-text">Välj minst ett intresse. Klicka för att välja.</p>
             <InterestPicker allInterests={allInterests} selected={draftInterests} onToggle={toggleInterest} />
           </section>
 
