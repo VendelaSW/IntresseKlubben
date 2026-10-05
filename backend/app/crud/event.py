@@ -10,7 +10,7 @@ from app.models.contact import Contact
 from app.models.event import Event, EventAnswer, EventInvitation, EventResponse, EventVisibility
 from app.models.group import Group, GroupMember, GroupVisibility
 from app.models.user import User
-from app.schemas.event import EventCreate
+from app.schemas.event import EventCreate, EventUpdate
 
 # Ett event utan sluttid räknas som passerat så här länge efter starttiden.
 OPEN_ENDED_EVENT_LENGTH = timedelta(hours=24)
@@ -50,6 +50,29 @@ def create_event(db: Session, user_id: int, data: EventCreate) -> Event:
     db.add(event)
     db.commit()
     return get_event(db, event.id)
+
+
+def _as_utc(value: datetime) -> datetime:
+    # Vissa databaser (SQLite i testerna) ger tillbaka tid utan tidszon.
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
+
+def update_event(db: Session, event: Event, data: EventUpdate) -> Event:
+    changes = data.model_dump(exclude_unset=True)
+    starts_at = _as_utc(changes.get("starts_at", event.starts_at))
+    ends_at = changes.get("ends_at", event.ends_at)
+    if ends_at is not None and _as_utc(ends_at) <= starts_at:
+        raise EventRuleError(422, "Sluttiden måste vara efter starttiden")
+    for field, value in changes.items():
+        setattr(event, field, value)
+    db.commit()
+    return get_event(db, event.id)
+
+
+def delete_event(db: Session, event: Event) -> None:
+    """Tar bort eventet och dess inbjudningar och svar."""
+    db.delete(event)
+    db.commit()
 
 
 def get_event(db: Session, event_id: int) -> Event | None:

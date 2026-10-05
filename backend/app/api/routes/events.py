@@ -6,6 +6,7 @@ from app.core import storage
 from app.crud.event import (
     EventRuleError,
     create_event,
+    delete_event,
     get_group_for_member,
     get_visible_event,
     invite,
@@ -14,6 +15,7 @@ from app.crud.event import (
     list_visible_events,
     remove_invitation,
     set_answer,
+    update_event,
 )
 from app.db.session import get_db
 from app.models.event import Event, EventVisibility
@@ -21,7 +23,14 @@ from app.models.group import GroupVisibility
 from app.models.interest import Interest
 from app.models.user import User
 from app.schemas.contact import ContactUser
-from app.schemas.event import EventAnswerIn, EventAttendee, EventCreate, EventInvite, EventOut
+from app.schemas.event import (
+    EventAnswerIn,
+    EventAttendee,
+    EventCreate,
+    EventInvite,
+    EventOut,
+    EventUpdate,
+)
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -79,7 +88,7 @@ def _to_attendees(db: Session, event: Event) -> list[EventAttendee]:
 def _own_event_or_error(db: Session, event_id: int, user_id: int) -> Event:
     event = _visible_event_or_404(db, event_id, user_id)
     if event.created_by != user_id:
-        raise HTTPException(status_code=403, detail="Bara den som skapat eventet kan hantera inbjudningar")
+        raise HTTPException(status_code=403, detail="Bara den som skapat eventet kan ändra det")
     return event
 
 
@@ -112,6 +121,34 @@ def read_events(
     db: Session = Depends(get_db),
 ):
     return [_to_response(e, current_user.id) for e in list_visible_events(db, current_user.id)]
+
+
+@router.patch("/{event_id}", response_model=EventOut)
+def edit_event(
+    event_id: int,
+    data: EventUpdate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    event = _own_event_or_error(db, event_id, current_user.id)
+    if data.interest_id is not None and db.get(Interest, data.interest_id) is None:
+        raise HTTPException(status_code=422, detail="Okänt intresse")
+    try:
+        event = update_event(db, event, data)
+    except EventRuleError as err:
+        raise HTTPException(status_code=err.status_code, detail=err.detail)
+    return _to_response(event, current_user.id)
+
+
+@router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_event(
+    event_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    event = _own_event_or_error(db, event_id, current_user.id)
+    delete_event(db, event)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{event_id}/invitations", response_model=list[ContactUser])
