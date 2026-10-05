@@ -13,6 +13,8 @@ class ProfileUpdate(BaseModel):
     # SCB-kod från /municipalities/. Att koden finns kontrolleras i routen.
     municipality_code: str | None = None
     district: str | None = None
+    # "Om mig"-text. En tom text (efter trim) betyder att man tömmer fältet.
+    profile_text: str | None = None
 
     @field_validator("name")
     @classmethod
@@ -45,6 +47,16 @@ class ProfileUpdate(BaseModel):
             raise ValueError("Stadsdel får max vara 100 tecken")
         return v
 
+    @field_validator("profile_text")
+    @classmethod
+    def profile_text_not_too_long(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip()
+        if len(v) > 800:
+            raise ValueError("Om mig-texten får max vara 800 tecken")
+        return v
+
 
 class ProfileResponse(BaseModel):
     name: str | None
@@ -57,6 +69,7 @@ class ProfileResponse(BaseModel):
     municipality_name: str | None
     district: str | None
     image_url: str | None
+    profile_text: str | None
 
 
 class PublicProfileResponse(BaseModel):
@@ -69,6 +82,7 @@ class PublicProfileResponse(BaseModel):
     municipality_name: str | None
     district: str | None
     image_url: str | None
+    profile_text: str | None
 
 
 class PersonResponse(BaseModel):

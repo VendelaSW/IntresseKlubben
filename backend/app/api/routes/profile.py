@@ -26,6 +26,7 @@ def _to_response(profile) -> ProfileResponse:
         municipality_name=profile.municipality.name if profile.municipality else None,
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
+        profile_text=profile.profile_text,
     )
 
 

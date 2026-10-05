@@ -35,6 +35,9 @@ def update_profile(db: Session, user_id: int, data: ProfileUpdate) -> Profile:
         profile.municipality_code = data.municipality_code
     if data.district is not None:
         profile.district = data.district
+    if data.profile_text is not None:
+        # Tom text (efter trim) tömmer fältet.
+        profile.profile_text = data.profile_text or None
 
     db.commit()
     db.refresh(profile)

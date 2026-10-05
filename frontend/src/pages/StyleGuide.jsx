@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import brevIcon from '../assets/brev.png'
 import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
+import ProfileAbout from '../components/ProfileAbout'
+import TextareaWithCount from '../components/TextareaWithCount'
 
 const NAV_ICONS = [
   { icon: hemIcon, label: 'Hem' },
@@ -15,6 +18,7 @@ const COLORS = [
   { name: '--color-bg', hex: '#f7f1e3', label: 'Bakgrund' },
   { name: '--color-text', hex: '#1a1a1a', label: 'Text' },
   { name: '--color-accent', hex: '#f4c430', label: 'Accent' },
+  { name: '--color-accent-soft', hex: '#fdf6e0', label: 'Blekgul (Om mig-ruta)' },
   { name: '--color-line', hex: '#bfd7ed', label: 'Kantlinje' },
   { name: '--color-white', hex: '#ffffff', label: 'Vit (kort/boxar)' },
   { name: '--color-muted', hex: '#6b6b6b', label: 'Dämpad (platshållartext)' },
@@ -33,6 +37,8 @@ const SIZES = [
 ]
 
 function StyleGuide() {
+  const [exampleText, setExampleText] = useState('')
+
   return (
     <div className="page">
       <img src={logo} alt="Intresseklubben" className="logo" />
@@ -120,6 +126,10 @@ function StyleGuide() {
             Primär
           </button>
         </div>
+        <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Rund knapp (.round-button)</p>
+        <div className="account-choice-links" style={{ marginTop: '1rem' }}>
+          <button className="primary-button round-button" type="button" aria-label="Exempel" />
+        </div>
       </section>
 
       <section className="style-section">
@@ -153,11 +163,54 @@ function StyleGuide() {
 
       <section className="style-section">
         <h2>Boxar</h2>
-        <div className="card">
+        <p className="swatch-label">Vanligt kort (.card)</p>
+        <div className="card" style={{ marginTop: '1rem' }}>
           <div className="card-avatar" />
           <p className="card-title">Emmy, 24</p>
           <p className="card-subheading">Stockholm</p>
           <p className="card-text">Gillar brädspel, klättring och katter.</p>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Klickbart kort (.card .card-interactive), t.ex. en tumnagel i personlistan
+        </p>
+        <p className="hint-text">
+          Hovra med musen: kortet lyfts och får gul kant och skugga. Används bara på kort
+          som går att klicka på, inte på kort som är behållare.
+        </p>
+        <div className="card card-interactive" style={{ marginTop: '1rem' }}>
+          <div className="card-avatar" />
+          <p className="card-title">Emmy, 24</p>
+          <p className="card-subheading">Stockholm</p>
+          <p className="card-text">Gillar brädspel, klättring och katter.</p>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Profilkort (.card .card-wide), för att visa en hel profil, egen eller någon annans
+        </p>
+        <p className="hint-text">
+          Inte klickbart, därför en blå hård skugga hela tiden. Klickbara kort har ingen skugga
+          i vila och får gul kant, gul skugga och lyft vid hover.
+        </p>
+        <div className="card card-wide" style={{ marginTop: '1rem' }}>
+          <div className="card-avatar" />
+          <p className="card-title">Emmy, 24</p>
+          <p className="card-subheading">Stockholm</p>
+          <p className="card-text">Gillar brädspel, klättring och katter.</p>
+        </div>
+      </section>
+
+      <section className="style-section">
+        <h2>Om mig-ruta</h2>
+        <p className="hint-text">
+          Ett eget fält inne i ett profilkort (.profile-about): blekgult (--color-accent-soft)
+          utan kant, samma rundning som formulärfälten och radbrytningar bevarade. Visas bara
+          om texten finns.
+        </p>
+        <div className="card card-wide content-stack" style={{ marginTop: '1rem' }}>
+          <p className="card-title">Emmy, 24</p>
+          <p className="card-subheading">Stockholm</p>
+          <ProfileAbout text={'Hej! Jag gillar brädspel och klättring.\nSöker folk att spela med på söndagar.'} />
         </div>
       </section>
 
@@ -167,6 +220,15 @@ function StyleGuide() {
           <label htmlFor="style-guide-example">Exempel-fält</label>
           <input id="style-guide-example" type="text" placeholder="Skriv något..." />
           <p className="hint-text">Hjälptext under ett fält, t.ex. "Minst 8 tecken".</p>
+          <label htmlFor="style-guide-textarea">Flerradigt fält (textarea)</label>
+          <TextareaWithCount
+            id="style-guide-textarea"
+            value={exampleText}
+            onChange={(e) => setExampleText(e.target.value)}
+            maxLength={800}
+            placeholder="Berätta lite om dig själv..."
+          />
+          <p className="hint-text">Teckenräknaren ligger inne i fältet, nere till höger.</p>
           <button type="submit">Skicka</button>
         </form>
         <p className="status-success" style={{ marginTop: '1rem' }}>Sparat!</p>
