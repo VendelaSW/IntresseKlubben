@@ -130,7 +130,11 @@ function MapPrototype() {
           aria-pressed={route.placing}
           onClick={() => routeRef.current?.setPlacing(!route.placing)}
         >
-          📍 {route.placing ? 'Klar' : 'Sätt ut nålar'}
+          <svg className="map-tool-pin" viewBox="0 0 10 16" aria-hidden="true">
+            <path d="M5 8 L5.4 15.5" stroke="#3a2f25" strokeWidth="1.4" strokeLinecap="round" />
+            <circle cx="5" cy="5" r="3.8" fill="#a32d2d" stroke="#3a2f25" strokeWidth="1.2" />
+          </svg>
+          {route.placing ? 'Klar' : 'Sätt ut nålar'}
         </button>
         <div className="map-tool-group" role="group" aria-label="Trådens stil">
           <button

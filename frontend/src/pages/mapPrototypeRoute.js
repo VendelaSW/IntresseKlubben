@@ -1,6 +1,6 @@
 // PROTOTYP: kartnålar och en tråd mellan dem som visar vägen.
 //   - Knappen "Sätt ut nålar" slår på nålläget. Då sätter ett klick på
-//     kartan först en startnål (blå), sedan en målnål (röd); fler klick
+//     kartan först en startnål (gul), sedan en målnål (röd); fler klick
 //     flyttar målnålen. Utan nålläget kan man klicka runt på kartan som vanligt.
 //   - Vägen räknas ut längs gångvägar, och en papperslapp vid målet visar tid
 //     och avstånd. Trådens stil väljs med knappar:
@@ -12,8 +12,9 @@
 //     bort den.
 //
 // Nålar och tråd ritas i ett SVG-lager ovanpå kartan (och ovanpå post-it-
-// lapparna) och räknas om när kartan rör sig. Ljuset kommer snett uppifrån vänster (som för
-// 3D-husen), så skuggorna faller åt höger och lite nedåt.
+// lapparna) och räknas om när kartan rör sig. Nålarna ser ritade ut: platta
+// färger, bläckkontur som är dragen två gånger (som i loggan) och hårda
+// skuggor utan suddighet. Skuggorna faller åt höger och lite nedåt.
 //
 // Vägen räknas ut av FOSSGIS öppna OSRM-server (samma data som kartan). Den
 // är gratis men till för test och låg trafik - i en riktig version ska
@@ -34,7 +35,10 @@ const LEAN = 0.12 // hur mycket nålen lutar åt vänster (andel av längden)
 const SHADOW = { x: 0.62, y: 0.2 } // skuggans riktning per pixel höjd
 const THREAD_AT = 0.8 // tråden lindas så här långt upp på nålen
 
-const COLORS = { start: '#2f6fd0', goal: '#d0352f', bend: '#f2efe6' }
+// Färgerna från stilguiden: accent (gul) för start, error (röd) för mål.
+const COLORS = { start: '#f4c430', goal: '#a32d2d', bend: '#ffffff' }
+const INK = '#3a2f25'
+const SHADOW_COLOR = 'rgba(58, 47, 37, 0.25)'
 
 // --- Väg och avstånd ---
 
@@ -112,31 +116,6 @@ function svg(tag, attributes = {}) {
   return node
 }
 
-// Gradienter för blanka nålhuvuden och en metallisk nål, och en mjuk skugga.
-function definitions() {
-  const defs = svg('defs')
-  for (const [name, color] of Object.entries(COLORS)) {
-    const gradient = svg('radialGradient', { id: `pin-head-${name}`, cx: '35%', cy: '30%', r: '75%' })
-    gradient.append(
-      svg('stop', { offset: '0%', 'stop-color': '#ffffff' }),
-      svg('stop', { offset: '22%', 'stop-color': color }),
-      svg('stop', { offset: '80%', 'stop-color': color }),
-      svg('stop', { offset: '100%', 'stop-color': '#1a1a1a', 'stop-opacity': '0.55' }),
-    )
-    defs.append(gradient)
-  }
-  const needle = svg('linearGradient', { id: 'pin-needle', x1: '0', y1: '0', x2: '1', y2: '0' })
-  needle.append(
-    svg('stop', { offset: '0%', 'stop-color': '#6f747b' }),
-    svg('stop', { offset: '45%', 'stop-color': '#eef0f2' }),
-    svg('stop', { offset: '100%', 'stop-color': '#8a8f96' }),
-  )
-  const blur = svg('filter', { id: 'pin-shadow-blur', x: '-50%', y: '-50%', width: '200%', height: '200%' })
-  blur.append(svg('feGaussianBlur', { stdDeviation: '1.2' }))
-  defs.append(needle, blur)
-  return defs
-}
-
 // Var på skärmen en nål står: fot, punkt där tråden lindas, huvud och
 // skuggornas ändar. `scale` gör nålar längre bort lite mindre.
 function pinGeometry(base, scale, kind) {
@@ -163,7 +142,7 @@ function drawPinShadow(group, pin) {
       y1: pin.base.y,
       x2: pin.headShadow.x,
       y2: pin.headShadow.y,
-      stroke: 'rgba(40, 30, 20, 0.35)',
+      stroke: SHADOW_COLOR,
       'stroke-width': 2 * pin.scale,
       'stroke-linecap': 'round',
     }),
@@ -172,38 +151,50 @@ function drawPinShadow(group, pin) {
       cy: pin.headShadow.y,
       rx: pin.radius * 1.1,
       ry: pin.radius * 0.6,
-      fill: 'rgba(40, 30, 20, 0.32)',
-      filter: 'url(#pin-shadow-blur)',
+      fill: SHADOW_COLOR,
     }),
   )
 }
 
+// En knappnål ritad med bläck: nålen, ett runt huvud i platt färg och en
+// andra, lite förskjuten kontur, som när man drar pennan två gånger.
 function drawPin(group, pin) {
+  const head = { x: pin.top.x, y: pin.top.y - pin.radius * 0.55 }
+  const r = pin.radius
   group.append(
     // Hålet där nålen går in i pappret.
-    svg('ellipse', { cx: pin.base.x, cy: pin.base.y, rx: 1.6 * pin.scale, ry: 0.8 * pin.scale, fill: 'rgba(40, 30, 20, 0.45)' }),
+    svg('ellipse', { cx: pin.base.x, cy: pin.base.y, rx: 1.6 * pin.scale, ry: 0.8 * pin.scale, fill: INK }),
     svg('line', {
       x1: pin.base.x,
       y1: pin.base.y,
       x2: pin.top.x,
       y2: pin.top.y,
-      stroke: 'url(#pin-needle)',
-      'stroke-width': 2.4 * pin.scale,
+      stroke: INK,
+      'stroke-width': 1.8 * pin.scale,
       'stroke-linecap': 'round',
     }),
-    svg('circle', {
-      cx: pin.top.x,
-      cy: pin.top.y - pin.radius * 0.55,
-      r: pin.radius,
-      fill: `url(#pin-head-${pin.kind})`,
-      stroke: 'rgba(30, 24, 18, 0.55)',
-      'stroke-width': 0.8,
+    svg('circle', { cx: head.x, cy: head.y, r, fill: COLORS[pin.kind], stroke: INK, 'stroke-width': 1.6 }),
+    // Den andra konturen: nästan ett varv, lite förskjutet.
+    svg('path', {
+      d: `M ${head.x - r + 1} ${head.y - 1} A ${r} ${r - 0.8} 0 1 1 ${head.x + r * 0.3} ${head.y + r - 0.4}`,
+      fill: 'none',
+      stroke: INK,
+      'stroke-width': 0.9,
+      'stroke-linecap': 'round',
+    }),
+    // Ett litet blänk, ritat som ett pennstreck.
+    svg('path', {
+      d: `M ${head.x - r * 0.5} ${head.y - r * 0.15} q ${r * 0.1} ${-r * 0.35} ${r * 0.45} ${-r * 0.45}`,
+      fill: 'none',
+      stroke: INK,
+      'stroke-width': 1.1,
+      'stroke-linecap': 'round',
     }),
   )
 }
 
-// Tråden genom skärmpunkterna `points`, med ljus kant och mörka snedstreck så
-// att den ser tvinnad ut, och skuggan genom `shadowPoints` på pappret.
+// Tråden genom skärmpunkterna `points`: ett rött streck med bläckkant, och
+// skuggan genom `shadowPoints` på pappret.
 function drawThread(shadows, threads, points, shadowPoints) {
   if (points.length < 2) return
   const line = (list) => list.map((p) => `${p.x},${p.y}`).join(' ')
@@ -211,17 +202,16 @@ function drawThread(shadows, threads, points, shadowPoints) {
     svg('polyline', {
       points: line(shadowPoints),
       fill: 'none',
-      stroke: 'rgba(40, 30, 20, 0.32)',
+      stroke: SHADOW_COLOR,
       'stroke-width': 2.4,
       'stroke-linejoin': 'round',
-      filter: 'url(#pin-shadow-blur)',
     }),
   )
   const threadLine = line(points)
+  const round = { fill: 'none', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }
   threads.append(
-    svg('polyline', { points: threadLine, fill: 'none', stroke: '#b3261e', 'stroke-width': 2.6, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }),
-    svg('polyline', { points: threadLine, fill: 'none', stroke: '#e5675d', 'stroke-width': 0.9, 'stroke-linejoin': 'round', transform: 'translate(-0.5 -0.6)' }),
-    svg('polyline', { points: threadLine, fill: 'none', stroke: '#6e1612', 'stroke-width': 2.6, 'stroke-dasharray': '1 2.5', opacity: 0.5 }),
+    svg('polyline', { points: threadLine, ...round, stroke: INK, 'stroke-width': 3.6 }),
+    svg('polyline', { points: threadLine, ...round, stroke: COLORS.goal, 'stroke-width': 1.8 }),
   )
 }
 
@@ -243,7 +233,7 @@ export function attachPinsAndThread(map, layer, onChange) {
   const shadows = svg('g')
   const threads = svg('g')
   const pinsGroup = svg('g')
-  root.append(definitions(), shadows, threads, pinsGroup)
+  root.append(shadows, threads, pinsGroup)
   const tag = document.createElement('div')
   tag.className = 'map-pin-tag'
   layer.replaceChildren(root, tag)

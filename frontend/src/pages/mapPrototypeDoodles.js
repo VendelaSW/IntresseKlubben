@@ -359,32 +359,16 @@ const playDoodle = placeDoodle((ctx) => {
   ctx.stroke()
 })
 
-// Wellpapp för 3D-husen: brunt kraftpapper med svaga räfflor, som när man ser
-// vågorna i en kartong genom ytan. Används som fill-extrusion-pattern, så det
-// hamnar både på väggar och tak (ljuset gör väggarna mörkare).
-function cardboard() {
-  return draw(32, (ctx, size) => {
-    ctx.fillStyle = '#cfa36c'
-    ctx.fillRect(0, 0, size, size)
-    // Räfflor: mycket svaga ljusa och mörka band, bara en antydan.
-    for (let x = 0; x < size; x += 16) {
-      const band = ctx.createLinearGradient(x, 0, x + 16, 0)
-      band.addColorStop(0, 'rgba(90, 60, 25, 0.07)')
-      band.addColorStop(0.5, 'rgba(255, 235, 200, 0.09)')
-      band.addColorStop(1, 'rgba(90, 60, 25, 0.07)')
-      ctx.fillStyle = band
-      ctx.fillRect(x, 0, 16, size)
-    }
-    // Några få fibrer i papperet.
-    const rand = seededRandom(11)
-    ctx.strokeStyle = 'rgba(110, 75, 35, 0.08)'
-    ctx.lineWidth = 0.6
-    for (let i = 0; i < 4; i++) {
-      const x = rand() * size
-      const y = rand() * size
+// Byggnader: tunna blyertsstreck, som när man skuggar med pennan.
+function buildingHatch() {
+  const rand = seededRandom(3)
+  return draw(16, (ctx, size) => {
+    ctx.strokeStyle = 'rgba(74, 63, 53, 0.45)'
+    for (let i = -size; i < size * 2; i += 4) {
+      ctx.lineWidth = 0.6 + rand() * 0.4
       ctx.beginPath()
-      ctx.moveTo(x, y)
-      ctx.lineTo(x + (rand() - 0.5) * 6, y + (rand() - 0.5) * 2)
+      ctx.moveTo(i + rand(), 0)
+      ctx.lineTo(i + size + rand(), size)
       ctx.stroke()
     }
   })
@@ -402,7 +386,7 @@ const PLACE_DOODLES = {
 const DOODLES = {
   'water-hatch': waterHatch,
   'pine-group': pineGroup,
-  cardboard,
+  'building-hatch': buildingHatch,
   // place-<grupp> och place-<grupp>-lifted för varje grupp.
   ...Object.fromEntries(
     Object.entries(PLACE_DOODLES).flatMap(([group, figure]) => [

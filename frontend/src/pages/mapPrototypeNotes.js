@@ -1,10 +1,9 @@
 import { FIGURE_HEIGHT_PX } from './mapPrototypeDoodles'
 
 // PROTOTYP: post-it-lappar med information om platser på kartan (ikonerna i
-// lagret "places"). Lapparna ligger på kartans yta och draperas över 3D-husen:
-// lappen är ett rutnät med kartkoordinater, varje hörn lyfts till höjden på
-// huset under det, och vid varje kartrörelse sträcks varje ruta ut mellan
-// sina hörn på skärmen. Då följer storlek, plats och perspektiv kartan exakt,
+// lagret "places"). Lapparna står på kartan, lutade bakåt så att de är lätta
+// att läsa: lappen är ett rutnät med kartkoordinater och höjd, och vid varje
+// kartrörelse sträcks varje ruta ut mellan sina hörn på skärmen. Då följer storlek, plats och perspektiv kartan exakt,
 // och lappen är fortfarande vanlig HTML (länkar och krysset går att klicka på).
 //   Hovra: en förhandslapp med det kartdatan har (namn och typ).
 //   Klicka: lappen klistras fast och mer hämtas från OpenStreetMap
@@ -206,16 +205,20 @@ function offsetMeters([lng, lat], x, y) {
   return [lng + x / (METERS_PER_DEGREE_LAT * Math.cos((lat * Math.PI) / 180)), lat + y / METERS_PER_DEGREE_LAT]
 }
 
-// Lappen delas i ett rutnät, så att den kan böja sig över husen. Fler rutor
-// ger mjukare böjar men mer att räkna om när kartan rör sig.
+// Lappen delas i ett rutnät, så att den kan ritas i kartans perspektiv.
 const COLS = 12
 const ROWS = 8
 
-// Rutnätets hörn på kartan, rad för rad uppifrån (bortre kanten) och ned
-// (närmaste kanten): (ROWS + 1) x (COLS + 1) punkter [lng, lat]. Lappen är
-// lika stor på kartan som den var på skärmen när den sattes dit, står med
-// nedre kanten strax norr om platsen, och är vriden `turn` grader runt nedre
-// kantens mitt.
+// Hur många grader lappen reser sig från pappret. Kartan lutar 45 grader, så
+// med 45 grader här pekar lappen rakt mot betraktaren och är lätt att läsa,
+// men står fortfarande på kartan (som ett vykort lutat mot något).
+const STAND_UP = 45
+
+// Rutnätets hörn, rad för rad uppifrån (bortre kanten) och ned (närmaste
+// kanten): (ROWS + 1) x (COLS + 1) punkter [lng, lat, höjd i meter]. Lappen
+// är lika stor som den var på skärmen när den sattes dit, står med nedre
+// kanten på pappret strax norr om platsen, reser sig STAND_UP grader därifrån
+// och är vriden `turn` grader runt nedre kantens mitt.
 function noteGrid(place, widthPx, heightPx, gapPixels, zoom, turn) {
   const mpp = metersPerPixel(zoom, place[1])
   const w = widthPx * mpp
@@ -227,117 +230,19 @@ function noteGrid(place, widthPx, heightPx, gapPixels, zoom, turn) {
     const line = []
     for (let col = 0; col <= COLS; col++) {
       const x = -w / 2 + (col * w) / COLS
-      const y = h - (row * h) / ROWS
+      const up = h - (row * h) / ROWS // avstånd från nedre kanten, längs lappen
+      // Lappen reser sig: en del av avståndet går bakåt längs pappret och en
+      // del rakt upp.
+      const y = up * Math.cos((STAND_UP * Math.PI) / 180)
+      const height = up * Math.sin((STAND_UP * Math.PI) / 180)
       // Vrid runt nedre kantens mitt (0, 0), sedan flytta upp ovanför platsen.
       const rx = x * Math.cos(a) - y * Math.sin(a)
       const ry = x * Math.sin(a) + y * Math.cos(a)
-      line.push(offsetMeters(place, rx, ry + gap))
+      line.push([...offsetMeters(place, rx, ry + gap), height])
     }
     grid.push(line)
   }
   return grid
-}
-
-// --- Husens höjd under lappen ---
-
-// Ligger punkten [lng, lat] i ringen (yttre ring; hål räknas inte)?
-function insideRing([x, y], ring) {
-  let inside = false
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i]
-    const [xj, yj] = ring[j]
-    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside
-  }
-  return inside
-}
-
-function outerRings(geometry) {
-  if (geometry.type === 'Polygon') return [geometry.coordinates[0]]
-  if (geometry.type === 'MultiPolygon') return geometry.coordinates.map((polygon) => polygon[0])
-  return []
-}
-
-// Hur brant pappret får luta (meter upp per meter i sidled). Lappen är som
-// styvt papper: den kan inte vika sig rakt ned längs en vägg. Med kartan lutad
-// 45 grader viker sig en ruta dubbelt om lutningen mot betraktaren blir
-// brantare än 1, så gränsen ligger en bit under det.
-const MAX_SLOPE = 0.7
-
-// Avstånd i meter mellan två närliggande punkter [lng, lat].
-function metersBetween([lng1, lat1], [lng2, lat2]) {
-  const kx = METERS_PER_DEGREE_LAT * Math.cos((lat1 * Math.PI) / 180)
-  return Math.hypot((lng2 - lng1) * kx, (lat2 - lat1) * METERS_PER_DEGREE_LAT)
-}
-
-// Höjden (meter) under varje hörn i rutnätet: det högsta huset som punkten
-// ligger i, annars 0. Sedan:
-//   1. Lutningen begränsas till MAX_SLOPE genom att låga hörn bredvid höga
-//      lyfts, så att pappret sluttar som ett tält ned från taket i stället
-//      för att vika sig.
-//   2. Ett varv utjämning, så att övergångarna blir mjuka.
-function sampleHeights(map, grid) {
-  const points = grid.flat()
-  const margin = 0.001
-  const west = Math.min(...points.map((p) => p[0])) - margin
-  const east = Math.max(...points.map((p) => p[0])) + margin
-  const south = Math.min(...points.map((p) => p[1])) - margin
-  const north = Math.max(...points.map((p) => p[1])) + margin
-  const near = ([x, y]) => x >= west && x <= east && y >= south && y <= north
-  const buildings = map
-    .querySourceFeatures('openmaptiles', { sourceLayer: 'building' })
-    .map((f) => ({ height: f.properties.render_height ?? 5, rings: outerRings(f.geometry) }))
-    .filter(({ rings }) => rings.some((ring) => ring.some(near)))
-
-  const heightAt = (point) =>
-    buildings.reduce((max, b) => (b.rings.some((ring) => insideRing(point, ring)) ? Math.max(max, b.height) : max), 0)
-  let heights = grid.map((line) => line.map(heightAt))
-
-  // 1. Begränsa lutningen. Lyft ett hörn om ett grannhörn är så mycket högre
-  // att pappret mellan dem skulle bli för brant; upprepa tills inget ändras
-  // (som mest en gång per rad och kolumn räcker för att nå hela rutnätet).
-  const across = metersBetween(grid[0][0], grid[0][1]) // en ruta i sidled
-  const along = metersBetween(grid[0][0], grid[1][0]) // en ruta framåt/bakåt
-  const neighbours = [
-    [0, 1, across],
-    [0, -1, across],
-    [1, 0, along],
-    [-1, 0, along],
-  ]
-  for (let round = 0; round < ROWS + COLS; round++) {
-    let changed = false
-    for (let r = 0; r < heights.length; r++) {
-      for (let c = 0; c < heights[r].length; c++) {
-        for (const [dr, dc, distance] of neighbours) {
-          const other = heights[r + dr]?.[c + dc]
-          if (other === undefined) continue
-          const lowest = other - MAX_SLOPE * distance
-          if (heights[r][c] < lowest) {
-            heights[r][c] = lowest
-            changed = true
-          }
-        }
-      }
-    }
-    if (!changed) break
-  }
-
-  // 2. Utjämna ett varv.
-  return heights.map((line, r) =>
-    line.map((_, c) => {
-      let sum = 0
-      let count = 0
-      for (let dr = -1; dr <= 1; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
-          const value = heights[r + dr]?.[c + dc]
-          if (value !== undefined) {
-            sum += value
-            count++
-          }
-        }
-      }
-      return sum / count
-    }),
-  )
 }
 
 // CSS-transform som sträcker ett element (bredd w, höjd h) så att dess hörn
@@ -388,10 +293,9 @@ function grow(points, by = 0.5) {
   })
 }
 
-// En lapp på kartan som ligger draperad över husen. Lappen ritas som ett
+// En lapp som står på kartan, lutad bakåt (se STAND_UP). Lappen ritas som ett
 // rutnät av små rutor; varje ruta visar sin bit av lappen (en kopia av
-// innehållet, förskjuten och avklippt) och sträcks ut mellan sina fyra hörn,
-// som lyfts till husens höjd. `onClose` anropas när man klickar på krysset.
+// innehållet, förskjuten och avklippt) och sträcks ut mellan sina fyra hörn. `onClose` anropas när man klickar på krysset.
 function createNote(map, layer, feature, zoom, onClose) {
   const element = el('div', 'map-note-stuck')
   layer.append(element)
@@ -399,7 +303,6 @@ function createNote(map, layer, feature, zoom, onClose) {
   // Lite olika lutning per plats, så att lapparna ser handklistrade ut.
   const turn = ((feature.id ?? 0) % 7) - 3
   let grid = null
-  let heights = null
   let size = null
   let cells = []
 
@@ -413,19 +316,16 @@ function createNote(map, layer, feature, zoom, onClose) {
 
   function position() {
     if (!grid) return
-    // Husen växer upp mellan zoom 14 och 15 (se buildings-3d), så lappen
-    // lyfts lika mycket.
-    const grown = Math.min(1, Math.max(0, map.getZoom() - 14))
     // Hur många pixlar en meter är vid platsen, och hur mycket en höjd syns
     // uppåt på skärmen när kartan lutar.
     const origin = map.project(place)
     const east = map.project(offsetMeters(place, 1, 0))
     const pixelsPerMeter = Math.hypot(east.x - origin.x, east.y - origin.y)
-    const lift = pixelsPerMeter * Math.sin((map.getPitch() * Math.PI) / 180) * grown
-    const points = grid.map((line, r) =>
-      line.map((lngLat, c) => {
-        const p = map.project(lngLat)
-        return { x: p.x, y: p.y - heights[r][c] * lift }
+    const lift = pixelsPerMeter * Math.sin((map.getPitch() * Math.PI) / 180)
+    const points = grid.map((line) =>
+      line.map(([lng, lat, height]) => {
+        const p = map.project([lng, lat])
+        return { x: p.x, y: p.y - height * lift }
       }),
     )
     const cw = size.w / COLS
@@ -442,13 +342,6 @@ function createNote(map, layer, feature, zoom, onClose) {
     }
     // Närmare lappar (längre ned på skärmen) ovanpå lappar längre bort.
     element.style.zIndex = Math.round(origin.y)
-  }
-
-  // Läser husens höjder igen, t.ex. när fler kartrutor har laddats.
-  function resample() {
-    if (!grid) return
-    heights = sampleHeights(map, grid)
-    position()
   }
 
   function setContent(content) {
@@ -478,10 +371,10 @@ function createNote(map, layer, feature, zoom, onClose) {
       }
     }
     element.replaceChildren(...pieces)
-    resample()
+    position()
   }
 
-  return { element, setContent, update: position, resample, remove: () => element.remove() }
+  return { element, setContent, update: position, remove: () => element.remove() }
 }
 
 // Kopplar lapparna till ett symbollager. `layer` är elementet lapparna läggs i.
@@ -493,10 +386,6 @@ export function attachPlaceNotes(map, layerId, layer) {
   map.on('move', () => {
     preview?.update()
     for (const note of stuck.values()) note.update()
-  })
-  // Nya kartrutor kan ha laddats in med fler hus.
-  map.on('idle', () => {
-    for (const note of stuck.values()) note.resample()
   })
 
   function removePreview() {
