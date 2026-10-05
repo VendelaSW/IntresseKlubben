@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import eventIcon from '../assets/event.png'
 import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import brevIcon from '../assets/brev.png'
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { label: 'Brev', to: '/meddelanden', icon: brevIcon },
   { label: 'Personer', to: '/personer', icon: personerIcon },
   { label: 'Klubbar', to: '/klubbar', icon: klubbarIcon },
+  { label: 'Events', to: '/events', icon: eventIcon },
 ]
 
 // Ram runt alla inloggade sidor: header (logga, meny, användare) + sidans
