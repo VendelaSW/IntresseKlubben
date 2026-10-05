@@ -1224,3 +1224,15 @@ span.tag-selected:hover {
     transform: none;
   }
 }
+
+/* ---------- Kartprototyp ---------- */
+
+.map-prototype {
+  width: 100%;
+  height: 100vh;
+}
+
+.map-prototype-canvas {
+  width: 100%;
+  height: 100%;
+}

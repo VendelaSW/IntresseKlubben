@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import ServiceInfo from './pages/ServiceInfo'
@@ -19,12 +20,24 @@ import DemoApp, { DemoComingSoon, DemoOverview } from './pages/demo/DemoApp'
 import DemoPeople from './pages/demo/DemoPeople'
 import DemoClubs from './pages/demo/DemoClubs'
 
+// Kartbiblioteket är stort, så prototypsidan laddas bara när någon öppnar den.
+const MapPrototype = lazy(() => import('./pages/MapPrototype'))
+
 function App() {
   return (
     <>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/om" element={<ServiceInfo />} />
+        {/* PROTOTYP: inte länkad från menyn än. */}
+        <Route
+          path="/karta-prototyp"
+          element={
+            <Suspense fallback={<p className="hint-text">Laddar karta...</p>}>
+              <MapPrototype />
+            </Suspense>
+          }
+        />
         {/* Ersatta av inloggning/registrering inline på /, kvar som omdirigering
             ifall någon har ett gammalt bokmärke eller en gammal länk. */}
         <Route path="/konto" element={<Navigate to="/" replace />} />
