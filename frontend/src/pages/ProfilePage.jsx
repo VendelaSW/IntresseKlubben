@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
 import ProfileAbout from '../components/ProfileAbout'
+import TextareaWithCount from '../components/TextareaWithCount'
 import { imageToWebp } from '../services/imageToWebp'
 import { addInterest, getAllInterests, getMyInterests, removeInterest } from '../services/interests'
 import {
@@ -344,14 +345,12 @@ function ProfilePage() {
           />
 
           <label htmlFor="profile-about">Om mig</label>
-          <textarea
+          <TextareaWithCount
             id="profile-about"
             value={aboutText}
             onChange={(e) => setAboutText(e.target.value)}
             maxLength={800}
-            rows={6}
           />
-          <p className="hint-text">{aboutText.length}/800</p>
 
           <section className="profile-interests">
             <h2>Intressen</h2>

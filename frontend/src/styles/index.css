@@ -299,6 +299,25 @@ h2 {
   min-height: 7rem;
 }
 
+/* Teckenräknaren ligger inne i fältet, nere till höger (till vänster om
+   dra-handtaget). Extra utrymme under texten så de inte överlappar. */
+.textarea-count {
+  position: relative;
+  display: flex;
+}
+
+.textarea-count textarea {
+  flex: 1;
+  padding-bottom: 1.75rem;
+}
+
+.textarea-count-number {
+  position: absolute;
+  right: 1.75rem;
+  bottom: 0.5rem;
+  pointer-events: none;
+}
+
 .auth-form button {
   font-family: var(--font-body);
   font-weight: 400;
