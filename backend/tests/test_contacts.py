@@ -73,6 +73,42 @@ class ContactRoutesTest(unittest.TestCase):
         self.assertIsNone(rejected.json())
         self.assertIsNone(self.db.get(Contact, contact_id))
 
+    def test_requester_can_cancel_pending_request_but_nobody_else(self):
+        contact_id = self.client.post("/contacts/request",
+                                       json={"addressee_username": "user2"}).json()["id"]
+
+        self.actor_id = 2  # mottagaren ska använda avböj, inte ångra
+        self.assertEqual(self.client.delete(f"/contacts/requests/{contact_id}").status_code, 403)
+        self.actor_id = 3
+        self.assertEqual(self.client.delete(f"/contacts/requests/{contact_id}").status_code, 403)
+        self.assertIsNotNone(self.db.get(Contact, contact_id))
+
+        self.actor_id = 1
+        self.assertEqual(self.client.delete(f"/contacts/requests/{contact_id}").status_code, 204)
+        self.assertIsNone(self.db.get(Contact, contact_id))
+        # Raden är borta, så båda kan skicka en ny förfrågan.
+        self.assertEqual(self.client.delete(f"/contacts/requests/{contact_id}").status_code, 404)
+        self.assertEqual(self.client.post("/contacts/request",
+                                           json={"addressee_username": "user2"}).status_code, 201)
+
+    def test_cancel_request_only_works_on_pending(self):
+        contact_id = self.client.post("/contacts/request",
+                                       json={"addressee_username": "user2"}).json()["id"]
+        self.actor_id = 2
+        self.client.patch(f"/contacts/requests/{contact_id}", json={"action": "accept"})
+        self.actor_id = 1
+        self.assertEqual(self.client.delete(f"/contacts/requests/{contact_id}").status_code, 404)
+        self.assertIsNotNone(self.db.get(Contact, contact_id))
+
+    def test_cancel_request_does_not_touch_a_block(self):
+        contact_id = self.client.post("/contacts/request",
+                                       json={"addressee_username": "user2"}).json()["id"]
+        self.actor_id = 2
+        self.client.post("/users/user1/block")
+        self.actor_id = 1
+        self.assertEqual(self.client.delete(f"/contacts/requests/{contact_id}").status_code, 404)
+        self.assertEqual(self.db.get(Contact, contact_id).status, "BLOCKED")
+
     def test_request_rejects_self_missing_user_and_duplicate_in_both_directions(self):
         self.assertEqual(self.client.post("/contacts/request",
                                            json={"addressee_username": "user1"}).status_code, 400)

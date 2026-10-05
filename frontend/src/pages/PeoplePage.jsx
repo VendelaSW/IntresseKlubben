@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import PersonCard from '../components/PersonCard'
-import { answerContactRequest, getContacts, removeContact, sendContactRequest } from '../services/contacts'
+import {
+  answerContactRequest,
+  cancelContactRequest,
+  getContacts,
+  removeContact,
+  sendContactRequest,
+} from '../services/contacts'
 import { getAllInterests, getMyInterests } from '../services/interests'
 import { getMunicipalities } from '../services/profile'
 import { dismissSuggestion, getPeople, resetDismissedSuggestions } from '../services/people'
@@ -120,6 +126,11 @@ function PeoplePage() {
     runAction(() => removeContact(contact.id))
   }
 
+  function handleCancelRequest(request) {
+    if (!window.confirm('Ångrar du denna förfrågan?')) return
+    runAction(() => cancelContactRequest(request.id))
+  }
+
   function handleDismiss(person) {
     runAction(() => dismissSuggestion(person.username))
   }
@@ -202,6 +213,7 @@ function PeoplePage() {
                     relation={outgoing ? 'outgoing' : null}
                     busy={busy}
                     onSend={() => runAction(() => sendContactRequest(person.username))}
+                    onCancel={() => handleCancelRequest(outgoing)}
                     onDismiss={() => handleDismiss(person)}
                   />
                 }
