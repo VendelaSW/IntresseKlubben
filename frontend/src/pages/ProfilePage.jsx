@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
+import ProfileAbout from '../components/ProfileAbout'
+import TextareaWithCount from '../components/TextareaWithCount'
 import { imageToWebp } from '../services/imageToWebp'
 import { addInterest, getAllInterests, getMyInterests, removeInterest } from '../services/interests'
 import {
@@ -134,6 +136,7 @@ function ProfilePage() {
   const [gender, setGender] = useState('')
   const [municipalityCode, setMunicipalityCode] = useState('')
   const [district, setDistrict] = useState('')
+  const [aboutText, setAboutText] = useState('')
   // Valda intressen i formuläret. Sparas först när man trycker Spara.
   const [draftInterests, setDraftInterests] = useState([])
   const [saving, setSaving] = useState(false)
@@ -170,6 +173,7 @@ function ProfilePage() {
     setGender(profile?.gender ?? '')
     setMunicipalityCode(profile?.municipality_code ?? '')
     setDistrict(profile?.district ?? '')
+    setAboutText(profile?.profile_text ?? '')
     setDraftInterests(myInterests)
     setFormError('')
     setEditing(true)
@@ -204,6 +208,8 @@ function ProfilePage() {
     if (gender) data.gender = gender
     if (municipalityCode) data.municipality_code = municipalityCode
     if (district.trim()) data.district = district
+    // Om mig skickas alltid: en tom text tömmer fältet i backend.
+    data.profile_text = aboutText
 
     // 1. Profilen. Misslyckas den sparas inget annat heller.
     let saved
@@ -338,6 +344,14 @@ function ProfilePage() {
             maxLength={100}
           />
 
+          <label htmlFor="profile-about">Om mig</label>
+          <TextareaWithCount
+            id="profile-about"
+            value={aboutText}
+            onChange={(e) => setAboutText(e.target.value)}
+            maxLength={800}
+          />
+
           <section className="profile-interests">
             <h2>Intressen</h2>
             <p className="hint-text">Klicka för att välja.</p>
@@ -378,6 +392,7 @@ function ProfilePage() {
         <dt>Stadsdel</dt>
         <dd>{profile.district ?? '–'}</dd>
       </dl>
+      <ProfileAbout text={profile.profile_text} />
       <section className="profile-interests">
         <h2>Intressen</h2>
         {myInterests.length > 0 ? (

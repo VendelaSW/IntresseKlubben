@@ -39,6 +39,7 @@
   --color-bg: #f7f1e3;
   --color-text: #1a1a1a;
   --color-accent: #f4c430;
+  --color-accent-soft: #fdf6e0;
   --color-line: #bfd7ed;
   --color-white: #ffffff;
   --color-muted: #6b6b6b;
@@ -268,7 +269,8 @@ h2 {
 }
 
 .auth-form input,
-.auth-form select {
+.auth-form select,
+.auth-form textarea {
   font-family: var(--font-body);
   font-weight: 400;
   font-size: var(--text-body);
@@ -279,14 +281,41 @@ h2 {
   color: var(--color-text);
 }
 
-.auth-form input::placeholder {
+.auth-form input::placeholder,
+.auth-form textarea::placeholder {
   color: var(--color-muted);
 }
 
 .auth-form input:focus-visible,
-.auth-form select:focus-visible {
+.auth-form select:focus-visible,
+.auth-form textarea:focus-visible {
   outline: none;
   border-color: var(--color-accent);
+}
+
+/* Flerradigt fält, t.ex. "Om mig". Går bara att dra större i höjdled. */
+.auth-form textarea {
+  resize: vertical;
+  min-height: 7rem;
+}
+
+/* Teckenräknaren ligger inne i fältet, nere till höger (till vänster om
+   dra-handtaget). Extra utrymme under texten så de inte överlappar. */
+.textarea-count {
+  position: relative;
+  display: flex;
+}
+
+.textarea-count textarea {
+  flex: 1;
+  padding-bottom: 1.75rem;
+}
+
+.textarea-count-number {
+  position: absolute;
+  right: 1.75rem;
+  bottom: 0.5rem;
+  pointer-events: none;
 }
 
 .auth-form button {
@@ -361,6 +390,27 @@ button.banner-button {
   width: 100%;
   max-width: 320px;
   text-align: left;
+}
+
+/* "Om mig"-rutan i ett profilkort: ett eget fält med samma rundning som
+   formulärfälten, i blekt ljusgult (--color-accent-soft) och utan kant. */
+.profile-about {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 320px;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: var(--color-accent-soft);
+  text-align: left;
+}
+
+/* pre-line behåller radbrytningarna, anywhere bryter även mycket långa ord. */
+.profile-about-text {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 /* Taggar som bara visas (InterestTags) går inte att klicka på, så de ska

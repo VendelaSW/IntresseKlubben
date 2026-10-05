@@ -45,6 +45,30 @@ def test_patch_only_changes_fields_that_are_sent(client, user, municipalities):
     assert body["district"] == "Majorna"
 
 
+def test_profile_text_is_saved_trimmed_and_returned(client, user):
+    body = client.patch("/profile/", json={"profile_text": "  Jag gillar brädspel.  "}).json()
+    assert body["profile_text"] == "Jag gillar brädspel."
+    assert client.get("/profile/").json()["profile_text"] == "Jag gillar brädspel."
+
+
+def test_profile_text_of_exactly_800_characters_is_accepted(client, user):
+    response = client.patch("/profile/", json={"profile_text": "x" * 800})
+    assert response.status_code == 200
+    assert len(response.json()["profile_text"]) == 800
+
+
+def test_empty_profile_text_clears_it(client, user):
+    client.patch("/profile/", json={"profile_text": "Hej"})
+    body = client.patch("/profile/", json={"profile_text": "   "}).json()
+    assert body["profile_text"] is None
+
+
+def test_profile_text_is_untouched_when_not_sent(client, user):
+    client.patch("/profile/", json={"profile_text": "Hej"})
+    body = client.patch("/profile/", json={"name": "Vendela"}).json()
+    assert body["profile_text"] == "Hej"
+
+
 @pytest.mark.parametrize(
     ("payload", "message"),
     [
@@ -53,6 +77,7 @@ def test_patch_only_changes_fields_that_are_sent(client, user, municipalities):
         ({"birth_date": (date.today() + timedelta(days=1)).isoformat()}, "Födelsedatum kan inte vara i framtiden"),
         ({"district": "   "}, "Stadsdel får inte vara tom"),
         ({"district": "x" * 101}, "Stadsdel får max vara 100 tecken"),
+        ({"profile_text": "x" * 801}, "Om mig-texten får max vara 800 tecken"),
     ],
 )
 def test_invalid_input_is_rejected_with_swedish_message(client, user, payload, message):
