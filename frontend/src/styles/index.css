@@ -821,12 +821,11 @@ span.tag-selected:hover {
   grid-template-columns: repeat(auto-fill, minmax(260px, 300px));
 }
 
-/* Ett klickbart card-kort, hela kortet länkar vidare (t.ex. till en profil). */
-/* person-card är ett <article> (inte en länk), så att åtgärdsknappar kan
-   ligga i kortet utan att hamna nästlade i en <a>. person-card-link är den
-   klickbara länken till profilen runt avatar/namn/plats. */
 /* Layouten för personkort och brevkort. Hover-effekten kommer från
-   .card-interactive, som korten också har. */
+   .card-interactive, som korten också har. person-card är ett <article>
+   (inte en länk), så att åtgärdsknappar kan ligga i kortet utan att hamna
+   nästlade i en <a>. person-card-link är den klickbara länken till profilen
+   runt avatar/namn/plats. */
 .person-card {
   display: flex;
   flex-direction: column;

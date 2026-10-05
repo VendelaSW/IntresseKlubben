@@ -21,6 +21,12 @@ function todayString() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+// Felmeddelanden från servern saknar ibland punkt i slutet, och då skulle en
+// mening som läggs efter dem gå ihop med dem.
+function withPeriod(text) {
+  return /[.!?]$/.test(text) ? text : `${text}.`
+}
+
 // Visar profilbilden. Själva bildbytet (knappen) finns bara när editable är
 // satt, alltså i "Redigera profil", inte i den vanliga profilvyn.
 function ProfileImage({ profile, onUploaded, editable = false }) {
@@ -357,7 +363,7 @@ function ProfilePage() {
     <div className="card card-wide content-stack">
       <h1>Min profil</h1>
       {imageNotice && (
-        <p className="form-error">{imageNotice} Försök igen under Redigera profil.</p>
+        <p className="form-error">{withPeriod(imageNotice)} Försök igen under Redigera profil.</p>
       )}
       <ProfileImage profile={profile} />
       <dl className="profile-details">
