@@ -1,14 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
-from app.crud.event import create_event, list_visible_events
-from app.crud.group import get_group, get_membership
+from app.core import storage
+from app.crud.event import (
+    EventRuleError,
+    create_event,
+    get_group_for_member,
+    get_visible_event,
+    invite,
+    list_invitees,
+    list_visible_events,
+    remove_invitation,
+)
 from app.db.session import get_db
 from app.models.event import Event, EventVisibility
 from app.models.group import GroupVisibility
 from app.models.interest import Interest
-from app.schemas.event import EventCreate, EventOut
+from app.models.user import User
+from app.schemas.contact import ContactUser
+from app.schemas.event import EventCreate, EventInvite, EventOut
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -31,8 +42,30 @@ def _to_response(event: Event, user_id: int) -> EventOut:
         creator_username=creator.username,
         creator_name=creator.profile.name if creator.profile else None,
         is_owner=event.created_by == user_id,
+        is_invited=any(i.user_id == user_id for i in event.invitations),
         created_at=event.created_at,
     )
+
+
+def _to_invitee(user: User) -> ContactUser:
+    profile = user.profile
+    image_key = profile.profile_image_url if profile else None
+    return ContactUser(
+        id=user.id,
+        username=user.username,
+        name=profile.name if profile else None,
+        image_url=storage.public_url(image_key) if image_key else None,
+    )
+
+
+def _own_event_or_error(db: Session, event_id: int, user_id: int) -> Event:
+    # Ett event man inte får se ger samma svar som ett som inte finns.
+    event = get_visible_event(db, event_id, user_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Eventet finns inte")
+    if event.created_by != user_id:
+        raise HTTPException(status_code=403, detail="Bara den som skapat eventet kan hantera inbjudningar")
+    return event
 
 
 @router.post("/", response_model=EventOut, status_code=status.HTTP_201_CREATED)
@@ -46,14 +79,10 @@ def create(
     if db.get(Interest, data.interest_id) is None:
         raise HTTPException(status_code=422, detail="Okänt intresse")
     if data.group_id is not None:
-        # En privat klubb ska inte avslöjas för den som inte är med, så den
-        # ger samma svar som en klubb som inte finns.
-        group = get_group(db, data.group_id)
-        membership = get_membership(group, current_user.id) if group else None
-        if group is None or (group.visibility == GroupVisibility.private and membership is None):
-            raise HTTPException(status_code=404, detail="Klubben finns inte")
-        if membership is None:
-            raise HTTPException(status_code=403, detail="Du måste vara med i klubben för att skapa events där")
+        try:
+            group = get_group_for_member(db, data.group_id, current_user.id)
+        except EventRuleError as err:
+            raise HTTPException(status_code=err.status_code, detail=err.detail)
         # Privata klubbars events är alltid privata. Ett uttryckligt "open"
         # avvisas hellre än rättas tyst, så att felet syns direkt.
         if group.visibility == GroupVisibility.private and data.visibility == EventVisibility.open:
@@ -68,3 +97,43 @@ def read_events(
     db: Session = Depends(get_db),
 ):
     return [_to_response(e, current_user.id) for e in list_visible_events(db, current_user.id)]
+
+
+@router.get("/{event_id}/invitations", response_model=list[ContactUser])
+def read_invitations(
+    event_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    event = _own_event_or_error(db, event_id, current_user.id)
+    return [_to_invitee(u) for u in list_invitees(db, event, current_user.id)]
+
+
+@router.post("/{event_id}/invitations", response_model=list[ContactUser])
+def add_invitations(
+    event_id: int,
+    data: EventInvite,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    event = _own_event_or_error(db, event_id, current_user.id)
+    try:
+        invite(db, event, data.usernames, data.group_ids)
+    except EventRuleError as err:
+        raise HTTPException(status_code=err.status_code, detail=err.detail)
+    return [_to_invitee(u) for u in list_invitees(db, event, current_user.id)]
+
+
+@router.delete("/{event_id}/invitations/{username}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_invitation(
+    event_id: int,
+    username: str,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    event = _own_event_or_error(db, event_id, current_user.id)
+    try:
+        remove_invitation(db, event, username)
+    except EventRuleError as err:
+        raise HTTPException(status_code=err.status_code, detail=err.detail)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -4,13 +4,10 @@ import pytest
 
 from app.auth.security import get_current_user
 from app.main import app
-from app.models import Contact, Event, EventInvitation, Group, GroupMember, Interest, User
+from app.models import Contact, Event, EventInvitation, GroupMember, Interest, User
 from app.models.event import EventVisibility
-from app.models.group import GroupRole, GroupVisibility
-
-
-def future(days=7, hours=0):
-    return datetime.now(timezone.utc) + timedelta(days=days, hours=hours)
+from app.models.group import GroupVisibility
+from tests.event_helpers import add_contact, add_event, add_group, future, payload
 
 
 @pytest.fixture
@@ -27,53 +24,6 @@ def other(db):
     db.add(row)
     db.commit()
     return row
-
-
-def payload(**overrides):
-    values = {
-        "title": "Morgonlöpning",
-        "description": "Vi springer 5 km.",
-        "interest_id": 1,
-        "starts_at": future().isoformat(),
-        "place_name": "Slottsskogen",
-        "address": "Slottsskogsvallen 1",
-    }
-    values.update(overrides)
-    return values
-
-
-def add_event(db, creator_id, **overrides):
-    values = dict(
-        title="Event",
-        description="Beskrivning",
-        interest_id=1,
-        starts_at=future(),
-        place_name="Plats",
-        address="Gatan 1",
-        created_by=creator_id,
-    )
-    values.update(overrides)
-    event = Event(**values)
-    db.add(event)
-    db.commit()
-    return event
-
-
-def add_group(db, owner_id, visibility=GroupVisibility.public, members=()):
-    group = Group(
-        name="Löparna",
-        description="Springer",
-        interest_id=1,
-        municipality_code="1480",
-        visibility=visibility,
-        created_by=owner_id,
-    )
-    group.members.append(GroupMember(user_id=owner_id, role=GroupRole.owner))
-    for member_id in members:
-        group.members.append(GroupMember(user_id=member_id))
-    db.add(group)
-    db.commit()
-    return group
 
 
 def login_as(other_user):
@@ -230,11 +180,11 @@ def test_list_hides_events_from_blocked_users_in_both_directions(client, db, use
     add_event(db, other.id, title="Öppet", visibility=EventVisibility.open)
     assert titles(client) == ["Öppet"]
 
-    block = Contact(requester_id=user.id, addressee_id=other.id, pair_key="1:2", status="BLOCKED")
-    db.add(block)
-    db.commit()
+    add_contact(db, user.id, other.id, status="BLOCKED")
     assert titles(client) == []
 
+    # Blockeringen åt andra hållet gör samma sak.
+    block = db.query(Contact).one()
     block.requester_id, block.addressee_id = other.id, user.id
     db.commit()
     assert titles(client) == []

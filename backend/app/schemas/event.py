@@ -69,6 +69,19 @@ class EventCreate(BaseModel):
         return self
 
 
+class EventInvite(BaseModel):
+    # Kontakter efter användarnamn, och/eller klubbar vars medlemmar alla ska
+    # bjudas in. Minst en av dem krävs.
+    usernames: list[str] = []
+    group_ids: list[int] = []
+
+    @model_validator(mode="after")
+    def someone_is_invited(self):
+        if not self.usernames and not self.group_ids:
+            raise ValueError("Välj minst en person eller klubb att bjuda in")
+        return self
+
+
 class EventOut(BaseModel):
     id: int
     title: str
@@ -87,4 +100,5 @@ class EventOut(BaseModel):
     creator_name: str | None
     # Gäller den inloggade användaren, så att frontend vet vilka knappar som ska visas.
     is_owner: bool
+    is_invited: bool
     created_at: datetime
