@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
+from app.core import error_messages as msg
 from app.core import storage
 from app.crud.event import (
     EventRuleError,
@@ -74,7 +75,7 @@ def _visible_event_or_404(db: Session, event_id: int, user_id: int) -> Event:
     # Ett event man inte får se ger samma svar som ett som inte finns.
     event = get_visible_event(db, event_id, user_id)
     if event is None:
-        raise HTTPException(status_code=404, detail="Eventet finns inte")
+        raise HTTPException(status_code=404, detail=msg.EVENT_NOT_FOUND)
     return event
 
 
@@ -88,7 +89,7 @@ def _to_attendees(db: Session, event: Event) -> list[EventAttendee]:
 def _own_event_or_error(db: Session, event_id: int, user_id: int) -> Event:
     event = _visible_event_or_404(db, event_id, user_id)
     if event.created_by != user_id:
-        raise HTTPException(status_code=403, detail="Bara den som skapat eventet kan ändra det")
+        raise HTTPException(status_code=403, detail=msg.EVENT_ONLY_CREATOR)
     return event
 
 
@@ -101,7 +102,7 @@ def create(
     # Kolla här så att okända värden ger ett tydligt fel i stället för ett
     # databasfel (500) från de främmande nycklarna.
     if db.get(Interest, data.interest_id) is None:
-        raise HTTPException(status_code=422, detail="Okänt intresse")
+        raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
     if data.group_id is not None:
         try:
             group = get_group_for_member(db, data.group_id, current_user.id)
@@ -110,7 +111,7 @@ def create(
         # Privata klubbars events är alltid privata. Ett uttryckligt "open"
         # avvisas hellre än rättas tyst, så att felet syns direkt.
         if group.visibility == GroupVisibility.private and data.visibility == EventVisibility.open:
-            raise HTTPException(status_code=422, detail="Events i privata klubbar kan inte vara öppna")
+            raise HTTPException(status_code=422, detail=msg.EVENT_IN_PRIVATE_GROUP_CANNOT_BE_OPEN)
     event = create_event(db, current_user.id, data)
     return _to_response(event, current_user.id)
 
@@ -132,7 +133,7 @@ def edit_event(
 ):
     event = _own_event_or_error(db, event_id, current_user.id)
     if data.interest_id is not None and db.get(Interest, data.interest_id) is None:
-        raise HTTPException(status_code=422, detail="Okänt intresse")
+        raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
     try:
         event = update_event(db, event, data)
     except EventRuleError as err:

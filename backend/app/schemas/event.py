@@ -2,24 +2,41 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
+from app.core import error_messages as msg
 from app.models.event import EventAnswer, EventVisibility
 from app.schemas.contact import ContactUser
 
 
-def _required_text(value: str, field: str, max_length: int) -> str:
+def _required_text(value: str, max_length: int, empty_message: str, too_long_message: str) -> str:
     value = value.strip()
     if len(value) == 0:
-        raise ValueError(f"{field} får inte vara tom")
+        raise ValueError(empty_message)
     if len(value) > max_length:
-        raise ValueError(f"{field} får max vara {max_length} tecken")
+        raise ValueError(too_long_message)
     return value
+
+
+def _title(value: str) -> str:
+    return _required_text(value, 50, msg.EVENT_TITLE_EMPTY, msg.EVENT_TITLE_TOO_LONG)
+
+
+def _description(value: str) -> str:
+    return _required_text(value, 800, msg.EVENT_DESCRIPTION_EMPTY, msg.EVENT_DESCRIPTION_TOO_LONG)
+
+
+def _place_name(value: str) -> str:
+    return _required_text(value, 100, msg.EVENT_PLACE_NAME_EMPTY, msg.EVENT_PLACE_NAME_TOO_LONG)
+
+
+def _address(value: str) -> str:
+    return _required_text(value, 100, msg.EVENT_ADDRESS_EMPTY, msg.EVENT_ADDRESS_TOO_LONG)
 
 
 def _to_utc(value: datetime) -> datetime:
     # Tid utan tidszon går inte att tolka säkert, så den avvisas. Allt sparas
     # som UTC.
     if value.tzinfo is None:
-        raise ValueError("Ange tiden med tidszon")
+        raise ValueError(msg.EVENT_TIME_NEEDS_TIMEZONE)
     return value.astimezone(timezone.utc)
 
 
@@ -39,22 +56,22 @@ class EventCreate(BaseModel):
     @field_validator("title")
     @classmethod
     def title_valid(cls, v: str) -> str:
-        return _required_text(v, "Titel", 50)
+        return _title(v)
 
     @field_validator("description")
     @classmethod
     def description_valid(cls, v: str) -> str:
-        return _required_text(v, "Beskrivning", 800)
+        return _description(v)
 
     @field_validator("place_name")
     @classmethod
     def place_name_valid(cls, v: str) -> str:
-        return _required_text(v, "Platsnamn", 100)
+        return _place_name(v)
 
     @field_validator("address")
     @classmethod
     def address_valid(cls, v: str) -> str:
-        return _required_text(v, "Gatuadress", 100)
+        return _address(v)
 
     @field_validator("starts_at", "ends_at")
     @classmethod
@@ -64,9 +81,9 @@ class EventCreate(BaseModel):
     @model_validator(mode="after")
     def times_make_sense(self):
         if self.starts_at <= datetime.now(timezone.utc):
-            raise ValueError("Starttiden måste vara i framtiden")
+            raise ValueError(msg.EVENT_START_IN_PAST)
         if self.ends_at is not None and self.ends_at <= self.starts_at:
-            raise ValueError("Sluttiden måste vara efter starttiden")
+            raise ValueError(msg.EVENT_END_BEFORE_START)
         return self
 
 
@@ -89,38 +106,38 @@ class EventUpdate(BaseModel):
     @field_validator("title")
     @classmethod
     def title_valid(cls, v: str | None) -> str:
-        return _required_text(v or "", "Titel", 50)
+        return _title(v or "")
 
     @field_validator("description")
     @classmethod
     def description_valid(cls, v: str | None) -> str:
-        return _required_text(v or "", "Beskrivning", 800)
+        return _description(v or "")
 
     @field_validator("place_name")
     @classmethod
     def place_name_valid(cls, v: str | None) -> str:
-        return _required_text(v or "", "Platsnamn", 100)
+        return _place_name(v or "")
 
     @field_validator("address")
     @classmethod
     def address_valid(cls, v: str | None) -> str:
-        return _required_text(v or "", "Gatuadress", 100)
+        return _address(v or "")
 
     @field_validator("interest_id")
     @classmethod
     def interest_not_empty(cls, v: int | None) -> int:
         if v is None:
-            raise ValueError("Välj ett intresse")
+            raise ValueError(msg.EVENT_INTEREST_REQUIRED)
         return v
 
     @field_validator("starts_at")
     @classmethod
     def starts_at_valid(cls, v: datetime | None) -> datetime:
         if v is None:
-            raise ValueError("Starttiden får inte vara tom")
+            raise ValueError(msg.EVENT_START_EMPTY)
         v = _to_utc(v)
         if v <= datetime.now(timezone.utc):
-            raise ValueError("Starttiden måste vara i framtiden")
+            raise ValueError(msg.EVENT_START_IN_PAST)
         return v
 
     @field_validator("ends_at")
@@ -138,7 +155,7 @@ class EventInvite(BaseModel):
     @model_validator(mode="after")
     def someone_is_invited(self):
         if not self.usernames and not self.group_ids:
-            raise ValueError("Välj minst en person eller klubb att bjuda in")
+            raise ValueError(msg.EVENT_INVITE_NOBODY)
         return self
 
 

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, selectinload
 
+from app.core import error_messages as msg
 from app.crud.contact import blocked_user_ids
 from app.crud.group import get_group, get_membership
 from app.crud.user import get_user_by_username
@@ -62,7 +63,7 @@ def update_event(db: Session, event: Event, data: EventUpdate) -> Event:
     starts_at = _as_utc(changes.get("starts_at", event.starts_at))
     ends_at = changes.get("ends_at", event.ends_at)
     if ends_at is not None and _as_utc(ends_at) <= starts_at:
-        raise EventRuleError(422, "Sluttiden måste vara efter starttiden")
+        raise EventRuleError(422, msg.EVENT_END_BEFORE_START)
     for field, value in changes.items():
         setattr(event, field, value)
     db.commit()
@@ -133,9 +134,9 @@ def get_group_for_member(db: Session, group_id: int, user_id: int) -> Group:
     group = get_group(db, group_id)
     membership = get_membership(group, user_id) if group else None
     if group is None or (group.visibility == GroupVisibility.private and membership is None):
-        raise EventRuleError(404, "Klubben finns inte")
+        raise EventRuleError(404, msg.GROUP_NOT_FOUND)
     if membership is None:
-        raise EventRuleError(403, "Du måste vara med i klubben")
+        raise EventRuleError(403, msg.MUST_BE_GROUP_MEMBER)
     return group
 
 
@@ -166,7 +167,7 @@ def invite(db: Session, event: Event, usernames: list[str], group_ids: list[int]
         user = get_user_by_username(db, username)
         # Samma svar för en okänd användare och en som inte är en kontakt.
         if user is None or user.id not in contact_ids:
-            raise EventRuleError(422, "Du kan bara bjuda in dina kontakter")
+            raise EventRuleError(422, msg.CAN_ONLY_INVITE_CONTACTS)
         target_ids.add(user.id)
 
     hidden = blocked_user_ids(db, inviter_id)
@@ -202,7 +203,7 @@ def remove_invitation(db: Session, event: Event, username: str) -> None:
         .first()
     )
     if invitation is None:
-        raise EventRuleError(404, "Personen är inte inbjuden")
+        raise EventRuleError(404, msg.PERSON_NOT_INVITED)
     db.delete(invitation)
     db.commit()
 
