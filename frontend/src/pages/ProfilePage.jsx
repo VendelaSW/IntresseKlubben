@@ -21,7 +21,15 @@ function todayString() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-function ProfileImage({ profile, onUploaded }) {
+// Felmeddelanden från servern saknar ibland punkt i slutet, och då skulle en
+// mening som läggs efter dem gå ihop med dem.
+function withPeriod(text) {
+  return /[.!?]$/.test(text) ? text : `${text}.`
+}
+
+// Visar profilbilden. Själva bildbytet (knappen) finns bara när editable är
+// satt, alltså i "Redigera profil", inte i den vanliga profilvyn.
+function ProfileImage({ profile, onUploaded, editable = false }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
@@ -51,16 +59,18 @@ function ProfileImage({ profile, onUploaded }) {
           {initial}
         </div>
       )}
-      <label className={`secondary-button${uploading ? ' is-disabled' : ''}`}>
-        {uploading ? 'Laddar upp...' : profile.image_url ? 'Byt bild' : 'Lägg till bild'}
-        <input
-          type="file"
-          accept="image/*"
-          className="visually-hidden"
-          onChange={handleFile}
-          disabled={uploading}
-        />
-      </label>
+      {editable && (
+        <label className={`secondary-button button-small${uploading ? ' is-disabled' : ''}`}>
+          {uploading ? 'Laddar upp...' : profile.image_url ? 'Byt bild' : 'Lägg till bild'}
+          <input
+            type="file"
+            accept="image/*"
+            className="visually-hidden"
+            onChange={handleFile}
+            disabled={uploading}
+          />
+        </label>
+      )}
       {error && <p className="form-error">{error}</p>}
     </div>
   )
@@ -101,7 +111,7 @@ function NewProfileImage({ name, image, onChange }) {
           {initial}
         </div>
       )}
-      <label className="secondary-button">
+      <label className="secondary-button button-small">
         {image ? 'Byt bild' : 'Lägg till bild'}
         <input type="file" accept="image/*" className="visually-hidden" onChange={handleFile} />
       </label>
@@ -251,7 +261,7 @@ function ProfilePage() {
   if (editing) {
     const isNew = profile === null
     return (
-      <div className="content-stack">
+      <div className="card card-wide content-stack">
         <h1>{isNew ? 'Skapa din profil' : 'Redigera profil'}</h1>
         {isNew && (
           <p className="profile-intro">
@@ -263,7 +273,17 @@ function ProfilePage() {
         {isNew ? (
           <NewProfileImage name={name} image={pendingImage} onChange={setPendingImage} />
         ) : (
-          <ProfileImage profile={profile} onUploaded={setProfile} />
+          <>
+            <ProfileImage
+              profile={profile}
+              onUploaded={(updated) => {
+                setImageNotice('')
+                setProfile(updated)
+              }}
+              editable
+            />
+            {imageNotice && <p className="form-error">{imageNotice}</p>}
+          </>
         )}
         <form className="auth-form" onSubmit={handleSubmit}>
           <label htmlFor="profile-name">Namn</label>
@@ -340,16 +360,12 @@ function ProfilePage() {
   }
 
   return (
-    <div className="content-stack">
+    <div className="card card-wide content-stack">
       <h1>Min profil</h1>
-      {imageNotice && <p className="form-error">{imageNotice}</p>}
-      <ProfileImage
-        profile={profile}
-        onUploaded={(updated) => {
-          setImageNotice('')
-          setProfile(updated)
-        }}
-      />
+      {imageNotice && (
+        <p className="form-error">{withPeriod(imageNotice)} Försök igen under Redigera profil.</p>
+      )}
+      <ProfileImage profile={profile} />
       <dl className="profile-details">
         <dt>Namn</dt>
         <dd>{profile.name ?? '–'}</dd>
