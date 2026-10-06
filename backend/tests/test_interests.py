@@ -54,6 +54,26 @@ def test_remove_interest(client, user, interests):
     assert _names(client.get("/profile/interests")) == ["Brädspel"]
 
 
+def test_cannot_remove_the_last_interest(client, user, interests):
+    client.put(f"/profile/interests/{interests['Yoga']}")
+
+    response = client.delete(f"/profile/interests/{interests['Yoga']}")
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Minst ett intresse krävs"
+    assert _names(client.get("/profile/interests")) == ["Yoga"]
+
+
+def test_interest_can_be_swapped_by_adding_the_new_one_first(client, user, interests):
+    client.put(f"/profile/interests/{interests['Yoga']}")
+    client.put(f"/profile/interests/{interests['Brädspel']}")
+
+    response = client.delete(f"/profile/interests/{interests['Yoga']}")
+
+    assert response.status_code == 200
+    assert _names(response) == ["Brädspel"]
+
+
 def test_removing_interest_user_does_not_have_changes_nothing(client, user, interests):
     client.put(f"/profile/interests/{interests['Yoga']}")
 

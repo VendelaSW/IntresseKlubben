@@ -5,7 +5,19 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.interest import Interest
 from app.models.profile import Profile
 from app.models.user import User
-from app.schemas.profile import ProfileUpdate
+from app.schemas.profile import ProfileCreate, ProfileUpdate
+
+
+class ProfileExistsError(Exception):
+    """Användaren har redan en profil."""
+
+
+class ProfileNotFoundError(Exception):
+    """Användaren har ingen profil än."""
+
+
+class UnknownInterestError(Exception):
+    """Minst ett av de angivna intressena finns inte."""
 
 
 def calculate_age(birth_date: date) -> int:
@@ -18,11 +30,36 @@ def get_profile(db: Session, user_id: int) -> Profile | None:
     return db.query(Profile).filter(Profile.user_id == user_id).first()
 
 
+def create_profile(db: Session, user_id: int, data: ProfileCreate) -> Profile:
+    """Skapar profilen och sätter användarens intressen i samma transaktion, så
+    att en profil aldrig finns utan intresse."""
+    if get_profile(db, user_id) is not None:
+        raise ProfileExistsError(user_id)
+
+    interests = db.query(Interest).filter(Interest.id.in_(data.interest_ids)).all()
+    if len(interests) != len(data.interest_ids):
+        raise UnknownInterestError()
+
+    profile = Profile(
+        user_id=user_id,
+        name=data.name,
+        birth_date=data.birth_date,
+        gender=data.gender,
+        municipality_code=data.municipality_code,
+        profile_text=data.profile_text,
+        district=data.district,
+    )
+    db.add(profile)
+    db.get(User, user_id).interests = interests
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
 def update_profile(db: Session, user_id: int, data: ProfileUpdate) -> Profile:
     profile = get_profile(db, user_id)
     if profile is None:
-        profile = Profile(user_id=user_id)
-        db.add(profile)
+        raise ProfileNotFoundError(user_id)
 
     # Uppdatera bara de fält som faktiskt skickades med
     if data.name is not None:
@@ -36,8 +73,7 @@ def update_profile(db: Session, user_id: int, data: ProfileUpdate) -> Profile:
     if data.district is not None:
         profile.district = data.district
     if data.profile_text is not None:
-        # Tom text (efter trim) tömmer fältet.
-        profile.profile_text = data.profile_text or None
+        profile.profile_text = data.profile_text
 
     db.commit()
     db.refresh(profile)
