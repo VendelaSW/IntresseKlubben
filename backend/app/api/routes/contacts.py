@@ -72,6 +72,16 @@ def answer_contact_request(request_id: int, answer: ContactAnswer,
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
+@router.delete("/contacts/requests/{request_id}", status_code=status.HTTP_204_NO_CONTENT)
+def cancel_contact_request(request_id: int, db: Session = Depends(get_db),
+                           current_user: User = Depends(get_current_user)):
+    try:
+        contact_crud.cancel_request(db, request_id, current_user.id)
+    except contact_crud.ContactError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.delete("/contacts/{contact_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_contact(contact_id: int, db: Session = Depends(get_db),
                    current_user: User = Depends(get_current_user)):
