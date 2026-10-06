@@ -27,6 +27,12 @@ function markSeen(username, timestamp) {
   writeSeen({ ...readSeen(), [username]: timestamp })
 }
 
+// Markerar en konversation som sedd fram till timestamp (t.ex. när nya brev
+// visas i den öppna chatten).
+export function markConversationSeen(username, timestamp) {
+  markSeen(username, timestamp)
+}
+
 // Markerar alla konversationer i listan som sedda (t.ex. när man öppnar Meddelanden).
 export function markConversationsSeen(conversations) {
   const seen = readSeen()
