@@ -4,6 +4,7 @@ import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
+import { addMyEmail, getCurrentUser } from '../services/api'
 import { imageToWebp } from '../services/imageToWebp'
 import { addInterest, getAllInterests, getMyInterests, removeInterest } from '../services/interests'
 import {
@@ -77,6 +78,73 @@ function ProfileImage({ profile, onUploaded, editable = false }) {
       )}
       {error && <p className="form-error">{error}</p>}
     </div>
+  )
+}
+
+// Ens e-post. Konton som skapades innan e-post krävdes vid registrering
+// saknar den, och får här lägga till den (tänkt att behövas för att kunna
+// återställa lösenordet, när det finns). En befintlig e-post går inte att
+// ändra här.
+function ProfileEmail() {
+  const [email, setEmail] = useState(undefined) // undefined = laddar, null = saknas
+  const [draft, setDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    getCurrentUser()
+      .then((me) => setEmail(me.email))
+      .catch(() => setError('Kunde inte hämta din e-post.'))
+  }, [])
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const me = await addMyEmail(draft)
+      setEmail(me.email)
+      setSaved(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (email === undefined && !error) return null
+
+  return (
+    <section className="profile-email">
+      <h2>E-post</h2>
+      {email ? (
+        <>
+          <p className="card-text">{email}</p>
+          {saved && <p className="status-success">E-posten är sparad.</p>}
+          <p className="hint-text">Syns bara för dig.</p>
+        </>
+      ) : (
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <p className="hint-text">
+            Lägg till din e-post. Den syns bara för dig.
+          </p>
+          <label htmlFor="profile-email">E-postadress</label>
+          <input
+            id="profile-email"
+            type="email"
+            autoComplete="email"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            required
+          />
+          {error && <p className="form-error">{error}</p>}
+          <button type="submit" disabled={saving}>
+            {saving ? 'Sparar...' : 'Spara e-post'}
+          </button>
+        </form>
+      )}
+    </section>
   )
 }
 
@@ -412,6 +480,7 @@ function ProfilePage() {
         <dt>Stadsdel</dt>
         <dd>{profile.district ?? '–'}</dd>
       </dl>
+      <ProfileEmail />
       <ProfileAbout text={profile.profile_text} />
       <section className="profile-interests">
         <h2>Intressen</h2>
