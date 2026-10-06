@@ -94,3 +94,8 @@ export function loginUser(username, password) {
 export function getCurrentUser() {
   return apiGet('/users/me')
 }
+
+// För konton som skapades innan e-post krävdes. Går bara när e-post saknas.
+export function addMyEmail(email) {
+  return apiPut('/users/me/email', { email })
+}
