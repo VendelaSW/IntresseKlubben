@@ -225,11 +225,25 @@ def set_answer(db: Session, event: Event, user_id: int, answer: EventAnswer) -> 
     db.commit()
 
 
-def list_responses(db: Session, event: Event, viewer_id: int) -> list[tuple[EventResponse, User]]:
+def _blocked_by_me_ids(db: Session, user_id: int) -> set[int]:
+    """Id:n på dem användaren själv har blockerat (inte dem som har blockerat hen)."""
+    rows = (
+        db.query(Contact.addressee_id)
+        .filter(Contact.status == "BLOCKED", Contact.requester_id == user_id)
+        .all()
+    )
+    return {row[0] for row in rows}
+
+
+def list_responses(db: Session, event: Event, viewer_id: int) -> list[tuple[EventResponse, User, bool]]:
     """Alla som har svarat (profil förladdad), den som svarade först överst.
-    Den som har blockerat tittaren, eller som tittaren har blockerat, visas
-    inte, så att en blockering döljer personerna för varandra även här."""
-    hidden = blocked_user_ids(db, viewer_id)
+    Varje rad har också en flagga: True om tittaren själv har blockerat
+    personen. De syns då med en varning, så att man inte går på ett event utan
+    att veta att någon man har blockerat kommer. Den som har blockerat tittaren
+    döljs helt och utan varning, annars skulle tittaren förstå att hen är
+    blockerad."""
+    blocked_by_me = _blocked_by_me_ids(db, viewer_id)
+    hidden = blocked_user_ids(db, viewer_id) - blocked_by_me
     rows = (
         db.query(EventResponse)
         .filter(EventResponse.event_id == event.id, EventResponse.user_id.notin_(hidden))
@@ -243,4 +257,4 @@ def list_responses(db: Session, event: Event, viewer_id: int) -> list[tuple[Even
         .filter(User.id.in_([r.user_id for r in rows]))
         .all()
     }
-    return [(r, users[r.user_id]) for r in rows if r.user_id in users]
+    return [(r, users[r.user_id], r.user_id in blocked_by_me) for r in rows if r.user_id in users]

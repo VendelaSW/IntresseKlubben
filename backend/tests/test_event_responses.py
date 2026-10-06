@@ -146,7 +146,7 @@ def test_responses_are_listed_in_the_order_they_came_in_and_show_public_details_
     assert result[0]["name"] == "Tre"
     assert result[0]["answer"] == "no"
     assert result[1]["name"] is None
-    assert set(result[0]) == {"id", "username", "name", "image_url", "answer"}
+    assert set(result[0]) == {"id", "username", "name", "image_url", "answer", "blocked_by_me"}
 
 
 def test_private_event_answers_are_seen_by_creator_and_invited_but_not_by_others(client, db, user, people):
@@ -186,23 +186,44 @@ def test_no_answers_gives_an_empty_list(client, db, user, people):
     assert responses(client, event).json() == []
 
 
-def test_blocked_users_answers_are_hidden_in_both_directions(client, db, user, people):
+def flags(response):
+    return {r["username"]: r["blocked_by_me"] for r in response.json()}
+
+
+def test_people_i_have_blocked_are_shown_with_a_warning_flag(client, db, user, people):
     event = add_event(db, people["user2"].id, visibility=EventVisibility.open)
     login_as(people["user3"])
     answer(client, event, "yes")
+    login_as(user)
+    answer(client, event, "maybe")
+    assert flags(responses(client, event)) == {"testuser": False, "user3": False}
+
+    # Jag blockerar user3: hen syns fortfarande, så att jag inte går på ett event
+    # utan att veta att hen kommer, men med flaggan som visar varningen.
+    add_contact(db, user.id, people["user3"].id, status="BLOCKED")
+    result = responses(client, event)
+    assert answers(result) == {"testuser": "maybe", "user3": "yes"}
+    assert flags(result) == {"testuser": False, "user3": True}
+    # Samma när jag svarar på nytt.
+    assert flags(answer(client, event, "yes")) == {"testuser": False, "user3": True}
+
+
+def test_people_who_have_blocked_me_stay_hidden_without_a_warning(client, db, user, people):
+    event = add_event(db, people["user2"].id, visibility=EventVisibility.open)
     login_as(people["user4"])
     answer(client, event, "no")
     login_as(user)
     answer(client, event, "maybe")
-    assert answers(responses(client, event)) == {"testuser": "maybe", "user3": "yes", "user4": "no"}
 
-    # Jag har blockerat user3: svaret syns inte, varken i listan eller efter att jag svarat.
-    add_contact(db, user.id, people["user3"].id, status="BLOCKED")
-    assert answers(responses(client, event)) == {"testuser": "maybe", "user4": "no"}
-    assert answers(answer(client, event, "yes")) == {"testuser": "yes", "user4": "no"}
-
-    # user4 har blockerat mig: svaret syns inte heller, och jag syns inte för hen.
+    # user4 blockerar mig: hen försvinner för mig, helt utan spår. Annars förstår
+    # jag att jag är blockerad.
     add_contact(db, people["user4"].id, user.id, status="BLOCKED")
-    assert answers(responses(client, event)) == {"testuser": "yes"}
+    assert answers(responses(client, event)) == {"testuser": "maybe"}
+    assert answers(answer(client, event, "yes")) == {"testuser": "yes"}
+
+    # För user4, som har blockerat mig, är det jag som är den blockerade: jag syns
+    # med varningen.
     login_as(people["user4"])
-    assert "testuser" not in answers(responses(client, event))
+    result = responses(client, event)
+    assert answers(result) == {"testuser": "yes", "user4": "no"}
+    assert flags(result) == {"testuser": True, "user4": False}

@@ -166,6 +166,9 @@ class EventAnswerIn(BaseModel):
 class EventAttendee(ContactUser):
     # En person som har svarat på eventet, med sitt svar.
     answer: EventAnswer
+    # True om den inloggade själv har blockerat personen. Frontend visar då en
+    # varning. Den som har blockerat den inloggade syns aldrig här.
+    blocked_by_me: bool = False
 
 
 class EventOut(BaseModel):

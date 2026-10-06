@@ -81,8 +81,8 @@ def _visible_event_or_404(db: Session, event_id: int, user_id: int) -> Event:
 
 def _to_attendees(db: Session, event: Event, viewer_id: int) -> list[EventAttendee]:
     return [
-        EventAttendee(**_to_invitee(user).model_dump(), answer=response.answer)
-        for response, user in list_responses(db, event, viewer_id)
+        EventAttendee(**_to_invitee(user).model_dump(), answer=response.answer, blocked_by_me=blocked_by_me)
+        for response, user, blocked_by_me in list_responses(db, event, viewer_id)
     ]
 
 
