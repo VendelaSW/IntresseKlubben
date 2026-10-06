@@ -120,8 +120,8 @@ function GroupsPanel() {
       : null
 
   return (
-    <section className="app-section">
-      <div className="groups-header">
+    <section className="app-section app-section-centered">
+      <div className="page-header">
         <h1 className="app-title">Klubbar</h1>
         {view !== 'create' && (
           <button
@@ -136,7 +136,7 @@ function GroupsPanel() {
       {status === 'loading' ? (
         <p className="hint-text">Laddar klubbar...</p>
       ) : view === 'create' ? (
-        <div className="card group-sheet">
+        <div className="card sheet">
           <CreateGroupForm
             interests={interests}
             municipalities={municipalities}
@@ -168,7 +168,7 @@ function GroupsPanel() {
           {error && <p className="status-error">{error}</p>}
 
           {selected ? (
-            <div className="card group-sheet">
+            <div className="card sheet">
               <GroupDetails
                 group={selected}
                 busy={busy}
