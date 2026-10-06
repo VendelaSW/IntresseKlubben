@@ -1332,3 +1332,90 @@ span.tag-selected:hover {
 .hub-card-action {
   align-self: flex-start;
 }
+
+/* ---------- Prototyp: välja intressen ur ett intresseträd (/intressen-prototyp) ---------- */
+
+.interest-picker {
+  max-width: var(--content-width);
+}
+
+.interest-picker-chosen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Sökfältet och fritextfälten: samma fält som i formulären (.auth-form input). */
+.interest-picker-search,
+.interest-freetext input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  padding: 0.6rem 0.75rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-text);
+}
+
+.interest-picker-search::placeholder,
+.interest-freetext input::placeholder {
+  color: var(--color-muted);
+}
+
+.interest-picker-search:focus-visible,
+.interest-freetext input:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* Huvudintressena som en lista som fälls ut, med samma linjer som korten. */
+.interest-picker-categories {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 2px solid var(--color-line);
+}
+
+.interest-category {
+  border-bottom: 2px solid var(--color-line);
+}
+
+.interest-category-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 0.25rem;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-subheading);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.interest-category-header:hover,
+.interest-category-header:focus-visible {
+  background: var(--color-white);
+}
+
+.interest-category-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0 0.25rem 1rem;
+}
+
+.interest-freetext {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.interest-freetext label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import ServiceInfo from './pages/ServiceInfo'
 import StyleGuide from './pages/StyleGuide'
+import InterestPickerPrototype from './pages/InterestPickerPrototype'
 import ProfilePage from './pages/ProfilePage'
 import GroupsPage from './pages/GroupsPage'
 import HubPage from './pages/HubPage'
@@ -31,6 +32,9 @@ function App() {
         <Route path="/logga-in" element={<Navigate to="/" replace />} />
         <Route path="/registrera" element={<Navigate to="/" replace />} />
         <Route path="/stilguide" element={<StyleGuide />} />
+        {/* PROTOTYP: välja intressen ur ett intresseträd. Inte länkad från menyn,
+            sparar inget. */}
+        <Route path="/intressen-prototyp" element={<InterestPickerPrototype />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
