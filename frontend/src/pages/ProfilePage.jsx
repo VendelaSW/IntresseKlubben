@@ -82,8 +82,9 @@ function ProfileImage({ profile, onUploaded, editable = false }) {
 }
 
 // Ens e-post. Konton som skapades innan e-post krävdes vid registrering
-// saknar den, och får här lägga till den (behövs för att kunna återställa
-// lösenordet). En befintlig e-post går inte att ändra här.
+// saknar den, och får här lägga till den (tänkt att behövas för att kunna
+// återställa lösenordet, när det finns). En befintlig e-post går inte att
+// ändra här.
 function ProfileEmail() {
   const [email, setEmail] = useState(undefined) // undefined = laddar, null = saknas
   const [draft, setDraft] = useState('')
@@ -126,7 +127,7 @@ function ProfileEmail() {
       ) : (
         <form className="auth-form" onSubmit={handleSubmit}>
           <p className="hint-text">
-            Lägg till din e-post, så kan du återställa lösenordet om du glömmer det. Den syns bara för dig.
+            Lägg till din e-post. Den syns bara för dig.
           </p>
           <label htmlFor="profile-email">E-postadress</label>
           <input
