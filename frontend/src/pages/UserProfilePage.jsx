@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import {
   answerContactRequest,
   blockUser,
+  cancelContactRequest,
   getContacts,
   removeContact,
   sendContactRequest,
@@ -114,6 +115,11 @@ function RelationButtons({ username, name, blocked, onBlockedChange }) {
     if (await run(() => blockUser(username))) onBlockedChange(true)
   }
 
+  function handleCancelRequest() {
+    if (!window.confirm('Ångrar du denna förfrågan?')) return
+    run(() => cancelContactRequest(relation.contactId))
+  }
+
   async function handleUnblock() {
     if (await run(() => unblockUser(username))) onBlockedChange(false)
   }
@@ -149,8 +155,8 @@ function RelationButtons({ username, name, blocked, onBlockedChange }) {
         </button>
       )}
       {relation.type === 'outgoing' && (
-        <button type="button" className="secondary-button" disabled>
-          Väntar på svar
+        <button type="button" className="secondary-button" disabled={busy} onClick={handleCancelRequest}>
+          Ångra förfrågan
         </button>
       )}
       {relation.type === 'incoming' && (

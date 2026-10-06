@@ -82,6 +82,17 @@ def answer_request(db: Session, request_id: int, addressee_id: int,
     return _save(db, contact)
 
 
+def cancel_request(db: Session, request_id: int, requester_id: int) -> None:
+    """Avsändaren ångrar en förfrågan som ännu inte besvarats."""
+    contact = db.query(Contact).filter(Contact.id == request_id).with_for_update().one_or_none()
+    if contact is None or contact.status != "PENDING":
+        raise ContactError(404, "Förfrågan finns inte")
+    if contact.requester_id != requester_id:
+        raise ContactError(403, "Bara den som skickat förfrågan kan ångra den")
+    db.delete(contact)
+    db.commit()
+
+
 def remove_contact(db: Session, contact_id: int, actor_id: int) -> None:
     contact = db.query(Contact).filter(Contact.id == contact_id).with_for_update().one_or_none()
     if contact is None or contact.status != "ACCEPTED":

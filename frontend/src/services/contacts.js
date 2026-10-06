@@ -14,6 +14,11 @@ export function answerContactRequest(contactId, action) {
   return apiPatch(`/contacts/requests/${contactId}`, { action })
 }
 
+// Avsändaren ångrar en förfrågan som ännu inte besvarats.
+export function cancelContactRequest(contactId) {
+  return apiDelete(`/contacts/requests/${contactId}`)
+}
+
 export function removeContact(contactId) {
   return apiDelete(`/contacts/${contactId}`)
 }
