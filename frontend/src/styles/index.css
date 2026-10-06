@@ -1265,13 +1265,14 @@ span.tag-selected:hover {
   pointer-events: none;
 }
 
-/* Bordet: mörkare kanter runt pappret, som under en lampa. */
+/* Bordet: lite mörkare kanter runt pappret, som under en lampa. Svagt, så
+   att det inte tar över från det ritade. */
 .map-sketch-table {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  box-shadow: inset 0 0 140px 30px rgba(70, 45, 20, 0.45);
-  background: linear-gradient(to bottom, rgba(70, 45, 20, 0.18), transparent 35%);
+  box-shadow: inset 0 0 120px 20px rgba(70, 45, 20, 0.25);
+  background: linear-gradient(to bottom, rgba(70, 45, 20, 0.1), transparent 35%);
 }
 
 
@@ -1375,19 +1376,21 @@ span.tag-selected:hover {
 }
 
 
-/* Post-it-lapp för en plats. Limmad på den lutade kartan, så skuggan faller
-   på pappret under. Nedre högra hörnet viker upp sig en aning. */
+/* Lapp för en plats, stående på den lutade kartan. Vit (stilguidens färg för
+   kort och boxar) med ojämna hörn, bläckkant och en hård bläckskugga, så att
+   den ser ritad ut och inte fotograferad. */
 .map-note {
   position: relative;
   width: 240px;
   padding: 1.1rem 0.9rem 0.7rem;
-  background: linear-gradient(135deg, #ffc9d9 0%, #ffc9d9 88%, #f3b3c6 100%);
+  background: var(--color-white);
   color: #3a2f25;
   font-family: var(--font-body);
   font-size: 0.78rem;
   line-height: 1.35;
-  box-shadow: 1px 2px 0 rgba(58, 47, 37, 0.12), 4px 8px 10px -4px rgba(58, 47, 37, 0.35);
-  border-bottom-right-radius: 28px 6px;
+  border: 1.5px solid #3a2f25;
+  border-radius: 255px 12px 225px 12px / 12px 225px 12px 255px;
+  box-shadow: 3px 3px 0 #3a2f25;
 }
 
 /* Förhandslappen när man bara hovrar: lite genomskinlig. */
@@ -1423,8 +1426,7 @@ span.tag-selected:hover {
   width: 70px;
   height: 18px;
   transform: translateX(-50%) rotate(3deg);
-  background: rgba(255, 255, 255, 0.55);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  background: rgba(244, 196, 48, 0.55);
 }
 
 .map-note p {
@@ -1512,11 +1514,11 @@ span.tag-selected:hover {
   position: absolute;
   left: 0;
   top: 0;
-  padding: 0.15rem 0.5rem;
-  background: #fffbe6;
-  border: 1px solid rgba(58, 47, 37, 0.5);
-  border-radius: 3px;
-  box-shadow: 1px 2px 3px rgba(58, 47, 37, 0.25);
+  padding: 0.15rem 0.6rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 255px 12px 225px 12px / 12px 225px 12px 255px;
+  box-shadow: 3px 3px 0 #3a2f25;
   color: #3a2f25;
   font-family: var(--font-heading);
   font-size: 1.2rem;
@@ -1543,7 +1545,9 @@ span.tag-selected:hover {
   pointer-events: none;
 }
 
-/* Knappar för nålar och trådens stil, som små papperslappar uppe till vänster. */
+/* Knappar för nålar och trådens stil uppe till vänster. Som stilguidens
+   knappar (Inter, versaler, gul när vald), men med bläckkant och hård skugga
+   så att de syns på kartan. */
 .map-sketch-tools {
   position: absolute;
   top: 0.9rem;
@@ -1560,21 +1564,55 @@ span.tag-selected:hover {
 }
 
 .map-tool {
-  padding: 0.25rem 0.7rem;
-  border: 1.5px solid rgba(58, 47, 37, 0.7);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border: 1.5px solid #3a2f25;
   border-radius: 4px;
-  background: #fffbe6;
-  box-shadow: 1px 2px 0 rgba(58, 47, 37, 0.25);
-  color: #3a2f25;
-  font-family: var(--font-heading);
-  font-size: 1.2rem;
-  font-weight: 700;
+  background: var(--color-white);
+  box-shadow: 2px 2px 0 #3a2f25;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   line-height: 1.2;
   cursor: pointer;
 }
 
+/* Den lilla ritade nålen i "Sätt ut nålar". */
+.map-tool-pin {
+  width: 10px;
+  height: 16px;
+  flex: none;
+}
+
+/* Knapparna i en grupp (Längs vägen | Nålar i svängar) sitter ihop. Den
+   valda trycks ned (se .map-tool.is-on) och hamnar under grannen; den som
+   inte är vald ligger ovanpå med sin skugga, så att den ser upphöjd ut. */
+.map-tool-group .map-tool {
+  position: relative;
+  z-index: 1;
+}
+
+.map-tool-group .map-tool.is-on {
+  z-index: 0;
+}
+
 .map-tool-group .map-tool + .map-tool {
   margin-left: -1.5px;
+}
+
+.map-tool-group .map-tool:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.map-tool-group .map-tool:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 .map-tool:hover,
@@ -1582,9 +1620,26 @@ span.tag-selected:hover {
   background: #fff3c4;
 }
 
+/* Vald: gul som stilguidens primära knapp, och intryckt (skuggan borta). */
 .map-tool.is-on {
   background: var(--color-accent);
-  box-shadow: inset 1px 2px 0 rgba(58, 47, 37, 0.2);
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+/* Zoomknapparna: MapLibres egna, med samma bläckkant och skugga som
+   lapparna. (:not(:empty) behövs, annars vinner MapLibres egen skugga, som
+   har samma specificitet men laddas efter den här filen.) */
+.map-sketch .maplibregl-ctrl-group:not(:empty) {
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  box-shadow: 3px 3px 0 #3a2f25;
+  overflow: hidden;
+}
+
+.map-sketch .maplibregl-ctrl-group button + button {
+  border-top: 1.5px solid #3a2f25;
 }
 
 /* ---------- Kartprototyp på mobil ---------- */
@@ -1601,7 +1656,7 @@ span.tag-selected:hover {
 
   .map-tool {
     padding: 0.2rem 0.5rem;
-    font-size: 1rem;
+    font-size: 0.72rem;
   }
 
   /* Tipset längst ned, bredvid kompassen, i stället för över kartan. */
@@ -1624,7 +1679,7 @@ span.tag-selected:hover {
 
   /* Smalare bordskant, annars tar den halva skärmen. */
   .map-sketch-table {
-    box-shadow: inset 0 0 60px 12px rgba(70, 45, 20, 0.4);
+    box-shadow: inset 0 0 60px 12px rgba(70, 45, 20, 0.22);
   }
 
   .map-sketch-label {
