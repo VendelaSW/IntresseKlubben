@@ -3,6 +3,7 @@ import { Map as MapLibreMap, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { addMissingDoodle } from './mapPrototypeDoodles'
 import { attachPlaceNotes } from './mapPrototypeNotes'
+import { attachSketchedBuildings } from './mapPrototypeBuildings'
 import { attachPinsAndThread } from './mapPrototypeRoute'
 import { attachPlaceSigns } from './mapPrototypeSigns'
 import mapStyle from './mapPrototypeStyle'
@@ -15,6 +16,7 @@ import mapStyle from './mapPrototypeStyle'
 //   - kartnålar och en tråd mellan dem som visar vägen, ovanför kartan (SVG, se mapPrototypeRoute.js)
 //   - post-it-lappar för platser, limmade på kartans yta (HTML, se mapPrototypeNotes.js)
 //   - ortnamn i Caveat (HTML ovanpå, placerade med hjälp av kartan)
+//   - husen, skissade i 3D (canvas, se mapPrototypeBuildings.js)
 //   - platsernas pop-up-figurer, stående i perspektiv (HTML, se mapPrototypeSigns.js)
 //   - kartan, genomskinlig och lutad
 //   - blocket: gult papper med linjer, lutat lika mycket som kartan (CSS)
@@ -62,9 +64,11 @@ function syncPlaceLabels(map, layer) {
 }
 
 function MapPrototype() {
+  const rootRef = useRef(null)
   const containerRef = useRef(null)
   const labelsRef = useRef(null)
   const signsRef = useRef(null)
+  const buildingsRef = useRef(null)
   const notesRef = useRef(null)
   const threadRef = useRef(null)
   const routeRef = useRef(null) // knapparnas funktioner (se attachPinsAndThread)
@@ -89,6 +93,7 @@ function MapPrototype() {
     map.keyboard.disableRotation()
     map.on('styleimagemissing', (e) => addMissingDoodle(map, e.id))
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right')
+    attachSketchedBuildings(map, buildingsRef.current)
     syncPlaceLabels(map, labelsRef.current)
     attachPlaceNotes(map, 'places', notesRef.current)
     // Efter lapparna, så att hovringen redan är markerad när skyltarna ritas om.
@@ -98,7 +103,33 @@ function MapPrototype() {
     const signs = signsRef.current
     const notes = notesRef.current
     const thread = threadRef.current
+
+    // Scroll och nyp (som webbläsaren skickar som Ctrl + scroll) över något
+    // som ligger ovanpå kartan - en lapp, en nål, en knapp - skulle annars
+    // zooma hela sidan i stället för kartan. Skicka dem vidare till kartan.
+    const root = rootRef.current
+    const mapArea = map.getCanvasContainer()
+    function forwardWheel(event) {
+      if (mapArea.contains(event.target)) return // kartan sköter det själv
+      event.preventDefault()
+      mapArea.dispatchEvent(
+        new WheelEvent('wheel', {
+          deltaX: event.deltaX,
+          deltaY: event.deltaY,
+          deltaMode: event.deltaMode,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          ctrlKey: event.ctrlKey,
+          shiftKey: event.shiftKey,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    }
+    root.addEventListener('wheel', forwardWheel, { passive: false })
+
     return () => {
+      root.removeEventListener('wheel', forwardWheel)
       map.remove()
       // Lappar, namn och nålar ligger utanför kartan, så de tas bort för sig.
       labels.replaceChildren()
@@ -109,10 +140,11 @@ function MapPrototype() {
   }, [])
 
   return (
-    <div className="map-sketch" style={{ '--map-tilt': `${TILT}deg` }}>
+    <div ref={rootRef} className="map-sketch" style={{ '--map-tilt': `${TILT}deg` }}>
       {/* Blockets linjer, lutade på samma sätt som kartan. */}
       <div className="map-sketch-paper" aria-hidden="true" />
       <div ref={containerRef} className="map-sketch-canvas" />
+      <canvas ref={buildingsRef} className="map-sketch-buildings" aria-hidden="true" />
       <div ref={signsRef} className="map-sketch-signs" aria-hidden="true" />
       <div ref={labelsRef} className="map-sketch-labels" aria-hidden="true" />
       <div ref={notesRef} className="map-sketch-notes" />

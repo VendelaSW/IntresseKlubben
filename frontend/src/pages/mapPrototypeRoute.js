@@ -28,6 +28,18 @@ const SVG_NS = 'http://www.w3.org/2000/svg'
 // mindre än så här många meter från en rak tråd räknas inte som en sväng.
 const BEND_TOLERANCE_M = 25
 
+// Orimliga omvägar: vägtjänsten flyttar först varje nål till närmaste väg
+// eller stig där man får gå. Nära en större väg eller ett staket kan nålarna
+// hamna på stigar som inte hänger ihop, och då blir vägen en stor omväg fast
+// platserna ligger nära varandra. Är vägen mer än DETOUR_FACTOR gånger längre
+// än fågelvägen, när fågelvägen är kortare än DETOUR_MAX_STRAIGHT_M och
+// omvägen minst DETOUR_MIN_EXTRA_M, visas en rak tråd i stället. (Att gå
+// 100-200 m bort till närmaste övergångsställe är en rimlig omväg och ska
+// synas, därför gränsen på 300 m extra.)
+const DETOUR_FACTOR = 3
+const DETOUR_MAX_STRAIGHT_M = 500
+const DETOUR_MIN_EXTRA_M = 300
+
 // Nålarnas mått i pixlar (vid skärmens mitt; längre bort blir de mindre).
 const NEEDLE = 36 // nålens längd
 const HEAD = { end: 11, bend: 8 } // huvudets radie
@@ -328,9 +340,20 @@ export function attachPinsAndThread(map, layer, onChange) {
     try {
       const result = await fetchRoute(from, to)
       if (current !== request) return
-      // Från startnålen, längs vägen, till målnålen.
-      path = [ends.start, ...result.coordinates, ends.goal]
-      tagText = `${formatDuration(result.seconds)} promenad · ${formatDistance(result.meters)}`
+      const straight = straightDistance(from, to)
+      const detour =
+        straight < DETOUR_MAX_STRAIGHT_M &&
+        result.meters > DETOUR_FACTOR * straight &&
+        result.meters - straight > DETOUR_MIN_EXTRA_M
+      if (detour) {
+        // Hellre en rak tråd och ett ärligt besked än en stor omväg.
+        path = [ends.start, ends.goal]
+        tagText = `Rakt fram · ${formatDistance(straight)} (vägen dit kan vara krånglig)`
+      } else {
+        // Från startnålen, längs vägen, till målnålen.
+        path = [ends.start, ...result.coordinates, ends.goal]
+        tagText = `${formatDuration(result.seconds)} promenad · ${formatDistance(result.meters)}`
+      }
     } catch {
       if (current !== request) return
       tagText = `Ingen väg hittades · ${formatDistance(straightDistance(from, to))} fågelvägen`

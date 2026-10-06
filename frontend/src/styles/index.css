@@ -1307,6 +1307,8 @@ span.tag-selected:hover {
   left: 0;
   top: 0;
   pointer-events: auto;
+  /* Nyp med två fingrar på en lapp ska inte zooma hela sidan. */
+  touch-action: none;
 }
 
 /* Hela lappen med lite luft runt, så att tejpen upptill och skuggan nere
@@ -1351,6 +1353,8 @@ span.tag-selected:hover {
 
 .map-sketch-compass {
   position: absolute;
+  /* Ovanför husen och skyltarna. */
+  z-index: 3;
   left: 84px;
   bottom: 28px;
   width: 84px;
@@ -1736,4 +1740,15 @@ span.tag-selected:hover {
   top: 0;
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(58, 47, 37, 0.32), rgba(58, 47, 37, 0));
+}
+
+/* De skissade 3D-husen (se mapPrototypeBuildings.js): ovanpå kartan, under
+   skyltarna och ortnamnen, som ligger senare i samma lager-nivå. */
+.map-sketch-buildings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
 }
