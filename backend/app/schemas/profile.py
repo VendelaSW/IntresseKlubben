@@ -3,6 +3,7 @@ from datetime import date
 from pydantic import BaseModel, field_validator
 
 from app.core import error_messages as msg
+from app.core.profanity import validate_clean_text
 from app.models.profile import GenderEnum
 from app.schemas.interest import InterestResponse
 
@@ -13,6 +14,7 @@ def _clean_name(v: str) -> str:
         raise ValueError(msg.NAME_EMPTY)
     if len(v) > 50:
         raise ValueError(msg.NAME_TOO_LONG)
+    validate_clean_text(v, "Namnet")
     return v
 
 
