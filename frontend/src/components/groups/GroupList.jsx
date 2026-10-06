@@ -24,13 +24,13 @@ function GroupList({ groups, emptyText, myInterestIds, busy, onSelect, onJoin })
   return (
     <div className="card-grid card-grid-compact">
       {groups.map((group) => (
-        <article key={group.id} className="card card-interactive group-card">
-          <button type="button" className="group-card-link" onClick={() => onSelect(group)}>
+        <article key={group.id} className="card card-interactive list-card">
+          <button type="button" className="list-card-link" onClick={() => onSelect(group)}>
             <span className="card-title">{group.name}</span>
             <span className="card-subheading">
               {group.municipality_name} · {memberCountText(group.member_count)}
             </span>
-            {group.description && <span className="card-text group-card-description">{group.description}</span>}
+            {group.description && <span className="card-text list-card-description">{group.description}</span>}
           </button>
           <InterestTags
             interests={[{ id: group.interest_id, name: group.interest_name }]}

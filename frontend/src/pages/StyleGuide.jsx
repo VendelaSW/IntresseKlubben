@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import brevIcon from '../assets/brev.png'
+import eventIcon from '../assets/event.png'
 import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
@@ -12,6 +13,7 @@ const NAV_ICONS = [
   { icon: brevIcon, label: 'Brev' },
   { icon: personerIcon, label: 'Personer' },
   { icon: klubbarIcon, label: 'Klubbar' },
+  { icon: eventIcon, label: 'Events' },
 ]
 
 const COLORS = [
@@ -197,6 +199,112 @@ function StyleGuide() {
           <p className="card-title">Emmy, 24</p>
           <p className="card-subheading">Stockholm</p>
           <p className="card-text">Gillar brädspel, klättring och katter.</p>
+        </div>
+      </section>
+
+      <section className="style-section">
+        <h2>Sidlayout och listor</h2>
+        <p className="hint-text">
+          Byggstenarna som listsidor (Klubbar, Events) delar. Nya sidor ska återanvända dem och
+          inte få egna kopior.
+        </p>
+
+        <p className="swatch-label" style={{ marginTop: '1.5rem' }}>
+          Rubrikrad (.page-header) med rund knapp, och flikar (.filter-tabs)
+        </p>
+        <p className="hint-text">
+          Lägg .app-section-centered på sidans .app-section för att centrera rubrik, flikar,
+          kortrutnät och ark, med tätare avstånd (Klubbar och Events). Utan den ligger allt
+          vänsterställt (Personer och Brev).
+        </p>
+        <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
+          <div className="page-header">
+            <h1 className="app-title">Exempel</h1>
+            <button className="primary-button round-button" type="button" aria-label="Skapa" />
+          </div>
+          <div className="filter-tabs" role="tablist">
+            <button type="button" role="tab" aria-selected="true" className="tag tag-selected">Första (2)</button>
+            <button type="button" role="tab" aria-selected="false" className="tag">Andra (0)</button>
+          </div>
+        </section>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Filter (.filter-select-row, .filter-select-row-compact för smalare)
+        </p>
+        <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
+          <select aria-label="Exempel 1"><option>Alla intressen</option></select>
+          <select aria-label="Exempel 2"><option>Alla kommuner</option></select>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Listkort (.list-card) i ett rutnät (.card-grid .card-grid-compact)
+        </p>
+        <p className="hint-text">
+          Hela övre delen (.list-card-link) är klickbar. Knappar och märken ligger utanför den, i
+          .card-actions. Beskrivningen kortas av efter tre rader (.list-card-description).
+        </p>
+        <div className="card-grid card-grid-compact" style={{ marginTop: '1rem' }}>
+          <article className="card card-interactive list-card">
+            <button type="button" className="list-card-link">
+              <span className="card-title">Exempel</span>
+              <span className="card-subheading">Göteborg · 3 medlemmar</span>
+              <span className="card-text list-card-description">
+                En kort beskrivning som visas på kortet. Är den lång kortas den av efter tre rader.
+              </span>
+            </button>
+            <div className="card-actions">
+              <span className="status-pill status-pill-success">Medlem</span>
+              <span className="status-pill">Privat</span>
+            </div>
+          </article>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Statusmärken (.status-pill, med .status-pill-success eller .status-pill-owner)
+        </p>
+        <div className="card-actions" style={{ marginTop: '1rem' }}>
+          <span className="status-pill">Vanlig</span>
+          <span className="status-pill status-pill-success">Success</span>
+          <span className="status-pill status-pill-owner">Ägare</span>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Ark (.card .sheet) för en posts egen vy (.detail-view) eller ett formulär (.auth-form .form-wide)
+        </p>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <section className="detail-view">
+            <button type="button" className="secondary-button button-small">← Tillbaka</button>
+            <p className="card-title">Exempel</p>
+            <p className="card-subheading">Göteborg · 3 medlemmar</p>
+            <p className="card-text">Hela beskrivningen visas här.</p>
+            <div className="card-actions">
+              <button type="button" className="primary-button">Gå med</button>
+            </div>
+          </section>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Personlista (.person-list, .person-list-item, .person-list-avatar)
+        </p>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <div className="person-list">
+            <p className="card-subheading">Medlemmar</p>
+            <ul>
+              <li>
+                <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                  <span className="person-list-avatar card-avatar-initials" aria-hidden="true">E</span>
+                  <span>Emmy</span>
+                  <span className="hint-text">Ägare</span>
+                </a>
+              </li>
+              <li>
+                <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                  <span className="person-list-avatar card-avatar-initials" aria-hidden="true">L</span>
+                  <span>Leonard</span>
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
       </section>
 

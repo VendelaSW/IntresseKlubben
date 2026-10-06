@@ -700,11 +700,10 @@ span.tag-selected:hover {
   font-size: var(--text-small);
 }
 
-/* Rund "+"-knapp, t.ex. för att skapa något. Plusset är ritat med två streck
-   (inget tecken i knappen), så det blir exakt centrerat. Läggs på
-   .primary-button, och måste ligga efter den av samma skäl som .button-small. */
+/* Rund "+"-knapp, t.ex. för att skapa något. Plusset är en bild (inget tecken
+   i knappen), så det blir exakt centrerat. Läggs på .primary-button, och måste
+   ligga efter den av samma skäl som .button-small. */
 .round-button {
-  position: relative;
   width: 2.25rem;
   height: 2.25rem;
   padding: 0;
@@ -712,25 +711,14 @@ span.tag-selected:hover {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.round-button::before,
-.round-button::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  background: currentColor;
-  border-radius: 2px;
-  transform: translate(-50%, -50%);
-}
-
-.round-button::before {
-  width: 0.9rem;
-  height: 3px;
-}
-
-.round-button::after {
-  width: 3px;
-  height: 0.9rem;
+/* Det handritade "+" är en bild (assets/plus.png, genomskinlig) ovanpå den gula
+   cirkeln. Bara bildlagret sätts här, så att primary-buttons färg och
+   hover-lägen gäller som vanligt. */
+.round-button {
+  background-image: url('../assets/plus.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 55%;
 }
 
 .round-button:hover,
@@ -1100,30 +1088,79 @@ span.tag-selected:hover {
   outline-offset: 2px;
 }
 
-/* ---------- Klubbar (intressegrupper) ---------- */
+/* ---------- Sidlayout och listor (Klubbar, Events och fler sidor) ---------- */
 
-/* Rubriken "Klubbar" till vänster och "+" (skapa klubb) till höger. */
-.groups-header {
+/* Sidans rubrik till vänster och en rund "+"-knapp (skapa ny) till höger. */
+.page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
 
-.groups-header .app-title {
+.page-header .app-title {
   margin: 0;
 }
 
-/* En klubbs sida och formuläret för att skapa en klubb: ett vitt kort lika
-   brett som profilkorten, vänsterställt som resten av sidan. */
-.group-sheet {
+/* Centrerad sida: lägg på <section className="app-section app-section-centered">.
+   Rubriken med "+"-knappen alldeles bredvid, flikarna, kortrutnätet och arken
+   centreras, och avstånden blir tätare. Personer och Brev är inte centrerade. */
+.app-section-centered {
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Lite luft mellan rubriken och "+"-knappen. */
+.app-section-centered .page-header {
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.app-section-centered .filter-tabs {
+  justify-content: center;
+}
+
+/* Rutnätet och filtren fyller hela bredden (annars krymper de till sitt
+   innehåll i den centrerade kolumnen) och centrerar sina kolumner. */
+.app-section-centered .card-grid {
+  width: 100%;
+  justify-content: center;
+}
+
+/* En rad luft mellan flikarna och listan (korten, eller texten när den är tom). */
+.app-section-centered .card-grid,
+.app-section-centered > .hint-text {
+  margin-top: 1.5rem;
+}
+
+/* Högst tre kort per rad (tre kortbredder plus två mellanrum). auto-fit
+   tar bort tomma kolumner, så att ett enstaka kort hamnar mitt på sidan. På
+   smala skärmar får bara en eller två kolumner plats, så korten lägger sig
+   under varandra av sig själva. */
+.app-section-centered .card-grid-compact {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
+  max-width: calc(3 * 300px + 2 * 1rem);
+}
+
+.app-section-centered .filter-select-row {
+  width: 100%;
+}
+
+.app-section-centered .hint-text,
+.app-section-centered .status-error {
+  text-align: center;
+}
+
+/* Ett ark: ett vitt kort lika brett som profilkorten, vänsterställt som resten
+   av sidan. Används för en posts egen vy och för formulär för att skapa en post. */
+.sheet {
   width: 100%;
   max-width: 480px;
   text-align: left;
 }
 
 /* Rad med två lika breda filter-dropdowns (intresse/kommun). Delad mellan
-   klubbar och personer, inte knuten till bara den ena sidan. */
+   sidorna, inte knuten till bara en av dem. */
 .filter-select-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1148,16 +1185,16 @@ span.tag-selected:hover {
   max-width: 300px;
 }
 
-/* Klubbkort, i samma rutnät och med samma hover som personkorten
-   (.card-grid, .card-interactive). group-card-link är den klickbara delen
-   som öppnar klubbens sida; "Gå med" ligger utanför den. */
-.group-card {
+/* Kort för en post i en lista, i samma rutnät och med samma hover som
+   personkorten (.card-grid, .card-interactive). list-card-link är den
+   klickbara delen som öppnar postens egen vy; knappar ligger utanför den. */
+.list-card {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.group-card-link {
+.list-card-link {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1170,43 +1207,48 @@ span.tag-selected:hover {
   cursor: pointer;
 }
 
-.group-card-link .card-title,
-.group-card-link .card-subheading {
+.list-card-link .card-title,
+.list-card-link .card-subheading {
   margin: 0;
   line-height: 1.1;
 }
 
-/* Bara början av beskrivningen på kortet; hela syns på klubbens sida. */
-.group-card-description {
+/* Bara början av beskrivningen på kortet; hela syns i postens egen vy. */
+.list-card-description {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.group-details {
+/* Innehållet i ett ark som visar en post: titel, undertext och information
+   under varandra, vänsterställt. */
+.detail-view {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.5rem;
 }
 
-.group-details .card-title,
-.group-details .card-subheading {
+.detail-view .card-title,
+.detail-view .card-subheading {
   margin: 0;
   line-height: 1.1;
 }
 
-.groups-form {
+/* Ett formulär (.auth-form) som fyller hela arket i stället för att vara smalt. */
+.form-wide {
   max-width: none;
 }
 
-.group-members {
+/* En lista med personer (avatar och namn på varje rad), t.ex. medlemmar i en
+   klubb eller blockerade användare. */
+.person-list {
   width: 100%;
   margin-top: 0.5rem;
 }
 
-.group-members ul {
+.person-list ul {
   list-style: none;
   margin: 0.5rem 0 0;
   padding: 0;
@@ -1215,7 +1257,7 @@ span.tag-selected:hover {
   gap: 0.5rem;
 }
 
-.group-member {
+.person-list-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -1224,11 +1266,11 @@ span.tag-selected:hover {
   font-weight: 700;
 }
 
-.group-member:hover span:not(.hint-text):not(.group-member-avatar) {
+.person-list-item:hover span:not(.hint-text):not(.person-list-avatar) {
   text-decoration: underline;
 }
 
-.group-member-avatar {
+.person-list-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;

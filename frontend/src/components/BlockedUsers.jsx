@@ -32,17 +32,17 @@ function BlockedUsers() {
   if (blocked.length === 0 && !error) return null
 
   return (
-    <section className="group-members">
+    <section className="person-list">
       <h2>Blockerade användare</h2>
       {error && <p className="form-error">{error}</p>}
       <ul>
         {blocked.map((u) => (
           <li key={u.username}>
-            <div className="group-member">
+            <div className="person-list-item">
               {u.image_url ? (
-                <img src={u.image_url} alt="" className="group-member-avatar" />
+                <img src={u.image_url} alt="" className="person-list-avatar" />
               ) : (
-                <span className="group-member-avatar card-avatar-initials" aria-hidden="true">
+                <span className="person-list-avatar card-avatar-initials" aria-hidden="true">
                   {(u.name ?? u.username).trim()[0]?.toUpperCase()}
                 </span>
               )}
