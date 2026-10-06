@@ -1,9 +1,9 @@
-"""Svenska felmeddelanden som hör till "obligatoriska profilfält".
+"""Svenska felmeddelanden för "obligatoriska profilfält" och för events.
 
-Bara texterna för den ticketen ligger här: validering av profilfälten, de
-profil- och intressemeddelanden som ticketen införde, och översättningen av
-Pydantics/FastAPIs standardfel. Övriga meddelanden i appen ligger kvar där
-reglerna sitter, tills teamet bestämt om alla ska samlas.
+Bara texterna för de funktionerna ligger här: validering av profilfälten, de
+profil- och intressemeddelanden som de införde, felen för events, och
+översättningen av Pydantics/FastAPIs standardfel. Övriga meddelanden i appen
+ligger kvar där reglerna sitter, tills teamet bestämt om alla ska samlas.
 
 Längst ner finns också hanteraren som ger alla endpoints svenska valideringsfel:
 FastAPI/Pydantic skickar annars sina standardfel på engelska ("Field required").
@@ -34,6 +34,31 @@ PROFILE_ALREADY_EXISTS = "Du har redan en profil"
 UNKNOWN_MUNICIPALITY = "Okänd kommun"
 UNKNOWN_INTEREST = "Okänt intresse"
 LAST_INTEREST_CANNOT_BE_REMOVED = "Minst ett intresse krävs"
+
+# ---------- Validering av events (schemas/event.py) ----------
+EVENT_TITLE_EMPTY = "Titel får inte vara tom"
+EVENT_TITLE_TOO_LONG = "Titel får max vara 50 tecken"
+EVENT_DESCRIPTION_EMPTY = "Beskrivning får inte vara tom"
+EVENT_DESCRIPTION_TOO_LONG = "Beskrivning får max vara 800 tecken"
+EVENT_PLACE_NAME_EMPTY = "Platsnamn får inte vara tomt"
+EVENT_PLACE_NAME_TOO_LONG = "Platsnamn får max vara 100 tecken"
+EVENT_ADDRESS_EMPTY = "Gatuadress får inte vara tom"
+EVENT_ADDRESS_TOO_LONG = "Gatuadress får max vara 100 tecken"
+EVENT_INTEREST_REQUIRED = "Välj ett intresse"
+EVENT_START_EMPTY = "Starttiden får inte vara tom"
+EVENT_START_IN_PAST = "Starttiden måste vara i framtiden"
+EVENT_END_BEFORE_START = "Sluttiden måste vara efter starttiden"
+EVENT_TIME_NEEDS_TIMEZONE = "Ange tiden med tidszon"
+EVENT_INVITE_NOBODY = "Välj minst en person eller klubb att bjuda in"
+
+# ---------- Events (routes/events.py, crud/event.py) ----------
+EVENT_NOT_FOUND = "Eventet finns inte"
+EVENT_ONLY_CREATOR = "Bara den som skapat eventet kan ändra det"
+EVENT_IN_PRIVATE_GROUP_CANNOT_BE_OPEN = "Events i privata klubbar kan inte vara öppna"
+GROUP_NOT_FOUND = "Klubben finns inte"
+MUST_BE_GROUP_MEMBER = "Du måste vara med i klubben"
+CAN_ONLY_INVITE_CONTACTS = "Du kan bara bjuda in dina kontakter"
+PERSON_NOT_INVITED = "Personen är inte inbjuden"
 
 # ---------- Texter för standardfel (används längst ner) ----------
 FIELD_REQUIRED = "Fältet är obligatoriskt"

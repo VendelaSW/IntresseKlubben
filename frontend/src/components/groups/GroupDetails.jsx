@@ -4,7 +4,7 @@ import { RoleBadge, memberCountText } from './GroupList'
 // Mer information om en grupp, med knapparna som passar ens roll.
 function GroupDetails({ group, busy, onJoin, onLeave, onDelete, onBack }) {
   return (
-    <section className="group-details">
+    <section className="detail-view">
       <button type="button" className="secondary-button button-small" onClick={onBack}>
         ← Tillbaka
       </button>

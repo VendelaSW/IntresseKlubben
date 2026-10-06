@@ -104,3 +104,55 @@ def test_verify_password():
     assert verify_password("hemligt123", password_hash)
     assert not verify_password("fel-lösenord", password_hash)
     assert not verify_password("hemligt123", "")  # ogiltig hash ger False, inte krasch
+
+
+# --- Lägga till e-post i efterhand (PUT /users/me/email) ---
+# Konton som skapades innan e-post krävdes saknar den. `user`-fixturen är ett
+# sådant konto (ingen e-post). Att andra aldrig ser e-posten täcks redan av
+# testerna som kontrollerar exakt vilka fält som skickas ut om andra
+# (test_user_profile.py, test_people.py).
+
+
+def test_me_shows_own_email_as_none_when_missing(client, user):
+    response = client.get("/users/me")
+    assert response.status_code == 200
+    assert response.json()["email"] is None
+
+
+def test_add_email_saves_it_in_lowercase(client, db, user):
+    response = client.put("/users/me/email", json={"email": "  Test@Example.COM "})
+    assert response.status_code == 200
+    assert response.json()["email"] == "test@example.com"
+    db.refresh(user)
+    assert user.email == "test@example.com"
+    # Och /users/me visar den nu.
+    assert client.get("/users/me").json()["email"] == "test@example.com"
+
+
+def test_add_email_rejects_invalid_address_in_swedish(client, db, user):
+    response = client.put("/users/me/email", json={"email": "inte-en-epost"})
+    assert response.status_code == 422
+    assert "Ogiltig e-postadress" in response.json()["detail"][0]["msg"]
+    db.refresh(user)
+    assert user.email is None
+
+
+def test_add_email_rejects_address_taken_by_someone_else(client, db, user):
+    db.add(User(username="annan", email="upptagen@example.com", password_hash="x"))
+    db.commit()
+    # Andra stora/små bokstäver är samma adress.
+    response = client.put("/users/me/email", json={"email": "Upptagen@Example.com"})
+    assert response.status_code == 409
+    assert response.json()["detail"] == "E-postadressen används redan."
+    db.refresh(user)
+    assert user.email is None
+
+
+def test_add_email_cannot_change_existing_email(client, db, user):
+    user.email = "forsta@example.com"
+    db.commit()
+    response = client.put("/users/me/email", json={"email": "andra@example.com"})
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Du har redan en e-postadress."
+    db.refresh(user)
+    assert user.email == "forsta@example.com"

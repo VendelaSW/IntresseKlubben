@@ -10,7 +10,7 @@ import {
   joinGroup,
   leaveGroup,
 } from '../../services/groups'
-import { getAllInterests } from '../../services/interests'
+import { getAllInterests, getMyInterests } from '../../services/interests'
 import { getMunicipalities, getProfile } from '../../services/profile'
 
 const TABS = [
@@ -25,11 +25,10 @@ const EMPTY_TEXT = {
   all: 'Inga klubbar hittades.',
 }
 
-// Allt innehåll för klubbar (intressegrupper). Ligger på en egen sida nu, men
-// är byggd för att senare kunna visas i ett litet fönster som öppnas från en
-// knapp. titleTag är h1 på den egna sidan och kan vara h2 i fönstret.
-// Utgången inloggning hanteras globalt i services/api.js.
-function GroupsPanel({ titleTag: Title = 'h2' }) {
+// Allt innehåll för klubbar (intressegrupper): flikar, filter och klubbarna
+// som kort i samma rutnät som Personer-sidan. Klick på ett kort visar mer
+// information. Utgången inloggning hanteras globalt i services/api.js.
+function GroupsPanel() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [tab, setTab] = useState('mine')
   // 'list', 'create' eller id för den grupp som visas.
@@ -38,6 +37,8 @@ function GroupsPanel({ titleTag: Title = 'h2' }) {
   // "Alla" visar grupper i ens egen kommun från början, om man har angett en.
   const [filters, setFilters] = useState(null)
   const [interests, setInterests] = useState([])
+  // Ens egna intressen, för att markera klubbarnas intresse om det är ett av dem.
+  const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [municipalities, setMunicipalities] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -45,10 +46,11 @@ function GroupsPanel({ titleTag: Title = 'h2' }) {
   const handleError = (err) => setError(err.message)
 
   useEffect(() => {
-    Promise.all([getAllInterests(), getMunicipalities(), getProfile()])
-      .then(([i, m, profile]) => {
+    Promise.all([getAllInterests(), getMunicipalities(), getProfile(), getMyInterests()])
+      .then(([i, m, profile, mine]) => {
         setInterests(i)
         setMunicipalities(m)
+        setMyInterestIds(new Set(mine.map((interest) => interest.id)))
         setFilters({ interestId: '', municipalityCode: profile?.municipality_code ?? '' })
       })
       .catch(() => setStatus('error'))
@@ -90,6 +92,11 @@ function GroupsPanel({ titleTag: Title = 'h2' }) {
     }
   }
 
+  function handleLeave(group) {
+    if (!window.confirm(`Gå ur ${group.name}?`)) return
+    runAction(group, leaveGroup)
+  }
+
   async function handleDelete(group) {
     if (!window.confirm(`Radera ${group.name}? Det går inte att ångra.`)) return
     await runAction(group, deleteGroup)
@@ -102,7 +109,6 @@ function GroupsPanel({ titleTag: Title = 'h2' }) {
     setView(group.id)
   }
 
-  if (status === 'loading') return <p className="hint-text">Laddar klubbar...</p>
   if (status === 'error') {
     return <p className="status-error">Kunde inte hämta klubbarna. Försök igen senare.</p>
   }
@@ -114,9 +120,9 @@ function GroupsPanel({ titleTag: Title = 'h2' }) {
       : null
 
   return (
-    <section className="card card-wide groups-panel">
-      <div className="groups-panel-header">
-        <Title className="groups-panel-title">Klubbar</Title>
+    <section className="app-section app-section-centered">
+      <div className="page-header">
+        <h1 className="app-title">Klubbar</h1>
         {view !== 'create' && (
           <button
             type="button"
@@ -127,17 +133,21 @@ function GroupsPanel({ titleTag: Title = 'h2' }) {
         )}
       </div>
 
-      {view === 'create' ? (
-        <CreateGroupForm
-          interests={interests}
-          municipalities={municipalities}
-          defaultMunicipality={filters.municipalityCode}
-          onCreated={handleCreated}
-          onCancel={() => setView('list')}
-        />
+      {status === 'loading' ? (
+        <p className="hint-text">Laddar klubbar...</p>
+      ) : view === 'create' ? (
+        <div className="card sheet">
+          <CreateGroupForm
+            interests={interests}
+            municipalities={municipalities}
+            defaultMunicipality={filters.municipalityCode}
+            onCreated={handleCreated}
+            onCancel={() => setView('list')}
+          />
+        </div>
       ) : (
         <>
-          <div className="groups-panel-tabs" role="tablist">
+          <div className="filter-tabs" role="tablist">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -158,18 +168,20 @@ function GroupsPanel({ titleTag: Title = 'h2' }) {
           {error && <p className="status-error">{error}</p>}
 
           {selected ? (
-            <GroupDetails
-              group={selected}
-              busy={busy}
-              onJoin={(g) => runAction(g, joinGroup)}
-              onLeave={(g) => runAction(g, leaveGroup)}
-              onDelete={handleDelete}
-              onBack={() => setView('list')}
-            />
+            <div className="card sheet">
+              <GroupDetails
+                group={selected}
+                busy={busy}
+                onJoin={(g) => runAction(g, joinGroup)}
+                onLeave={handleLeave}
+                onDelete={handleDelete}
+                onBack={() => setView('list')}
+              />
+            </div>
           ) : (
             <>
               {tab === 'all' && (
-                <div className="filter-select-row">
+                <div className="filter-select-row filter-select-row-compact">
                   <select
                     aria-label="Filtrera på intresse"
                     value={filters.interestId}
@@ -196,7 +208,14 @@ function GroupsPanel({ titleTag: Title = 'h2' }) {
                   </select>
                 </div>
               )}
-              <GroupList groups={lists[tab]} emptyText={EMPTY_TEXT[tab]} onSelect={(g) => setView(g.id)} />
+              <GroupList
+                groups={lists[tab]}
+                emptyText={EMPTY_TEXT[tab]}
+                myInterestIds={myInterestIds}
+                busy={busy}
+                onSelect={(g) => setView(g.id)}
+                onJoin={(g) => runAction(g, joinGroup)}
+              />
             </>
           )}
         </>
