@@ -34,7 +34,9 @@ class GroupCreate(BaseModel):
     @field_validator("description")
     @classmethod
     def description_not_empty_or_too_long(cls, v: str) -> str:
-        return _required_text(v, "Beskrivning", 200, "Beskrivning får inte vara tom")
+        value = _required_text(v, "Beskrivning", 200, "Beskrivning får inte vara tom")
+        validate_clean_text(value, "Beskrivningen")
+        return value
 
     @field_validator("meeting_info")
     @classmethod
@@ -43,7 +45,9 @@ class GroupCreate(BaseModel):
         if v is None or v.strip() == "":
             return None
         # Tom text hanteras ovan, så empty_message används aldrig här.
-        return _required_text(v, "När och var ni träffas", 100, "")
+        value = _required_text(v, "När och var ni träffas", 100, "")
+        validate_clean_text(value, "Mötesinformationen")
+        return value
 
 
 class GroupResponse(BaseModel):

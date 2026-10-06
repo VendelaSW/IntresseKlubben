@@ -46,6 +46,7 @@ def _clean_profile_text(v: str) -> str:
         raise ValueError(msg.PROFILE_TEXT_EMPTY)
     if len(v) > 800:
         raise ValueError(msg.PROFILE_TEXT_TOO_LONG)
+    validate_clean_text(v, "Om mig-texten")
     return v
 
 
