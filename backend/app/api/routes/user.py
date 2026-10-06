@@ -10,7 +10,12 @@ en inloggningstoken och UserOut vid korrekta uppgifter. Ger ett
 generiskt 401-fel annars - avslöjar medvetet inte om det var
 användarnamnet eller lösenordet som var fel (standard säkerhetspraxis).
 
-GET /users/me - den inloggade användaren (kräver token).
+GET /users/me - den inloggade användaren (kräver token), med sin egen e-post
+(None för konton som skapades innan e-post krävdes).
+
+PUT /users/me/email - lägger till e-post för ett konto som saknar det. Samma
+regler som vid registrering. 409 om adressen redan används eller om kontot
+redan har en e-post (den går inte att ändra här).
 
 GET /users/ - andra användare med sparad profil, valfritt filtrerade på
 ?interest_id= och/eller ?municipality_code=. Utesluter dig själv, dina
@@ -46,12 +51,19 @@ from app.crud.dismissed_suggestion import (
 )
 from app.crud.interest import sorted_interests
 from app.crud.profile import calculate_age, get_profile, list_people
-from app.crud.user import EmailTakenError, UsernameTakenError, create_user, get_user_by_username
+from app.crud.user import (
+    EmailAlreadySetError,
+    EmailTakenError,
+    UsernameTakenError,
+    create_user,
+    get_user_by_username,
+    set_email,
+)
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.interest import InterestResponse
 from app.schemas.profile import PersonResponse, PublicProfileResponse
-from app.schemas.user import LoginResponse, UserCreate, UserLogin, UserOut
+from app.schemas.user import CurrentUserOut, EmailUpdate, LoginResponse, UserCreate, UserLogin, UserOut
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -87,9 +99,29 @@ def login_user(credentials: UserLogin, db: Session = Depends(get_db)) -> LoginRe
     return LoginResponse(access_token=create_access_token(user.id), user=user)
 
 
-@router.get("/me", response_model=UserOut)
-def read_current_user(current_user: User = Depends(get_current_user)) -> UserOut:
+@router.get("/me", response_model=CurrentUserOut)
+def read_current_user(current_user: User = Depends(get_current_user)) -> CurrentUserOut:
     return current_user
+
+
+@router.put("/me/email", response_model=CurrentUserOut)
+def add_email(
+    email_in: EmailUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CurrentUserOut:
+    try:
+        return set_email(db, current_user, email_in.email)
+    except EmailAlreadySetError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Du har redan en e-postadress.",
+        )
+    except EmailTakenError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="E-postadressen används redan.",
+        )
 
 
 def _to_person_response(profile) -> PersonResponse:
