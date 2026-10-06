@@ -23,6 +23,10 @@ class EmailTakenError(Exception):
     """E-postadressen används redan av en annan användare."""
 
 
+class EmailAlreadySetError(Exception):
+    """Användaren har redan en e-postadress. Den går inte att ändra här."""
+
+
 def get_user_by_username(db: Session, username: str) -> User | None:
     """
     Hämtar en User baserat på username, eller None om den inte finns.
@@ -43,6 +47,26 @@ def get_user_by_username(db: Session, username: str) -> User | None:
 def get_user_by_email(db: Session, email: str) -> User | None:
     """Hämtar en User baserat på e-postadress (skiftlägesokänsligt), eller None."""
     return db.query(User).filter(func.lower(User.email) == email.lower()).first()
+
+
+def set_email(db: Session, user: User, email: str) -> User:
+    """
+    Lägger till e-post för ett konto som skapades innan e-post krävdes.
+
+    email kommer redan kontrollerad och med små bokstäver från EmailUpdate
+    (se schemas/user.py). Går bara att göra en gång: att byta en befintlig
+    adress är ett eget ärende (bör t.ex. kräva lösenordet).
+    """
+    if user.email is not None:
+        raise EmailAlreadySetError()
+    other = get_user_by_email(db, email)
+    if other is not None and other.id != user.id:
+        raise EmailTakenError(email)
+
+    user.email = email
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 def create_user(db: Session, user_in: UserCreate) -> User:
