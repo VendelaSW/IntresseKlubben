@@ -7,7 +7,7 @@ from app.main import app
 from app.models import EventInvitation, EventResponse, Interest, Profile, User
 from app.models.event import EventVisibility
 from app.models.group import GroupVisibility
-from tests.event_helpers import add_event, add_group
+from tests.event_helpers import add_contact, add_event, add_group
 
 
 @pytest.fixture(autouse=True)
@@ -184,3 +184,25 @@ def test_removing_an_invitation_also_hides_the_answers(client, db, user, people)
 def test_no_answers_gives_an_empty_list(client, db, user, people):
     event = add_event(db, user.id)
     assert responses(client, event).json() == []
+
+
+def test_blocked_users_answers_are_hidden_in_both_directions(client, db, user, people):
+    event = add_event(db, people["user2"].id, visibility=EventVisibility.open)
+    login_as(people["user3"])
+    answer(client, event, "yes")
+    login_as(people["user4"])
+    answer(client, event, "no")
+    login_as(user)
+    answer(client, event, "maybe")
+    assert answers(responses(client, event)) == {"testuser": "maybe", "user3": "yes", "user4": "no"}
+
+    # Jag har blockerat user3: svaret syns inte, varken i listan eller efter att jag svarat.
+    add_contact(db, user.id, people["user3"].id, status="BLOCKED")
+    assert answers(responses(client, event)) == {"testuser": "maybe", "user4": "no"}
+    assert answers(answer(client, event, "yes")) == {"testuser": "yes", "user4": "no"}
+
+    # user4 har blockerat mig: svaret syns inte heller, och jag syns inte för hen.
+    add_contact(db, people["user4"].id, user.id, status="BLOCKED")
+    assert answers(responses(client, event)) == {"testuser": "yes"}
+    login_as(people["user4"])
+    assert "testuser" not in answers(responses(client, event))

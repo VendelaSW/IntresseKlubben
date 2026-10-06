@@ -79,10 +79,10 @@ def _visible_event_or_404(db: Session, event_id: int, user_id: int) -> Event:
     return event
 
 
-def _to_attendees(db: Session, event: Event) -> list[EventAttendee]:
+def _to_attendees(db: Session, event: Event, viewer_id: int) -> list[EventAttendee]:
     return [
         EventAttendee(**_to_invitee(user).model_dump(), answer=response.answer)
-        for response, user in list_responses(db, event)
+        for response, user in list_responses(db, event, viewer_id)
     ]
 
 
@@ -201,7 +201,7 @@ def read_responses(
     db: Session = Depends(get_db),
 ):
     event = _visible_event_or_404(db, event_id, current_user.id)
-    return _to_attendees(db, event)
+    return _to_attendees(db, event, current_user.id)
 
 
 # PUT eftersom det går att upprepa: samma svar igen ger samma resultat, och ett
@@ -215,4 +215,4 @@ def answer_event(
 ):
     event = _visible_event_or_404(db, event_id, current_user.id)
     set_answer(db, event, current_user.id, data.answer)
-    return _to_attendees(db, event)
+    return _to_attendees(db, event, current_user.id)

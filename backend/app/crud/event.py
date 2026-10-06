@@ -225,9 +225,17 @@ def set_answer(db: Session, event: Event, user_id: int, answer: EventAnswer) -> 
     db.commit()
 
 
-def list_responses(db: Session, event: Event) -> list[tuple[EventResponse, User]]:
-    """Alla som har svarat (profil förladdad), den som svarade först överst."""
-    rows = db.query(EventResponse).filter(EventResponse.event_id == event.id).order_by(EventResponse.id).all()
+def list_responses(db: Session, event: Event, viewer_id: int) -> list[tuple[EventResponse, User]]:
+    """Alla som har svarat (profil förladdad), den som svarade först överst.
+    Den som har blockerat tittaren, eller som tittaren har blockerat, visas
+    inte, så att en blockering döljer personerna för varandra även här."""
+    hidden = blocked_user_ids(db, viewer_id)
+    rows = (
+        db.query(EventResponse)
+        .filter(EventResponse.event_id == event.id, EventResponse.user_id.notin_(hidden))
+        .order_by(EventResponse.id)
+        .all()
+    )
     users = {
         u.id: u
         for u in db.query(User)
