@@ -698,11 +698,10 @@ span.tag-selected:hover {
   font-size: var(--text-small);
 }
 
-/* Rund "+"-knapp, t.ex. för att skapa något. Plusset är ritat med två streck
-   (inget tecken i knappen), så det blir exakt centrerat. Läggs på
-   .primary-button, och måste ligga efter den av samma skäl som .button-small. */
+/* Rund "+"-knapp, t.ex. för att skapa något. Plusset är en bild (inget tecken
+   i knappen), så det blir exakt centrerat. Läggs på .primary-button, och måste
+   ligga efter den av samma skäl som .button-small. */
 .round-button {
-  position: relative;
   width: 2.25rem;
   height: 2.25rem;
   padding: 0;
@@ -710,25 +709,14 @@ span.tag-selected:hover {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.round-button::before,
-.round-button::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  background: currentColor;
-  border-radius: 2px;
-  transform: translate(-50%, -50%);
-}
-
-.round-button::before {
-  width: 0.9rem;
-  height: 3px;
-}
-
-.round-button::after {
-  width: 3px;
-  height: 0.9rem;
+/* Det handritade "+" är en bild (assets/plus.png, genomskinlig) ovanpå den gula
+   cirkeln. Bara bildlagret sätts här, så att primary-buttons färg och
+   hover-lägen gäller som vanligt. */
+.round-button {
+  background-image: url('../assets/plus.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 55%;
 }
 
 .round-button:hover,
