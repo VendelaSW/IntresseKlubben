@@ -1,0 +1,2 @@
+# Vektorer från Hugging Face, sparade lokalt så att API:t bara anropas en gång.
+embeddings_cache.json

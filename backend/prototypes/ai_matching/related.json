@@ -1,0 +1,82 @@
+{
+  "_info": "UTKAST, framtaget med AI: vilka underintressen som hör ihop. Gå igenom och ändra. Kopplingarna gäller åt båda hållen, så Klättring -> Bouldering räcker (Bouldering -> Klättring behövs inte). Skriv 'Huvudintresse/Underintresse'.",
+  "related": {
+    "Musik/Pop": ["Musik/Elektronisk musik", "Musik/Hiphop", "Musik/Konserter och festivaler"],
+    "Musik/Rock": ["Musik/Metal", "Musik/Punk", "Musik/Spela instrument", "Musik/Konserter och festivaler"],
+    "Musik/Metal": ["Musik/Punk", "Musik/Konserter och festivaler"],
+    "Musik/Punk": ["Musik/Konserter och festivaler"],
+    "Musik/Hiphop": ["Dans/Hiphopdans", "Musik/Elektronisk musik"],
+    "Musik/Jazz": ["Musik/Klassisk musik", "Dans/Lindy hop", "Musik/Spela instrument"],
+    "Musik/Klassisk musik": ["Musik/Sjunga i kör", "Kultur och samhälle/Teater", "Dans/Balett"],
+    "Musik/Elektronisk musik": ["Musik/Konserter och festivaler", "Teknik/Elektronik"],
+    "Musik/Visor och folkmusik": ["Musik/Spela instrument", "Musik/Sjunga i kör", "Dans/Bugg"],
+    "Musik/Spela instrument": ["Musik/Sjunga i kör"],
+
+    "Tv-spel/Rollspel (RPG)": ["Tv-spel/Open world", "Spel och pussel/Bordsrollspel", "Film och tv/Fantasy", "Böcker/Fantasy"],
+    "Tv-spel/Open world": ["Tv-spel/Action"],
+    "Tv-spel/Action": ["Tv-spel/E-sport", "Tv-spel/Skräckspel"],
+    "Tv-spel/Strategi": ["Spel och pussel/Brädspel", "Spel och pussel/Schack"],
+    "Tv-spel/Skräckspel": ["Film och tv/Skräck"],
+    "Tv-spel/Sport- och racingspel": ["Tv-spel/E-sport", "Sport och träning/Fotboll"],
+    "Tv-spel/Mysiga spel": ["Tv-spel/Pusselspel", "Djur och natur/Trädgård"],
+    "Tv-spel/Pusselspel": ["Spel och pussel/Pussel"],
+    "Tv-spel/Retrospel": ["Tv-spel/Pusselspel"],
+
+    "Film och tv/Skräck": ["Böcker/Deckare och thrillers"],
+    "Film och tv/Science fiction": ["Böcker/Science fiction", "Film och tv/Fantasy"],
+    "Film och tv/Fantasy": ["Böcker/Fantasy", "Spel och pussel/Bordsrollspel"],
+    "Film och tv/Anime": ["Böcker/Serier och manga"],
+    "Film och tv/Deckare": ["Böcker/Deckare och thrillers", "Film och tv/Drama"],
+    "Film och tv/Dokumentär": ["Kultur och samhälle/Historia"],
+    "Film och tv/Komedi": ["Kultur och samhälle/Teater"],
+
+    "Böcker/Bokcirkel": ["Böcker/Deckare och thrillers", "Böcker/Romance", "Böcker/Fantasy", "Skapande/Skrivande"],
+    "Böcker/Fantasy": ["Böcker/Science fiction", "Spel och pussel/Bordsrollspel"],
+    "Böcker/Historia": ["Kultur och samhälle/Historia"],
+    "Böcker/Poesi": ["Skapande/Skrivande"],
+    "Böcker/Serier och manga": ["Skapande/Måla och teckna"],
+
+    "Sport och träning/Löpning": ["Sport och träning/Cykling", "Friluftsliv/Vandring", "Sport och träning/Gym"],
+    "Sport och träning/Fotboll": ["Sport och träning/Innebandy"],
+    "Sport och träning/Gym": ["Sport och träning/Kampsport", "Friluftsliv/Bouldering"],
+    "Sport och träning/Yoga": ["Dans/Balett"],
+    "Sport och träning/Simning": ["Friluftsliv/Dykning"],
+    "Sport och träning/Cykling": ["Friluftsliv/Vandring"],
+    "Sport och träning/Padel": ["Sport och träning/Innebandy"],
+
+    "Friluftsliv/Vandring": ["Friluftsliv/Camping", "Friluftsliv/Svamp- och bärplockning", "Djur och natur/Fågelskådning"],
+    "Friluftsliv/Klättring": ["Friluftsliv/Bouldering", "Friluftsliv/Vandring"],
+    "Friluftsliv/Kajak och kanot": ["Friluftsliv/Camping", "Friluftsliv/Fiske"],
+    "Friluftsliv/Fiske": ["Friluftsliv/Camping"],
+    "Friluftsliv/Camping": ["Friluftsliv/Svamp- och bärplockning"],
+    "Friluftsliv/Dykning": ["Friluftsliv/Kajak och kanot"],
+
+    "Spel och pussel/Brädspel": ["Spel och pussel/Bordsrollspel", "Spel och pussel/Kortspel", "Spel och pussel/Quiz"],
+    "Spel och pussel/Kortspel": ["Spel och pussel/Bordsrollspel"],
+    "Spel och pussel/Schack": ["Spel och pussel/Pussel"],
+    "Spel och pussel/Quiz": ["Kultur och samhälle/Historia"],
+
+    "Skapande/Måla och teckna": ["Skapande/Keramik", "Kultur och samhälle/Museer och konst"],
+    "Skapande/Keramik": ["Skapande/Snickeri"],
+    "Skapande/Stickning och virkning": ["Skapande/Sömnad"],
+    "Skapande/Fotografering": ["Djur och natur/Fågelskådning", "Kultur och samhälle/Resor", "Kultur och samhälle/Museer och konst"],
+    "Skapande/Snickeri": ["Teknik/3D-utskrift"],
+
+    "Mat och dryck/Matlagning": ["Mat och dryck/Bakning", "Mat och dryck/Vegetariskt", "Djur och natur/Trädgård"],
+    "Mat och dryck/Bakning": ["Mat och dryck/Fika"],
+    "Mat och dryck/Öl och vin": ["Mat och dryck/Matlagning"],
+
+    "Djur och natur/Katter": ["Djur och natur/Hundar"],
+    "Djur och natur/Hundar": ["Friluftsliv/Vandring"],
+    "Djur och natur/Fågelskådning": ["Djur och natur/Trädgård"],
+
+    "Dans/Salsa": ["Dans/Bugg", "Dans/Lindy hop"],
+    "Dans/Bugg": ["Dans/Lindy hop"],
+
+    "Teknik/Programmering": ["Teknik/AI", "Teknik/Elektronik", "Tv-spel/Strategi"],
+    "Teknik/Elektronik": ["Teknik/3D-utskrift"],
+
+    "Kultur och samhälle/Teater": ["Kultur och samhälle/Museer och konst"],
+    "Kultur och samhälle/Språk": ["Kultur och samhälle/Resor"]
+  }
+}

@@ -1,0 +1,355 @@
+{
+  "_info": "UTKAST till intresseträd, framtaget med AI. Gå igenom och ändra innan det används. Huvudintresse -> underintressen (fast lista). freetext_examples visar vad användare kan skriva själva (spel, band, filmer) när underintressena inte räcker. description och descriptions är korta beskrivningar som skickas till AI-modellen i stället för bara namnet.",
+  "categories": [
+    {
+      "name": "Musik",
+      "description": "Musik: lyssna på, spela eller prata om musik.",
+      "subinterests": [
+        "Pop",
+        "Rock",
+        "Metal",
+        "Punk",
+        "Hiphop",
+        "Jazz",
+        "Klassisk musik",
+        "Elektronisk musik",
+        "Visor och folkmusik",
+        "Spela instrument",
+        "Sjunga i kör",
+        "Konserter och festivaler"
+      ],
+      "descriptions": {
+        "Pop": "Popmusik: lättlyssnade låtar och artister från topplistorna.",
+        "Rock": "Rock: gitarrbaserad musik med elgitarr, bas och trummor.",
+        "Metal": "Metal: hård och tung rockmusik med distade gitarrer.",
+        "Punk": "Punk: snabb, rå och enkel rockmusik med attityd.",
+        "Hiphop": "Hiphop: rap och beats, musik med rim och rytm.",
+        "Jazz": "Jazz: improviserad musik med blåsinstrument, swing och blues.",
+        "Klassisk musik": "Klassisk musik: orkestrar, symfonier, opera och kompositörer som Mozart.",
+        "Elektronisk musik": "Elektronisk musik: techno, house och musik gjord med syntar och datorer.",
+        "Visor och folkmusik": "Visor och folkmusik: svenska visor, folkmusik och fiol.",
+        "Spela instrument": "Spela instrument: spela gitarr, piano, trummor eller annat instrument själv.",
+        "Sjunga i kör": "Sjunga i kör: sjunga tillsammans med andra i en kör.",
+        "Konserter och festivaler": "Konserter och festivaler: gå på konserter och musikfestivaler och se band live."
+      },
+      "freetext_examples": [
+        "Ghost",
+        "Taylor Swift",
+        "Spiritbox",
+        "Veronica Maggio"
+      ]
+    },
+    {
+      "name": "Tv-spel",
+      "description": "Tv-spel: spela datorspel och konsolspel.",
+      "subinterests": [
+        "Rollspel (RPG)",
+        "Open world",
+        "Action",
+        "Strategi",
+        "Skräckspel",
+        "Sport- och racingspel",
+        "Mysiga spel",
+        "Pusselspel",
+        "E-sport",
+        "Retrospel"
+      ],
+      "descriptions": {
+        "Rollspel (RPG)": "Rollspel (RPG) i tv-spel: datorspel där man spelar en karaktär, utvecklas och följer en lång berättelse.",
+        "Open world": "Open world-spel: tv-spel med en stor öppen värld att utforska fritt.",
+        "Action": "Actionspel: snabba tv-spel med strider, skjutande och reaktionsförmåga.",
+        "Strategi": "Strategispel: tv-spel där man planerar, bygger och leder arméer eller städer.",
+        "Skräckspel": "Skräckspel: läskiga tv-spel som ska skrämma, med monster och spänning.",
+        "Sport- och racingspel": "Sport- och racingspel: tv-spel om fotboll, hockey, bilar och racing.",
+        "Mysiga spel": "Mysiga spel: lugna, avslappnande tv-spel om odling, djur och vardagsliv.",
+        "Pusselspel": "Pusselspel: tv-spel där man löser problem och klurar.",
+        "E-sport": "E-sport: tävla i tv-spel och titta på professionella turneringar.",
+        "Retrospel": "Retrospel: gamla tv-spel och konsoler från 80- och 90-talet."
+      },
+      "freetext_examples": [
+        "Elden Ring",
+        "Zelda",
+        "Stardew Valley",
+        "Animal Crossing",
+        "Counter-Strike"
+      ]
+    },
+    {
+      "name": "Film och tv",
+      "description": "Film och tv: titta på och prata om filmer och tv-serier.",
+      "subinterests": [
+        "Skräck",
+        "Komedi",
+        "Science fiction",
+        "Fantasy",
+        "Dokumentär",
+        "Anime",
+        "Drama",
+        "Deckare"
+      ],
+      "descriptions": {
+        "Skräck": "Skräckfilm: läskiga filmer och serier med monster, spöken och spänning.",
+        "Komedi": "Komedi: roliga filmer och tv-serier som får en att skratta.",
+        "Science fiction": "Science fiction-film: filmer och serier om rymden, framtiden och teknik.",
+        "Fantasy": "Fantasyfilm: filmer och serier med magi, drakar och påhittade världar.",
+        "Dokumentär": "Dokumentär: filmer och serier om verkliga händelser, natur och samhälle.",
+        "Anime": "Anime: japansk tecknad film och tv-serier.",
+        "Drama": "Drama: allvarliga filmer och serier om relationer och känslor.",
+        "Deckare": "Deckare på tv: kriminalserier och filmer om mord och poliser."
+      },
+      "freetext_examples": [
+        "Sagan om ringen",
+        "Studio Ghibli",
+        "The Office"
+      ]
+    },
+    {
+      "name": "Böcker",
+      "description": "Böcker: läsa och prata om böcker.",
+      "subinterests": [
+        "Bokcirkel",
+        "Deckare och thrillers",
+        "Fantasy",
+        "Science fiction",
+        "Romance",
+        "Historia",
+        "Poesi",
+        "Serier och manga"
+      ],
+      "descriptions": {
+        "Bokcirkel": "Bokcirkel: läsa samma bok och träffas för att diskutera den.",
+        "Deckare och thrillers": "Deckare och thrillers: spännande böcker om brott, mord och poliser.",
+        "Fantasy": "Fantasyböcker: böcker med magi, drakar och påhittade världar.",
+        "Science fiction": "Science fiction-böcker: böcker om rymden, framtiden och teknik.",
+        "Romance": "Romance: kärleksromaner och romantiska böcker.",
+        "Historia": "Historiska böcker: böcker om historia och historiska romaner.",
+        "Poesi": "Poesi: läsa och skriva dikter.",
+        "Serier och manga": "Serier och manga: tecknade serier, seriealbum och japansk manga."
+      },
+      "freetext_examples": [
+        "Harry Potter",
+        "Camilla Läckberg",
+        "Tolkien"
+      ]
+    },
+    {
+      "name": "Sport och träning",
+      "description": "Sport och träning: träna och utöva sport.",
+      "subinterests": [
+        "Löpning",
+        "Fotboll",
+        "Gym",
+        "Yoga",
+        "Simning",
+        "Cykling",
+        "Padel",
+        "Kampsport",
+        "Innebandy"
+      ],
+      "descriptions": {
+        "Löpning": "Löpning: springa, jogga och springa lopp.",
+        "Fotboll": "Fotboll: spela eller titta på fotboll.",
+        "Gym": "Gym: styrketräning med vikter på gym.",
+        "Yoga": "Yoga: rörlighet, andning och avslappning på en matta.",
+        "Simning": "Simning: simma i simhall eller utomhus.",
+        "Cykling": "Cykling: cykla landsväg, mountainbike eller långa turer.",
+        "Padel": "Padel: racketsport som spelas i par på en bana med väggar.",
+        "Kampsport": "Kampsport: boxning, judo, karate och andra kampsporter.",
+        "Innebandy": "Innebandy: lagsport med klubba och boll inomhus."
+      },
+      "freetext_examples": [
+        "Stockholm Marathon",
+        "AIK",
+        "Hammarby"
+      ]
+    },
+    {
+      "name": "Friluftsliv",
+      "description": "Friluftsliv: vara ute i naturen.",
+      "subinterests": [
+        "Vandring",
+        "Klättring",
+        "Bouldering",
+        "Kajak och kanot",
+        "Fiske",
+        "Camping",
+        "Svamp- och bärplockning",
+        "Dykning"
+      ],
+      "descriptions": {
+        "Vandring": "Vandring: gå långa turer i naturen och i fjällen.",
+        "Klättring": "Klättring: klättra på klippor eller klätterväggar med rep och sele.",
+        "Bouldering": "Bouldering: klättring på låga väggar eller stenblock utan rep, med madrass under.",
+        "Kajak och kanot": "Kajak och kanot: paddla på sjöar, åar och längs kusten.",
+        "Fiske": "Fiske: fiska med spö i sjöar, älvar och havet.",
+        "Camping": "Camping: sova i tält ute i naturen.",
+        "Svamp- och bärplockning": "Svamp- och bärplockning: plocka svamp och bär i skogen.",
+        "Dykning": "Dykning: dyka under vattnet med dykutrustning."
+      },
+      "freetext_examples": [
+        "Kungsleden",
+        "Sörmlandsleden"
+      ]
+    },
+    {
+      "name": "Spel och pussel",
+      "description": "Spel och pussel: spel som spelas runt ett bord.",
+      "subinterests": [
+        "Brädspel",
+        "Bordsrollspel",
+        "Kortspel",
+        "Schack",
+        "Pussel",
+        "Quiz"
+      ],
+      "descriptions": {
+        "Brädspel": "Brädspel: sällskapsspel med spelplan, kort och tärningar runt ett bord.",
+        "Bordsrollspel": "Bordsrollspel: rollspel runt ett bord med tärningar och en spelledare, som Dungeons & Dragons.",
+        "Kortspel": "Kortspel: spela med en kortlek eller samlarkort.",
+        "Schack": "Schack: strategispel med pjäser på ett rutat bräde.",
+        "Pussel": "Pussel: lägga pussel med många bitar.",
+        "Quiz": "Quiz: frågesport och pubquiz."
+      },
+      "freetext_examples": [
+        "Dungeons & Dragons",
+        "Catan",
+        "Magic: The Gathering"
+      ]
+    },
+    {
+      "name": "Skapande",
+      "description": "Skapande: göra saker med händerna och vara kreativ.",
+      "subinterests": [
+        "Måla och teckna",
+        "Keramik",
+        "Stickning och virkning",
+        "Sömnad",
+        "Fotografering",
+        "Skrivande",
+        "Snickeri"
+      ],
+      "descriptions": {
+        "Måla och teckna": "Måla och teckna: måla tavlor och teckna med penna.",
+        "Keramik": "Keramik: forma och dreja saker i lera.",
+        "Stickning och virkning": "Stickning och virkning: sticka och virka med garn.",
+        "Sömnad": "Sömnad: sy kläder och annat med symaskin.",
+        "Fotografering": "Fotografering: ta bilder med kamera.",
+        "Skrivande": "Skrivande: skriva berättelser, noveller eller böcker.",
+        "Snickeri": "Snickeri: bygga saker i trä med verktyg."
+      },
+      "freetext_examples": [
+        "Akvarell",
+        "Drejning",
+        "Analog film"
+      ]
+    },
+    {
+      "name": "Mat och dryck",
+      "description": "Mat och dryck: laga, äta och dricka gott.",
+      "subinterests": [
+        "Matlagning",
+        "Bakning",
+        "Vegetariskt",
+        "Öl och vin",
+        "Fika"
+      ],
+      "descriptions": {
+        "Matlagning": "Matlagning: laga mat och testa nya recept.",
+        "Bakning": "Bakning: baka bröd, kakor och tårtor.",
+        "Vegetariskt": "Vegetariskt: laga och äta mat utan kött.",
+        "Öl och vin": "Öl och vin: provsmaka öl och vin.",
+        "Fika": "Fika: träffas över kaffe och bullar."
+      },
+      "freetext_examples": [
+        "Surdeg",
+        "Koreansk mat"
+      ]
+    },
+    {
+      "name": "Djur och natur",
+      "description": "Djur och natur: djur, växter och natur.",
+      "subinterests": [
+        "Katter",
+        "Hundar",
+        "Hästar",
+        "Fågelskådning",
+        "Trädgård"
+      ],
+      "descriptions": {
+        "Katter": "Katter: katter som husdjur.",
+        "Hundar": "Hundar: hundar som husdjur och promenader med hund.",
+        "Hästar": "Hästar: rida och sköta hästar.",
+        "Fågelskådning": "Fågelskådning: titta på och känna igen fåglar i naturen.",
+        "Trädgård": "Trädgård: odla blommor, grönsaker och sköta en trädgård."
+      },
+      "freetext_examples": [
+        "Maine coon",
+        "Odla tomater"
+      ]
+    },
+    {
+      "name": "Dans",
+      "description": "Dans: dansa till musik.",
+      "subinterests": [
+        "Salsa",
+        "Bugg",
+        "Lindy hop",
+        "Hiphopdans",
+        "Balett"
+      ],
+      "descriptions": {
+        "Salsa": "Salsa: latinamerikansk pardans.",
+        "Bugg": "Bugg: svensk pardans till dansbandsmusik.",
+        "Lindy hop": "Lindy hop: swingdans till jazzmusik.",
+        "Hiphopdans": "Hiphopdans: streetdans till hiphopmusik.",
+        "Balett": "Balett: klassisk dans med tåspetsskor."
+      },
+      "freetext_examples": []
+    },
+    {
+      "name": "Teknik",
+      "description": "Teknik: datorer, prylar och att bygga saker med teknik.",
+      "subinterests": [
+        "Programmering",
+        "Elektronik",
+        "AI",
+        "3D-utskrift"
+      ],
+      "descriptions": {
+        "Programmering": "Programmering: skriva kod och bygga program och appar.",
+        "Elektronik": "Elektronik: bygga kretsar och prylar med lödkolv.",
+        "AI": "AI: artificiell intelligens och maskininlärning.",
+        "3D-utskrift": "3D-utskrift: skriva ut föremål i plast med en 3D-skrivare."
+      },
+      "freetext_examples": [
+        "Python",
+        "Arduino"
+      ]
+    },
+    {
+      "name": "Kultur och samhälle",
+      "description": "Kultur och samhälle: kultur, historia och omvärlden.",
+      "subinterests": [
+        "Teater",
+        "Museer och konst",
+        "Historia",
+        "Språk",
+        "Resor",
+        "Volontärarbete"
+      ],
+      "descriptions": {
+        "Teater": "Teater: gå på eller spela teater.",
+        "Museer och konst": "Museer och konst: gå på museer, utställningar och konsthallar.",
+        "Historia": "Historia: intresse för det som hänt förr.",
+        "Språk": "Språk: lära sig och prata främmande språk.",
+        "Resor": "Resor: resa till andra länder och städer.",
+        "Volontärarbete": "Volontärarbete: hjälpa andra ideellt."
+      },
+      "freetext_examples": [
+        "Japanska",
+        "Interrail"
+      ]
+    }
+  ],
+  "_dagens_intressen": "Så här hamnar dagens 19 intressen i trädet: Brädspel, Schack -> Spel och pussel. Klättring, Dykning, Vandring -> Friluftsliv. Keramik, Fotografering, Stickning -> Skapande. Fotboll, Löpning, Yoga -> Sport och träning. Matlagning -> Mat och dryck. Tv-spel och Gaming -> Tv-spel (samma sak, slås ihop). Bokcirkel -> Böcker. Musik -> Musik. Trädgård, Katter -> Djur och natur. Resor -> Kultur och samhälle."
+}
