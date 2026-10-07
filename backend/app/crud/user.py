@@ -8,6 +8,7 @@ att vänta på resten av registreringsflödet.
 """
 
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.security import hash_password
@@ -49,6 +50,27 @@ def get_user_by_email(db: Session, email: str) -> User | None:
     return db.query(User).filter(func.lower(User.email) == email.lower()).first()
 
 
+def _commit_or_raise_taken(db: Session, username: str | None, email: str | None) -> None:
+    """
+    Sparar, men gör om en krock med en annan användare till samma fel som
+    kontrollerna före sparandet ger.
+
+    Kontrollerna i create_user och set_email hinner inte alltid: sparar två
+    personer samma användarnamn eller e-post exakt samtidigt hittar ingen av
+    dem den andra, och databasen (unika index) stoppar den som kommer sist.
+    Utan det här skulle det bli ett serverfel (500) i stället för 409.
+    """
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if username is not None and get_user_by_username(db, username) is not None:
+            raise UsernameTakenError(username) from None
+        if email is not None and get_user_by_email(db, email) is not None:
+            raise EmailTakenError(email) from None
+        raise
+
+
 def set_email(db: Session, user: User, email: str) -> User:
     """
     Lägger till e-post för ett konto som skapades innan e-post krävdes.
@@ -64,7 +86,7 @@ def set_email(db: Session, user: User, email: str) -> User:
         raise EmailTakenError(email)
 
     user.email = email
-    db.commit()
+    _commit_or_raise_taken(db, username=None, email=email)
     db.refresh(user)
     return user
 
@@ -75,9 +97,9 @@ def create_user(db: Session, user_in: UserCreate) -> User:
 
     Kollar proaktivt om username och e-post redan finns innan insert, så
     routen kan ge ett tydligt fel istället för en rå
-    databas-krasch. (Det ger en liten race condition om två
-    registreringar med samma username eller e-post kommer in samtidigt -
-    inget vi behöver bry oss om i det här projektet.)
+    databas-krasch. Kommer två registreringar med samma username eller
+    e-post exakt samtidigt stoppar databasen den andra, och det ger samma
+    fel (se _commit_or_raise_taken).
 
     Lösenordet hashas här - user_in.password i klartext sparas
     aldrig.
@@ -97,6 +119,6 @@ def create_user(db: Session, user_in: UserCreate) -> User:
         password_hash=hash_password(user_in.password),
     )
     db.add(user)
-    db.commit()
+    _commit_or_raise_taken(db, username=user_in.username, email=user_in.email)
     db.refresh(user)
     return user
