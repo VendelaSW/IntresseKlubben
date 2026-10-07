@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import PersonCard from '../components/PersonCard'
 import {
@@ -9,7 +9,7 @@ import {
   sendContactRequest,
 } from '../services/contacts'
 import { getAllInterests, getMyInterests } from '../services/interests'
-import { getMunicipalities } from '../services/profile'
+import { GENDER_OPTIONS, getMunicipalities } from '../services/profile'
 import { dismissSuggestion, getPeople, resetDismissedSuggestions } from '../services/people'
 
 const TABS = [
@@ -17,6 +17,17 @@ const TABS = [
   { id: 'incoming', label: 'Förfrågningar' },
   { id: 'contacts', label: 'Kontakter' },
 ]
+
+// "Vill inte uppge" är inget att filtrera på.
+const GENDER_FILTER_OPTIONS = GENDER_OPTIONS.filter((o) => o.value !== 'vill inte uppge')
+
+// Samma gränser som backend (GET /users/). Tomt fält = inget filter (null),
+// allt annat ogiltigt = NaN.
+function parseAge(value) {
+  if (value === '') return null
+  const age = Number(value)
+  return Number.isInteger(age) && age >= 0 && age <= 120 ? age : NaN
+}
 
 const EMPTY_TEXT = {
   suggested: 'Inga fler förslag just nu. Lägg till fler intressen på din profil för fler träffar.',
@@ -31,8 +42,8 @@ const EMPTY_TEXT = {
 // Sidan är ett <section className="app-section"> rakt av, precis som
 // pages/demo/DemoPeople.jsx - INTE inslaget i content-stack (den är byggd
 // för smala centrerade sidor och krymper annars hela sidan efter innehållet,
-// vilket flyttar om allt vid varje fliksbyte). Förslag har kvar filtren på
-// intresse/kommun från den första versionen av sidan.
+// vilket flyttar om allt vid varje fliksbyte). Förslag kan filtreras på
+// intresse, kommun, kön och ålder.
 function PeoplePage() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [tab, setTab] = useState('suggested')
@@ -43,7 +54,13 @@ function PeoplePage() {
     outgoing_requests: [],
   })
   const [myInterestIds, setMyInterestIds] = useState(new Set())
-  const [filters, setFilters] = useState({ interestId: '', municipalityCode: '' })
+  const [filters, setFilters] = useState({
+    interestId: '',
+    municipalityCode: '',
+    gender: '',
+    minAge: '',
+    maxAge: '',
+  })
   const [interests, setInterests] = useState([])
   const [municipalities, setMunicipalities] = useState([])
   const [busy, setBusy] = useState(false)
@@ -59,20 +76,42 @@ function PeoplePage() {
       .catch(() => setStatus('error'))
   }, [])
 
+  // Åldrarna skickas bara när de går ihop, så att en halvskriven ålder inte
+  // ger ett fel från servern. Felet visas i stället under filtren.
+  const minAge = parseAge(filters.minAge)
+  const maxAge = parseAge(filters.maxAge)
+  const ageError =
+    Number.isNaN(minAge) || Number.isNaN(maxAge)
+      ? 'Ange en ålder mellan 0 och 120.'
+      : minAge !== null && maxAge !== null && minAge > maxAge
+        ? 'Från-åldern kan inte vara högre än till-åldern.'
+        : ''
+  const { interestId, municipalityCode, gender } = filters
+  const query = useMemo(
+    () => ({
+      interestId,
+      municipalityCode,
+      gender,
+      minAge: ageError ? null : minAge,
+      maxAge: ageError ? null : maxAge,
+    }),
+    [interestId, municipalityCode, gender, minAge, maxAge, ageError],
+  )
+
   const loadAll = useCallback(
     () =>
-      Promise.all([getPeople(filters), getContacts()]).then(([p, c]) => {
+      Promise.all([getPeople(query), getContacts()]).then(([p, c]) => {
         setPeople(p)
         setContactsData(c)
       }),
-    [filters],
+    [query],
   )
 
   useEffect(() => {
     loadAll()
       .then(() => setStatus('ready'))
       .catch(() => setStatus('error'))
-  }, [filters, loadAll])
+  }, [loadAll])
 
   if (status === 'error') {
     return (
@@ -189,7 +228,46 @@ function PeoplePage() {
                 </option>
               ))}
             </select>
+            <select
+              aria-label="Filtrera på kön"
+              value={filters.gender}
+              onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
+            >
+              <option value="">Alla kön</option>
+              {GENDER_FILTER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <div className="filter-age-range">
+              <span aria-hidden="true">Ålder</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={120}
+                placeholder="från"
+                aria-label="Från ålder"
+                value={filters.minAge}
+                onChange={(e) => setFilters({ ...filters, minAge: e.target.value })}
+              />
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={120}
+                placeholder="till"
+                aria-label="Till ålder"
+                value={filters.maxAge}
+                onChange={(e) => setFilters({ ...filters, maxAge: e.target.value })}
+              />
+            </div>
           </div>
+          {ageError && <p className="status-error">{ageError}</p>}
+          {filters.gender && (
+            <p className="hint-text">Visar bara dem som valt att synas när man filtrerar på kön.</p>
+          )}
           <button type="button" className="text-button" disabled={busy} onClick={handleResetDismissed}>
             Visa borttagna förslag igen
           </button>
