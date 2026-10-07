@@ -231,6 +231,52 @@ def test_a_club_member_can_invite_for_the_clubs_private_event(client, db, user, 
     assert usernames(client.post(url(event), json={"usernames": ["user4"]})) == ["user4"]
 
 
+def test_a_guest_cannot_invite_someone_the_creator_has_blocked_or_who_blocked_the_creator(
+    client, db, user, people
+):
+    event = add_event(
+        db, people["user2"].id, visibility=EventVisibility.open, guests_can_invite=True
+    )
+    # Gästen har båda som kontakter. user3 är blockerad av skaparen, user4 har
+    # blockerat skaparen. Ingen av dem bjuds in, och det sägs inte till gästen.
+    add_contact(db, user.id, people["user3"].id)
+    add_contact(db, user.id, people["user4"].id)
+    add_contact(db, people["user2"].id, people["user3"].id, status="BLOCKED")
+    add_contact(db, people["user4"].id, people["user2"].id, status="BLOCKED")
+
+    response = client.post(url(event), json={"usernames": ["user3", "user4"]})
+    assert response.status_code == 200
+    assert usernames(response) == []
+    assert db.query(EventInvitation).count() == 0
+
+
+def test_blocked_by_the_creator_are_skipped_but_others_are_still_invited(
+    client, db, user, people
+):
+    event = add_event(
+        db, people["user2"].id, visibility=EventVisibility.open, guests_can_invite=True
+    )
+    add_contact(db, user.id, people["user3"].id)
+    add_contact(db, user.id, people["user4"].id)
+    add_contact(db, people["user2"].id, people["user3"].id, status="BLOCKED")
+
+    assert usernames(client.post(url(event), json={"usernames": ["user3", "user4"]})) == ["user4"]
+
+
+def test_club_members_blocked_with_the_creator_are_skipped(client, db, user, people):
+    event = add_event(
+        db, people["user2"].id, visibility=EventVisibility.open, guests_can_invite=True
+    )
+    group = add_group(db, user.id, members=[people["user3"].id, people["user4"].id])
+    add_contact(db, people["user2"].id, people["user3"].id, status="BLOCKED")
+    add_contact(db, people["user4"].id, people["user2"].id, status="BLOCKED")
+
+    response = client.post(url(event), json={"group_ids": [group.id]})
+    assert response.status_code == 200
+    assert usernames(response) == []
+    assert db.query(EventInvitation).count() == 0
+
+
 def test_a_guest_can_only_invite_their_own_contacts_and_clubs(client, db, user, people):
     event = add_event(
         db, people["user2"].id, visibility=EventVisibility.open, guests_can_invite=True
