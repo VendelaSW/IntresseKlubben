@@ -16,7 +16,8 @@ const ANSWERS = [
 // som har svarat, i liten text. Namnen är länkar till personens profil. Den man
 // själv har blockerat visas med märket "Blockerad". `onAnswered` får
 // föräldern att hämta om eventlistorna, så att ens svar och flikarna stämmer.
-// "Bjud in" öppnar en popup med ens kontakter och klubbar (`contacts`, `groups`).
+// "Bjud in" syns bara för skaparen och öppnar en popup med ens kontakter och
+// klubbar (`contacts`, `groups`).
 function EventDetails({ event, myInterestIds, contacts, groups, onBack, onAnswered }) {
   const [responses, setResponses] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
@@ -117,32 +118,36 @@ function EventDetails({ event, myInterestIds, contacts, groups, onBack, onAnswer
         </section>
       </div>
 
-      <div className="card-actions">
-        <button
-          type="button"
-          className="secondary-button button-small"
-          onClick={() => {
-            setInviteError('')
-            setInviteNotice('')
-            setInviteOpen(true)
-          }}
-        >
-          Bjud in
-        </button>
-        {inviteNotice && <span className="status-success">{inviteNotice}</span>}
-      </div>
-      {inviteOpen && (
-        <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
-          <InvitePicker
-            contacts={contacts}
-            groups={groups}
-            submitLabel="Bjud in"
-            busy={inviteBusy}
-            error={inviteError}
-            onSubmit={handleInvite}
-            onCancel={() => setInviteOpen(false)}
-          />
-        </Modal>
+      {event.is_owner && (
+        <>
+          <div className="card-actions">
+            <button
+              type="button"
+              className="secondary-button button-small"
+              onClick={() => {
+                setInviteError('')
+                setInviteNotice('')
+                setInviteOpen(true)
+              }}
+            >
+              Bjud in
+            </button>
+            {inviteNotice && <span className="status-success">{inviteNotice}</span>}
+          </div>
+          {inviteOpen && (
+            <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
+              <InvitePicker
+                contacts={contacts}
+                groups={groups}
+                submitLabel="Bjud in"
+                busy={inviteBusy}
+                error={inviteError}
+                onSubmit={handleInvite}
+                onCancel={() => setInviteOpen(false)}
+              />
+            </Modal>
+          )}
+        </>
       )}
 
       <Attendees responses={responses} failed={failed} />
