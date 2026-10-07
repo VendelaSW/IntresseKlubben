@@ -1267,9 +1267,66 @@ span.tag-selected:hover {
   line-height: 1.1;
 }
 
-/* Ett formulär (.auth-form) som fyller hela arket i stället för att vara smalt. */
+/* Ett kompakt formulär (.auth-form .form-wide) som fyller hela arket i stället
+   för att vara smalt, för att skapa en post. Mindre fält, text och knappar än
+   de vanliga formulären (inloggning, profil). Titel och beskrivning, som får
+   mer text, kan få de större måtten med .field-large (flerradiga fält med
+   teckenräknare är alltid stora). Varje fält ligger i en .form-field, och flera
+   kan ligga bredvid varandra i en .form-row. */
 .form-wide {
   max-width: none;
+  gap: 0.6rem;
+}
+
+.form-wide label {
+  font-size: var(--text-small);
+}
+
+.form-wide input,
+.form-wide select,
+.form-wide textarea {
+  font-size: var(--text-small);
+  padding: 0.3rem 0.5rem;
+}
+
+.form-wide .field-large,
+.form-wide .textarea-count textarea {
+  font-size: var(--text-body);
+  padding: 0.55rem 0.75rem;
+}
+
+.form-wide .textarea-count textarea {
+  padding-bottom: 1.75rem;
+}
+
+.form-wide button {
+  font-size: var(--text-small);
+  padding: 0.3rem 0.7rem;
+  margin-top: 0;
+}
+
+/* Etiketten tätt ovanför sitt fält (till skillnad från mellanrummet mellan fälten). */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+/* Två eller fler fält bredvid varandra. På smala skärmar får de inte plats och
+   lägger sig under varandra av sig själva. */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.5rem;
+}
+
+/* Knapparna längst ner i ett formulär, sida vid sida. */
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 /* En lista med personer (avatar och namn på varje rad), t.ex. medlemmar i en
