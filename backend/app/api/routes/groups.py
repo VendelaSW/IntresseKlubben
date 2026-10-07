@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
@@ -6,6 +6,7 @@ from app.core import storage
 from app.crud.contact import blocked_by_me_ids, blocked_user_ids
 from app.crud.group import (
     GroupRuleError,
+    GroupSort,
     create_group,
     delete_group,
     get_group,
@@ -91,12 +92,33 @@ def create(
 def read_public_groups(
     interest_id: int | None = None,
     municipality_code: str | None = None,
+    q: str | None = Query(None, max_length=100),
+    sort: GroupSort = GroupSort.name,
+    # Vänder sorteringen: Ö-A, färst medlemmar först, äldst först.
+    reverse: bool = False,
+    # Utan limit kommer alla, som innan sidindelningen fanns.
+    limit: int | None = Query(None, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    # Fliken "Alla" visar bara klubbar man kan gå med i. Filtreras här, inte i
+    # frontend, så att varje sida blir full.
+    exclude_mine: bool = False,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    groups = list_public_groups(db, interest_id, municipality_code)
-    blocks = _blocks(db, current_user.id)
-    return [_to_response(g, current_user.id, *blocks) for g in groups]
+    hidden, blocked_by_me = _blocks(db, current_user.id)
+    groups = list_public_groups(
+        db,
+        interest_id,
+        municipality_code,
+        q=q,
+        sort=sort,
+        reverse=reverse,
+        limit=limit,
+        offset=offset,
+        exclude_member_id=current_user.id if exclude_mine else None,
+        hidden_user_ids=hidden,
+    )
+    return [_to_response(g, current_user.id, hidden, blocked_by_me) for g in groups]
 
 
 @router.get("/mine", response_model=list[GroupResponse])
