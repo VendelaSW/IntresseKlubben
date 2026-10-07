@@ -220,3 +220,34 @@ def test_list_shows_creator_name_from_profile(client, db, user, other, interest)
     assert event["creator_username"] == "other"
     assert event["creator_name"] is None
     assert event["is_owner"] is False
+
+
+# ---------- Gäster får bjuda in ----------
+
+
+def test_guests_can_invite_is_off_by_default_and_can_be_set_when_creating(client, user, interest):
+    default = client.post("/events/", json=payload()).json()
+    assert default["guests_can_invite"] is False
+    assert default["can_invite"] is True  # skaparen får alltid
+
+    on = client.post("/events/", json=payload(guests_can_invite=True)).json()
+    assert on["guests_can_invite"] is True
+
+
+def test_can_invite_is_true_for_guests_only_when_the_setting_is_on(client, db, user, other, interest):
+    off = add_event(db, other.id, title="Av", visibility=EventVisibility.open)
+    on = add_event(db, other.id, title="På", visibility=EventVisibility.open, guests_can_invite=True)
+    by_title = {e["title"]: e for e in client.get("/events/").json()}
+    assert by_title["Av"]["can_invite"] is False
+    assert by_title["På"]["can_invite"] is True
+    assert by_title["På"]["is_owner"] is False
+
+
+def test_the_creator_can_turn_the_setting_on_and_off_but_nobody_else(client, db, user, other, interest):
+    own = add_event(db, user.id)
+    assert client.patch(f"/events/{own.id}", json={"guests_can_invite": True}).json()["guests_can_invite"] is True
+    assert client.patch(f"/events/{own.id}", json={"guests_can_invite": False}).json()["guests_can_invite"] is False
+    assert client.patch(f"/events/{own.id}", json={"guests_can_invite": None}).status_code == 422
+
+    theirs = add_event(db, other.id, visibility=EventVisibility.open)
+    assert client.patch(f"/events/{theirs.id}", json={"guests_can_invite": True}).status_code == 403

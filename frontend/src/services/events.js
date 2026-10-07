@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from './api'
+import { apiGet, apiPatch, apiPost, apiPut } from './api'
 
 // Värdena måste matcha EventVisibility i backend/app/models/event.py.
 export const EVENT_VISIBILITY = { open: 'open', inviteOnly: 'invite_only' }
@@ -31,4 +31,9 @@ export function answerEvent(eventId, answer) {
 // Returnerar de som blev inbjudna den här gången.
 export function inviteToEvent(eventId, { usernames = [], groupIds = [] }) {
   return apiPost(`/events/${eventId}/invitations`, { usernames, group_ids: groupIds })
+}
+
+// Ändrar bara de fält som skickas, t.ex. { guests_can_invite: true }. Bara skaparen får.
+export function updateEvent(eventId, changes) {
+  return apiPatch(`/events/${eventId}`, changes)
 }

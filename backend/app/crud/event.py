@@ -45,6 +45,7 @@ def create_event(db: Session, user_id: int, data: EventCreate) -> Event:
         place_name=data.place_name,
         address=data.address,
         visibility=data.visibility,
+        guests_can_invite=data.guests_can_invite,
         created_by=user_id,
         group_id=data.group_id,
     )
@@ -74,6 +75,12 @@ def delete_event(db: Session, event: Event) -> None:
     """Tar bort eventet och dess inbjudningar och svar."""
     db.delete(event)
     db.commit()
+
+
+def can_invite(event: Event, user_id: int) -> bool:
+    """Skaparen får alltid bjuda in, andra bara om skaparen har slagit på det.
+    Att användaren kan se eventet kontrolleras av den som anropar."""
+    return event.created_by == user_id or event.guests_can_invite
 
 
 def get_event(db: Session, event_id: int) -> Event | None:
@@ -162,7 +169,8 @@ def invite(
     nuvarande medlemmar i klubbar som inviter_id är med i. Vem som helst som kan
     se eventet får bjuda in, och det är den som bjuder in som kontakterna och
     klubbarna räknas från. Antingen går alla inbjudningar igenom eller ingen.
-    Skaparen, den som bjuder in och redan inbjudna hoppas över.
+    Skaparen, den som bjuder in, redan inbjudna och de som har en blockering
+    med skaparen hoppas över.
     Returnerar de som blev inbjudna den här gången (profil förladdad)."""
     target_ids: set[int] = set()
 
@@ -182,6 +190,10 @@ def invite(
 
     target_ids.discard(inviter_id)
     target_ids.discard(event.created_by)
+    # Den som har blockerat skaparen, eller som skaparen har blockerat, bjuds inte
+    # in heller, även om en gäst har dem som kontakt. De hoppas över tyst: ett fel
+    # skulle avslöja för gästen att skaparen har en blockering.
+    target_ids -= blocked_user_ids(db, event.created_by)
     target_ids -= {i.user_id for i in event.invitations}
     db.add_all(EventInvitation(event_id=event.id, user_id=user_id) for user_id in target_ids)
     db.commit()

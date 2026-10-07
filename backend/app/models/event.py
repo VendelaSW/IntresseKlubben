@@ -1,6 +1,7 @@
 import enum
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Column,
     DateTime,
@@ -9,6 +10,7 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    false,
     func,
 )
 from sqlalchemy.orm import relationship
@@ -42,6 +44,8 @@ class Event(Base):
     place_name = Column(String(100), nullable=False)
     address = Column(String(100), nullable=False)
     visibility = Column(Enum(EventVisibility), nullable=False, default=EventVisibility.invite_only)
+    # Av som standard: bara skaparen bjuder in. På: alla som ser eventet får bjuda in.
+    guests_can_invite = Column(Boolean, nullable=False, default=False, server_default=false())
     # Tas skaparen bort försvinner eventet med. Tas klubben bort finns eventet kvar.
     created_by = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     group_id = Column(Integer, ForeignKey("groups.id", ondelete="SET NULL"), nullable=True, index=True)
