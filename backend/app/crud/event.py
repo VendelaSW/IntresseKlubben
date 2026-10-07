@@ -45,6 +45,7 @@ def create_event(db: Session, user_id: int, data: EventCreate) -> Event:
         place_name=data.place_name,
         address=data.address,
         visibility=data.visibility,
+        guests_can_invite=data.guests_can_invite,
         created_by=user_id,
         group_id=data.group_id,
     )
@@ -74,6 +75,12 @@ def delete_event(db: Session, event: Event) -> None:
     """Tar bort eventet och dess inbjudningar och svar."""
     db.delete(event)
     db.commit()
+
+
+def can_invite(event: Event, user_id: int) -> bool:
+    """Skaparen får alltid bjuda in, andra bara om skaparen har slagit på det.
+    Att användaren kan se eventet kontrolleras av den som anropar."""
+    return event.created_by == user_id or event.guests_can_invite
 
 
 def get_event(db: Session, event_id: int) -> Event | None:

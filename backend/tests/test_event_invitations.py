@@ -155,9 +155,9 @@ def test_cannot_invite_a_club_you_are_not_in(client, db, user, people, event):
 # ---------- Vem får hantera inbjudningar ----------
 
 
-def test_only_the_creator_can_invite_read_and_remove(client, db, user, people):
-    # Öppet event, privat event man är inbjuden till och klubbens privata event:
-    # i alla tre får bara skaparen bjuda in, läsa listan och ta bort inbjudningar.
+def test_only_the_creator_can_invite_when_guests_may_not(client, db, user, people):
+    # Öppet event, privat event man är inbjuden till och klubbens privata event, med
+    # "Gäster får bjuda in" av (standard): bara skaparen får bjuda in.
     open_event = add_event(db, people["user2"].id, visibility=EventVisibility.open, title="Öppet")
     private_event = add_event(
         db, people["user2"].id, visibility=EventVisibility.invite_only, title="Privat"
@@ -173,11 +173,108 @@ def test_only_the_creator_can_invite_read_and_remove(client, db, user, people):
     for event in (open_event, private_event, club_event):
         post = client.post(url(event), json={"usernames": ["user3"]})
         assert post.status_code == 403, event.title
-        assert post.json()["detail"] == "Bara den som skapat eventet kan ändra det"
-        assert client.get(url(event)).status_code == 403, event.title
-        assert client.delete(f"{url(event)}/user3").status_code == 403, event.title
+        assert post.json()["detail"] == "Bara den som skapat eventet kan bjuda in"
     # Ingen inbjudan skapades, bara min egen till det privata eventet finns kvar.
     assert db.query(EventInvitation).count() == 1
+
+
+def test_only_the_creator_can_read_and_remove_invitations_even_when_guests_may_invite(
+    client, db, user, people
+):
+    event = add_event(
+        db, people["user2"].id, visibility=EventVisibility.open, guests_can_invite=True
+    )
+    assert client.get(url(event)).status_code == 403
+    assert client.delete(f"{url(event)}/user3").status_code == 403
+
+
+# ---------- Gäster får bjuda in (påslaget) ----------
+
+
+def test_guests_can_invite_their_own_contacts_to_an_open_event(client, db, user, people):
+    event = add_event(
+        db, people["user2"].id, visibility=EventVisibility.open, guests_can_invite=True
+    )
+    add_contact(db, user.id, people["user3"].id)
+
+    response = client.post(url(event), json={"usernames": ["user3"]})
+    assert response.status_code == 200
+    assert usernames(response) == ["user3"]
+
+    login_as(people["user3"])
+    assert client.get("/events/").json()[0]["is_invited"] is True
+
+
+def test_an_invited_guest_can_invite_for_a_private_event(client, db, user, people):
+    event = add_event(
+        db, people["user2"].id, visibility=EventVisibility.invite_only, guests_can_invite=True
+    )
+    db.add(EventInvitation(event_id=event.id, user_id=user.id))
+    db.commit()
+    add_contact(db, user.id, people["user3"].id)
+
+    assert usernames(client.post(url(event), json={"usernames": ["user3"]})) == ["user3"]
+    login_as(people["user3"])
+    assert [e["title"] for e in client.get("/events/").json()] == [event.title]
+
+
+def test_a_club_member_can_invite_for_the_clubs_private_event(client, db, user, people):
+    group = add_group(db, people["user2"].id, visibility=GroupVisibility.private, members=[user.id])
+    event = add_event(
+        db,
+        people["user2"].id,
+        group_id=group.id,
+        visibility=EventVisibility.invite_only,
+        guests_can_invite=True,
+    )
+    add_contact(db, user.id, people["user4"].id)
+    assert usernames(client.post(url(event), json={"usernames": ["user4"]})) == ["user4"]
+
+
+def test_a_guest_can_only_invite_their_own_contacts_and_clubs(client, db, user, people):
+    event = add_event(
+        db, people["user2"].id, visibility=EventVisibility.open, guests_can_invite=True
+    )
+    # user3 är skaparens kontakt, men inte min: jag får inte bjuda in hen.
+    add_contact(db, people["user2"].id, people["user3"].id)
+    response = client.post(url(event), json={"usernames": ["user3"]})
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Du kan bara bjuda in dina kontakter"
+
+    own = add_group(db, user.id, members=[people["user4"].id], name="Mina")
+    other = add_group(db, people["user2"].id, members=[people["user3"].id], name="Andras")
+    assert client.post(url(event), json={"group_ids": [other.id]}).status_code == 403
+    assert usernames(client.post(url(event), json={"group_ids": [own.id]})) == ["user4"]
+    assert db.query(EventInvitation).count() == 1
+
+
+def test_inviting_never_adds_the_creator_or_the_guest_and_skips_already_invited(
+    client, db, user, people
+):
+    event = add_event(
+        db, people["user2"].id, visibility=EventVisibility.open, guests_can_invite=True
+    )
+    group = add_group(
+        db, user.id, members=[people["user2"].id, people["user3"].id, people["user4"].id]
+    )
+    db.add(EventInvitation(event_id=event.id, user_id=people["user3"].id))
+    db.commit()
+    # Klubben innehåller mig, skaparen, user3 (redan inbjuden av någon) och user4:
+    # bara user4 blir inbjuden den här gången och syns i svaret.
+    assert usernames(client.post(url(event), json={"group_ids": [group.id]})) == ["user4"]
+
+
+def test_someone_who_cannot_see_the_event_cannot_invite_even_when_guests_may(
+    client, db, user, people
+):
+    event = add_event(
+        db, people["user2"].id, visibility=EventVisibility.invite_only, guests_can_invite=True
+    )
+    add_contact(db, user.id, people["user3"].id)
+    response = client.post(url(event), json={"usernames": ["user3"]})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Eventet finns inte"
+    assert db.query(EventInvitation).count() == 0
 
 
 def test_a_hidden_event_looks_like_a_missing_one(client, db, user, people):

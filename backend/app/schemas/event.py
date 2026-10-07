@@ -52,6 +52,8 @@ class EventCreate(BaseModel):
     # Säkrast om inget anges. Ett event i en privat klubb måste vara invite_only.
     visibility: EventVisibility = EventVisibility.invite_only
     group_id: int | None = None
+    # Av som standard: bara skaparen bjuder in.
+    guests_can_invite: bool = False
 
     @field_validator("title")
     @classmethod
@@ -102,6 +104,14 @@ class EventUpdate(BaseModel):
     ends_at: datetime | None = None
     place_name: str | None = None
     address: str | None = None
+    guests_can_invite: bool | None = None
+
+    @field_validator("guests_can_invite")
+    @classmethod
+    def guests_can_invite_not_empty(cls, v: bool | None) -> bool:
+        if v is None:
+            raise ValueError(msg.EVENT_GUESTS_CAN_INVITE_EMPTY)
+        return v
 
     @field_validator("title")
     @classmethod
@@ -189,6 +199,10 @@ class EventOut(BaseModel):
     creator_name: str | None
     # Gäller den inloggade användaren, så att frontend vet vilka knappar som ska visas.
     is_owner: bool
+    # Får den inloggade bjuda in till eventet (skaparen, eller alla om
+    # guests_can_invite är på). Frontend visar knappen "Bjud in" utifrån den här.
+    can_invite: bool
+    guests_can_invite: bool
     is_invited: bool
     # Den inloggades eget svar, eller None om hen inte har svarat.
     my_answer: EventAnswer | None
