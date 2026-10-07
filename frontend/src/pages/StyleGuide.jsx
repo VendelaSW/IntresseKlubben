@@ -5,6 +5,7 @@ import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
+import Modal from '../components/Modal'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 
@@ -40,6 +41,7 @@ const SIZES = [
 
 function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
+  const [modalOpen, setModalOpen] = useState(false)
 
   return (
     <div className="page">
@@ -280,6 +282,23 @@ function StyleGuide() {
             <div className="card-actions">
               <button type="button" className="primary-button">Gå med</button>
             </div>
+            <div className="detail-view-section">
+              <p className="card-subheading">Ett avsnitt (.detail-view-section)</p>
+              <p className="hint-text">Med en rad luft ovanför, för att skilja det från texten ovanför.</p>
+            </div>
+          </section>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Titelrad (.title-row): titel till vänster och ett märke i högerkanten
+        </p>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <section className="detail-view">
+            <div className="title-row">
+              <p className="card-title">Exempel</p>
+              <span className="status-pill">Öppet</span>
+            </div>
+            <p className="card-subheading">lör 10 okt. 13:30 · Slottsskogen</p>
           </section>
         </div>
 
@@ -306,19 +325,116 @@ function StyleGuide() {
             </ul>
           </div>
         </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Kompakt personlista (.person-list .person-list-compact)
+        </p>
+        <p className="hint-text">
+          Liten text och små avatarer, för när många personer ska rymmas, t.ex. vilka som har
+          svarat på ett event. Rubrikerna ovanför grupperna är .hint-text.
+        </p>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <div className="person-list person-list-compact">
+            <div>
+              <p className="hint-text">Ja (2)</p>
+              <ul>
+                <li>
+                  <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">E</span>
+                    <span>Emmy</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">F</span>
+                    <span>Filip</span>
+                    <span className="status-pill">Blockerad</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="hint-text">Kanske (1)</p>
+              <ul>
+                <li>
+                  <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">L</span>
+                    <span>Leonard</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="style-section">
-        <h2>Om mig-ruta</h2>
+        <h2>Popup</h2>
         <p className="hint-text">
-          Ett eget fält inne i ett profilkort (.profile-about): blekgult (--color-accent-soft)
-          utan kant, samma rundning som formulärfälten och radbrytningar bevarade. Visas bara
-          om texten finns.
+          Modal.jsx, byggd på det inbyggda &lt;dialog&gt;: en vit ruta (.card .modal) med rubrik och
+          "Stäng" över en mörk bakgrund. Esc och ett klick på bakgrunden stänger den. En lång lista
+          läggs i .modal-scroll så att den rullar, och en rad med kryssruta är en
+          label.person-list-item. Används t.ex. för "Bjud in" på ett event.
+        </p>
+        <button type="button" className="secondary-button button-small" style={{ marginTop: '1rem' }} onClick={() => setModalOpen(true)}>
+          Öppna exempel
+        </button>
+        {modalOpen && (
+          <Modal title="Exempel" onClose={() => setModalOpen(false)}>
+            <div className="modal-scroll">
+              <div className="person-list person-list-compact">
+                <ul>
+                  <li>
+                    <label className="person-list-item">
+                      <input type="checkbox" />
+                      <span className="person-list-avatar card-avatar-initials" aria-hidden="true">E</span>
+                      <span>Emmy</span>
+                    </label>
+                  </li>
+                  <li>
+                    <label className="person-list-item">
+                      <input type="checkbox" defaultChecked />
+                      <span className="person-list-avatar card-avatar-initials" aria-hidden="true">L</span>
+                      <span>Leonard</span>
+                    </label>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="card-actions">
+              <button type="button" className="secondary-button button-small" onClick={() => setModalOpen(false)}>
+                Avbryt
+              </button>
+              <button type="button" className="primary-button button-small" onClick={() => setModalOpen(false)}>
+                Klar
+              </button>
+            </div>
+          </Modal>
+        )}
+      </section>
+
+      <section className="style-section">
+        <h2>Blek ruta (Om mig)</h2>
+        <p className="hint-text">
+          Ett eget fält (.soft-box): blekgult (--color-accent-soft) utan kant, samma rundning
+          som formulärfälten. Smal som standard, så den passar inne i ett profilkort. Som "Om
+          mig" bevarar den radbrytningar (.soft-box-text) och visas bara om texten finns.
+          Med .soft-box-wide fyller den hela bredden i ett ark, t.ex. "Kommer du?" på ett event.
         </p>
         <div className="card card-wide content-stack" style={{ marginTop: '1rem' }}>
           <p className="card-title">Emmy, 24</p>
           <p className="card-subheading">Stockholm</p>
           <ProfileAbout text={'Hej! Jag gillar brädspel och klättring.\nSöker folk att spela med på söndagar.'} />
+        </div>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <section className="soft-box soft-box-wide">
+            <h2>Kommer du?</h2>
+            <ul className="tags">
+              <li><button type="button" className="tag tag-selected">Ja</button></li>
+              <li><button type="button" className="tag">Kanske</button></li>
+              <li><button type="button" className="tag">Nej</button></li>
+            </ul>
+          </section>
         </div>
       </section>
 
