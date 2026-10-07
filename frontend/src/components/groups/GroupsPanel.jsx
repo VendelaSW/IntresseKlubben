@@ -243,15 +243,18 @@ function GroupsPanel() {
       {status === 'loading' ? (
         <p className="hint-text">Laddar klubbar...</p>
       ) : view === 'create' ? (
-        <div className="card sheet">
-          <CreateGroupForm
-            interests={interests}
-            municipalities={municipalities}
-            defaultMunicipality={myMunicipality}
-            onCreated={handleCreated}
-            onCancel={() => setView('list')}
-          />
-        </div>
+        <>
+          <BackButton onClick={() => setView('list')} />
+          <div className="card sheet">
+            <CreateGroupForm
+              interests={interests}
+              municipalities={municipalities}
+              defaultMunicipality={myMunicipality}
+              onCreated={handleCreated}
+              onCancel={() => setView('list')}
+            />
+          </div>
+        </>
       ) : (
         <>
           <div className="filter-tabs" role="tablist">

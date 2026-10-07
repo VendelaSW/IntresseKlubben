@@ -118,15 +118,18 @@ function EventsPanel() {
       ) : status === 'error' ? (
         <p className="status-error">Kunde inte hämta sidan. Försök igen senare.</p>
       ) : view === 'create' ? (
-        <div className="card sheet">
-          <CreateEventForm
-            interests={interests}
-            groups={myGroups}
-            contacts={contacts}
-            onCreated={handleCreated}
-            onCancel={() => setView('list')}
-          />
-        </div>
+        <>
+          <BackButton onClick={() => setView('list')} />
+          <div className="card sheet">
+            <CreateEventForm
+              interests={interests}
+              groups={myGroups}
+              contacts={contacts}
+              onCreated={handleCreated}
+              onCancel={() => setView('list')}
+            />
+          </div>
+        </>
       ) : (
         <>
           <div className="filter-tabs" role="tablist">
