@@ -226,6 +226,7 @@ def _to_public_response(profile) -> PublicProfileResponse:
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
         profile_text=profile.profile_text,
+        interests=[InterestResponse.model_validate(i) for i in sorted_interests(profile.user)],
     )
 
 

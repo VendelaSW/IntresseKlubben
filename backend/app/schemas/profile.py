@@ -159,13 +159,15 @@ class PublicProfileResponse(BaseModel):
     # Mindre "skyltfönster" av en profil - det som visas för NÅGON ANNANS
     # profil (t.ex. GET /users/{username}/profile). Innehåller aldrig
     # födelsedatum, kön eller kommunkoden, bara det ett ticket faktiskt
-    # ska visa för andra.
+    # ska visa för andra. Intressena syns redan på personkorten (PersonResponse),
+    # så de är inte privata.
     name: str | None
     age: int | None
     municipality_name: str | None
     district: str | None
     image_url: str | None
     profile_text: str | None
+    interests: list[InterestResponse]
 
 
 class PersonResponse(BaseModel):
