@@ -139,6 +139,17 @@ def blocked_user_ids(db: Session, user_id: int) -> set[int]:
     return {c.addressee_id if c.requester_id == user_id else c.requester_id for c in blocks}
 
 
+def blocked_by_me_ids(db: Session, user_id: int) -> set[int]:
+    """Id:n på dem user_id själv har blockerat, inte dem som har blockerat
+    user_id. För varningar som bara den som blockerat ska se (t.ex. i events
+    och klubbar): den omvända riktningen får aldrig synas, eftersom den
+    blockerade då förstår att hen är blockerad."""
+    rows = (db.query(Contact.addressee_id)
+            .filter(Contact.status == "BLOCKED", Contact.requester_id == user_id)
+            .all())
+    return {row[0] for row in rows}
+
+
 def list_blocked_by(db: Session, user_id: int) -> list[User]:
     """De användare user_id själv har blockerat (profil förladdad), äldsta
     blockeringen först. Den som blivit blockerad får aldrig veta det, så den

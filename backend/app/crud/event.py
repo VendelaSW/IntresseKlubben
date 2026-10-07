@@ -4,7 +4,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, selectinload
 
 from app.core import error_messages as msg
-from app.crud.contact import blocked_user_ids
+from app.crud.contact import blocked_by_me_ids, blocked_user_ids
 from app.crud.group import get_group, get_membership
 from app.crud.user import get_user_by_username
 from app.models.contact import Contact
@@ -155,11 +155,15 @@ def _accepted_contact_ids(db: Session, user_id: int) -> set[int]:
     return {c.addressee_id if c.requester_id == user_id else c.requester_id for c in rows}
 
 
-def invite(db: Session, event: Event, usernames: list[str], group_ids: list[int]) -> None:
-    """Bjuder in kontakter (efter användarnamn) och/eller alla nuvarande
-    medlemmar i klubbar som skaparen är med i. Antingen går alla inbjudningar
-    igenom eller ingen. Redan inbjudna hoppas över."""
-    inviter_id = event.created_by
+def invite(
+    db: Session, event: Event, inviter_id: int, usernames: list[str], group_ids: list[int]
+) -> list[User]:
+    """Bjuder in kontakter till inviter_id (efter användarnamn) och/eller alla
+    nuvarande medlemmar i klubbar som inviter_id är med i. Vem som helst som kan
+    se eventet får bjuda in, och det är den som bjuder in som kontakterna och
+    klubbarna räknas från. Antingen går alla inbjudningar igenom eller ingen.
+    Skaparen, den som bjuder in och redan inbjudna hoppas över.
+    Returnerar de som blev inbjudna den här gången (profil förladdad)."""
     target_ids: set[int] = set()
 
     contact_ids = _accepted_contact_ids(db, inviter_id)
@@ -177,9 +181,17 @@ def invite(db: Session, event: Event, usernames: list[str], group_ids: list[int]
         target_ids.update(m.user_id for m in group.members if m.user_id not in hidden)
 
     target_ids.discard(inviter_id)
+    target_ids.discard(event.created_by)
     target_ids -= {i.user_id for i in event.invitations}
     db.add_all(EventInvitation(event_id=event.id, user_id=user_id) for user_id in target_ids)
     db.commit()
+    return list(
+        db.query(User)
+        .options(selectinload(User.profile))
+        .filter(User.id.in_(target_ids))
+        .order_by(User.id)
+        .all()
+    )
 
 
 def list_invitees(db: Session, event: Event, viewer_id: int) -> list[User]:
@@ -225,16 +237,6 @@ def set_answer(db: Session, event: Event, user_id: int, answer: EventAnswer) -> 
     db.commit()
 
 
-def _blocked_by_me_ids(db: Session, user_id: int) -> set[int]:
-    """Id:n på dem användaren själv har blockerat (inte dem som har blockerat hen)."""
-    rows = (
-        db.query(Contact.addressee_id)
-        .filter(Contact.status == "BLOCKED", Contact.requester_id == user_id)
-        .all()
-    )
-    return {row[0] for row in rows}
-
-
 def list_responses(db: Session, event: Event, viewer_id: int) -> list[tuple[EventResponse, User, bool]]:
     """Alla som har svarat (profil förladdad), den som svarade först överst.
     Varje rad har också en flagga: True om tittaren själv har blockerat
@@ -242,7 +244,7 @@ def list_responses(db: Session, event: Event, viewer_id: int) -> list[tuple[Even
     att veta att någon man har blockerat kommer. Den som har blockerat tittaren
     döljs helt och utan varning, annars skulle tittaren förstå att hen är
     blockerad."""
-    blocked_by_me = _blocked_by_me_ids(db, viewer_id)
+    blocked_by_me = blocked_by_me_ids(db, viewer_id)
     hidden = blocked_user_ids(db, viewer_id) - blocked_by_me
     rows = (
         db.query(EventResponse)

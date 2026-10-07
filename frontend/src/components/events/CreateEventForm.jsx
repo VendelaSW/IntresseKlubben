@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import FormField from '../FormField'
+import Modal from '../Modal'
 import TextareaWithCount from '../TextareaWithCount'
-import { EVENT_VISIBILITY, createEvent } from '../../services/events'
+import InvitePicker from './InvitePicker'
+import { EVENT_VISIBILITY, createEvent, inviteToEvent } from '../../services/events'
 
 // Värdet ett <input type="datetime-local"> vill ha: lokal tid utan tidszon.
 function localInputValue(date) {
@@ -9,11 +11,21 @@ function localInputValue(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+// "2 personer och 1 klubb", eller en kort uppmaning om inget är valt än.
+function inviteSummary({ usernames, groupIds }) {
+  const parts = []
+  if (usernames.length > 0) parts.push(`${usernames.length} ${usernames.length === 1 ? 'person' : 'personer'}`)
+  if (groupIds.length > 0) parts.push(`${groupIds.length} ${groupIds.length === 1 ? 'klubb' : 'klubbar'}`)
+  return parts.length > 0 ? `${parts.join(' och ')} valda. Skickas när eventet har skapats.` : 'Valfritt.'
+}
+
 // Formuläret för att skapa ett event. Ett nytt event är alltid "endast
 // inbjudna" om man inte väljer att göra det öppet, och ett event i en privat
 // klubb kan inte vara öppet (backend avvisar det, här stängs valet av).
 // Tiden skickas som ISO med tidszon, tolkad som webbläsarens lokala tid.
-function CreateEventForm({ interests, groups, onCreated, onCancel }) {
+// "Bjud in" öppnar samma popup som på eventets egen vy. Valen sparas bara här, och
+// inbjudningarna skickas direkt efter att eventet har skapats.
+function CreateEventForm({ interests, groups, contacts, onCreated, onCancel }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [interestId, setInterestId] = useState('')
@@ -23,6 +35,8 @@ function CreateEventForm({ interests, groups, onCreated, onCancel }) {
   const [address, setAddress] = useState('')
   const [groupId, setGroupId] = useState('')
   const [isOpen, setIsOpen] = useState(false)
+  const [invites, setInvites] = useState({ usernames: [], groupIds: [] })
+  const [inviteOpen, setInviteOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -51,7 +65,15 @@ function CreateEventForm({ interests, groups, onCreated, onCancel }) {
         visibility: isOpen && !inPrivateGroup ? EVENT_VISIBILITY.open : EVENT_VISIBILITY.inviteOnly,
         group_id: groupId ? Number(groupId) : null,
       })
-      onCreated(created)
+      let inviteProblem = ''
+      if (invites.usernames.length + invites.groupIds.length > 0) {
+        try {
+          await inviteToEvent(created.id, invites)
+        } catch (err) {
+          inviteProblem = err.message
+        }
+      }
+      onCreated(created, inviteProblem)
     } catch (err) {
       setError(err.message)
       setSaving(false)
@@ -167,6 +189,28 @@ function CreateEventForm({ interests, groups, onCreated, onCancel }) {
           ? 'Events i privata klubbar är alltid bara för inbjudna.'
           : 'Utan bockning syns eventet bara för dem du bjuder in.'}
       </p>
+
+      <div className="detail-view-section">
+        <button type="button" className="secondary-button button-small" onClick={() => setInviteOpen(true)}>
+          Bjud in
+        </button>
+        <p className="hint-text">{inviteSummary(invites)}</p>
+      </div>
+      {inviteOpen && (
+        <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
+          <InvitePicker
+            contacts={contacts}
+            groups={groups}
+            initial={invites}
+            submitLabel="Klar"
+            onSubmit={(selection) => {
+              setInvites(selection)
+              setInviteOpen(false)
+            }}
+            onCancel={() => setInviteOpen(false)}
+          />
+        </Modal>
+      )}
 
       {error && <p className="status-error">{error}</p>}
 
