@@ -25,6 +25,8 @@ from datetime import datetime
 from email_validator import EmailNotValidError, validate_email
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.profanity import validate_clean_text
+
 
 def normalize_email(v: str) -> str:
     """Kontrollerar och normaliserar en e-postadress. Delas av registreringen
@@ -43,6 +45,12 @@ class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     email: str
     password: str = Field(min_length=8)
+
+    @field_validator("username")
+    @classmethod
+    def username_is_clean(cls, value: str) -> str:
+        validate_clean_text(value, "Användarnamnet")
+        return value
 
     @field_validator("email")
     @classmethod
