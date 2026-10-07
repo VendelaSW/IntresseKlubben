@@ -72,6 +72,13 @@ class UserLogin(BaseModel):
     password: str
 
 
+class AccountDelete(BaseModel):
+    """Lösenordet krävs för att radera kontot, så att en inloggad dator som
+    någon annan sitter vid inte räcker."""
+
+    password: str
+
+
 class UserOut(BaseModel):
     id: int
     username: str
