@@ -33,6 +33,7 @@ def _to_response(profile) -> ProfileResponse:
         birth_date=profile.birth_date,
         age=calculate_age(profile.birth_date) if profile.birth_date else None,
         gender=profile.gender,
+        gender_searchable=profile.gender_searchable,
         municipality_code=profile.municipality_code,
         municipality_name=profile.municipality.name if profile.municipality else None,
         district=profile.district,

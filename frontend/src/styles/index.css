@@ -1176,7 +1176,8 @@ span.tag-selected:hover {
   gap: 0.5rem;
 }
 
-.filter-select-row select {
+.filter-select-row select,
+.filter-select-row input {
   font-family: var(--font-body);
   font-size: var(--text-small);
   padding: 0.4rem 0.5rem;
@@ -1185,6 +1186,27 @@ span.tag-selected:hover {
   background: var(--color-white);
   color: var(--color-text);
   width: 100%;
+}
+
+/* "Ålder" följt av från- och till-ålder, i en av filtrens rutor. */
+.filter-age-range {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-small);
+}
+
+/* Utan upp/ner-pilarna, så att platshållartexten får plats. */
+.filter-age-range input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.filter-age-range input::-webkit-outer-spin-button,
+.filter-age-range input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* Filtren kompakta, tillsammans inte bredare än ett personkort (300px), i
