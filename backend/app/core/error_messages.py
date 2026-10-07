@@ -78,6 +78,14 @@ def too_long(max_length: int) -> str:
     return f"Får vara högst {max_length} tecken"
 
 
+def too_small(minimum) -> str:
+    return f"Får inte vara lägre än {minimum}"
+
+
+def too_large(maximum) -> str:
+    return f"Får inte vara högre än {maximum}"
+
+
 # ---------- Översättning av valideringsfel ----------
 _STANDARD_ERRORS = {
     "missing": FIELD_REQUIRED,
@@ -100,6 +108,10 @@ def swedish_message(error: dict) -> str:
         return too_short(ctx["min_length"])
     if kind == "string_too_long" and "max_length" in ctx:
         return too_long(ctx["max_length"])
+    if kind == "greater_than_equal" and "ge" in ctx:
+        return too_small(ctx["ge"])
+    if kind == "less_than_equal" and "le" in ctx:
+        return too_large(ctx["le"])
     return _STANDARD_ERRORS.get(kind, error["msg"])
 
 

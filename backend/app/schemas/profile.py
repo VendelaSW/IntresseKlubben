@@ -64,6 +64,8 @@ class ProfileCreate(BaseModel):
     # De valda intressena blir användarens intressen (ersätter ev. tidigare).
     interest_ids: list[int]
     district: str | None = None
+    # Får andra hitta en när de filtrerar Personer på kön? Av som standard.
+    gender_searchable: bool = False
 
     @field_validator("name")
     @classmethod
@@ -110,6 +112,7 @@ class ProfileUpdate(BaseModel):
     municipality_code: str | None = None
     district: str | None = None
     profile_text: str | None = None
+    gender_searchable: bool | None = None
 
     @field_validator("name")
     @classmethod
@@ -144,6 +147,7 @@ class ProfileResponse(BaseModel):
     birth_date: date | None
     age: int | None
     gender: GenderEnum | None
+    gender_searchable: bool
     municipality_code: str | None
     municipality_name: str | None
     district: str | None
