@@ -13,7 +13,7 @@ function GroupDetails({ group, busy, onJoin, onLeave, onDelete, onBack }) {
         {group.municipality_name} · {memberCountText(group.member_count)}
       </p>
       {group.is_member && group.has_blocked_member && (
-        <p className="warning-note">Någon du har blockerat är med i den här klubben.</p>
+        <p className="soft-box soft-box-wide soft-box-text">Någon du har blockerat är med i den här klubben.</p>
       )}
       <p className="card-text">{group.description}</p>
       {group.meeting_info && <p className="hint-text">Träffas: {group.meeting_info}</p>}
