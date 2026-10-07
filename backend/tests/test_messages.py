@@ -131,3 +131,15 @@ def test_list_conversations_hides_blocked_users(client, db, user, friend):
     db.commit()
 
     assert client.get("/messages").json() == []
+
+
+def test_list_conversations_says_who_wrote_the_latest_message(client, db, user, friend, other_friend):
+    # Senaste i konversationen med friend är från friend, med annan-van från en själv.
+    db.add(Message(sender_id=user.id, recipient_id=friend.id, text="Hej friend"))
+    db.commit()
+    db.add(Message(sender_id=friend.id, recipient_id=user.id, text="Hej tillbaka"))
+    db.commit()
+    client.post("/messages", json={"recipient_username": "annan-van", "text": "Hej annan-van"})
+
+    from_me = {c["username"]: c["last_message_from_me"] for c in client.get("/messages").json()}
+    assert from_me == {"friend": False, "annan-van": True}

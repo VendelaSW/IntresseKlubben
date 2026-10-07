@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import FormField from '../FormField'
+import Modal from '../Modal'
 import TextareaWithCount from '../TextareaWithCount'
-import { EVENT_VISIBILITY, createEvent } from '../../services/events'
+import InvitePicker from './InvitePicker'
+import { EVENT_VISIBILITY, createEvent, inviteToEvent } from '../../services/events'
 
 // Värdet ett <input type="datetime-local"> vill ha: lokal tid utan tidszon.
 function localInputValue(date) {
@@ -8,11 +11,21 @@ function localInputValue(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+// "2 personer och 1 klubb", eller en kort uppmaning om inget är valt än.
+function inviteSummary({ usernames, groupIds }) {
+  const parts = []
+  if (usernames.length > 0) parts.push(`${usernames.length} ${usernames.length === 1 ? 'person' : 'personer'}`)
+  if (groupIds.length > 0) parts.push(`${groupIds.length} ${groupIds.length === 1 ? 'klubb' : 'klubbar'}`)
+  return parts.length > 0 ? `${parts.join(' och ')} valda. Skickas när eventet har skapats.` : 'Valfritt.'
+}
+
 // Formuläret för att skapa ett event. Ett nytt event är alltid "endast
 // inbjudna" om man inte väljer att göra det öppet, och ett event i en privat
 // klubb kan inte vara öppet (backend avvisar det, här stängs valet av).
 // Tiden skickas som ISO med tidszon, tolkad som webbläsarens lokala tid.
-function CreateEventForm({ interests, groups, onCreated, onCancel }) {
+// "Bjud in" öppnar samma popup som på eventets egen vy. Valen sparas bara här, och
+// inbjudningarna skickas direkt efter att eventet har skapats.
+function CreateEventForm({ interests, groups, contacts, onCreated, onCancel }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [interestId, setInterestId] = useState('')
@@ -22,6 +35,9 @@ function CreateEventForm({ interests, groups, onCreated, onCancel }) {
   const [address, setAddress] = useState('')
   const [groupId, setGroupId] = useState('')
   const [isOpen, setIsOpen] = useState(false)
+  const [guestsCanInvite, setGuestsCanInvite] = useState(false)
+  const [invites, setInvites] = useState({ usernames: [], groupIds: [] })
+  const [inviteOpen, setInviteOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -49,8 +65,17 @@ function CreateEventForm({ interests, groups, onCreated, onCancel }) {
         address,
         visibility: isOpen && !inPrivateGroup ? EVENT_VISIBILITY.open : EVENT_VISIBILITY.inviteOnly,
         group_id: groupId ? Number(groupId) : null,
+        guests_can_invite: guestsCanInvite,
       })
-      onCreated(created)
+      let inviteProblem = ''
+      if (invites.usernames.length + invites.groupIds.length > 0) {
+        try {
+          await inviteToEvent(created.id, invites)
+        } catch (err) {
+          inviteProblem = err.message
+        }
+      }
+      onCreated(created, inviteProblem)
     } catch (err) {
       setError(err.message)
       setSaving(false)
@@ -58,82 +83,99 @@ function CreateEventForm({ interests, groups, onCreated, onCancel }) {
   }
 
   return (
-    <form className="auth-form form-wide" onSubmit={handleSubmit}>
+    <form className="auth-form form-wide form-compact" onSubmit={handleSubmit}>
       <h2>Skapa event</h2>
 
-      <label htmlFor="event-title">Titel</label>
-      <input id="event-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={50} required />
+      <FormField id="event-title" label="Titel">
+        <input
+          id="event-title"
+          className="field-large"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={50}
+          required
+        />
+      </FormField>
 
-      <label htmlFor="event-description">Beskrivning</label>
-      <TextareaWithCount
-        id="event-description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        maxLength={800}
-        rows={4}
-        required
-      />
+      <FormField id="event-description" label="Beskrivning">
+        <TextareaWithCount
+          id="event-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          maxLength={800}
+          rows={4}
+          required
+        />
+      </FormField>
 
-      <label htmlFor="event-interest">Intresse</label>
-      <select id="event-interest" value={interestId} onChange={(e) => setInterestId(e.target.value)} required>
-        <option value="">Välj...</option>
-        {interests.map((i) => (
-          <option key={i.id} value={i.id}>
-            {i.name}
-          </option>
-        ))}
-      </select>
+      <FormField id="event-interest" label="Intresse">
+        <select id="event-interest" value={interestId} onChange={(e) => setInterestId(e.target.value)} required>
+          <option value="">Välj...</option>
+          {interests.map((i) => (
+            <option key={i.id} value={i.id}>
+              {i.name}
+            </option>
+          ))}
+        </select>
+      </FormField>
 
-      <label htmlFor="event-starts-at">Start</label>
-      <input
-        id="event-starts-at"
-        type="datetime-local"
-        value={startsAt}
-        min={localInputValue(new Date())}
-        onChange={(e) => setStartsAt(e.target.value)}
-        required
-      />
+      <div className="form-row">
+        <FormField id="event-starts-at" label="Start">
+          <input
+            id="event-starts-at"
+            type="datetime-local"
+            value={startsAt}
+            min={localInputValue(new Date())}
+            onChange={(e) => setStartsAt(e.target.value)}
+            required
+          />
+        </FormField>
+        <FormField id="event-ends-at" label="Slut (valfritt)">
+          <input
+            id="event-ends-at"
+            type="datetime-local"
+            value={endsAt}
+            min={startsAt || localInputValue(new Date())}
+            onChange={(e) => setEndsAt(e.target.value)}
+          />
+        </FormField>
+      </div>
 
-      <label htmlFor="event-ends-at">Slut (valfritt)</label>
-      <input
-        id="event-ends-at"
-        type="datetime-local"
-        value={endsAt}
-        min={startsAt || localInputValue(new Date())}
-        onChange={(e) => setEndsAt(e.target.value)}
-      />
+      <FormField id="event-place" label="Plats">
+        <input
+          id="event-place"
+          type="text"
+          value={placeName}
+          onChange={(e) => setPlaceName(e.target.value)}
+          placeholder="T.ex. Slottsskogen"
+          maxLength={100}
+          required
+        />
+      </FormField>
 
-      <label htmlFor="event-place">Plats</label>
-      <input
-        id="event-place"
-        type="text"
-        value={placeName}
-        onChange={(e) => setPlaceName(e.target.value)}
-        placeholder="T.ex. Slottsskogen"
-        maxLength={100}
-        required
-      />
+      <FormField id="event-address" label="Gatuadress">
+        <input
+          id="event-address"
+          type="text"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="T.ex. Slottsskogsvallen 1"
+          maxLength={100}
+          required
+        />
+      </FormField>
 
-      <label htmlFor="event-address">Gatuadress</label>
-      <input
-        id="event-address"
-        type="text"
-        value={address}
-        onChange={(e) => setAddress(e.target.value)}
-        placeholder="T.ex. Slottsskogsvallen 1"
-        maxLength={100}
-        required
-      />
-
-      <label htmlFor="event-group">Klubb (valfritt)</label>
-      <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
-        <option value="">Ingen klubb</option>
-        {groups.map((g) => (
-          <option key={g.id} value={g.id}>
-            {g.name}
-          </option>
-        ))}
-      </select>
+      <FormField id="event-group" label="Klubb (valfritt)">
+        <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
+          <option value="">Ingen klubb</option>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+      </FormField>
 
       <label>
         <input
@@ -150,14 +192,43 @@ function CreateEventForm({ interests, groups, onCreated, onCancel }) {
           : 'Utan bockning syns eventet bara för dem du bjuder in.'}
       </p>
 
+      <div className="detail-view-section">
+        <button type="button" className="secondary-button button-small" onClick={() => setInviteOpen(true)}>
+          Bjud in
+        </button>
+        <p className="hint-text">{inviteSummary(invites)}</p>
+        <label>
+          <input type="checkbox" checked={guestsCanInvite} onChange={(e) => setGuestsCanInvite(e.target.checked)} /> Gäster får
+          bjuda in
+        </label>
+        <p className="hint-text">Utan bockning kan bara du bjuda in. Du kan ändra det senare.</p>
+      </div>
+      {inviteOpen && (
+        <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
+          <InvitePicker
+            contacts={contacts}
+            groups={groups}
+            initial={invites}
+            submitLabel="Klar"
+            onSubmit={(selection) => {
+              setInvites(selection)
+              setInviteOpen(false)
+            }}
+            onCancel={() => setInviteOpen(false)}
+          />
+        </Modal>
+      )}
+
       {error && <p className="status-error">{error}</p>}
 
-      <button type="submit" disabled={saving}>
-        {saving ? 'Skapar...' : 'Skapa event'}
-      </button>
-      <button type="button" className="button-secondary" onClick={onCancel}>
-        Avbryt
-      </button>
+      <div className="form-actions">
+        <button type="submit" disabled={saving}>
+          {saving ? 'Skapar...' : 'Skapa event'}
+        </button>
+        <button type="button" className="button-secondary" onClick={onCancel}>
+          Avbryt
+        </button>
+      </div>
     </form>
   )
 }

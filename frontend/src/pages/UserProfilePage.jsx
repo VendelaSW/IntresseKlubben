@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import InterestTags from '../components/InterestTags'
 import ProfileAbout from '../components/ProfileAbout'
 import { useAuth } from '../hooks/useAuth'
 import {
@@ -11,6 +12,7 @@ import {
   sendContactRequest,
   unblockUser,
 } from '../services/contacts'
+import { getMyInterests } from '../services/interests'
 import { sendMessage } from '../services/messages'
 import { getUserProfile } from '../services/profile'
 
@@ -211,6 +213,9 @@ function UserProfilePage() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'not-found' | 'error'
   const [profile, setProfile] = useState(null)
   const [blocked, setBlocked] = useState(false)
+  // Ens egna intressen, för att markera de gemensamma med gult (som på
+  // personkorten). null tills de är hämtade - då visas alla som vanliga taggar.
+  const [myInterestIds, setMyInterestIds] = useState(null)
   // Den egna profilen kan öppnas via adressen, men man ska inte kunna
   // skicka vänförfrågan, meddelande eller blockera sig själv.
   const isMe = user?.username === username
@@ -225,6 +230,12 @@ function UserProfilePage() {
       })
       .catch(() => setStatus('error'))
   }, [username])
+
+  useEffect(() => {
+    getMyInterests()
+      .then((mine) => setMyInterestIds(new Set(mine.map((interest) => interest.id))))
+      .catch(() => {})
+  }, [])
 
   const initial = profile?.name?.trim()?.[0]?.toUpperCase() ?? '?'
 
@@ -274,6 +285,18 @@ function UserProfilePage() {
             <dd>{profile.district ?? '–'}</dd>
           </dl>
           <ProfileAbout text={profile.profile_text} />
+          <section className="profile-interests">
+            <h2>Intressen</h2>
+            {/* Gemensamma intressen gula. Den egna profilen: alla gula, som på Min profil. */}
+            {profile.interests.length > 0 ? (
+              <InterestTags
+                interests={profile.interests}
+                highlight={isMe ? undefined : (myInterestIds ?? new Set())}
+              />
+            ) : (
+              <p className="hint-text">Inga intressen valda än.</p>
+            )}
+          </section>
           {!isMe && (
             <>
               <RelationButtons

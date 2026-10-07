@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
 from app.core import storage
-from app.crud.contact import blocked_user_ids
+from app.crud.contact import blocked_by_me_ids, blocked_user_ids
 from app.crud.group import (
     GroupRuleError,
+    GroupSort,
     create_group,
     delete_group,
     get_group,
@@ -28,10 +29,18 @@ from app.schemas.group_message import GroupMessageCreate, GroupMessageOut
 router = APIRouter(prefix="/groups", tags=["groups"])
 
 
-def _to_response(group: Group, user_id: int, hidden: set[int]) -> GroupResponse:
+def _blocks(db: Session, user_id: int) -> tuple[set[int], set[int]]:
+    """(hidden, blocked_by_me) för _to_response."""
+    return blocked_user_ids(db, user_id), blocked_by_me_ids(db, user_id)
+
+
+def _to_response(group: Group, user_id: int, hidden: set[int], blocked_by_me: set[int]) -> GroupResponse:
     # hidden = de som har blockerat dig eller som du har blockerat. De räknas
     # inte med i medlemsantalet, så att siffran stämmer med medlemslistan
     # (se list_members) och inte avslöjar någon dold.
+    # blocked_by_me = bara de du själv har blockerat, för varningen
+    # has_blocked_member. Den som har blockerat dig ger aldrig en varning,
+    # eftersom du då skulle förstå att du är blockerad.
     membership = get_membership(group, user_id)
     return GroupResponse(
         id=group.id,
@@ -47,6 +56,7 @@ def _to_response(group: Group, user_id: int, hidden: set[int]) -> GroupResponse:
         is_member=membership is not None,
         is_owner=membership is not None and membership.role == GroupRole.owner,
         created_at=group.created_at,
+        has_blocked_member=any(m.user_id in blocked_by_me for m in group.members),
     )
 
 
@@ -77,37 +87,58 @@ def create(
         group = create_group(db, current_user, data)
     except GroupRuleError as err:
         raise HTTPException(status_code=409, detail=str(err))
-    return _to_response(group, current_user.id, blocked_user_ids(db, current_user.id))
+    return _to_response(group, current_user.id, *_blocks(db, current_user.id))
 
 
 @router.get("/", response_model=list[GroupResponse])
 def read_public_groups(
     interest_id: int | None = None,
     municipality_code: str | None = None,
+    q: str | None = Query(None, max_length=100),
+    sort: GroupSort = GroupSort.name,
+    # Vänder sorteringen: Ö-A, färst medlemmar först, äldst först.
+    reverse: bool = False,
+    # Utan limit kommer alla, som innan sidindelningen fanns.
+    limit: int | None = Query(None, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    # Fliken "Alla" visar bara klubbar man kan gå med i. Filtreras här, inte i
+    # frontend, så att varje sida blir full.
+    exclude_mine: bool = False,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    groups = list_public_groups(db, interest_id, municipality_code)
-    hidden = blocked_user_ids(db, current_user.id)
-    return [_to_response(g, current_user.id, hidden) for g in groups]
+    hidden, blocked_by_me = _blocks(db, current_user.id)
+    groups = list_public_groups(
+        db,
+        interest_id,
+        municipality_code,
+        q=q,
+        sort=sort,
+        reverse=reverse,
+        limit=limit,
+        offset=offset,
+        exclude_member_id=current_user.id if exclude_mine else None,
+        hidden_user_ids=hidden,
+    )
+    return [_to_response(g, current_user.id, hidden, blocked_by_me) for g in groups]
 
 
 @router.get("/mine", response_model=list[GroupResponse])
 def read_my_groups(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    hidden = blocked_user_ids(db, current_user.id)
-    return [_to_response(g, current_user.id, hidden) for g in list_user_groups(db, current_user.id)]
+    blocks = _blocks(db, current_user.id)
+    return [_to_response(g, current_user.id, *blocks) for g in list_user_groups(db, current_user.id)]
 
 
 @router.get("/suggested", response_model=list[GroupResponse])
 def read_suggested_groups(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    hidden = blocked_user_ids(db, current_user.id)
-    return [_to_response(g, current_user.id, hidden) for g in list_suggested_groups(db, current_user)]
+    blocks = _blocks(db, current_user.id)
+    return [_to_response(g, current_user.id, *blocks) for g in list_suggested_groups(db, current_user)]
 
 
 @router.get("/{group_id}", response_model=GroupResponse)
 def read_group(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     group = _visible_group_or_404(db, group_id, current_user.id)
-    return _to_response(group, current_user.id, blocked_user_ids(db, current_user.id))
+    return _to_response(group, current_user.id, *_blocks(db, current_user.id))
 
 
 # Alla som kan se klubben ser vilka som är med (en privat klubb syns bara
@@ -136,7 +167,7 @@ def join(group_id: int, current_user=Depends(get_current_user), db: Session = De
         group = join_group(db, group, current_user)
     except GroupRuleError as err:
         raise HTTPException(status_code=409, detail=str(err))
-    return _to_response(group, current_user.id, blocked_user_ids(db, current_user.id))
+    return _to_response(group, current_user.id, *_blocks(db, current_user.id))
 
 
 @router.delete("/{group_id}/members/me", status_code=status.HTTP_204_NO_CONTENT)

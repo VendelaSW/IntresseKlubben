@@ -5,6 +5,8 @@ import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
+import Modal from '../components/Modal'
+import FormField from '../components/FormField'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 
@@ -40,6 +42,8 @@ const SIZES = [
 
 function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
+  const [compactText, setCompactText] = useState('')
+  const [modalOpen, setModalOpen] = useState(false)
 
   return (
     <div className="page">
@@ -260,11 +264,12 @@ function StyleGuide() {
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Statusmärken (.status-pill, med .status-pill-success eller .status-pill-owner)
+          Statusmärken (.status-pill, med .status-pill-success, .status-pill-error eller .status-pill-owner)
         </p>
         <div className="card-actions" style={{ marginTop: '1rem' }}>
           <span className="status-pill">Vanlig</span>
           <span className="status-pill status-pill-success">Success</span>
+          <span className="status-pill status-pill-error">Error</span>
           <span className="status-pill status-pill-owner">Ägare</span>
         </div>
 
@@ -280,6 +285,23 @@ function StyleGuide() {
             <div className="card-actions">
               <button type="button" className="primary-button">Gå med</button>
             </div>
+            <div className="detail-view-section">
+              <p className="card-subheading">Ett avsnitt (.detail-view-section)</p>
+              <p className="hint-text">Med en rad luft ovanför, för att skilja det från texten ovanför.</p>
+            </div>
+          </section>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Titelrad (.title-row): titel till vänster och ett märke i högerkanten
+        </p>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <section className="detail-view">
+            <div className="title-row">
+              <p className="card-title">Exempel</p>
+              <span className="status-pill">Öppet</span>
+            </div>
+            <p className="card-subheading">lör 10 okt. 13:30 · Slottsskogen</p>
           </section>
         </div>
 
@@ -306,19 +328,116 @@ function StyleGuide() {
             </ul>
           </div>
         </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Kompakt personlista (.person-list .person-list-compact)
+        </p>
+        <p className="hint-text">
+          Liten text och små avatarer, för när många personer ska rymmas, t.ex. vilka som har
+          svarat på ett event. Rubrikerna ovanför grupperna är .hint-text.
+        </p>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <div className="person-list person-list-compact">
+            <div>
+              <p className="hint-text">Ja (2)</p>
+              <ul>
+                <li>
+                  <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">E</span>
+                    <span>Emmy</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">F</span>
+                    <span>Filip</span>
+                    <span className="status-pill">Blockerad</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="hint-text">Kanske (1)</p>
+              <ul>
+                <li>
+                  <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">L</span>
+                    <span>Leonard</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="style-section">
-        <h2>Om mig-ruta</h2>
+        <h2>Popup</h2>
         <p className="hint-text">
-          Ett eget fält inne i ett profilkort (.profile-about): blekgult (--color-accent-soft)
-          utan kant, samma rundning som formulärfälten och radbrytningar bevarade. Visas bara
-          om texten finns.
+          Modal.jsx, byggd på det inbyggda &lt;dialog&gt;: en vit ruta (.card .modal) med rubrik och
+          "Stäng" över en mörk bakgrund. Esc och ett klick på bakgrunden stänger den. En lång lista
+          läggs i .modal-scroll så att den rullar, och en rad med kryssruta är en
+          label.person-list-item. Används t.ex. för "Bjud in" på ett event.
+        </p>
+        <button type="button" className="secondary-button button-small" style={{ marginTop: '1rem' }} onClick={() => setModalOpen(true)}>
+          Öppna exempel
+        </button>
+        {modalOpen && (
+          <Modal title="Exempel" onClose={() => setModalOpen(false)}>
+            <div className="modal-scroll">
+              <div className="person-list person-list-compact">
+                <ul>
+                  <li>
+                    <label className="person-list-item">
+                      <input type="checkbox" />
+                      <span className="person-list-avatar card-avatar-initials" aria-hidden="true">E</span>
+                      <span>Emmy</span>
+                    </label>
+                  </li>
+                  <li>
+                    <label className="person-list-item">
+                      <input type="checkbox" defaultChecked />
+                      <span className="person-list-avatar card-avatar-initials" aria-hidden="true">L</span>
+                      <span>Leonard</span>
+                    </label>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="card-actions">
+              <button type="button" className="secondary-button button-small" onClick={() => setModalOpen(false)}>
+                Avbryt
+              </button>
+              <button type="button" className="primary-button button-small" onClick={() => setModalOpen(false)}>
+                Klar
+              </button>
+            </div>
+          </Modal>
+        )}
+      </section>
+
+      <section className="style-section">
+        <h2>Blek ruta (Om mig)</h2>
+        <p className="hint-text">
+          Ett eget fält (.soft-box): blekgult (--color-accent-soft) utan kant, samma rundning
+          som formulärfälten. Smal som standard, så den passar inne i ett profilkort. Som "Om
+          mig" bevarar den radbrytningar (.soft-box-text) och visas bara om texten finns.
+          Med .soft-box-wide fyller den hela bredden i ett ark, t.ex. "Kommer du?" på ett event.
         </p>
         <div className="card card-wide content-stack" style={{ marginTop: '1rem' }}>
           <p className="card-title">Emmy, 24</p>
           <p className="card-subheading">Stockholm</p>
           <ProfileAbout text={'Hej! Jag gillar brädspel och klättring.\nSöker folk att spela med på söndagar.'} />
+        </div>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <section className="soft-box soft-box-wide">
+            <h2>Kommer du?</h2>
+            <ul className="tags">
+              <li><button type="button" className="tag tag-selected">Ja</button></li>
+              <li><button type="button" className="tag">Kanske</button></li>
+              <li><button type="button" className="tag">Nej</button></li>
+            </ul>
+          </section>
         </div>
       </section>
 
@@ -341,6 +460,50 @@ function StyleGuide() {
         </form>
         <p className="status-success" style={{ marginTop: '1rem' }}>Sparat!</p>
         <p className="status-error">Något gick fel, försök igen.</p>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Kompakt formulär (.auth-form .form-wide .form-compact) för att skapa en post, t.ex. event
+          och klubb
+        </p>
+        <p className="hint-text">
+          .form-wide betyder bara full bredd, och .form-compact ger mindre fält, text och knappar
+          än det vanliga formuläret (så ett bredformulär kan ha vanliga fält). Varje fält ligger i en
+          .form-field (etiketten tätt ovanför), flera bredvid varandra i en .form-row (de lägger
+          sig under varandra när det är trångt), och knapparna sida vid sida i .form-actions.
+          Titel och beskrivning kan få större fält med .field-large.
+        </p>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <form className="auth-form form-wide form-compact" onSubmit={(e) => e.preventDefault()}>
+            <h2>Skapa något</h2>
+            <FormField id="compact-title" label="Titel (.field-large)">
+              <input id="compact-title" className="field-large" type="text" />
+            </FormField>
+            <FormField id="compact-text" label="Beskrivning">
+              <TextareaWithCount
+                id="compact-text"
+                value={compactText}
+                onChange={(e) => setCompactText(e.target.value)}
+                maxLength={800}
+                rows={3}
+              />
+            </FormField>
+            <div className="form-row">
+              <FormField id="compact-start" label="Start">
+                <input id="compact-start" type="datetime-local" />
+              </FormField>
+              <FormField id="compact-end" label="Slut (valfritt)">
+                <input id="compact-end" type="datetime-local" />
+              </FormField>
+            </div>
+            <FormField id="compact-place" label="Plats">
+              <input id="compact-place" type="text" placeholder="T.ex. Slottsskogen" />
+            </FormField>
+            <div className="form-actions">
+              <button type="submit">Skapa</button>
+              <button type="button" className="button-secondary">Avbryt</button>
+            </div>
+          </form>
+        </div>
       </section>
     </div>
   )

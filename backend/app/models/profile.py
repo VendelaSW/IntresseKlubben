@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Column, Date, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, Date, Enum, ForeignKey, Integer, String, Text, false
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -30,6 +30,11 @@ class Profile(Base):
 
     profile_image_url = Column(String, nullable=True)
     district = Column(String, nullable=True)
+
+    # Kön visas aldrig för andra. Den som slår på det här kan ändå hittas när
+    # någon filtrerar Personer på kön (vilket avslöjar könet), därför är det
+    # avstängt tills man själv väljer det.
+    gender_searchable = Column(Boolean, nullable=False, default=False, server_default=false())
 
     user = relationship("User", back_populates="profile")
     municipality = relationship("Municipality")
