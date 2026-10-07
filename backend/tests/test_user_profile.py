@@ -1,6 +1,7 @@
 """Tester för GET /users/{username}/profile - att se en annan
 användares profil (skrivskyddat)."""
 
+from app.models.interest import Interest
 from app.models.profile import Profile
 from app.models.user import User
 from tests.helpers import make_profile
@@ -55,7 +56,9 @@ def test_other_users_private_fields_not_in_response(client, db, user):
     response = client.get("/users/bob/profile")
 
     body = response.json()
-    assert set(body) == {"name", "age", "municipality_name", "district", "image_url", "profile_text"}
+    assert set(body) == {
+        "name", "age", "municipality_name", "district", "image_url", "profile_text", "interests"
+    }
 
 
 def test_other_users_profile_text_is_visible(client, db, user):
@@ -67,3 +70,25 @@ def test_other_users_profile_text_is_visible(client, db, user):
     body = client.get("/users/bob/profile").json()
 
     assert body["profile_text"] == "Jag gillar brädspel."
+
+
+def test_other_users_interests_are_visible_sorted_by_name(client, db, user):
+    other = _create_user_with_profile(db, "bob")
+    chess = Interest(name="Schack")
+    board_games = Interest(name="Brädspel")
+    other.interests = [chess, board_games]
+    db.commit()
+
+    body = client.get("/users/bob/profile").json()
+
+    # Bara id och namn, samma som på personkorten, sorterade på namn.
+    assert body["interests"] == [
+        {"id": board_games.id, "name": "Brädspel"},
+        {"id": chess.id, "name": "Schack"},
+    ]
+
+
+def test_other_user_without_interests_gives_empty_list(client, db, user):
+    _create_user_with_profile(db, "bob")
+
+    assert client.get("/users/bob/profile").json()["interests"] == []
