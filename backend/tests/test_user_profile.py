@@ -74,15 +74,17 @@ def test_other_users_profile_text_is_visible(client, db, user):
 
 def test_other_users_interests_are_visible_sorted_by_name(client, db, user):
     other = _create_user_with_profile(db, "bob")
-    other.interests = [Interest(name="Schack"), Interest(name="Brädspel")]
+    chess = Interest(name="Schack")
+    board_games = Interest(name="Brädspel")
+    other.interests = [chess, board_games]
     db.commit()
 
     body = client.get("/users/bob/profile").json()
 
-    # Bara id och namn, samma som på personkorten.
+    # Bara id och namn, samma som på personkorten, sorterade på namn.
     assert body["interests"] == [
-        {"id": body["interests"][0]["id"], "name": "Brädspel"},
-        {"id": body["interests"][1]["id"], "name": "Schack"},
+        {"id": board_games.id, "name": "Brädspel"},
+        {"id": chess.id, "name": "Schack"},
     ]
 
 
