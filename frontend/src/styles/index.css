@@ -1404,7 +1404,6 @@ span.tag-selected:hover {
   line-height: 1.1;
 }
 
-/* Ett formulär (.auth-form) som fyller hela arket i stället för att vara smalt. */
 /* Ett avsnitt i en posts egen vy med en rad luft ovanför, t.ex. "Kommer du?" med
    sina knappar. Läggs i .detail-view. */
 .detail-view-section {
@@ -1415,8 +1414,72 @@ span.tag-selected:hover {
   margin-top: 1rem;
 }
 
+/* Ett formulär (.auth-form) som fyller hela bredden i stället för att vara smalt.
+   Gäller bara bredden: de mindre måtten för skapa-formulär ligger på .form-compact,
+   så att andra bredd-formulär (t.ex. chattens svarsfält) behåller vanliga fält. */
 .form-wide {
   max-width: none;
+}
+
+/* Ett kompakt formulär (.auth-form .form-compact), för att skapa en post: mindre
+   fält, text och knappar än de vanliga formulären (inloggning, profil). Läggs
+   oftast tillsammans med .form-wide. Titel och beskrivning, som får mer text, kan
+   få de större måtten med .field-large (flerradiga fält med teckenräknare är alltid
+   stora). Varje fält ligger i en .form-field, och flera kan ligga bredvid varandra
+   i en .form-row. */
+.form-compact {
+  gap: 0.6rem;
+}
+
+.form-compact label {
+  font-size: var(--text-small);
+}
+
+.form-compact input,
+.form-compact select,
+.form-compact textarea {
+  font-size: var(--text-small);
+  padding: 0.3rem 0.5rem;
+}
+
+.form-compact .field-large,
+.form-compact .textarea-count textarea {
+  font-size: var(--text-body);
+  padding: 0.55rem 0.75rem;
+}
+
+.form-compact .textarea-count textarea {
+  padding-bottom: 1.75rem;
+}
+
+.form-compact button {
+  font-size: var(--text-small);
+  padding: 0.3rem 0.7rem;
+  margin-top: 0;
+}
+
+/* Etiketten tätt ovanför sitt fält (till skillnad från mellanrummet mellan fälten). */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+/* Två eller fler fält bredvid varandra. På smala skärmar får de inte plats och
+   lägger sig under varandra av sig själva. */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.5rem;
+}
+
+/* Knapparna längst ner i ett formulär, sida vid sida. */
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 /* En lista med personer (avatar och namn på varje rad), t.ex. medlemmar i en

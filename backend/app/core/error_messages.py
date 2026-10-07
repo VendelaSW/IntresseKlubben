@@ -50,10 +50,12 @@ EVENT_START_IN_PAST = "Starttiden måste vara i framtiden"
 EVENT_END_BEFORE_START = "Sluttiden måste vara efter starttiden"
 EVENT_TIME_NEEDS_TIMEZONE = "Ange tiden med tidszon"
 EVENT_INVITE_NOBODY = "Välj minst en person eller klubb att bjuda in"
+EVENT_GUESTS_CAN_INVITE_EMPTY = "Välj om gäster får bjuda in"
 
 # ---------- Events (routes/events.py, crud/event.py) ----------
 EVENT_NOT_FOUND = "Eventet finns inte"
 EVENT_ONLY_CREATOR = "Bara den som skapat eventet kan ändra det"
+EVENT_ONLY_CREATOR_CAN_INVITE = "Bara den som skapat eventet kan bjuda in"
 EVENT_IN_PRIVATE_GROUP_CANNOT_BE_OPEN = "Events i privata klubbar kan inte vara öppna"
 GROUP_NOT_FOUND = "Klubben finns inte"
 MUST_BE_GROUP_MEMBER = "Du måste vara med i klubben"

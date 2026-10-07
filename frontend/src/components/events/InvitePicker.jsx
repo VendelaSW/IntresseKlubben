@@ -20,7 +20,7 @@ function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onS
 
   return (
     <>
-      <div className="auth-form form-wide">
+      <div className="auth-form form-wide form-compact">
         <input
           type="search"
           aria-label="Sök bland kontakter"
@@ -32,37 +32,41 @@ function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onS
 
       <div className="modal-scroll">
         <div className="person-list person-list-compact">
-          {contacts.length === 0 ? (
-            <p className="hint-text">Du har inga kontakter än.</p>
-          ) : shown.length === 0 ? (
-            <p className="hint-text">Ingen kontakt matchar sökningen.</p>
-          ) : (
-            <ul>
-              {shown.map((c) => (
-                <li key={c.username}>
-                  <label className="person-list-item">
-                    <input
-                      type="checkbox"
-                      checked={usernames.includes(c.username)}
-                      onChange={() => toggle(usernames, setUsernames, c.username)}
-                    />
-                    {c.image_url ? (
-                      <img src={c.image_url} alt="" className="person-list-avatar" />
-                    ) : (
-                      <span className="person-list-avatar card-avatar-initials" aria-hidden="true">
-                        {(c.name ?? c.username).trim()[0]?.toUpperCase()}
-                      </span>
-                    )}
-                    <span>{c.name ?? c.username}</span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div>
+            <p className="card-subheading">Kontakter</p>
+            {contacts.length === 0 ? (
+              <p className="hint-text">Du har inga kontakter än.</p>
+            ) : shown.length === 0 ? (
+              <p className="hint-text">Ingen kontakt matchar sökningen.</p>
+            ) : (
+              <ul>
+                {shown.map((c) => (
+                  <li key={c.username}>
+                    <label className="person-list-item">
+                      <input
+                        type="checkbox"
+                        checked={usernames.includes(c.username)}
+                        onChange={() => toggle(usernames, setUsernames, c.username)}
+                      />
+                      {c.image_url ? (
+                        <img src={c.image_url} alt="" className="person-list-avatar" />
+                      ) : (
+                        <span className="person-list-avatar card-avatar-initials" aria-hidden="true">
+                          {(c.name ?? c.username).trim()[0]?.toUpperCase()}
+                        </span>
+                      )}
+                      <span>{c.name ?? c.username}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           {groups.length > 0 && (
             <div>
-              <p className="hint-text">Hela klubbar</p>
+              <p className="card-subheading">Hela klubbar</p>
+              <p className="hint-text">Alla medlemmar bjuds in.</p>
               <ul>
                 {groups.map((g) => (
                   <li key={g.id}>
