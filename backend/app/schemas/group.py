@@ -65,6 +65,10 @@ class GroupResponse(BaseModel):
     is_member: bool
     is_owner: bool
     created_at: datetime
+    # Är någon den inloggade själv har blockerat med i gruppen? Bara för en
+    # varning till den inloggade; vem det är syns inte (medlemslistan döljer
+    # blockerade), och den som blockerat en själv räknas aldrig.
+    has_blocked_member: bool
 
 
 class GroupMemberResponse(BaseModel):
