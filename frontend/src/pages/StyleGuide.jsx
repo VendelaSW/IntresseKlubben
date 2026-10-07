@@ -262,11 +262,12 @@ function StyleGuide() {
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Statusmärken (.status-pill, med .status-pill-success eller .status-pill-owner)
+          Statusmärken (.status-pill, med .status-pill-success, .status-pill-error eller .status-pill-owner)
         </p>
         <div className="card-actions" style={{ marginTop: '1rem' }}>
           <span className="status-pill">Vanlig</span>
           <span className="status-pill status-pill-success">Success</span>
+          <span className="status-pill status-pill-error">Error</span>
           <span className="status-pill status-pill-owner">Ägare</span>
         </div>
 

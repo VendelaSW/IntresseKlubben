@@ -23,6 +23,11 @@ export function visibilityText(event) {
   return event.visibility === 'open' ? 'Öppet' : 'Endast inbjudna'
 }
 
+// Grönt för öppet, rött för endast inbjudna.
+export function visibilityPillClass(event) {
+  return `status-pill ${event.visibility === 'open' ? 'status-pill-success' : 'status-pill-error'}`
+}
+
 // Ett kort per event, i samma rutnät som klubbkorten. Klick på kortet öppnar
 // eventets egen vy. Märkena ligger utanför den klickbara delen (samma upplägg
 // som GroupList). `myInterestIds` (en Set) markerar intresset om det är ett av
@@ -47,7 +52,7 @@ function EventList({ events, emptyText, myInterestIds, onSelect }) {
           />
           <div className="card-actions">
             {event.is_owner && <span className="status-pill status-pill-owner">Skapare</span>}
-            <span className="status-pill">{visibilityText(event)}</span>
+            <span className={visibilityPillClass(event)}>{visibilityText(event)}</span>
           </div>
         </article>
       ))}

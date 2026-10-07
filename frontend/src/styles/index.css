@@ -810,6 +810,12 @@ span.tag-selected:hover {
   border-color: var(--color-success);
 }
 
+/* Röd: något stängt eller begränsat, t.ex. ett event som bara är för inbjudna. */
+.status-pill-error {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
 /* Ägare av t.ex. en klubb: mörk, så att den skiljer sig både från
    grön "Medlem" och från de gula taggarna. */
 .status-pill-owner {

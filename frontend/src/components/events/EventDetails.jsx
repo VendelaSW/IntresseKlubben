@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import InterestTags from '../InterestTags'
 import Modal from '../Modal'
 import InvitePicker from './InvitePicker'
-import { eventTimeText, visibilityText } from './EventList'
+import { eventTimeText, visibilityPillClass, visibilityText } from './EventList'
 import { EVENT_ANSWER, answerEvent, getEventResponses, inviteToEvent } from '../../services/events'
 
 const ANSWERS = [
@@ -75,7 +75,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onBack, onAnswer
       </button>
       <div className="title-row">
         <p className="card-title">{event.title}</p>
-        <span className="status-pill">{visibilityText(event)}</span>
+        <span className={visibilityPillClass(event)}>{visibilityText(event)}</span>
       </div>
       <p className="card-subheading">
         {eventTimeText(event)} · {event.place_name}
