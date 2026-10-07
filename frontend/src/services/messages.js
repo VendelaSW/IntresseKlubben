@@ -41,10 +41,14 @@ export function markConversationsSeen(conversations) {
 }
 
 // Antal konversationer med meddelanden som är nyare än det man senast såg.
+// Har man själv skrivit det senaste är det inget nytt brev, även om det
+// skrevs på en annan enhet (där "sett" inte är sparat).
 export function countUnseenConversations(conversations) {
   const seen = readSeen()
   return conversations.filter(
-    (c) => !seen[c.username] || new Date(c.last_message_at) > new Date(seen[c.username]),
+    (c) =>
+      !c.last_message_from_me &&
+      (!seen[c.username] || new Date(c.last_message_at) > new Date(seen[c.username])),
   ).length
 }
 

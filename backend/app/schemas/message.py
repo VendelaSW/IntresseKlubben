@@ -38,3 +38,6 @@ class ConversationResponse(BaseModel):
     image_url: str | None
     last_message: str
     last_message_at: datetime
+    # True om den inloggade själv skrev senaste meddelandet. Då är det inget
+    # nytt brev, och siffran på brev-loggan ska inte räkna det.
+    last_message_from_me: bool

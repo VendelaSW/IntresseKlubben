@@ -56,6 +56,7 @@ def list_my_conversations(
             image_url=storage.public_url(image_key) if image_key else None,
             last_message=last_message.text,
             last_message_at=last_message.created_at,
+            last_message_from_me=last_message.sender_id == current_user.id,
         ))
     return result
 
