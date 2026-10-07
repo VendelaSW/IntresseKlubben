@@ -939,6 +939,10 @@ span.tag-selected:hover {
   width: 100%;
 }
 
+/* Menypunkterna krymper steglöst med skärmbredden (clamp), så att alla ryms på en
+   rad även på små telefoner. Det största måttet i varje clamp är det vanliga: ikon
+   (34 px) och text (0,8 rem) från ca 400 px bredd, luften på sidorna (0,9 rem) från
+   ca 800 px. */
 .app-nav-link {
   display: inline-flex;
   flex-direction: column;
@@ -946,16 +950,16 @@ span.tag-selected:hover {
   justify-content: flex-end;
   gap: 0.15rem;
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: clamp(0.72rem, 3.2vw, 0.8rem);
   color: var(--color-text);
   text-decoration: none;
-  padding: 0.3rem 0.9rem 0.1rem;
+  padding: 0.3rem clamp(0.2rem, 1.8vw, 0.9rem) 0.1rem;
   border-radius: 12px;
   white-space: nowrap;
 }
 
 .nav-icon {
-  height: 34px;
+  height: clamp(28px, 8.5vw, 34px);
   width: auto;
   transition: transform 0.15s ease, filter 0.15s ease;
 }
