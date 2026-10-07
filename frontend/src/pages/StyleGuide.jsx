@@ -6,6 +6,7 @@ import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import Modal from '../components/Modal'
+import FormField from '../components/FormField'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 
@@ -41,6 +42,7 @@ const SIZES = [
 
 function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
+  const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
 
   return (
@@ -458,6 +460,50 @@ function StyleGuide() {
         </form>
         <p className="status-success" style={{ marginTop: '1rem' }}>Sparat!</p>
         <p className="status-error">Något gick fel, försök igen.</p>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Kompakt formulär (.auth-form .form-wide .form-compact) för att skapa en post, t.ex. event
+          och klubb
+        </p>
+        <p className="hint-text">
+          .form-wide betyder bara full bredd, och .form-compact ger mindre fält, text och knappar
+          än det vanliga formuläret (så ett bredformulär kan ha vanliga fält). Varje fält ligger i en
+          .form-field (etiketten tätt ovanför), flera bredvid varandra i en .form-row (de lägger
+          sig under varandra när det är trångt), och knapparna sida vid sida i .form-actions.
+          Titel och beskrivning kan få större fält med .field-large.
+        </p>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <form className="auth-form form-wide form-compact" onSubmit={(e) => e.preventDefault()}>
+            <h2>Skapa något</h2>
+            <FormField id="compact-title" label="Titel (.field-large)">
+              <input id="compact-title" className="field-large" type="text" />
+            </FormField>
+            <FormField id="compact-text" label="Beskrivning">
+              <TextareaWithCount
+                id="compact-text"
+                value={compactText}
+                onChange={(e) => setCompactText(e.target.value)}
+                maxLength={800}
+                rows={3}
+              />
+            </FormField>
+            <div className="form-row">
+              <FormField id="compact-start" label="Start">
+                <input id="compact-start" type="datetime-local" />
+              </FormField>
+              <FormField id="compact-end" label="Slut (valfritt)">
+                <input id="compact-end" type="datetime-local" />
+              </FormField>
+            </div>
+            <FormField id="compact-place" label="Plats">
+              <input id="compact-place" type="text" placeholder="T.ex. Slottsskogen" />
+            </FormField>
+            <div className="form-actions">
+              <button type="submit">Skapa</button>
+              <button type="button" className="button-secondary">Avbryt</button>
+            </div>
+          </form>
+        </div>
       </section>
     </div>
   )

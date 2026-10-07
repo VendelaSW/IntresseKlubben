@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import FormField from '../FormField'
 import Modal from '../Modal'
 import TextareaWithCount from '../TextareaWithCount'
 import InvitePicker from './InvitePicker'
@@ -82,82 +83,99 @@ function CreateEventForm({ interests, groups, contacts, onCreated, onCancel }) {
   }
 
   return (
-    <form className="auth-form form-wide" onSubmit={handleSubmit}>
+    <form className="auth-form form-wide form-compact" onSubmit={handleSubmit}>
       <h2>Skapa event</h2>
 
-      <label htmlFor="event-title">Titel</label>
-      <input id="event-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={50} required />
+      <FormField id="event-title" label="Titel">
+        <input
+          id="event-title"
+          className="field-large"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={50}
+          required
+        />
+      </FormField>
 
-      <label htmlFor="event-description">Beskrivning</label>
-      <TextareaWithCount
-        id="event-description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        maxLength={800}
-        rows={4}
-        required
-      />
+      <FormField id="event-description" label="Beskrivning">
+        <TextareaWithCount
+          id="event-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          maxLength={800}
+          rows={4}
+          required
+        />
+      </FormField>
 
-      <label htmlFor="event-interest">Intresse</label>
-      <select id="event-interest" value={interestId} onChange={(e) => setInterestId(e.target.value)} required>
-        <option value="">Välj...</option>
-        {interests.map((i) => (
-          <option key={i.id} value={i.id}>
-            {i.name}
-          </option>
-        ))}
-      </select>
+      <FormField id="event-interest" label="Intresse">
+        <select id="event-interest" value={interestId} onChange={(e) => setInterestId(e.target.value)} required>
+          <option value="">Välj...</option>
+          {interests.map((i) => (
+            <option key={i.id} value={i.id}>
+              {i.name}
+            </option>
+          ))}
+        </select>
+      </FormField>
 
-      <label htmlFor="event-starts-at">Start</label>
-      <input
-        id="event-starts-at"
-        type="datetime-local"
-        value={startsAt}
-        min={localInputValue(new Date())}
-        onChange={(e) => setStartsAt(e.target.value)}
-        required
-      />
+      <div className="form-row">
+        <FormField id="event-starts-at" label="Start">
+          <input
+            id="event-starts-at"
+            type="datetime-local"
+            value={startsAt}
+            min={localInputValue(new Date())}
+            onChange={(e) => setStartsAt(e.target.value)}
+            required
+          />
+        </FormField>
+        <FormField id="event-ends-at" label="Slut (valfritt)">
+          <input
+            id="event-ends-at"
+            type="datetime-local"
+            value={endsAt}
+            min={startsAt || localInputValue(new Date())}
+            onChange={(e) => setEndsAt(e.target.value)}
+          />
+        </FormField>
+      </div>
 
-      <label htmlFor="event-ends-at">Slut (valfritt)</label>
-      <input
-        id="event-ends-at"
-        type="datetime-local"
-        value={endsAt}
-        min={startsAt || localInputValue(new Date())}
-        onChange={(e) => setEndsAt(e.target.value)}
-      />
+      <FormField id="event-place" label="Plats">
+        <input
+          id="event-place"
+          type="text"
+          value={placeName}
+          onChange={(e) => setPlaceName(e.target.value)}
+          placeholder="T.ex. Slottsskogen"
+          maxLength={100}
+          required
+        />
+      </FormField>
 
-      <label htmlFor="event-place">Plats</label>
-      <input
-        id="event-place"
-        type="text"
-        value={placeName}
-        onChange={(e) => setPlaceName(e.target.value)}
-        placeholder="T.ex. Slottsskogen"
-        maxLength={100}
-        required
-      />
+      <FormField id="event-address" label="Gatuadress">
+        <input
+          id="event-address"
+          type="text"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="T.ex. Slottsskogsvallen 1"
+          maxLength={100}
+          required
+        />
+      </FormField>
 
-      <label htmlFor="event-address">Gatuadress</label>
-      <input
-        id="event-address"
-        type="text"
-        value={address}
-        onChange={(e) => setAddress(e.target.value)}
-        placeholder="T.ex. Slottsskogsvallen 1"
-        maxLength={100}
-        required
-      />
-
-      <label htmlFor="event-group">Klubb (valfritt)</label>
-      <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
-        <option value="">Ingen klubb</option>
-        {groups.map((g) => (
-          <option key={g.id} value={g.id}>
-            {g.name}
-          </option>
-        ))}
-      </select>
+      <FormField id="event-group" label="Klubb (valfritt)">
+        <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
+          <option value="">Ingen klubb</option>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+      </FormField>
 
       <label>
         <input
@@ -203,12 +221,14 @@ function CreateEventForm({ interests, groups, contacts, onCreated, onCancel }) {
 
       {error && <p className="status-error">{error}</p>}
 
-      <button type="submit" disabled={saving}>
-        {saving ? 'Skapar...' : 'Skapa event'}
-      </button>
-      <button type="button" className="button-secondary" onClick={onCancel}>
-        Avbryt
-      </button>
+      <div className="form-actions">
+        <button type="submit" disabled={saving}>
+          {saving ? 'Skapar...' : 'Skapa event'}
+        </button>
+        <button type="button" className="button-secondary" onClick={onCancel}>
+          Avbryt
+        </button>
+      </div>
     </form>
   )
 }
