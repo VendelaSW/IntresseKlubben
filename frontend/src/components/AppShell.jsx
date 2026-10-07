@@ -14,6 +14,9 @@ import {
   markConversationsSeen,
 } from '../services/messages'
 
+// Hur ofta siffran på brev-loggan räknas om medan man står kvar på en sida.
+const MESSAGES_POLL_MS = 30000
+
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
   { label: 'Hem', to: '/hem', icon: hemIcon },
@@ -42,16 +45,43 @@ function AppShell() {
       .catch(() => {})
   }, [location.pathname])
 
-  // Konversationer med nya brev, för badgen vid Brev. När man är på Brev
-  // (/meddelanden) räknas allt som sett och badgen försvinner.
+  // Konversationer med nya brev, för siffran på brev-loggan. När man är på
+  // Brev (/meddelanden) räknas allt som sett och siffran försvinner. Räknas
+  // om vid sidbyte och var MESSAGES_POLL_MS, så att nya brev syns utan att man
+  // byter sida. Pausar när fliken inte syns och räknar om direkt när man
+  // kommer tillbaka.
   useEffect(() => {
     const onMessages = location.pathname.startsWith('/meddelanden')
-    getConversations()
-      .then((conversations) => {
+    let cancelled = false
+    let fetching = false
+
+    async function refresh() {
+      if (fetching || document.hidden) return
+      fetching = true
+      try {
+        const conversations = await getConversations()
+        if (cancelled) return
         if (onMessages) markConversationsSeen(conversations)
         setUnseenMessages(onMessages ? 0 : countUnseenConversations(conversations))
-      })
-      .catch(() => {})
+      } catch {
+        // Siffran är inte viktig nog för ett felmeddelande; nästa försök kommer snart.
+      } finally {
+        fetching = false
+      }
+    }
+
+    function onVisibilityChange() {
+      if (!document.hidden) refresh()
+    }
+
+    refresh()
+    const timer = setInterval(refresh, MESSAGES_POLL_MS)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [location.pathname])
 
   function handleLogout() {
