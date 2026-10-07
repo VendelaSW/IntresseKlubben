@@ -17,6 +17,11 @@ PUT /users/me/email - lägger till e-post för ett konto som saknar det. Samma
 regler som vid registrering. 409 om adressen redan används eller om kontot
 redan har en e-post (den går inte att ändra här).
 
+DELETE /users/me - raderar kontot och allt som hör till det (se
+crud.user.delete_user). Kräver lösenordet i AccountDelete. Fel lösenord ger
+403, inte 401: frontend loggar ut vid 401, och ett felskrivet lösenord ska
+bara ge ett felmeddelande.
+
 GET /users/ - andra användare med sparad profil, valfritt filtrerade på
 ?interest_id= och/eller ?municipality_code=. Utesluter dig själv, dina
 borttagna förslag och alla som har blockerat dig eller som du har blockerat. Samma
@@ -38,7 +43,7 @@ DELETE /users/dismissed-suggestions - nollställer alla dina borttagna
 förslag, så de kan dyka upp igen.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import create_access_token, get_current_user, verify_password
@@ -56,6 +61,7 @@ from app.crud.user import (
     EmailTakenError,
     UsernameTakenError,
     create_user,
+    delete_user,
     get_user_by_username,
     set_email,
 )
@@ -63,7 +69,15 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.interest import InterestResponse
 from app.schemas.profile import PersonResponse, PublicProfileResponse
-from app.schemas.user import CurrentUserOut, EmailUpdate, LoginResponse, UserCreate, UserLogin, UserOut
+from app.schemas.user import (
+    AccountDelete,
+    CurrentUserOut,
+    EmailUpdate,
+    LoginResponse,
+    UserCreate,
+    UserLogin,
+    UserOut,
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -122,6 +136,22 @@ def add_email(
             status_code=status.HTTP_409_CONFLICT,
             detail="E-postadressen används redan.",
         )
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    data: AccountDelete,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    if not verify_password(data.password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Fel lösenord.")
+    image_key = delete_user(db, current_user)
+    # Efter att raderingen sparats: misslyckas bilden är kontot ändå borta, och
+    # delete_object ger aldrig fel för en bild som inte går att ta bort.
+    if image_key and storage.is_configured():
+        storage.delete_object(image_key)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _to_person_response(profile) -> PersonResponse:

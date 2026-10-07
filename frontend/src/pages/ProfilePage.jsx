@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import BlockedUsers from '../components/BlockedUsers'
+import DeleteAccount from '../components/DeleteAccount'
 import InterestPicker from '../components/InterestPicker'
 import InterestTags from '../components/InterestTags'
 import ProfileAbout from '../components/ProfileAbout'
@@ -494,6 +495,7 @@ function ProfilePage() {
       <button type="button" className="primary-button" onClick={startEditing}>
         Redigera profil
       </button>
+      <DeleteAccount />
     </div>
   )
 }

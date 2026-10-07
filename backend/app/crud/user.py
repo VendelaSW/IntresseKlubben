@@ -7,11 +7,16 @@ exempel: den ticketen kan byggas mot exakt den här signaturen utan
 att vänta på resten av registreringsflödet.
 """
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.security import hash_password
+from app.crud.group import list_user_groups, remove_member
+from app.models.contact import Contact
+from app.models.dismissed_suggestion import DismissedSuggestion
+from app.models.event import Event, EventInvitation, EventResponse
+from app.models.message import Message
 from app.models.user import User
 from app.schemas.user import UserCreate
 
@@ -122,3 +127,56 @@ def create_user(db: Session, user_in: UserCreate) -> User:
     _commit_or_raise_taken(db, username=user_in.username, email=user_in.email)
     db.refresh(user)
     return user
+
+
+def delete_user(db: Session, user: User) -> str | None:
+    """
+    Raderar kontot och allt som hör till det, sparat på en gång.
+
+    - Klubbar: användaren går ur alla. Äger hen en klubb tar den som varit med
+      längst över, och en klubb som blir tom raderas (samma regler som när
+      man går ur själv).
+    - Egna events raderas med sina inbjudningar och svar, liksom användarens
+      inbjudningar och svar på andras events.
+    - Meddelanden, kontakter, blockeringar och borttagna förslag raderas åt
+      båda hållen, så att inget pekar på kontot efteråt.
+    - Profil, intressen och sist själva kontot.
+
+    Allt raderas uttryckligen här i stället för att lita på databasens
+    ON DELETE, så att det fungerar likadant i testerna (SQLite) och i Neon.
+    Returnerar profilbildens nyckel i bucketen (eller None), så att routen kan
+    ta bort bilden när raderingen har sparats.
+    """
+    user_id = user.id
+
+    for group in list_user_groups(db, user_id):
+        remove_member(db, group, user_id)
+
+    # Egna events via ORM, så att deras inbjudningar och svar följer med.
+    for event in db.query(Event).filter(Event.created_by == user_id).all():
+        db.delete(event)
+    # Skriv medlemskapen och eventen till databasen innan kontot raderas.
+    # GroupMember har ingen relation till User, så annars vet SQLAlchemy inte
+    # att de måste bort först, och i Neon (som kontrollerar främmande nycklar)
+    # kan kontot hinna raderas före dem.
+    db.flush()
+    db.query(EventInvitation).filter(EventInvitation.user_id == user_id).delete(synchronize_session=False)
+    db.query(EventResponse).filter(EventResponse.user_id == user_id).delete(synchronize_session=False)
+
+    db.query(Message).filter(
+        or_(Message.sender_id == user_id, Message.recipient_id == user_id)
+    ).delete(synchronize_session=False)
+    db.query(Contact).filter(
+        or_(Contact.requester_id == user_id, Contact.addressee_id == user_id)
+    ).delete(synchronize_session=False)
+    db.query(DismissedSuggestion).filter(
+        or_(DismissedSuggestion.user_id == user_id, DismissedSuggestion.dismissed_user_id == user_id)
+    ).delete(synchronize_session=False)
+
+    image_key = user.profile.profile_image_url if user.profile else None
+    if user.profile is not None:
+        db.delete(user.profile)
+    user.interests.clear()
+    db.delete(user)
+    db.commit()
+    return image_key

@@ -126,18 +126,25 @@ def join_group(db: Session, group: Group, user: User) -> Group:
     return get_group(db, group.id)
 
 
-def leave_group(db: Session, group: Group, user: User) -> None:
-    """Lämnar gruppen. Ägaren ersätts av den som varit med längst, och en tom grupp raderas."""
-    membership = get_membership(group, user.id)
+def remove_member(db: Session, group: Group, user_id: int) -> None:
+    """Tar bort användaren ur gruppen, utan att spara. Ägaren ersätts av den som
+    varit med längst, och en tom grupp raderas. Delas av leave_group och
+    radering av konto (crud/user.py), som sparar allt på en gång."""
+    membership = get_membership(group, user_id)
     if membership is None:
         return
-    others = [m for m in group.members if m.user_id != user.id]
+    others = [m for m in group.members if m.user_id != user_id]
     if not others:
         db.delete(group)
     else:
         if membership.role == GroupRole.owner:
             others[0].role = GroupRole.owner  # members är sorterad på joined_at
         group.members.remove(membership)
+
+
+def leave_group(db: Session, group: Group, user: User) -> None:
+    """Lämnar gruppen. Ägaren ersätts av den som varit med längst, och en tom grupp raderas."""
+    remove_member(db, group, user.id)
     db.commit()
 
 
