@@ -25,6 +25,20 @@ const EMPTY_TEXT = {
   contacts: 'Inga kontakter än. Skicka en förfrågan till någon under Förslag.',
 }
 
+// Varför någon föreslås: hur många intressen man har gemensamt, med siffran
+// framhävd. Vilka det är syns redan på kortet (gula taggar), så texten
+// behöver inte räkna upp dem. null om inget är gemensamt.
+function sharedInterestsText(person, myInterestIds) {
+  const count = (person.interests ?? []).filter((interest) => myInterestIds.has(interest.id)).length
+  if (count === 0) return null
+  return (
+    <>
+      Ni har <strong className="shared-count">{count}</strong>{' '}
+      {count === 1 ? 'gemensamt intresse' : 'gemensamma intressen'}
+    </>
+  )
+}
+
 // Personer-sidan: bläddra och filtrera andra användare (Förslag), svara på
 // inkommande kontaktförfrågningar och ångra skickade (Förfrågningar) och se
 // sina kontakter (Kontakter).
@@ -102,6 +116,30 @@ function PeoplePage() {
     .filter((person) => !excludedUsernames.has(person.username))
     .map((person) => ({ person, outgoing: outgoingByUsername.get(person.username) }))
     .sort((a, b) => sharedCount(b.person) - sharedCount(a.person))
+
+  // Förslag delas i två: de man har minst ett intresse gemensamt med, och alla andra.
+  const matches = suggested.filter(({ person }) => sharedCount(person) > 0)
+  const others = suggested.filter(({ person }) => sharedCount(person) === 0)
+
+  function suggestionCard({ person, outgoing }) {
+    return (
+      <PersonCard
+        key={person.username}
+        person={person}
+        sharedInterestIds={myInterestIds}
+        reason={sharedInterestsText(person, myInterestIds)}
+        actions={
+          <PersonActions
+            relation={outgoing ? 'outgoing' : null}
+            busy={busy}
+            onSend={() => runAction(() => sendContactRequest(person.username))}
+            onCancel={() => handleCancelRequest(outgoing)}
+            onDismiss={() => handleDismiss(person)}
+          />
+        }
+      />
+    )
+  }
 
   const lists = {
     suggested,
@@ -247,26 +285,24 @@ function PeoplePage() {
         </>
       ) : lists[tab].length === 0 ? (
         <p className="hint-text">{EMPTY_TEXT[tab]}</p>
+      ) : tab === 'suggested' ? (
+        // Riktiga förslag (minst ett gemensamt intresse) först, med förklaring.
+        // Övriga visas under en egen rubrik, så att det inte ser ut som att
+        // systemet föreslår dem utan anledning.
+        <>
+          {matches.length > 0 && (
+            <div className="card-grid card-grid-compact">{matches.map(suggestionCard)}</div>
+          )}
+          {others.length > 0 && (
+            <>
+              <h2>Fler i Intresseklubben</h2>
+              <p className="hint-text">Ni har inga intressen gemensamt än.</p>
+              <div className="card-grid card-grid-compact">{others.map(suggestionCard)}</div>
+            </>
+          )}
+        </>
       ) : (
         <div className="card-grid card-grid-compact">
-          {tab === 'suggested' &&
-            suggested.map(({ person, outgoing }) => (
-              <PersonCard
-                key={person.username}
-                person={person}
-                sharedInterestIds={myInterestIds}
-                actions={
-                  <PersonActions
-                    relation={outgoing ? 'outgoing' : null}
-                    busy={busy}
-                    onSend={() => runAction(() => sendContactRequest(person.username))}
-                    onCancel={() => handleCancelRequest(outgoing)}
-                    onDismiss={() => handleDismiss(person)}
-                  />
-                }
-              />
-            ))}
-
           {tab === 'contacts' &&
             contactsData.contacts.map((contact) => (
               <PersonCard

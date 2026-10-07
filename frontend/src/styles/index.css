@@ -884,6 +884,15 @@ span.tag-selected:hover {
   gap: 0.75rem;
 }
 
+/* Siffran i "Ni har 2 gemensamma intressen" på personkorten: fet och mörk,
+   med samma gula understrykning som länkarna, så att den syns i den grå
+   texten. */
+.shared-count {
+  color: var(--color-text);
+  font-weight: 700;
+  border-bottom: 2px solid var(--color-accent);
+}
+
 .person-card-link {
   display: flex;
   flex-direction: column;

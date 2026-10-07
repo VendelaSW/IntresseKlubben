@@ -156,3 +156,51 @@ def test_add_email_cannot_change_existing_email(client, db, user):
     assert response.json()["detail"] == "Du har redan en e-postadress."
     db.refresh(user)
     assert user.email == "forsta@example.com"
+
+
+# --- Två som sparar samma användarnamn/e-post exakt samtidigt ---
+# Kontrollen före sparandet hinner då inte se den andra, och databasen stoppar
+# den som kommer sist. Det ska ge samma 409 som annars, inte ett serverfel.
+
+
+def _miss_first_check(monkeypatch, name):
+    """Låter första anropet till get_user_by_<name> missa en befintlig
+    användare, som när en annan registrering sparas precis efter kontrollen.
+    Senare anrop fungerar som vanligt."""
+    import app.crud.user as crud_user
+
+    real = getattr(crud_user, name)
+    calls = []
+
+    def first_call_misses(db, value):
+        calls.append(value)
+        return None if len(calls) == 1 else real(db, value)
+
+    monkeypatch.setattr(crud_user, name, first_call_misses)
+
+
+def test_register_same_username_at_the_same_time_gives_409(client, monkeypatch):
+    _register(client, username="Vendela")
+    _miss_first_check(monkeypatch, "get_user_by_username")
+    response = _register(client, username="vendela", email="annan@example.com")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Användarnamnet är upptaget."
+
+
+def test_register_same_email_at_the_same_time_gives_409(client, monkeypatch):
+    _register(client)
+    _miss_first_check(monkeypatch, "get_user_by_email")
+    response = _register(client, username="annan")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "E-postadressen används redan."
+
+
+def test_add_same_email_at_the_same_time_gives_409(client, db, user, monkeypatch):
+    db.add(User(username="annan", email="upptagen@example.com", password_hash="x"))
+    db.commit()
+    _miss_first_check(monkeypatch, "get_user_by_email")
+    response = client.put("/users/me/email", json={"email": "upptagen@example.com"})
+    assert response.status_code == 409
+    assert response.json()["detail"] == "E-postadressen används redan."
+    db.refresh(user)
+    assert user.email is None
