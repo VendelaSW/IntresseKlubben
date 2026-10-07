@@ -91,10 +91,13 @@ def test_invitations_are_all_or_nothing(client, db, user, people, event):
 
 def test_inviting_twice_does_not_duplicate(client, db, user, people, event):
     add_contact(db, user.id, people["user2"].id)
-    client.post(url(event), json={"usernames": ["user2"]})
-    response = client.post(url(event), json={"usernames": ["user2"]})
-    assert response.status_code == 200
-    assert usernames(response) == ["user2"]
+    first = client.post(url(event), json={"usernames": ["user2"]})
+    assert usernames(first) == ["user2"]
+    # Andra gången är ingen ny inbjuden, så svaret är tomt.
+    second = client.post(url(event), json={"usernames": ["user2"]})
+    assert second.status_code == 200
+    assert usernames(second) == []
+    assert usernames(client.get(url(event))) == ["user2"]
     assert db.query(EventInvitation).count() == 1
 
 
@@ -152,14 +155,29 @@ def test_cannot_invite_a_club_you_are_not_in(client, db, user, people, event):
 # ---------- Vem får hantera inbjudningar ----------
 
 
-def test_only_the_creator_can_manage_invitations(client, db, user, people):
-    event = add_event(db, people["user2"].id, visibility=EventVisibility.open)
+def test_only_the_creator_can_invite_read_and_remove(client, db, user, people):
+    # Öppet event, privat event man är inbjuden till och klubbens privata event:
+    # i alla tre får bara skaparen bjuda in, läsa listan och ta bort inbjudningar.
+    open_event = add_event(db, people["user2"].id, visibility=EventVisibility.open, title="Öppet")
+    private_event = add_event(
+        db, people["user2"].id, visibility=EventVisibility.invite_only, title="Privat"
+    )
+    db.add(EventInvitation(event_id=private_event.id, user_id=user.id))
+    group = add_group(db, people["user2"].id, visibility=GroupVisibility.private, members=[user.id])
+    club_event = add_event(
+        db, people["user2"].id, group_id=group.id, visibility=EventVisibility.invite_only, title="Klubb"
+    )
+    db.commit()
     add_contact(db, user.id, people["user3"].id)
 
-    # Ser eventet (det är öppet) men äger det inte.
-    assert client.get(url(event)).status_code == 403
-    assert client.post(url(event), json={"usernames": ["user3"]}).status_code == 403
-    assert client.delete(f"{url(event)}/user3").status_code == 403
+    for event in (open_event, private_event, club_event):
+        post = client.post(url(event), json={"usernames": ["user3"]})
+        assert post.status_code == 403, event.title
+        assert post.json()["detail"] == "Bara den som skapat eventet kan ändra det"
+        assert client.get(url(event)).status_code == 403, event.title
+        assert client.delete(f"{url(event)}/user3").status_code == 403, event.title
+    # Ingen inbjudan skapades, bara min egen till det privata eventet finns kvar.
+    assert db.query(EventInvitation).count() == 1
 
 
 def test_a_hidden_event_looks_like_a_missing_one(client, db, user, people):
