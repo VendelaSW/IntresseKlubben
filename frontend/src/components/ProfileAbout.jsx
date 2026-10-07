@@ -3,9 +3,9 @@ function ProfileAbout({ text }) {
   if (!text) return null
 
   return (
-    <section className="profile-about">
+    <section className="soft-box">
       <h2>Om mig</h2>
-      <p className="profile-about-text">{text}</p>
+      <p className="soft-box-text">{text}</p>
     </section>
   )
 }
