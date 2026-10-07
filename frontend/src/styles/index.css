@@ -1178,6 +1178,13 @@ span.tag-selected:hover {
   width: 100%;
 }
 
+/* Filtren kompakta, tillsammans inte bredare än ett personkort (300px), i
+   stället för att sträcka ut sig över hela sidan. Sida vid sida som
+   filter-select-row redan gör. Lägg till utöver filter-select-row. */
+.filter-select-row-compact {
+  max-width: 300px;
+}
+
 /* Sökfältet för klubbar med sorteringsknappen bredvid, ovanför filtren. */
 .search-row {
   display: flex;
@@ -1277,13 +1284,6 @@ span.tag-selected:hover {
 .sort-menu-item-selected:hover,
 .sort-menu-item-selected:focus-visible {
   background: var(--color-accent);
-}
-
-/* Filtren kompakta, tillsammans inte bredare än ett personkort (300px), i
-   stället för att sträcka ut sig över hela sidan. Sida vid sida som
-   filter-select-row redan gör. Lägg till utöver filter-select-row. */
-.filter-select-row-compact {
-  max-width: 300px;
 }
 
 /* Kort för en post i en lista, i samma rutnät och med samma hover som
