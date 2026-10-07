@@ -4,7 +4,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, selectinload
 
 from app.core import error_messages as msg
-from app.crud.contact import blocked_user_ids
+from app.crud.contact import blocked_by_me_ids, blocked_user_ids
 from app.crud.group import get_group, get_membership
 from app.crud.user import get_user_by_username
 from app.models.contact import Contact
@@ -237,16 +237,6 @@ def set_answer(db: Session, event: Event, user_id: int, answer: EventAnswer) -> 
     db.commit()
 
 
-def _blocked_by_me_ids(db: Session, user_id: int) -> set[int]:
-    """Id:n på dem användaren själv har blockerat (inte dem som har blockerat hen)."""
-    rows = (
-        db.query(Contact.addressee_id)
-        .filter(Contact.status == "BLOCKED", Contact.requester_id == user_id)
-        .all()
-    )
-    return {row[0] for row in rows}
-
-
 def list_responses(db: Session, event: Event, viewer_id: int) -> list[tuple[EventResponse, User, bool]]:
     """Alla som har svarat (profil förladdad), den som svarade först överst.
     Varje rad har också en flagga: True om tittaren själv har blockerat
@@ -254,7 +244,7 @@ def list_responses(db: Session, event: Event, viewer_id: int) -> list[tuple[Even
     att veta att någon man har blockerat kommer. Den som har blockerat tittaren
     döljs helt och utan varning, annars skulle tittaren förstå att hen är
     blockerad."""
-    blocked_by_me = _blocked_by_me_ids(db, viewer_id)
+    blocked_by_me = blocked_by_me_ids(db, viewer_id)
     hidden = blocked_user_ids(db, viewer_id) - blocked_by_me
     rows = (
         db.query(EventResponse)

@@ -181,3 +181,80 @@ def test_group_member_count_excludes_blocked_users(client, db, user, municipalit
     # Dave har inte blockerat någon och ser alla fyra.
     _login_as(dave)
     assert client.get(f"/groups/{group.id}").json()["member_count"] == 4
+
+
+# --- Varning om blockerade medlemmar i klubbar ----------------------------------
+# Den som blockerat någon får en varning (has_blocked_member) om den personen är
+# med i klubben. Vem det är syns inte, och den blockerade får aldrig veta något.
+
+
+def _club(db, members, name="Morgonlöparna"):
+    interest = db.query(Interest).filter_by(name="Löpning").first()
+    if interest is None:
+        interest = Interest(name="Löpning")
+        db.add(interest)
+        db.commit()
+    group = Group(
+        name=name,
+        description="Lugna rundor.",
+        interest_id=interest.id,
+        municipality_code="1480",
+        created_by=members[0].id,
+    )
+    group.members = [GroupMember(user_id=u.id) for u in members]
+    db.add(group)
+    db.commit()
+    return group
+
+
+def test_member_gets_a_warning_about_someone_they_blocked(client, db, user, municipalities):
+    bob = _person(db, "bob", "Bob")
+    group = _club(db, [user, bob])
+    _club(db, [user], name="Utan Bob")
+    _block(db, user, bob)
+
+    assert client.get(f"/groups/{group.id}").json()["has_blocked_member"] is True
+    assert {g["name"]: g["has_blocked_member"] for g in client.get("/groups/mine").json()} == {
+        "Morgonlöparna": True,
+        "Utan Bob": False,
+    }
+    # Vem det är syns fortfarande inte.
+    assert [m["username"] for m in client.get(f"/groups/{group.id}/members").json()] == ["testuser"]
+
+
+def test_warning_before_and_when_joining(client, db, user, municipalities):
+    bob = _person(db, "bob", "Bob")
+    user.interests = [_club(db, [bob]).interest]
+    db.commit()
+    _block(db, user, bob)
+
+    # Syns redan innan man går med, så att man kan välja att låta bli.
+    assert [g["has_blocked_member"] for g in client.get("/groups/").json()] == [True]
+    assert [g["has_blocked_member"] for g in client.get("/groups/suggested").json()] == [True]
+    group_id = client.get("/groups/").json()[0]["id"]
+    joined = client.put(f"/groups/{group_id}/members/me").json()
+    assert joined["is_member"] is True
+    assert joined["has_blocked_member"] is True
+
+
+def test_no_warning_about_someone_who_blocked_me(client, db, user, municipalities):
+    carol = _person(db, "carol", "Carol")
+    group = _club(db, [user, carol])
+    _block(db, carol, user)
+
+    # Jag får ingen varning: då skulle jag förstå att Carol har blockerat mig.
+    assert client.get(f"/groups/{group.id}").json()["has_blocked_member"] is False
+    # Carol, som har blockerat mig, får varningen.
+    _login_as(carol)
+    assert client.get(f"/groups/{group.id}").json()["has_blocked_member"] is True
+
+
+def test_warning_goes_away_when_unblocking(client, db, user, municipalities):
+    bob = _person(db, "bob", "Bob")
+    group = _club(db, [user, bob])
+    _block(db, user, bob)
+    assert client.get(f"/groups/{group.id}").json()["has_blocked_member"] is True
+
+    assert client.delete("/users/bob/block").status_code == 204
+
+    assert client.get(f"/groups/{group.id}").json()["has_blocked_member"] is False
