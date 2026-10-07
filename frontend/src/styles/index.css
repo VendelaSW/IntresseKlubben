@@ -394,9 +394,11 @@ button.banner-button {
   text-align: left;
 }
 
-/* "Om mig"-rutan i ett profilkort: ett eget fält med samma rundning som
-   formulärfälten, i blekt ljusgult (--color-accent-soft) och utan kant. */
-.profile-about {
+/* Blek ruta: ett eget fält med samma rundning som formulärfälten, i blekt
+   ljusgult (--color-accent-soft) och utan kant. Används t.ex. för "Om mig" i ett
+   profilkort och för "Kommer du?" på ett event. Smal som standard (passar ett
+   profilkort), .soft-box-wide fyller hela bredden i ett ark. */
+.soft-box {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -408,8 +410,12 @@ button.banner-button {
   text-align: left;
 }
 
+.soft-box-wide {
+  max-width: none;
+}
+
 /* pre-line behåller radbrytningarna, anywhere bryter även mycket långa ord. */
-.profile-about-text {
+.soft-box-text {
   margin: 0;
   white-space: pre-line;
   overflow-wrap: anywhere;
@@ -804,6 +810,12 @@ span.tag-selected:hover {
   border-color: var(--color-success);
 }
 
+/* Röd: något stängt eller begränsat, t.ex. ett event som bara är för inbjudna. */
+.status-pill-error {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
 /* Ägare av t.ex. en klubb: mörk, så att den skiljer sig både från
    grön "Medlem" och från de gula taggarna. */
 .status-pill-owner {
@@ -1155,8 +1167,9 @@ span.tag-selected:hover {
   width: 100%;
 }
 
-.app-section-centered .hint-text,
-.app-section-centered .status-error {
+/* Bara sidans egna texter (tom lista, fel) centreras, inte texter inne i ett ark. */
+.app-section-centered > .hint-text,
+.app-section-centered > .status-error {
   text-align: center;
 }
 
@@ -1176,7 +1189,8 @@ span.tag-selected:hover {
   gap: 0.5rem;
 }
 
-.filter-select-row select {
+.filter-select-row select,
+.filter-select-row input {
   font-family: var(--font-body);
   font-size: var(--text-small);
   padding: 0.4rem 0.5rem;
@@ -1185,6 +1199,27 @@ span.tag-selected:hover {
   background: var(--color-white);
   color: var(--color-text);
   width: 100%;
+}
+
+/* "Ålder" följt av från- och till-ålder, i en av filtrens rutor. */
+.filter-age-range {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-small);
+}
+
+/* Utan upp/ner-pilarna, så att platshållartexten får plats. */
+.filter-age-range input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.filter-age-range input::-webkit-outer-spin-button,
+.filter-age-range input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* Filtren kompakta, tillsammans inte bredare än ett personkort (300px), i
@@ -1331,6 +1366,25 @@ span.tag-selected:hover {
   overflow: hidden;
 }
 
+/* Titel till vänster och ett märke (.status-pill) i högerkanten, i en posts egen
+   vy. Titeln bryts på flera rader om den är lång, märket behåller sin storlek. */
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.title-row .card-title {
+  min-width: 0;
+}
+
+.title-row .status-pill {
+  flex-shrink: 0;
+  margin-top: 0.35rem;
+}
+
 /* Innehållet i ett ark som visar en post: titel, undertext och information
    under varandra, vänsterställt. */
 .detail-view {
@@ -1347,6 +1401,16 @@ span.tag-selected:hover {
 }
 
 /* Ett formulär (.auth-form) som fyller hela arket i stället för att vara smalt. */
+/* Ett avsnitt i en posts egen vy med en rad luft ovanför, t.ex. "Kommer du?" med
+   sina knappar. Läggs i .detail-view. */
+.detail-view-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
 .form-wide {
   max-width: none;
 }
@@ -1387,6 +1451,77 @@ span.tag-selected:hover {
   background: var(--color-line);
   object-fit: cover;
   flex-shrink: 0;
+}
+
+/* Kompakt personlista: liten text och små avatarer, för när många personer ska
+   rymmas (t.ex. vilka som har svarat på ett event). Läggs på .person-list. */
+.person-list-compact {
+  margin-top: 1rem;
+}
+
+.person-list-compact > div + div {
+  margin-top: 0.75rem;
+}
+
+.person-list-compact ul {
+  gap: 0.25rem;
+}
+
+.person-list-compact .person-list-item {
+  gap: 0.5rem;
+  font-size: var(--text-small);
+}
+
+.person-list-compact .person-list-avatar {
+  width: 24px;
+  height: 24px;
+}
+
+.person-list-compact .card-avatar-initials {
+  font-size: 0.75rem;
+}
+
+/* Popup (Modal.jsx), byggd på det inbyggda <dialog>-elementet. Ligger på .card
+   (vit ruta med kant), men utan egen padding så att ett klick på själva
+   bakgrunden går att skilja från ett klick i rutan. Innehållet ligger i
+   .modal-content, rubrikraden i .modal-header och en lista som kan rulla i
+   .modal-scroll. */
+.modal {
+  width: min(92vw, 420px);
+  max-width: none;
+  max-height: 85vh;
+  padding: 0;
+  text-align: left;
+}
+
+.modal::backdrop {
+  background: rgba(26, 26, 26, 0.45);
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  max-height: calc(85vh - 4px);
+  box-sizing: border-box;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.modal-scroll {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* En rad som hela går att klicka på för att bocka i (kryssruta först). */
+label.person-list-item {
+  cursor: pointer;
 }
 
 /* ---------- Hem (hubben) ---------- */

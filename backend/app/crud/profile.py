@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.interest import Interest
-from app.models.profile import Profile
+from app.models.profile import GenderEnum, Profile
 from app.models.user import User
 from app.schemas.profile import ProfileCreate, ProfileUpdate
 
@@ -24,6 +24,17 @@ def calculate_age(birth_date: date) -> int:
     today = date.today()
     had_birthday_this_year = (today.month, today.day) >= (birth_date.month, birth_date.day)
     return today.year - birth_date.year - (0 if had_birthday_this_year else 1)
+
+
+def _latest_birth_date_for_age(age: int) -> date:
+    """Senaste födelsedatum som ger minst `age` år i dag, enligt calculate_age.
+    Är det 29 februari i dag och inte skottår då, räknas 28 februari (den som
+    är född 1 mars har inte fyllt än)."""
+    today = date.today()
+    try:
+        return today.replace(year=today.year - age)
+    except ValueError:
+        return today.replace(year=today.year - age, day=28)
 
 
 def get_profile(db: Session, user_id: int) -> Profile | None:
@@ -48,6 +59,7 @@ def create_profile(db: Session, user_id: int, data: ProfileCreate) -> Profile:
         municipality_code=data.municipality_code,
         profile_text=data.profile_text,
         district=data.district,
+        gender_searchable=data.gender_searchable,
     )
     db.add(profile)
     db.get(User, user_id).interests = interests
@@ -74,6 +86,8 @@ def update_profile(db: Session, user_id: int, data: ProfileUpdate) -> Profile:
         profile.district = data.district
     if data.profile_text is not None:
         profile.profile_text = data.profile_text
+    if data.gender_searchable is not None:
+        profile.gender_searchable = data.gender_searchable
 
     db.commit()
     db.refresh(profile)
@@ -86,10 +100,17 @@ def list_people(
     interest_id: int | None = None,
     municipality_code: str | None = None,
     exclude_user_ids: set[int] | None = None,
+    gender: GenderEnum | None = None,
+    min_age: int | None = None,
+    max_age: int | None = None,
 ) -> list[Profile]:
-    """Andra användare med sparad profil, valfritt filtrerade på intresse och
-    kommun. exclude_user_ids är en extra uteslutningslista utöver dig själv -
-    används för tidigare borttagna förslag (se crud/dismissed_suggestion.py)."""
+    """Andra användare med sparad profil, valfritt filtrerade på intresse,
+    kommun, kön och ålder (min_age och max_age räknas med, som calculate_age).
+    exclude_user_ids är en extra uteslutningslista utöver dig själv -
+    används för tidigare borttagna förslag (se crud/dismissed_suggestion.py).
+
+    Filtret på kön tar bara med dem som valt gender_searchable, eftersom
+    träffarna annars avslöjar könet hos alla andra."""
     query = (
         db.query(Profile)
         .join(User, User.id == Profile.user_id)
@@ -102,6 +123,12 @@ def list_people(
         query = query.filter(User.interests.any(Interest.id == interest_id))
     if municipality_code is not None:
         query = query.filter(Profile.municipality_code == municipality_code)
+    if gender is not None:
+        query = query.filter(Profile.gender == gender, Profile.gender_searchable.is_(True))
+    if min_age is not None:
+        query = query.filter(Profile.birth_date <= _latest_birth_date_for_age(min_age))
+    if max_age is not None:
+        query = query.filter(Profile.birth_date > _latest_birth_date_for_age(max_age + 1))
     return query.order_by(Profile.name).all()
 
 
