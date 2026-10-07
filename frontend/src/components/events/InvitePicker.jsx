@@ -20,7 +20,7 @@ function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onS
 
   return (
     <>
-      <div className="auth-form form-wide">
+      <div className="auth-form form-wide form-compact">
         <input
           type="search"
           aria-label="Sök bland kontakter"

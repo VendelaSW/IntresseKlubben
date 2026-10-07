@@ -462,16 +462,18 @@ function StyleGuide() {
         <p className="status-error">Något gick fel, försök igen.</p>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Kompakt formulär (.auth-form .form-wide) för att skapa en post, t.ex. event och klubb
+          Kompakt formulär (.auth-form .form-wide .form-compact) för att skapa en post, t.ex. event
+          och klubb
         </p>
         <p className="hint-text">
-          Mindre fält, text och knappar än det vanliga formuläret. Varje fält ligger i en
+          .form-wide betyder bara full bredd, och .form-compact ger mindre fält, text och knappar
+          än det vanliga formuläret (så ett bredformulär kan ha vanliga fält). Varje fält ligger i en
           .form-field (etiketten tätt ovanför), flera bredvid varandra i en .form-row (de lägger
           sig under varandra när det är trångt), och knapparna sida vid sida i .form-actions.
           Titel och beskrivning kan få större fält med .field-large.
         </p>
         <div className="card sheet" style={{ marginTop: '1rem' }}>
-          <form className="auth-form form-wide" onSubmit={(e) => e.preventDefault()}>
+          <form className="auth-form form-wide form-compact" onSubmit={(e) => e.preventDefault()}>
             <h2>Skapa något</h2>
             <FormField id="compact-title" label="Titel (.field-large)">
               <input id="compact-title" className="field-large" type="text" />

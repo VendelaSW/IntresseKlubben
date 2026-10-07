@@ -81,7 +81,7 @@ function CreateEventForm({ interests, groups, contacts, onCreated, onCancel }) {
   }
 
   return (
-    <form className="auth-form form-wide" onSubmit={handleSubmit}>
+    <form className="auth-form form-wide form-compact" onSubmit={handleSubmit}>
       <h2>Skapa event</h2>
 
       <FormField id="event-title" label="Titel">

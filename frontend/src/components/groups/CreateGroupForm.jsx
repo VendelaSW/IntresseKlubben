@@ -33,7 +33,7 @@ function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCre
   }
 
   return (
-    <form className="auth-form form-wide" onSubmit={handleSubmit}>
+    <form className="auth-form form-wide form-compact" onSubmit={handleSubmit}>
       <h2>Skapa klubb</h2>
 
       <FormField id="group-name" label="Namn">

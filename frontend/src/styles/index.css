@@ -1410,39 +1410,45 @@ span.tag-selected:hover {
   margin-top: 1rem;
 }
 
-/* Ett kompakt formulär (.auth-form .form-wide) som fyller hela arket i stället
-   för att vara smalt, för att skapa en post. Mindre fält, text och knappar än
-   de vanliga formulären (inloggning, profil). Titel och beskrivning, som får
-   mer text, kan få de större måtten med .field-large (flerradiga fält med
-   teckenräknare är alltid stora). Varje fält ligger i en .form-field, och flera
-   kan ligga bredvid varandra i en .form-row. */
+/* Ett formulär (.auth-form) som fyller hela bredden i stället för att vara smalt.
+   Gäller bara bredden: de mindre måtten för skapa-formulär ligger på .form-compact,
+   så att andra bredd-formulär (t.ex. chattens svarsfält) behåller vanliga fält. */
 .form-wide {
   max-width: none;
+}
+
+/* Ett kompakt formulär (.auth-form .form-compact), för att skapa en post: mindre
+   fält, text och knappar än de vanliga formulären (inloggning, profil). Läggs
+   oftast tillsammans med .form-wide. Titel och beskrivning, som får mer text, kan
+   få de större måtten med .field-large (flerradiga fält med teckenräknare är alltid
+   stora). Varje fält ligger i en .form-field, och flera kan ligga bredvid varandra
+   i en .form-row. */
+.form-compact {
   gap: 0.6rem;
 }
 
-.form-wide label {
+.form-compact label {
   font-size: var(--text-small);
 }
 
-.form-wide input,
-.form-wide select,
-.form-wide textarea {
+.form-compact input,
+.form-compact select,
+.form-compact textarea {
   font-size: var(--text-small);
   padding: 0.3rem 0.5rem;
 }
 
-.form-wide .field-large,
-.form-wide .textarea-count textarea {
+.form-compact .field-large,
+.form-compact .textarea-count textarea {
   font-size: var(--text-body);
   padding: 0.55rem 0.75rem;
 }
 
-.form-wide .textarea-count textarea {
+.form-compact .textarea-count textarea {
   padding-bottom: 1.75rem;
 }
 
-.form-wide button {
+.form-compact button {
   font-size: var(--text-small);
   padding: 0.3rem 0.7rem;
   margin-top: 0;
