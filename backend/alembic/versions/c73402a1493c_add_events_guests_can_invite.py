@@ -1,7 +1,7 @@
 """add events.guests_can_invite
 
 Revision ID: c73402a1493c
-Revises: e0a6b2b09a47
+Revises: 7c3e5a1f9b42
 Create Date: 2026-10-07 20:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'c73402a1493c'
-down_revision = 'e0a6b2b09a47'
+down_revision = '7c3e5a1f9b42'
 branch_labels = None
 depends_on = None
 
