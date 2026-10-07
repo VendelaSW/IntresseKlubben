@@ -45,15 +45,19 @@ function AppShell() {
       .catch(() => {})
   }, [location.pathname])
 
-  // Konversationer med nya brev, för siffran på brev-loggan. När man är på
-  // Brev (/meddelanden) räknas allt som sett och siffran försvinner. Räknas
-  // om vid sidbyte och var MESSAGES_POLL_MS, så att nya brev syns utan att man
-  // byter sida. Pausar när fliken inte syns och räknar om direkt när man
-  // kommer tillbaka.
+  // Konversationer med nya brev, för siffran på brev-loggan. När man kommer
+  // till Brev (/meddelanden) räknas allt som sett och siffran försvinner.
+  // Räknas om vid sidbyte och var MESSAGES_POLL_MS, så att nya brev syns utan
+  // att man byter sida. Pausar när fliken inte syns och räknar om direkt när
+  // man kommer tillbaka.
   useEffect(() => {
     const onMessages = location.pathname.startsWith('/meddelanden')
     let cancelled = false
     let fetching = false
+    // Allt markeras som sett bara vid första hämtningen efter sidbytet. Brev
+    // som kommer medan man står kvar (t.ex. från B medan man chattar med A)
+    // har man inte sett, och ska räknas som nya när man går därifrån.
+    let firstFetch = true
 
     async function refresh() {
       if (fetching || document.hidden) return
@@ -61,7 +65,8 @@ function AppShell() {
       try {
         const conversations = await getConversations()
         if (cancelled) return
-        if (onMessages) markConversationsSeen(conversations)
+        if (onMessages && firstFetch) markConversationsSeen(conversations)
+        firstFetch = false
         setUnseenMessages(onMessages ? 0 : countUnseenConversations(conversations))
       } catch {
         // Siffran är inte viktig nog för ett felmeddelande; nästa försök kommer snart.
