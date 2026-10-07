@@ -193,6 +193,22 @@ def test_patch_can_change_the_mandatory_fields(client, user, municipalities, yog
     assert body["profile_text"] == "Ny text"
 
 
+def test_gender_is_not_searchable_unless_chosen(client, user, municipalities, yoga):
+    assert _create_profile(client, yoga)["gender_searchable"] is False
+
+
+def test_gender_searchable_can_be_chosen_when_creating(client, user, municipalities, yoga):
+    assert _create_profile(client, yoga, gender_searchable=True)["gender_searchable"] is True
+
+
+def test_patch_turns_gender_searchable_on_and_off(client, user, municipalities, yoga):
+    _create_profile(client, yoga)
+    assert client.patch("/profile/", json={"gender_searchable": True}).json()["gender_searchable"] is True
+    # Andra ändringar rör den inte.
+    assert client.patch("/profile/", json={"district": "Majorna"}).json()["gender_searchable"] is True
+    assert client.patch("/profile/", json={"gender_searchable": False}).json()["gender_searchable"] is False
+
+
 def test_profile_text_is_saved_trimmed_and_returned(client, user, municipalities, yoga):
     _create_profile(client, yoga)
     body = client.patch("/profile/", json={"profile_text": "  Jag gillar brädspel.  "}).json()
