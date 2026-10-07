@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import CreateGroupForm from './CreateGroupForm'
 import GroupDetails from './GroupDetails'
 import GroupList from './GroupList'
@@ -43,8 +44,14 @@ const SEARCH_DELAY_MS = 300
 function GroupsPanel() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [tab, setTab] = useState('mine')
-  // 'list', 'create' eller id för den grupp som visas.
-  const [view, setView] = useState('list')
+  const [searchParams, setSearchParams] = useSearchParams()
+  // 'list', 'create' eller id för den grupp som visas. /klubbar?klubb=ID öppnar en
+  // klubb direkt (t.ex. efter att man har skapat ett event från den).
+  const [view, setView] = useState(() => Number(searchParams.get('klubb')) || 'list')
+  useEffect(() => {
+    // Adressen har gjort sitt, så en omladdning ska inte öppna samma klubb igen.
+    if (searchParams.toString()) setSearchParams({}, { replace: true })
+  }, [])
   const [lists, setLists] = useState({ mine: [], suggested: [], all: [] })
   // Finns det fler i "Alla" än de som hämtats?
   const [hasMore, setHasMore] = useState(false)

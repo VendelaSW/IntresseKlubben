@@ -1,3 +1,4 @@
+import GroupEvents from './GroupEvents'
 import GroupMembers from './GroupMembers'
 import { RoleBadge, memberCountText } from './GroupList'
 
@@ -44,6 +45,7 @@ function GroupDetails({ group, busy, onJoin, onLeave, onDelete, onBack }) {
           </button>
         )}
       </div>
+      <GroupEvents groupId={group.id} isMember={group.is_member} />
       <GroupMembers groupId={group.id} memberCount={group.member_count} />
     </section>
   )

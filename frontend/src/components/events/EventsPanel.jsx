@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import CreateEventForm from './CreateEventForm'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
@@ -48,8 +49,25 @@ function EventsPanel() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [eventsFailed, setEventsFailed] = useState(false)
   const [tab, setTab] = useState('mine')
-  // 'list', 'create' eller id för det event som visas.
-  const [view, setView] = useState('list')
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  // 'list', 'create' eller id för det event som visas. Andra sidor kan öppna en vy
+  // direkt: /events?event=ID visar ett event, /events?skapa=1&klubb=ID öppnar
+  // formuläret med klubben vald.
+  const [view, setView] = useState(() => {
+    const eventId = Number(searchParams.get('event'))
+    if (eventId) return eventId
+    return searchParams.get('skapa') ? 'create' : 'list'
+  })
+  // Kommer man från en klubbs sida (?skapa=1&klubb=ID) går man tillbaka dit efter att
+  // ha skapat eller avbrutit.
+  const [fromGroupId] = useState(() =>
+    searchParams.get('skapa') ? Number(searchParams.get('klubb')) || null : null,
+  )
+  useEffect(() => {
+    // Adressen har gjort sitt, så en omladdning ska inte öppna samma vy igen.
+    if (searchParams.toString()) setSearchParams({}, { replace: true })
+  }, [])
   // Alla events man får se. Flikarna räknas ut ur den här listan, men ett event
   // man har svarat Nej på ligger inte i någon flik och måste ändå gå att visa.
   const [events, setEvents] = useState([])
@@ -84,11 +102,17 @@ function EventsPanel() {
       .catch(() => setStatus('error'))
   }, [loadEvents])
 
+  function backToGroup() {
+    navigate(`/klubbar?klubb=${fromGroupId}`)
+  }
+
   async function handleCreated(created, problem) {
     setTab('mine')
     setView('list')
     setInviteProblem(problem ? `Eventet skapades, men inbjudningarna gick inte att skicka: ${problem}` : '')
     await loadEvents()
+    // Från en klubb går man tillbaka dit, om inte något gick fel som ska synas här.
+    if (fromGroupId && !problem) backToGroup()
   }
 
   const lists = splitEvents(events)
@@ -122,8 +146,9 @@ function EventsPanel() {
             interests={interests}
             groups={myGroups}
             contacts={contacts}
+            initialGroupId={fromGroupId}
             onCreated={handleCreated}
-            onCancel={() => setView('list')}
+            onCancel={() => (fromGroupId ? backToGroup() : setView('list'))}
           />
         </div>
       ) : (
