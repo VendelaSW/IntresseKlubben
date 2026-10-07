@@ -1,11 +1,30 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import BackButton from '../components/BackButton'
 import { useAuth } from '../hooks/useAuth'
 import { getConversation, markConversationSeen, sendMessage } from '../services/messages'
 
 // Hur ofta konversationen hämtas igen medan den är öppen, så att nya brev
 // syns utan att man laddar om sidan.
 const POLL_MS = 5000
+
+const clock = new Intl.DateTimeFormat('sv-SE', { hour: '2-digit', minute: '2-digit' })
+const dayAndMonth = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'short' })
+const fullDate = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })
+
+// När ett brev skickades, i användarens egen tid: "14:32" i dag, "igår 14:32",
+// "7 okt. 14:32" tidigare i år och "7 okt. 2025 14:32" tidigare år.
+function formatSentAt(value, now = new Date()) {
+  const sent = new Date(value)
+  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const daysAgo = Math.round((startOfDay(now) - startOfDay(sent)) / 86400000)
+  const time = clock.format(sent)
+  // daysAgo kan bli negativt om datorns klocka går efter; visa då som i dag.
+  if (daysAgo <= 0) return time
+  if (daysAgo === 1) return `igår ${time}`
+  const day = sent.getFullYear() === now.getFullYear() ? dayAndMonth.format(sent) : fullDate.format(sent)
+  return `${day} ${time}`
+}
 
 // Samma meddelanden som vi redan visar? Meddelanden kan inte ändras eller
 // tas bort, så antal och sista id räcker.
@@ -19,6 +38,7 @@ function sameMessages(a, b) {
 function ConversationPage() {
   const { username } = useParams()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
@@ -84,37 +104,51 @@ function ConversationPage() {
   }
 
   return (
-    <div className="content-stack">
+    <div className="content-stack conversation-page">
+      {/* Till Brev, även om chatten öppnades direkt via en länk. */}
+      <BackButton onClick={() => navigate('/meddelanden')} />
       <h1>{username}</h1>
 
-      {status === 'loading' && <p className="hint-text">Laddar...</p>}
-      {status === 'error' && (
-        <p className="status-error">Kunde inte hämta konversationen. Försök igen senare.</p>
-      )}
-      {status === 'ready' && messages.length === 0 && (
-        <p className="hint-text">Inga brev än.</p>
-      )}
-      {status === 'ready' &&
-        messages.map((m) => (
-          <p key={m.id} className="card-text">
-            <strong>{m.sender_id === user.id ? 'Du' : username}:</strong> {m.text}
-          </p>
-        ))}
+      {/* En vänsterställd spalt mitt på sidan, lika bred som tillbaka-raden. */}
+      <div className="conversation">
+        {status === 'loading' && <p className="hint-text">Laddar...</p>}
+        {status === 'error' && (
+          <p className="status-error">Kunde inte hämta konversationen. Försök igen senare.</p>
+        )}
+        {status === 'ready' && messages.length === 0 && <p className="hint-text">Inga brev än.</p>}
+        {status === 'ready' && messages.length > 0 && (
+          <div className="conversation-messages">
+            {/* Namn och tid som en rad överst, meddelandet under (som i de flesta chattar). */}
+            {messages.map((m) => (
+              <div key={m.id} className="message">
+                <p className="card-text">
+                  <strong>{m.sender_id === user.id ? 'Du' : username}</strong>{' '}
+                  <time className="hint-text" dateTime={m.created_at}>
+                    {formatSentAt(m.created_at)}
+                  </time>
+                </p>
+                <p className="card-text">{m.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
-      <form className="auth-form" onSubmit={handleSubmit}>
-        <label htmlFor="reply-text">Skriv ett brev</label>
-        <input
-          id="reply-text"
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          required
-        />
-        {error && <p className="form-error">{error}</p>}
-        <button type="submit" disabled={sending}>
-          {sending ? 'Skickar...' : 'Skicka'}
-        </button>
-      </form>
+        {/* form-wide: lika brett som spalten, så att fältet linjerar med meddelandena. */}
+        <form className="auth-form form-wide" onSubmit={handleSubmit}>
+          <label htmlFor="reply-text">Skriv ett brev</label>
+          <input
+            id="reply-text"
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            required
+          />
+          {error && <p className="form-error">{error}</p>}
+          <button type="submit" disabled={sending}>
+            {sending ? 'Skickar...' : 'Skicka'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

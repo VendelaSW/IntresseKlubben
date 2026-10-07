@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import CreateEventForm from './CreateEventForm'
+import BackButton from '../BackButton'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
 import { getContacts } from '../../services/contacts'
@@ -150,16 +151,18 @@ function EventsPanel() {
           {eventsFailed ? (
             <p className="status-error">Kunde inte hämta events. Försök igen senare.</p>
           ) : selected ? (
-            <div className="card sheet">
-              <EventDetails
-                event={selected}
-                myInterestIds={myInterestIds}
-                contacts={contacts}
-                groups={myGroups}
-                onBack={() => setView('list')}
-                onAnswered={loadEvents}
-              />
-            </div>
+            <>
+              <BackButton onClick={() => setView('list')} />
+              <div className="card sheet">
+                <EventDetails
+                  event={selected}
+                  myInterestIds={myInterestIds}
+                  contacts={contacts}
+                  groups={myGroups}
+                  onAnswered={loadEvents}
+                />
+              </div>
+            </>
           ) : (
             <>
               <EventList

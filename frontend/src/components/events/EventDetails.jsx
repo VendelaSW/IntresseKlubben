@@ -17,8 +17,9 @@ const ANSWERS = [
 // själv har blockerat visas med märket "Blockerad". `onAnswered` får
 // föräldern att hämta om eventlistorna, så att ens svar och flikarna stämmer.
 // "Bjud in" syns bara för skaparen och öppnar en popup med ens kontakter och
-// klubbar (`contacts`, `groups`).
-function EventDetails({ event, myInterestIds, contacts, groups, onBack, onAnswered }) {
+// klubbar (`contacts`, `groups`). Tillbaka-knappen ligger ovanför rutan, i
+// EventsPanel.
+function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
   const [responses, setResponses] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -71,9 +72,6 @@ function EventDetails({ event, myInterestIds, contacts, groups, onBack, onAnswer
 
   return (
     <section className="detail-view">
-      <button type="button" className="secondary-button button-small" onClick={onBack}>
-        ← Tillbaka
-      </button>
       <div className="title-row">
         <p className="card-title">{event.title}</p>
         <span className={visibilityPillClass(event)}>{visibilityText(event)}</span>

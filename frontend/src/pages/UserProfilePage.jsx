@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import BackButton from '../components/BackButton'
 import InterestTags from '../components/InterestTags'
 import ProfileAbout from '../components/ProfileAbout'
 import { useAuth } from '../hooks/useAuth'
@@ -254,6 +255,8 @@ function UserProfilePage() {
 
   return (
     <div className="content-stack">
+      {/* Ovanför kortet, som i Klubbar och Events. */}
+      <BackButton onClick={handleBack} />
       {status === 'loading' && <p>Laddar profil...</p>}
       {status === 'not-found' && <p className="form-error">Den profilen finns inte.</p>}
       {status === 'error' && <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>}
@@ -311,9 +314,6 @@ function UserProfilePage() {
         </div>
       )}
 
-      <button type="button" className="text-button" onClick={handleBack}>
-        ← Tillbaka
-      </button>
     </div>
   )
 }

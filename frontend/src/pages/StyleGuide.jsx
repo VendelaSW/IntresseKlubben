@@ -5,6 +5,7 @@ import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
+import BackButton from '../components/BackButton'
 import Modal from '../components/Modal'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
@@ -274,9 +275,14 @@ function StyleGuide() {
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Ark (.card .sheet) för en posts egen vy (.detail-view) eller ett formulär (.auth-form .form-wide)
         </p>
+        <p className="swatch-label" style={{ marginTop: '1rem' }}>
+          "← Tillbaka" (BackButton) ligger ovanför rutan, inte inuti den
+        </p>
+        <div style={{ marginTop: '0.5rem' }}>
+          <BackButton onClick={() => {}} />
+        </div>
         <div className="card sheet" style={{ marginTop: '1rem' }}>
           <section className="detail-view">
-            <button type="button" className="secondary-button button-small">← Tillbaka</button>
             <p className="card-title">Exempel</p>
             <p className="card-subheading">Göteborg · 3 medlemmar</p>
             <p className="card-text">Hela beskrivningen visas här.</p>
