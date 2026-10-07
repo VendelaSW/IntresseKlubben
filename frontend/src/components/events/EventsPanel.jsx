@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import CreateEventForm from './CreateEventForm'
+import EventDetails from './EventDetails'
 import EventList from './EventList'
+import { getContacts } from '../../services/contacts'
 import { getEvents } from '../../services/events'
 import { getMyGroups } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
@@ -19,14 +21,18 @@ const EMPTY_TEXT = {
 
 // Delar upp alla events man får se i flikarna:
 // - Mina events: ens egna, och de man har svarat Ja eller Kanske på.
-// - Inbjudningar: de man är inbjuden till och inte har svarat på än.
+// - Inbjudningar: de man är inbjuden till och inte har svarat på än. Under dem
+//   ligger en egen lista, Nekade, med de man har svarat Nej på (inbjuden eller
+//   inte), så att de går att hitta igen.
 // - Förslag: övriga (öppna och klubbarnas events), där man varken har skapat,
 //   blivit inbjuden eller svarat.
 function splitEvents(events) {
-  const lists = { mine: [], invitations: [], suggested: [] }
+  const lists = { mine: [], invitations: [], suggested: [], declined: [] }
   for (const event of events) {
     const answeredYesOrMaybe = event.my_answer === 'yes' || event.my_answer === 'maybe'
+    // Ens eget event ligger alltid under Mina events, även om man svarar Nej.
     if (event.is_owner || answeredYesOrMaybe) lists.mine.push(event)
+    else if (event.my_answer === 'no') lists.declined.push(event)
     else if (event.is_invited && event.my_answer === null) lists.invitations.push(event)
     else if (!event.is_invited && event.my_answer === null) lists.suggested.push(event)
   }
@@ -42,18 +48,24 @@ function EventsPanel() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [eventsFailed, setEventsFailed] = useState(false)
   const [tab, setTab] = useState('mine')
-  // 'list' eller 'create'.
+  // 'list', 'create' eller id för det event som visas.
   const [view, setView] = useState('list')
-  const [lists, setLists] = useState({ mine: [], invitations: [], suggested: [] })
+  // Alla events man får se. Flikarna räknas ut ur den här listan, men ett event
+  // man har svarat Nej på ligger inte i någon flik och måste ändå gå att visa.
+  const [events, setEvents] = useState([])
   const [interests, setInterests] = useState([])
   const [myGroups, setMyGroups] = useState([])
+  // Ens kontakter (accepterade), för att kunna bjuda in dem.
+  const [contacts, setContacts] = useState([])
+  // Fel från inbjudningarna när eventet skapades (eventet skapades ändå).
+  const [inviteProblem, setInviteProblem] = useState('')
   const [myInterestIds, setMyInterestIds] = useState(new Set())
 
   const loadEvents = useCallback(
     () =>
       getEvents()
-        .then((events) => {
-          setLists(splitEvents(events))
+        .then((all) => {
+          setEvents(all)
           setEventsFailed(false)
         })
         .catch(() => setEventsFailed(true)),
@@ -61,21 +73,27 @@ function EventsPanel() {
   )
 
   useEffect(() => {
-    Promise.all([getAllInterests(), getMyGroups(), getMyInterests(), loadEvents()])
-      .then(([allInterests, groups, mine]) => {
+    Promise.all([getAllInterests(), getMyGroups(), getMyInterests(), getContacts(), loadEvents()])
+      .then(([allInterests, groups, mine, contactData]) => {
         setInterests(allInterests)
         setMyGroups(groups)
+        setContacts(contactData.contacts.map((c) => c.user))
         setMyInterestIds(new Set(mine.map((i) => i.id)))
         setStatus('ready')
       })
       .catch(() => setStatus('error'))
   }, [loadEvents])
 
-  async function handleCreated() {
+  async function handleCreated(created, problem) {
     setTab('mine')
     setView('list')
+    setInviteProblem(problem ? `Eventet skapades, men inbjudningarna gick inte att skicka: ${problem}` : '')
     await loadEvents()
   }
+
+  const lists = splitEvents(events)
+  // Leta upp eventet i hela listan, så att vyn visar ens senaste svar.
+  const selected = typeof view === 'number' ? events.find((e) => e.id === view) : null
 
   return (
     <section className="app-section app-section-centered">
@@ -86,7 +104,10 @@ function EventsPanel() {
             type="button"
             className="primary-button round-button"
             aria-label="Skapa event"
-            onClick={() => setView('create')}
+            onClick={() => {
+              setInviteProblem('')
+              setView('create')
+            }}
           />
         )}
       </div>
@@ -100,6 +121,7 @@ function EventsPanel() {
           <CreateEventForm
             interests={interests}
             groups={myGroups}
+            contacts={contacts}
             onCreated={handleCreated}
             onCancel={() => setView('list')}
           />
@@ -114,17 +136,50 @@ function EventsPanel() {
                 role="tab"
                 aria-selected={tab === t.id}
                 className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-                onClick={() => setTab(t.id)}
+                onClick={() => {
+                  setTab(t.id)
+                  setView('list')
+                }}
               >
                 {t.label} ({lists[t.id].length})
               </button>
             ))}
           </div>
 
+          {inviteProblem && <p className="status-error">{inviteProblem}</p>}
           {eventsFailed ? (
             <p className="status-error">Kunde inte hämta events. Försök igen senare.</p>
+          ) : selected ? (
+            <div className="card sheet">
+              <EventDetails
+                event={selected}
+                myInterestIds={myInterestIds}
+                contacts={contacts}
+                groups={myGroups}
+                onBack={() => setView('list')}
+                onAnswered={loadEvents}
+              />
+            </div>
           ) : (
-            <EventList events={lists[tab]} emptyText={EMPTY_TEXT[tab]} myInterestIds={myInterestIds} />
+            <>
+              <EventList
+                events={lists[tab]}
+                emptyText={EMPTY_TEXT[tab]}
+                myInterestIds={myInterestIds}
+                onSelect={(e) => setView(e.id)}
+              />
+              {tab === 'invitations' && lists.declined.length > 0 && (
+                <>
+                  <h2>Nekade ({lists.declined.length})</h2>
+                  <EventList
+                    events={lists.declined}
+                    emptyText=""
+                    myInterestIds={myInterestIds}
+                    onSelect={(e) => setView(e.id)}
+                  />
+                </>
+              )}
+            </>
           )}
         </>
       )}

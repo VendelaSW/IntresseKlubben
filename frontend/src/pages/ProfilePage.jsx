@@ -205,6 +205,7 @@ function ProfilePage() {
   const [name, setName] = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [gender, setGender] = useState('')
+  const [genderSearchable, setGenderSearchable] = useState(false)
   const [municipalityCode, setMunicipalityCode] = useState('')
   const [district, setDistrict] = useState('')
   const [aboutText, setAboutText] = useState('')
@@ -242,6 +243,7 @@ function ProfilePage() {
     setName(profile?.name ?? '')
     setBirthDate(profile?.birth_date ?? '')
     setGender(profile?.gender ?? '')
+    setGenderSearchable(profile?.gender_searchable ?? false)
     setMunicipalityCode(profile?.municipality_code ?? '')
     setDistrict(profile?.district ?? '')
     setAboutText(profile?.profile_text ?? '')
@@ -284,6 +286,7 @@ function ProfilePage() {
       name,
       birth_date: birthDate,
       gender,
+      gender_searchable: genderSearchable,
       municipality_code: municipalityCode,
       profile_text: aboutText,
     }
@@ -407,6 +410,14 @@ function ProfilePage() {
               </option>
             ))}
           </select>
+          <label>
+            <input
+              type="checkbox"
+              checked={genderSearchable}
+              onChange={(e) => setGenderSearchable(e.target.checked)}
+            />{' '}
+            Låt andra hitta mig när de filtrerar på kön (då kan de räkna ut mitt kön)
+          </label>
 
           <label htmlFor="profile-municipality">Kommun</label>
           <select
@@ -476,6 +487,8 @@ function ProfilePage() {
         <dd>{profile.age ?? '–'}</dd>
         <dt>Kön</dt>
         <dd>{genderLabel(profile.gender) ?? '–'}</dd>
+        <dt>Sökbar på kön</dt>
+        <dd>{profile.gender_searchable ? 'Ja' : 'Nej'}</dd>
         <dt>Kommun</dt>
         <dd>{profile.municipality_name ?? '–'}</dd>
         <dt>Stadsdel</dt>

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -109,6 +109,177 @@ def test_list_shows_public_groups_with_filters(client, user, new_group, interest
     assert names() == ["Löpare Göteborg", "Löpare Mölndal", "Schack Göteborg"]
     assert names({"interest_id": interests["Löpning"]}) == ["Löpare Göteborg", "Löpare Mölndal"]
     assert names({"municipality_code": "1480"}) == ["Löpare Göteborg", "Schack Göteborg"]
+
+
+def _names(client, **params) -> list[str]:
+    response = client.get("/groups/", params=params)
+    assert response.status_code == 200, response.json()
+    return [g["name"] for g in response.json()]
+
+
+def test_search_finds_name_or_description_ignoring_case(client, user, new_group):
+    new_group(name="Morgonlöparna", description="Lugna rundor före jobbet.")
+    new_group(name="Kvällsgänget", description="Vi springer MORGON och kväll.")
+    new_group(name="Schackklubben", description="Brädspel varje vecka.")
+
+    assert _names(client, q="morgon") == ["Kvällsgänget", "Morgonlöparna"]
+    # Versaler utan å/ä/ö: testernas SQLite gör bara a-z till gemener (Postgres gör alla).
+    assert _names(client, q="  VARJE VECKA ") == ["Schackklubben"]
+    assert _names(client, q="finns inte") == []
+    # Tom sökning är samma som ingen sökning.
+    assert len(_names(client, q="  ")) == 3
+
+
+def test_search_works_together_with_the_filters(client, user, new_group, interests):
+    new_group(name="Löpare Göteborg")
+    new_group(name="Löpare Mölndal", municipality_code="1481")
+    new_group(name="Schackande löpare", interest_id=interests["Schack"])
+
+    assert _names(client, q="löpare", municipality_code="1480") == ["Löpare Göteborg", "Schackande löpare"]
+    assert _names(client, q="löpare", interest_id=interests["Löpning"]) == ["Löpare Göteborg", "Löpare Mölndal"]
+
+
+def test_search_treats_percent_and_underscore_as_text(client, user, new_group):
+    new_group(name="100% löpning")
+    new_group(name="Löpning 1000")
+    new_group(name="Snake_case", description="Programmering")
+    new_group(name="Snakes", description="Ormar")
+
+    assert _names(client, q="0%") == ["100% löpning"]
+    assert _names(client, q="e_c") == ["Snake_case"]
+
+
+def test_sort_by_name_is_the_default(client, user, new_group):
+    for name in ["Cirkeln", "Aftonen", "Bryggan"]:
+        new_group(name=name)
+
+    assert _names(client) == ["Aftonen", "Bryggan", "Cirkeln"]
+    assert _names(client, sort="name") == ["Aftonen", "Bryggan", "Cirkeln"]
+
+
+def test_sort_by_most_members(client, user, new_group, login_as):
+    login_as("skapare")
+    one = new_group(name="Aftonen")
+    three = new_group(name="Bryggan")
+    two = new_group(name="Cirkeln")
+    for username, group_ids in {"a": [three["id"], two["id"]], "b": [three["id"]]}.items():
+        login_as(username)
+        for group_id in group_ids:
+            client.put(f"/groups/{group_id}/members/me")
+    login_as("testuser")
+
+    assert _names(client, sort="members") == ["Bryggan", "Cirkeln", "Aftonen"]
+    assert one["member_count"] == 1
+
+
+def test_sort_by_members_does_not_count_blocked_users(client, user, new_group, login_as):
+    login_as("skapare")
+    new_group(name="Aftonen")
+    bryggan = new_group(name="Bryggan")
+    # Bryggan har en medlem fler, men det är någon testuser har blockerat.
+    login_as("blockerad")
+    client.put(f"/groups/{bryggan['id']}/members/me")
+    login_as("testuser")
+    assert client.post("/users/blockerad/block").status_code in (200, 201)
+
+    groups = client.get("/groups/", params={"sort": "members"}).json()
+
+    # Lika många synliga medlemmar, så namnet avgör, och antalet stämmer med ordningen.
+    assert [(g["name"], g["member_count"]) for g in groups] == [("Aftonen", 1), ("Bryggan", 1)]
+
+
+def test_sort_by_newest(client, db, user, new_group):
+    created = {
+        "Aftonen": datetime(2026, 3, 1, tzinfo=timezone.utc),
+        "Bryggan": datetime(2026, 9, 1, tzinfo=timezone.utc),
+        "Cirkeln": datetime(2026, 6, 1, tzinfo=timezone.utc),
+    }
+    for name, created_at in created.items():
+        db.get(Group, new_group(name=name)["id"]).created_at = created_at
+    db.commit()
+
+    assert _names(client, sort="newest") == ["Bryggan", "Cirkeln", "Aftonen"]
+
+
+@pytest.mark.parametrize("sort", ["name", "members", "newest"])
+def test_reverse_is_the_same_order_backwards(client, db, user, new_group, login_as, sort):
+    # Olika antal medlemmar och skapad-tider, och två med lika av båda, så
+    # att både sorteringen och det som avgör vid lika vänds.
+    created = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    for name in ["Aftonen", "Bryggan", "Cirkeln", "Dalen"]:
+        group_id = new_group(name=name)["id"]
+        db.get(Group, group_id).created_at = created if name in ("Cirkeln", "Dalen") else datetime(
+            2026, 1 + len(name) % 5, 2, tzinfo=timezone.utc
+        )
+    db.commit()
+    login_as("medlem")
+    bryggan = next(g for g in client.get("/groups/").json() if g["name"] == "Bryggan")
+    client.put(f"/groups/{bryggan['id']}/members/me")
+    login_as("testuser")
+
+    forwards = _names(client, sort=sort)
+
+    assert _names(client, sort=sort, reverse="true") == forwards[::-1]
+    # Sidorna fungerar likadant baklänges.
+    pages = [_names(client, sort=sort, reverse="true", limit=3, offset=offset) for offset in (0, 3)]
+    assert [name for page in pages for name in page] == forwards[::-1]
+
+
+def test_unknown_sort_gives_422(client, user):
+    response = client.get("/groups/", params={"sort": "random"})
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Ogiltigt värde"
+
+
+@pytest.mark.parametrize("sort", ["name", "members", "newest"])
+def test_pages_cover_every_group_once(client, user, new_group, sort):
+    # Samma antal medlemmar och samma skapad-tid, så att bara id skiljer dem
+    # åt i "members" och "newest" - ordningen måste ändå vara stabil.
+    for name in ["Ett", "Två", "Tre", "Fyra", "Fem"]:
+        new_group(name=name)
+
+    pages = [_names(client, sort=sort, limit=2, offset=offset) for offset in (0, 2, 4, 6)]
+
+    assert [len(page) for page in pages] == [2, 2, 1, 0]
+    assert [name for page in pages for name in page] == _names(client, sort=sort)
+
+
+@pytest.mark.parametrize(
+    ("params", "message"),
+    [
+        ({"limit": 0}, "Får inte vara lägre än 1"),
+        ({"limit": 101}, "Får inte vara högre än 100"),
+        ({"offset": -1}, "Får inte vara lägre än 0"),
+    ],
+)
+def test_invalid_limit_or_offset_gives_422(client, user, params, message):
+    response = client.get("/groups/", params=params)
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == message
+
+
+def test_private_groups_never_show_up_when_searching_sorting_or_paging(client, user, new_group, login_as):
+    login_as("skapare")
+    new_group(name="Hemliga löparna", visibility="private")
+    new_group(name="Öppna löparna")
+    login_as("testuser")
+
+    for sort in ["name", "members", "newest"]:
+        assert _names(client, q="löparna", sort=sort, limit=10, offset=0) == ["Öppna löparna"]
+
+
+def test_exclude_mine_leaves_out_groups_i_am_in(client, user, new_group, login_as):
+    new_group(name="Min egen")
+    login_as("skapare")
+    joined = new_group(name="Redan med")
+    new_group(name="Inte med")
+    login_as("testuser")
+    client.put(f"/groups/{joined['id']}/members/me")
+
+    assert _names(client, exclude_mine="true") == ["Inte med"]
+    assert _names(client) == ["Inte med", "Min egen", "Redan med"]
 
 
 def test_private_group_is_only_visible_to_members(client, user, new_group, login_as):

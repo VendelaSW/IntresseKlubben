@@ -23,7 +23,10 @@ crud.user.delete_user). Kräver lösenordet i AccountDelete. Fel lösenord ger
 bara ge ett felmeddelande.
 
 GET /users/ - andra användare med sparad profil, valfritt filtrerade på
-?interest_id= och/eller ?municipality_code=. Utesluter dig själv, dina
+?interest_id=, ?municipality_code=, ?gender= och ?min_age=/?max_age= (0-120,
+400 om min_age är större än max_age). ?gender= ger bara dem som själva valt att
+gå att hitta på kön (gender_searchable), så att filtret inte avslöjar könet
+hos alla andra. Utesluter dig själv, dina
 borttagna förslag och alla som har blockerat dig eller som du har blockerat. Samma
 dataminimering som PublicProfileResponse, men med username (länk till
 /anvandare/{username}) och interests (taggar/matchning) - se PersonResponse.
@@ -43,7 +46,7 @@ DELETE /users/dismissed-suggestions - nollställer alla dina borttagna
 förslag, så de kan dyka upp igen.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import create_access_token, get_current_user, verify_password
@@ -66,6 +69,7 @@ from app.crud.user import (
     set_email,
 )
 from app.db.session import get_db
+from app.models.profile import GenderEnum
 from app.models.user import User
 from app.schemas.interest import InterestResponse
 from app.schemas.profile import PersonResponse, PublicProfileResponse
@@ -170,11 +174,22 @@ def _to_person_response(profile) -> PersonResponse:
 def read_people(
     interest_id: int | None = None,
     municipality_code: str | None = None,
+    gender: GenderEnum | None = None,
+    min_age: int | None = Query(None, ge=0, le=120),
+    max_age: int | None = Query(None, ge=0, le=120),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[PersonResponse]:
+    if min_age is not None and max_age is not None and min_age > max_age:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Lägsta åldern kan inte vara högre än den högsta.",
+        )
     hidden_ids = list_dismissed_user_ids(db, current_user.id) | blocked_user_ids(db, current_user.id)
-    profiles = list_people(db, current_user.id, interest_id, municipality_code, hidden_ids)
+    profiles = list_people(
+        db, current_user.id, interest_id, municipality_code, hidden_ids,
+        gender=gender, min_age=min_age, max_age=max_age,
+    )
     return [_to_person_response(p) for p in profiles]
 
 
