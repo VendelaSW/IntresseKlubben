@@ -1507,6 +1507,19 @@ span.tag-selected:hover {
   text-decoration: underline;
 }
 
+/* Lägg på .person-list: titeln får den gula överstrykningspennan (samma som
+   .highlight) vid hover i stället för understrykning. Luften runt titeln finns
+   hela tiden, så att texten inte hoppar när strecket kommer. */
+.person-list-marker .person-list-item > span:first-child {
+  padding: 0 0.15em;
+  margin: 0 -0.15em;
+}
+
+.person-list-marker .person-list-item:hover span:not(.hint-text):not(.person-list-avatar) {
+  text-decoration: none;
+  background: linear-gradient(transparent 58%, var(--color-accent) 58%, var(--color-accent) 88%, transparent 88%);
+}
+
 .person-list-avatar {
   width: 36px;
   height: 36px;
