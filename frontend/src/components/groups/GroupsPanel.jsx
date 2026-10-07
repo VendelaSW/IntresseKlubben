@@ -92,6 +92,12 @@ function GroupsPanel() {
     }
   }
 
+  // Är någon man själv har blockerat med, frågar vi först. Vem det är syns inte.
+  function handleJoin(group) {
+    if (group.has_blocked_member && !window.confirm('Någon du har blockerat är med i klubben. Gå med ändå?')) return
+    runAction(group, joinGroup)
+  }
+
   function handleLeave(group) {
     if (!window.confirm(`Gå ur ${group.name}?`)) return
     runAction(group, leaveGroup)
@@ -172,7 +178,7 @@ function GroupsPanel() {
               <GroupDetails
                 group={selected}
                 busy={busy}
-                onJoin={(g) => runAction(g, joinGroup)}
+                onJoin={handleJoin}
                 onLeave={handleLeave}
                 onDelete={handleDelete}
                 onBack={() => setView('list')}
@@ -214,7 +220,7 @@ function GroupsPanel() {
                 myInterestIds={myInterestIds}
                 busy={busy}
                 onSelect={(g) => setView(g.id)}
-                onJoin={(g) => runAction(g, joinGroup)}
+                onJoin={handleJoin}
               />
             </>
           )}
