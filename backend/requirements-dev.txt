@@ -1,6 +1,12 @@
-# Bara för tester och CI. Vercel installerar requirements.txt, inte den här.
+# För lokal utveckling, tester och CI. Vercel installerar bara
+# requirements.txt, inte den här, så allt som bara behövs lokalt hör hemma här
+# (det håller varje backend-bygge på Vercel mindre).
 # Installera lokalt med: pip install -r requirements-dev.txt
 -r requirements.txt
+# Köra backend lokalt (på Vercel startas appen utan uvicorn).
+uvicorn[standard]
+# Migrationer körs härifrån mot Neon, aldrig på Vercel.
+alembic
 pytest
 pytest-cov
 httpx2
