@@ -1178,6 +1178,107 @@ span.tag-selected:hover {
   width: 100%;
 }
 
+/* Sökfältet för klubbar med sorteringsknappen bredvid, ovanför filtren. */
+.search-row {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 300px;
+}
+
+.filter-search {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  padding: 0.4rem 0.5rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-text);
+  width: 100%;
+}
+
+/* Sorteringsknappen (en ikon) och menyn den öppnar. */
+.sort-menu {
+  position: relative;
+}
+
+.sort-menu-button {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 100%;
+  min-height: 2rem;
+  padding: 0;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.sort-menu-button:hover,
+.sort-menu-button:focus-visible,
+.sort-menu-button-open {
+  border-color: var(--color-accent);
+}
+
+.sort-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 10;
+  min-width: 11rem;
+  padding: 0.4rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.sort-menu-group + .sort-menu-group {
+  margin-top: 0.3rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.sort-menu-heading {
+  display: block;
+  padding: 0.15rem 0.5rem;
+  font-size: var(--text-small);
+  color: var(--color-muted);
+}
+
+.sort-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sort-menu-item:hover,
+.sort-menu-item:focus-visible {
+  background: var(--color-accent-soft);
+}
+
+.sort-menu-item-selected {
+  background: var(--color-accent);
+  font-weight: 600;
+}
+
+.sort-menu-item-selected:hover,
+.sort-menu-item-selected:focus-visible {
+  background: var(--color-accent);
+}
+
 /* Filtren kompakta, tillsammans inte bredare än ett personkort (300px), i
    stället för att sträcka ut sig över hela sidan. Sida vid sida som
    filter-select-row redan gör. Lägg till utöver filter-select-row. */
