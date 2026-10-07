@@ -1,9 +1,13 @@
+import { useNavigate } from 'react-router-dom'
 import GroupEvents from './GroupEvents'
 import GroupMembers from './GroupMembers'
 import { RoleBadge, memberCountText } from './GroupList'
 
-// Mer information om en grupp, med knapparna som passar ens roll.
+// Mer information om en grupp, med knapparna som passar ens roll. Medlemmar kan
+// skapa ett event i klubben (öppnar eventformuläret med klubben vald), och "Gå ur"
+// och "Radera" (för ägaren) ligger längst ner i kortet.
 function GroupDetails({ group, busy, onJoin, onLeave, onDelete, onBack }) {
+  const navigate = useNavigate()
   return (
     <section className="detail-view">
       <button type="button" className="secondary-button button-small" onClick={onBack}>
@@ -29,24 +33,33 @@ function GroupDetails({ group, busy, onJoin, onLeave, onDelete, onBack }) {
       </div>
       <div className="card-actions">
         {group.is_member ? (
-          <>
-            <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onLeave(group)}>
-              Gå ur
-            </button>
-            {group.is_owner && (
-              <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onDelete(group)}>
-                Radera
-              </button>
-            )}
-          </>
+          <button
+            type="button"
+            className="secondary-button button-small"
+            onClick={() => navigate(`/events?skapa=1&klubb=${group.id}`)}
+          >
+            Skapa event
+          </button>
         ) : (
           <button type="button" className="primary-button" disabled={busy} onClick={() => onJoin(group)}>
             Gå med
           </button>
         )}
       </div>
-      <GroupEvents groupId={group.id} isMember={group.is_member} />
+      <GroupEvents groupId={group.id} />
       <GroupMembers groupId={group.id} memberCount={group.member_count} />
+      {group.is_member && (
+        <div className="card-actions">
+          <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onLeave(group)}>
+            Gå ur
+          </button>
+          {group.is_owner && (
+            <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onDelete(group)}>
+              Radera
+            </button>
+          )}
+        </div>
+      )}
     </section>
   )
 }
