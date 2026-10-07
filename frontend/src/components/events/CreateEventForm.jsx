@@ -34,6 +34,7 @@ function CreateEventForm({ interests, groups, contacts, onCreated, onCancel }) {
   const [address, setAddress] = useState('')
   const [groupId, setGroupId] = useState('')
   const [isOpen, setIsOpen] = useState(false)
+  const [guestsCanInvite, setGuestsCanInvite] = useState(false)
   const [invites, setInvites] = useState({ usernames: [], groupIds: [] })
   const [inviteOpen, setInviteOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -63,6 +64,7 @@ function CreateEventForm({ interests, groups, contacts, onCreated, onCancel }) {
         address,
         visibility: isOpen && !inPrivateGroup ? EVENT_VISIBILITY.open : EVENT_VISIBILITY.inviteOnly,
         group_id: groupId ? Number(groupId) : null,
+        guests_can_invite: guestsCanInvite,
       })
       let inviteProblem = ''
       if (invites.usernames.length + invites.groupIds.length > 0) {
@@ -177,6 +179,11 @@ function CreateEventForm({ interests, groups, contacts, onCreated, onCancel }) {
           Bjud in
         </button>
         <p className="hint-text">{inviteSummary(invites)}</p>
+        <label>
+          <input type="checkbox" checked={guestsCanInvite} onChange={(e) => setGuestsCanInvite(e.target.checked)} /> Gäster får
+          bjuda in
+        </label>
+        <p className="hint-text">Utan bockning kan bara du bjuda in. Du kan ändra det senare.</p>
       </div>
       {inviteOpen && (
         <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
