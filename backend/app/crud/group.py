@@ -1,4 +1,6 @@
-from sqlalchemy import func
+import enum
+
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -13,6 +15,14 @@ MAX_MEMBERSHIPS = 20
 
 class GroupRuleError(Exception):
     """En regel för grupper bröts, t.ex. ett upptaget namn. Meddelandet visas för användaren."""
+
+
+class GroupSort(str, enum.Enum):
+    """Sorteringar för listan över öppna grupper (GET /groups/)."""
+
+    name = "name"  # A-Ö, standard
+    members = "members"  # flest medlemmar först
+    newest = "newest"  # senast skapad först
 
 
 def _base_query(db: Session):
@@ -77,15 +87,66 @@ def create_group(db: Session, user: User, data: GroupCreate) -> Group:
     return get_group(db, group.id)
 
 
+def _escape_like(text: str) -> str:
+    # % och _ är jokertecken i LIKE. Här ska de betyda sig själva.
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def list_public_groups(
-    db: Session, interest_id: int | None = None, municipality_code: str | None = None
+    db: Session,
+    interest_id: int | None = None,
+    municipality_code: str | None = None,
+    q: str | None = None,
+    sort: GroupSort = GroupSort.name,
+    reverse: bool = False,
+    limit: int | None = None,
+    offset: int = 0,
+    exclude_member_id: int | None = None,
+    hidden_user_ids: set[int] | None = None,
 ) -> list[Group]:
+    """Öppna grupper, valfritt filtrerade, sökta, sorterade och en sida i taget.
+
+    q söker i namn och beskrivning, utan hänsyn till versaler. reverse vänder
+    sorteringen (Ö-A, färst medlemmar först, äldst först).
+    exclude_member_id tar bort grupper den användaren redan är med i.
+    hidden_user_ids (blockerade åt något håll) räknas inte med när det sorteras
+    på medlemmar, så att ordningen stämmer med antalet som visas och inte
+    avslöjar någon dold. Varje sortering slutar på id, så att samma grupp
+    aldrig hamnar på två sidor eller hoppas över mellan limit/offset-anrop.
+    """
     query = _base_query(db).filter(Group.visibility == GroupVisibility.public)
     if interest_id is not None:
         query = query.filter(Group.interest_id == interest_id)
     if municipality_code is not None:
         query = query.filter(Group.municipality_code == municipality_code)
-    return query.order_by(Group.name).all()
+    if q and q.strip():
+        pattern = f"%{_escape_like(q.strip())}%"
+        query = query.filter(
+            or_(Group.name.ilike(pattern, escape="\\"), Group.description.ilike(pattern, escape="\\"))
+        )
+    if exclude_member_id is not None:
+        my_group_ids = select(GroupMember.group_id).where(GroupMember.user_id == exclude_member_id)
+        query = query.filter(Group.id.not_in(my_group_ids))
+
+    if sort == GroupSort.members:
+        counted = select(func.count(GroupMember.id)).where(GroupMember.group_id == Group.id)
+        if hidden_user_ids:
+            counted = counted.where(GroupMember.user_id.not_in(hidden_user_ids))
+        # Flest först, och vid lika antal i namnordning.
+        keys = [(counted.correlate(Group).scalar_subquery(), True), (Group.name, False), (Group.id, False)]
+    elif sort == GroupSort.newest:
+        keys = [(Group.created_at, True), (Group.id, True)]
+    else:
+        keys = [(Group.name, False), (Group.id, False)]
+    # (kolumn, fallande). reverse vänder alla, även det som avgör vid lika, så
+    # att omvänd ordning är exakt den vanliga baklänges.
+    query = query.order_by(*(col.desc() if descending != reverse else col.asc() for col, descending in keys))
+
+    if offset:
+        query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(limit)
+    return query.all()
 
 
 def list_user_groups(db: Session, user_id: int) -> list[Group]:
