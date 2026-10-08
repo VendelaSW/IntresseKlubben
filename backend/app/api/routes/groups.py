@@ -18,11 +18,13 @@ from app.crud.group import (
     list_suggested_groups,
     list_user_groups,
 )
+from app.crud.group_message import get_group_messages, send_group_message
 from app.crud.interest import get_active_interest
 from app.db.session import get_db
 from app.models.group import Group, GroupRole, GroupVisibility
 from app.models.municipality import Municipality
 from app.schemas.group import GroupCreate, GroupMemberResponse, GroupResponse
+from app.schemas.group_message import GroupMessageCreate, GroupMessageOut
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
@@ -174,6 +176,30 @@ def leave(group_id: int, current_user=Depends(get_current_user), db: Session = D
     group = _visible_group_or_404(db, group_id, current_user.id)
     leave_group(db, group, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _member_group_or_403(db: Session, group_id: int, user_id: int) -> Group:
+    group = _visible_group_or_404(db, group_id, user_id)
+    if get_membership(group, user_id) is None:
+        raise HTTPException(status_code=403, detail="Du måste vara med i klubben för att se chatten")
+    return group
+
+
+@router.post("/{group_id}/messages", response_model=GroupMessageOut, status_code=status.HTTP_201_CREATED)
+def create_group_message(
+    group_id: int,
+    message_in: GroupMessageCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    group = _member_group_or_403(db, group_id, current_user.id)
+    return send_group_message(db, group.id, current_user.id, message_in.content)
+
+
+@router.get("/{group_id}/messages", response_model=list[GroupMessageOut])
+def read_group_messages(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    group = _member_group_or_403(db, group_id, current_user.id)
+    return get_group_messages(db, group.id, current_user.id)
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
