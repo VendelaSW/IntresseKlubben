@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import CreateEventForm from './CreateEventForm'
+import BackButton from '../BackButton'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
 import { getContacts } from '../../services/contacts'
@@ -141,16 +142,19 @@ function EventsPanel() {
       ) : status === 'error' ? (
         <p className="status-error">Kunde inte hämta sidan. Försök igen senare.</p>
       ) : view === 'create' ? (
-        <div className="card sheet">
-          <CreateEventForm
-            interests={interests}
-            groups={myGroups}
-            contacts={contacts}
-            initialGroupId={fromGroupId}
-            onCreated={handleCreated}
-            onCancel={() => (fromGroupId ? backToGroup() : setView('list'))}
-          />
-        </div>
+        <>
+          <BackButton onClick={() => (fromGroupId ? backToGroup() : setView('list'))} />
+          <div className="card sheet">
+            <CreateEventForm
+              interests={interests}
+              groups={myGroups}
+              contacts={contacts}
+              initialGroupId={fromGroupId}
+              onCreated={handleCreated}
+              onCancel={() => (fromGroupId ? backToGroup() : setView('list'))}
+            />
+          </div>
+        </>
       ) : (
         <>
           <div className="filter-tabs" role="tablist">
@@ -175,16 +179,18 @@ function EventsPanel() {
           {eventsFailed ? (
             <p className="status-error">Kunde inte hämta events. Försök igen senare.</p>
           ) : selected ? (
-            <div className="card sheet">
-              <EventDetails
-                event={selected}
-                myInterestIds={myInterestIds}
-                contacts={contacts}
-                groups={myGroups}
-                onBack={() => setView('list')}
-                onAnswered={loadEvents}
-              />
-            </div>
+            <>
+              <BackButton onClick={() => setView('list')} />
+              <div className="card sheet">
+                <EventDetails
+                  event={selected}
+                  myInterestIds={myInterestIds}
+                  contacts={contacts}
+                  groups={myGroups}
+                  onAnswered={loadEvents}
+                />
+              </div>
+            </>
           ) : (
             <>
               <EventList

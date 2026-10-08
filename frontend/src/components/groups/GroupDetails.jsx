@@ -5,14 +5,12 @@ import { RoleBadge, memberCountText } from './GroupList'
 
 // Mer information om en grupp, med knapparna som passar ens roll. Medlemmar kan
 // skapa ett event i klubben (öppnar eventformuläret med klubben vald), och "Gå ur"
-// och "Radera" (för ägaren) ligger längst ner i kortet.
-function GroupDetails({ group, busy, onJoin, onLeave, onDelete, onBack }) {
+// och "Radera" (för ägaren) ligger längst ner i kortet. Tillbaka-knappen ligger
+// ovanför rutan, i GroupsPanel.
+function GroupDetails({ group, busy, onJoin, onLeave, onDelete }) {
   const navigate = useNavigate()
   return (
     <section className="detail-view">
-      <button type="button" className="secondary-button button-small" onClick={onBack}>
-        ← Tillbaka
-      </button>
       <p className="card-title">{group.name}</p>
       <p className="card-subheading">
         {group.municipality_name} · {memberCountText(group.member_count)}

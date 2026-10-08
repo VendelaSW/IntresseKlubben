@@ -16,6 +16,7 @@ from app.crud.group import list_user_groups, remove_member
 from app.models.contact import Contact
 from app.models.dismissed_suggestion import DismissedSuggestion
 from app.models.event import Event, EventInvitation, EventResponse
+from app.models.group_message import GroupMessage
 from app.models.message import Message
 from app.models.user import User
 from app.schemas.user import UserCreate
@@ -139,7 +140,8 @@ def delete_user(db: Session, user: User) -> str | None:
     - Egna events raderas med sina inbjudningar och svar, liksom användarens
       inbjudningar och svar på andras events.
     - Meddelanden, kontakter, blockeringar och borttagna förslag raderas åt
-      båda hållen, så att inget pekar på kontot efteråt.
+      båda hållen, så att inget pekar på kontot efteråt. Egna
+      gruppchattmeddelanden raderas också.
     - Profil, intressen och sist själva kontot.
 
     Allt raderas uttryckligen här i stället för att lita på databasens
@@ -166,6 +168,7 @@ def delete_user(db: Session, user: User) -> str | None:
     db.query(Message).filter(
         or_(Message.sender_id == user_id, Message.recipient_id == user_id)
     ).delete(synchronize_session=False)
+    db.query(GroupMessage).filter(GroupMessage.sender_id == user_id).delete(synchronize_session=False)
     db.query(Contact).filter(
         or_(Contact.requester_id == user_id, Contact.addressee_id == user_id)
     ).delete(synchronize_session=False)
