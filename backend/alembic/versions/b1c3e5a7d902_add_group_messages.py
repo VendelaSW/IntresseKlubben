@@ -1,14 +1,14 @@
 """add group messages
 
 Revision ID: b1c3e5a7d902
-Revises: c73402a1493c
+Revises: d2f8a6c41b07
 """
 from alembic import op
 import sqlalchemy as sa
 
 
 revision = 'b1c3e5a7d902'
-down_revision = 'c73402a1493c'
+down_revision = 'd2f8a6c41b07'
 branch_labels = None
 depends_on = None
 

@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import BlockedUsers from '../components/BlockedUsers'
 import DeleteAccount from '../components/DeleteAccount'
-import InterestPicker from '../components/InterestPicker'
-import InterestTags from '../components/InterestTags'
+import InterestExplorer from '../components/InterestExplorer'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { addMyEmail, getCurrentUser } from '../services/api'
 import { imageToWebp } from '../services/imageToWebp'
-import { addInterest, getAllInterests, getMyInterests, removeInterest } from '../services/interests'
+import { addInterest, getMyInterests, removeInterest } from '../services/interests'
 import {
   GENDER_OPTIONS,
   createProfile,
@@ -199,7 +198,6 @@ function ProfilePage() {
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   const [editing, setEditing] = useState(false)
   const [municipalities, setMunicipalities] = useState([])
-  const [allInterests, setAllInterests] = useState([])
   const [myInterests, setMyInterests] = useState([])
 
   const [name, setName] = useState('')
@@ -209,7 +207,8 @@ function ProfilePage() {
   const [municipalityCode, setMunicipalityCode] = useState('')
   const [district, setDistrict] = useState('')
   const [aboutText, setAboutText] = useState('')
-  // Valda intressen i formuläret. Sparas först när man trycker Spara.
+  // Valda intressen när profilen skapas. Sparas tillsammans med profilen.
+  // (En befintlig profils intressen ändras direkt i "Vad gillar du?".)
   const [draftInterests, setDraftInterests] = useState([])
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
@@ -220,13 +219,11 @@ function ProfilePage() {
   useEffect(() => {
     // Själva inloggningskollen sköts redan av ProtectedRoute, så vi kan
     // anta att det finns en giltig token när den här sidan visas.
-    Promise.all([getProfile(), getMunicipalities(), getAllInterests(), getMyInterests()])
-      .then(([data, list, all, mine]) => {
+    Promise.all([getProfile(), getMunicipalities(), getMyInterests()])
+      .then(([data, list, mine]) => {
         setProfile(data)
         setMunicipalities(list)
-        setAllInterests(all)
         setMyInterests(mine)
-        setDraftInterests(mine)
         // Ingen profil än → visa formuläret direkt.
         setEditing(data === null)
         setStatus('ready')
@@ -247,33 +244,27 @@ function ProfilePage() {
     setMunicipalityCode(profile?.municipality_code ?? '')
     setDistrict(profile?.district ?? '')
     setAboutText(profile?.profile_text ?? '')
-    setDraftInterests(myInterests)
     setFormError('')
     setEditing(true)
   }
 
-  function toggleInterest(id, add) {
-    setDraftInterests((current) =>
-      add ? [...current, allInterests.find((i) => i.id === id)] : current.filter((i) => i.id !== id),
-    )
+  const byName = (a, b) => a.name.localeCompare(b.name, 'sv')
+
+  // "Vad gillar du?" på profilen sparar direkt. Backend svarar med den
+  // uppdaterade listan, och stoppar att det sista intresset tas bort.
+  async function addSavedInterest(interest) {
+    setMyInterests(await addInterest(interest.id))
   }
 
-  // Skickar bara skillnaden mot det som redan är sparat.
-  async function saveInterests() {
-    const savedIds = new Set(myInterests.map((i) => i.id))
-    const draftIds = new Set(draftInterests.map((i) => i.id))
-    // Först lägga till, sen ta bort: backend tillåter inte att det sista
-    // intresset tas bort, så ett byte måste lägga till det nya först.
-    await Promise.all(draftInterests.filter((i) => !savedIds.has(i.id)).map((i) => addInterest(i.id)))
-    await Promise.all(myInterests.filter((i) => !draftIds.has(i.id)).map((i) => removeInterest(i.id)))
-    // allInterests är sorterad på namn, så listan behåller samma ordning.
-    setMyInterests(allInterests.filter((i) => draftIds.has(i.id)))
+  async function removeSavedInterest(interest) {
+    setMyInterests(await removeInterest(interest.id))
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
     setFormError('')
-    if (draftInterests.length === 0) {
+    const isNew = profile === null
+    if (isNew && draftInterests.length === 0) {
       setFormError('Välj minst ett intresse.')
       return
     }
@@ -281,7 +272,6 @@ function ProfilePage() {
 
     // Namn, födelsedatum, kön, kommun och Om mig är obligatoriska och skickas
     // alltid med. Stadsdel är valfri och skickas bara om den är ifylld.
-    const isNew = profile === null
     const data = {
       name,
       birth_date: birthDate,
@@ -318,19 +308,8 @@ function ProfilePage() {
     }
     setProfile(saved)
 
-    // 3. Intressena. En ny profil sparade dem redan i steg 1. Vid en ändring
-    //    stannar formuläret kvar om det misslyckas, så att man kan försöka igen.
-    try {
-      if (isNew) {
-        setMyInterests(allInterests.filter((i) => draftInterests.some((d) => d.id === i.id)))
-      } else {
-        await saveInterests()
-      }
-    } catch (err) {
-      setFormError(err.message)
-      setSaving(false)
-      return
-    }
+    // 3. En ny profil sparade intressena i steg 1.
+    if (isNew) setMyInterests([...draftInterests].sort(byName))
 
     setEditing(false)
     setSaving(false)
@@ -452,11 +431,16 @@ function ProfilePage() {
             required
           />
 
-          <section className="profile-interests">
-            <h2>Intressen</h2>
-            <p className="hint-text">Välj minst ett intresse. Klicka för att välja.</p>
-            <InterestPicker allInterests={allInterests} selected={draftInterests} onToggle={toggleInterest} />
-          </section>
+          {/* En ny profil väljer intressen här (minst ett). En befintlig ändrar
+              dem i "Vad gillar du?" på profilen. */}
+          {isNew && (
+            <InterestExplorer
+              card={false}
+              selected={draftInterests}
+              onAdd={(interest) => setDraftInterests((current) => [...current, interest].sort(byName))}
+              onRemove={(interest) => setDraftInterests((current) => current.filter((i) => i.id !== interest.id))}
+            />
+          )}
 
           {formError && <p className="form-error">{formError}</p>}
 
@@ -474,6 +458,7 @@ function ProfilePage() {
   }
 
   return (
+    <div className="profile-layout">
     <div className="card card-wide content-stack">
       <h1>Min profil</h1>
       {imageNotice && (
@@ -496,19 +481,15 @@ function ProfilePage() {
       </dl>
       <ProfileEmail />
       <ProfileAbout text={profile.profile_text} />
-      <section className="profile-interests">
-        <h2>Intressen</h2>
-        {myInterests.length > 0 ? (
-          <InterestTags interests={myInterests} />
-        ) : (
-          <p className="hint-text">Inga intressen valda än.</p>
-        )}
-      </section>
       <BlockedUsers />
       <button type="button" className="primary-button" onClick={startEditing}>
         Redigera profil
       </button>
       <DeleteAccount />
+    </div>
+    {/* Intressena som ett eget vitt kort bredvid profilen (under på mobil).
+        Ändringar sparas direkt. */}
+    <InterestExplorer selected={myInterests} onAdd={addSavedInterest} onRemove={removeSavedInterest} />
     </div>
   )
 }
