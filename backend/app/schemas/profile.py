@@ -157,7 +157,7 @@ class ProfileResponse(BaseModel):
 
 class PublicProfileResponse(BaseModel):
     # Mindre "skyltfönster" av en profil - det som visas för NÅGON ANNANS
-    # profil (t.ex. GET /users/{username}/profile). Innehåller aldrig
+    # profil (t.ex. GET /users/{user_id}/profile). Innehåller aldrig
     # födelsedatum, kön eller kommunkoden, bara det ett ticket faktiskt
     # ska visa för andra. Intressena syns redan på personkorten (PersonResponse),
     # så de är inte privata.
@@ -172,9 +172,10 @@ class PublicProfileResponse(BaseModel):
 
 class PersonResponse(BaseModel):
     # Används i listan över andra användare (filtrera/föreslå) - precis som
-    # PublicProfileResponse, men med username (för att länka till
-    # /anvandare/{username}) och interests (för taggar och matchning).
+    # PublicProfileResponse, men med id (för att länka till /anvandare/{id}),
+    # username och interests (för taggar och matchning).
     # Aldrig birth_date, gender eller e-post.
+    id: int
     username: str
     name: str | None
     age: int | None

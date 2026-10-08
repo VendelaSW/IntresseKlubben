@@ -157,14 +157,14 @@ class EventUpdate(BaseModel):
 
 
 class EventInvite(BaseModel):
-    # Kontakter efter användarnamn, och/eller klubbar vars medlemmar alla ska
+    # Kontakter (användar-id), och/eller klubbar vars medlemmar alla ska
     # bjudas in. Minst en av dem krävs.
-    usernames: list[str] = []
+    user_ids: list[int] = []
     group_ids: list[int] = []
 
     @model_validator(mode="after")
     def someone_is_invited(self):
-        if not self.usernames and not self.group_ids:
+        if not self.user_ids and not self.group_ids:
             raise ValueError(msg.EVENT_INVITE_NOBODY)
         return self
 
@@ -194,7 +194,9 @@ class EventOut(BaseModel):
     visibility: EventVisibility
     group_id: int | None
     group_name: str | None
-    # Skaparens publika uppgifter: aldrig e-post eller födelsedatum.
+    # Skaparens publika uppgifter: aldrig e-post eller födelsedatum. creator_id
+    # används för länken till skaparens profil.
+    creator_id: int
     creator_username: str
     creator_name: str | None
     # Gäller den inloggade användaren, så att frontend vet vilka knappar som ska visas.

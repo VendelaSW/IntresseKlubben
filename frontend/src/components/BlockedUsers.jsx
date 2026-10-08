@@ -7,7 +7,7 @@ import { getBlockedUsers, unblockUser } from '../services/contacts'
 // blockerat någon. Återanvänder klasserna från klubbarnas medlemslista.
 function BlockedUsers() {
   const [blocked, setBlocked] = useState([])
-  const [busyUsername, setBusyUsername] = useState(null)
+  const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -16,16 +16,16 @@ function BlockedUsers() {
       .catch(() => setError('Kunde inte hämta dina blockerade användare.'))
   }, [])
 
-  async function handleUnblock(username) {
-    setBusyUsername(username)
+  async function handleUnblock(userId) {
+    setBusyId(userId)
     setError('')
     try {
-      await unblockUser(username)
-      setBlocked((list) => list.filter((u) => u.username !== username))
+      await unblockUser(userId)
+      setBlocked((list) => list.filter((u) => u.id !== userId))
     } catch (err) {
       setError(err.message)
     } finally {
-      setBusyUsername(null)
+      setBusyId(null)
     }
   }
 
@@ -37,7 +37,7 @@ function BlockedUsers() {
       {error && <p className="form-error">{error}</p>}
       <ul>
         {blocked.map((u) => (
-          <li key={u.username}>
+          <li key={u.id}>
             <div className="person-list-item">
               {u.image_url ? (
                 <img src={u.image_url} alt="" className="person-list-avatar" />
@@ -50,8 +50,8 @@ function BlockedUsers() {
               <button
                 type="button"
                 className="secondary-button"
-                disabled={busyUsername === u.username}
-                onClick={() => handleUnblock(u.username)}
+                disabled={busyId === u.id}
+                onClick={() => handleUnblock(u.id)}
               >
                 Avblockera
               </button>

@@ -52,6 +52,7 @@ def _to_response(event: Event, user_id: int) -> EventOut:
         visibility=event.visibility,
         group_id=event.group_id,
         group_name=event.group.name if event.group else None,
+        creator_id=creator.id,
         creator_username=creator.username,
         creator_name=creator.profile.name if creator.profile else None,
         is_owner=event.created_by == user_id,
@@ -181,22 +182,22 @@ def add_invitations(
     if not can_invite(event, current_user.id):
         raise HTTPException(status_code=403, detail=msg.EVENT_ONLY_CREATOR_CAN_INVITE)
     try:
-        invited = invite(db, event, current_user.id, data.usernames, data.group_ids)
+        invited = invite(db, event, current_user.id, data.user_ids, data.group_ids)
     except EventRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=err.detail)
     return [_to_invitee(u) for u in invited]
 
 
-@router.delete("/{event_id}/invitations/{username}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{event_id}/invitations/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_invitation(
     event_id: int,
-    username: str,
+    user_id: int,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     event = _own_event_or_error(db, event_id, current_user.id)
     try:
-        remove_invitation(db, event, username)
+        remove_invitation(db, event, user_id)
     except EventRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=err.detail)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -2,11 +2,13 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.schemas.contact import ContactUser
+
 
 class MessageCreate(BaseModel):
-    # Mottagaren identifieras med username, inte id: frontend känner bara
-    # till den andras username (se UserProfilePage), inte deras numeriska id.
-    recipient_username: str
+    # Mottagaren identifieras med id, som överallt i API:t (användarnamn ska
+    # aldrig synas i adresser).
+    recipient_id: int
     text: str
 
     @field_validator("text")
@@ -32,7 +34,9 @@ class MessageOut(BaseModel):
 
 class ConversationResponse(BaseModel):
     # En rad i inkorgen: den andra personen (publikt, aldrig e-post/
-    # födelsedatum) + en förhandsvisning av senaste meddelandet.
+    # födelsedatum) + en förhandsvisning av senaste meddelandet. id används
+    # för länken till konversationen.
+    id: int
     username: str
     name: str | None
     image_url: str | None
@@ -41,3 +45,11 @@ class ConversationResponse(BaseModel):
     # True om den inloggade själv skrev senaste meddelandet. Då är det inget
     # nytt brev, och siffran på brev-loggan ska inte räkna det.
     last_message_from_me: bool
+
+
+class ConversationDetail(BaseModel):
+    # Hela konversationen med en person (GET /messages/{user_id}): vem det är
+    # (publikt, som i kontaktlistan) och alla brev, äldst först. Personen
+    # följer med så att sidan kan visa namnet utan något eget anrop.
+    user: ContactUser
+    messages: list[MessageOut]

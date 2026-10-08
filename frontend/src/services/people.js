@@ -15,8 +15,8 @@ export function getPeople({ interestId, municipalityCode, gender, minAge, maxAge
 }
 
 // Döljer en person från Förslag. Permanent tills man nollställer (se nedan).
-export function dismissSuggestion(username) {
-  return apiPost(`/users/${encodeURIComponent(username)}/dismiss`)
+export function dismissSuggestion(userId) {
+  return apiPost(`/users/${userId}/dismiss`)
 }
 
 // Visar alla tidigare borttagna förslag igen.
