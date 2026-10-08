@@ -2,28 +2,36 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
+from app.core import error_messages as msg
 from app.core import storage
 from app.crud.contact import blocked_by_me_ids, blocked_user_ids
 from app.crud.group import (
     GroupRuleError,
     GroupSort,
+    can_invite,
     create_group,
+    decline_invitation,
     delete_group,
     get_group,
     get_membership,
+    invite_to_group,
+    is_invited,
     join_group,
     leave_group,
     list_members,
     list_public_groups,
     list_suggested_groups,
     list_user_groups,
+    list_user_invitations,
 )
 from app.crud.group_message import get_group_messages, send_group_message
 from app.crud.interest import get_active_interest
 from app.db.session import get_db
 from app.models.group import Group, GroupRole, GroupVisibility
 from app.models.municipality import Municipality
-from app.schemas.group import GroupCreate, GroupMemberResponse, GroupResponse
+from app.models.user import User
+from app.schemas.contact import ContactUser
+from app.schemas.group import GroupCreate, GroupInvite, GroupMemberResponse, GroupResponse
 from app.schemas.group_message import GroupMessageCreate, GroupMessageOut
 
 router = APIRouter(prefix="/groups", tags=["groups"])
@@ -52,20 +60,25 @@ def _to_response(group: Group, user_id: int, hidden: set[int], blocked_by_me: se
         municipality_code=group.municipality_code,
         municipality_name=group.municipality.name,
         visibility=group.visibility,
+        members_can_invite=group.members_can_invite,
         member_count=sum(1 for m in group.members if m.user_id not in hidden),
         is_member=membership is not None,
         is_owner=membership is not None and membership.role == GroupRole.owner,
+        can_invite=can_invite(group, user_id),
+        is_invited=is_invited(group, user_id),
         created_at=group.created_at,
         has_blocked_member=any(m.user_id in blocked_by_me for m in group.members),
     )
 
 
 def _visible_group_or_404(db: Session, group_id: int, user_id: int) -> Group:
-    # En privat grupp ska inte avslöjas för den som inte är med, så den ger
-    # samma svar som en grupp som inte finns.
+    # En privat grupp ska inte avslöjas för den som varken är med eller inbjuden,
+    # så den ger samma svar som en grupp som inte finns.
     group = get_group(db, group_id)
     if group is None or (
-        group.visibility == GroupVisibility.private and get_membership(group, user_id) is None
+        group.visibility == GroupVisibility.private
+        and get_membership(group, user_id) is None
+        and not is_invited(group, user_id)
     ):
         raise HTTPException(status_code=404, detail="Klubben finns inte")
     return group
@@ -87,7 +100,7 @@ def create(
     try:
         group = create_group(db, current_user, data)
     except GroupRuleError as err:
-        raise HTTPException(status_code=409, detail=str(err))
+        raise HTTPException(status_code=err.status_code, detail=str(err))
     return _to_response(group, current_user.id, *_blocks(db, current_user.id))
 
 
@@ -136,6 +149,19 @@ def read_suggested_groups(current_user=Depends(get_current_user), db: Session = 
     return [_to_response(g, current_user.id, *blocks) for g in list_suggested_groups(db, current_user)]
 
 
+# Klubbarna man är inbjuden till. Före /{group_id}, så att "invitations" inte tolkas som ett id.
+@router.get("/invitations", response_model=list[GroupResponse])
+def read_my_invitations(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    blocks = _blocks(db, current_user.id)
+    return [_to_response(g, current_user.id, *blocks) for g in list_user_invitations(db, current_user.id)]
+
+
+# Bara antalet, för märket i headern.
+@router.get("/invitations/count")
+def read_my_invitation_count(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    return {"count": len(list_user_invitations(db, current_user.id))}
+
+
 @router.get("/{group_id}", response_model=GroupResponse)
 def read_group(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     group = _visible_group_or_404(db, group_id, current_user.id)
@@ -167,7 +193,7 @@ def join(group_id: int, current_user=Depends(get_current_user), db: Session = De
     try:
         group = join_group(db, group, current_user)
     except GroupRuleError as err:
-        raise HTTPException(status_code=409, detail=str(err))
+        raise HTTPException(status_code=err.status_code, detail=str(err))
     return _to_response(group, current_user.id, *_blocks(db, current_user.id))
 
 
@@ -175,6 +201,44 @@ def join(group_id: int, current_user=Depends(get_current_user), db: Session = De
 def leave(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     group = _visible_group_or_404(db, group_id, current_user.id)
     leave_group(db, group, current_user)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _to_invitee(user: User) -> ContactUser:
+    profile = user.profile
+    image_key = profile.profile_image_url if profile else None
+    return ContactUser(
+        id=user.id,
+        username=user.username,
+        name=profile.name if profile else None,
+        image_url=storage.public_url(image_key) if image_key else None,
+    )
+
+
+# Ägaren får alltid bjuda in, andra medlemmar bara om ägaren har slagit på det
+# (members_can_invite). Svaret är de som blev inbjudna den här gången.
+@router.post("/{group_id}/invitations", response_model=list[ContactUser])
+def add_invitations(
+    group_id: int,
+    data: GroupInvite,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    group = _visible_group_or_404(db, group_id, current_user.id)
+    if not can_invite(group, current_user.id):
+        raise HTTPException(status_code=403, detail=msg.GROUP_ONLY_OWNER_CAN_INVITE)
+    try:
+        invited = invite_to_group(db, group, current_user.id, data.usernames)
+    except GroupRuleError as err:
+        raise HTTPException(status_code=err.status_code, detail=str(err))
+    return [_to_invitee(u) for u in invited]
+
+
+# Den inbjudna avböjer. Går att upprepa utan fel, som att lämna en klubb.
+@router.delete("/{group_id}/invitations/me", status_code=status.HTTP_204_NO_CONTENT)
+def decline(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    group = _visible_group_or_404(db, group_id, current_user.id)
+    decline_invitation(db, group, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

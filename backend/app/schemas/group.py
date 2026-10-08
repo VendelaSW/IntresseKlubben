@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
+from app.core import error_messages as msg
 from app.core.profanity import validate_clean_text
 from app.models.group import GroupRole, GroupVisibility
 
@@ -23,6 +24,8 @@ class GroupCreate(BaseModel):
     interest_id: int
     municipality_code: str
     visibility: GroupVisibility = GroupVisibility.public
+    # Av som standard bara ägaren. På: alla medlemmar får bjuda in.
+    members_can_invite: bool = False
 
     @field_validator("name")
     @classmethod
@@ -60,10 +63,14 @@ class GroupResponse(BaseModel):
     municipality_code: str
     municipality_name: str
     visibility: GroupVisibility
+    members_can_invite: bool
     member_count: int
     # Gäller den inloggade användaren, så att frontend vet vilka knappar som ska visas.
     is_member: bool
     is_owner: bool
+    # Får den inloggade bjuda in till klubben? Och har hen själv blivit inbjuden?
+    can_invite: bool
+    is_invited: bool
     created_at: datetime
     # Är någon den inloggade själv har blockerat med i gruppen? Bara för en
     # varning till den inloggade; vem det är syns inte (medlemslistan döljer
@@ -77,3 +84,14 @@ class GroupMemberResponse(BaseModel):
     name: str | None
     image_url: str | None
     role: GroupRole
+
+
+class GroupInvite(BaseModel):
+    # Kontakter efter användarnamn. Minst en krävs.
+    usernames: list[str]
+
+    @model_validator(mode="after")
+    def someone_is_invited(self):
+        if not self.usernames:
+            raise ValueError(msg.GROUP_INVITE_NOBODY)
+        return self

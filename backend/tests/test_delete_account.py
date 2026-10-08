@@ -197,6 +197,8 @@ def test_every_column_pointing_at_users_is_handled():
         "event_invitations.user_id",
         "event_responses.user_id",
         "events.created_by",
+        "group_invitations.invited_by",  # sätts till tomt: inbjudan finns kvar utan avsändare
+        "group_invitations.user_id",
         "group_members.user_id",
         "group_messages.sender_id",
         "groups.created_by",  # ON DELETE SET NULL: klubben finns kvar utan skapare

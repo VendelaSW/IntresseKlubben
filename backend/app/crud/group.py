@@ -4,8 +4,9 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.crud.contact import blocked_user_ids
-from app.models.group import Group, GroupMember, GroupRole, GroupVisibility
+from app.core import error_messages as msg
+from app.crud.contact import accepted_contact_ids, blocked_user_ids
+from app.models.group import Group, GroupInvitation, GroupMember, GroupRole, GroupVisibility
 from app.models.user import User
 from app.schemas.group import GroupCreate
 
@@ -15,6 +16,14 @@ MAX_MEMBERSHIPS = 20
 
 class GroupRuleError(Exception):
     """En regel för grupper bröts, t.ex. ett upptaget namn. Meddelandet visas för användaren."""
+
+    status_code = 409
+
+
+class NotAContactError(GroupRuleError):
+    """Någon som inte är en kontakt försökte bjudas in."""
+
+    status_code = 422
 
 
 class GroupSort(str, enum.Enum):
@@ -29,6 +38,7 @@ def _base_query(db: Session):
     # Laddar medlemmarna i samma veva, så att antal och roller inte ger en fråga per grupp.
     return db.query(Group).options(
         selectinload(Group.members),
+        selectinload(Group.invitations),
         selectinload(Group.interest),
         selectinload(Group.municipality),
     )
@@ -183,6 +193,10 @@ def join_group(db: Session, group: Group, user: User) -> Group:
     if get_membership(group, user.id) is None:
         _check_can_join(db, user.id)
         group.members.append(GroupMember(user_id=user.id, role=GroupRole.member))
+        # Inbjudan har gjort sitt när man har gått med.
+        db.query(GroupInvitation).filter(
+            GroupInvitation.group_id == group.id, GroupInvitation.user_id == user.id
+        ).delete(synchronize_session=False)
         db.commit()
     return get_group(db, group.id)
 
@@ -211,4 +225,72 @@ def leave_group(db: Session, group: Group, user: User) -> None:
 
 def delete_group(db: Session, group: Group) -> None:
     db.delete(group)
+    db.commit()
+
+
+# ---------- Inbjudningar ----------
+
+
+def can_invite(group: Group, user_id: int) -> bool:
+    """Ägaren får alltid bjuda in, andra medlemmar bara om ägaren har slagit på det."""
+    membership = get_membership(group, user_id)
+    if membership is None:
+        return False
+    return membership.role == GroupRole.owner or group.members_can_invite
+
+
+def is_invited(group: Group, user_id: int) -> bool:
+    return any(i.user_id == user_id for i in group.invitations)
+
+
+def invite_to_group(db: Session, group: Group, inviter_id: int, usernames: list[str]) -> list[User]:
+    """Bjuder in inviter_id:s kontakter (efter användarnamn). Att inviter_id får
+    bjuda in kontrolleras av den som anropar (can_invite). Antingen går alla
+    inbjudningar igenom eller ingen. Redan medlemmar, redan inbjudna och de som
+    har en blockering med ägaren hoppas över tyst: ett fel skulle avslöja för
+    den som bjuder in att ägaren har en blockering.
+    Returnerar de som blev inbjudna den här gången (profil förladdad)."""
+    contact_ids = accepted_contact_ids(db, inviter_id)
+    target_ids: set[int] = set()
+    for username in usernames:
+        user = db.query(User).filter(func.lower(User.username) == username.lower()).first()
+        # Samma svar för en okänd användare och en som inte är en kontakt.
+        if user is None or user.id not in contact_ids:
+            raise NotAContactError(msg.CAN_ONLY_INVITE_CONTACTS)
+        target_ids.add(user.id)
+
+    for owner in (m for m in group.members if m.role == GroupRole.owner):
+        target_ids -= blocked_user_ids(db, owner.user_id)
+    target_ids -= {m.user_id for m in group.members}
+    target_ids -= {i.user_id for i in group.invitations}
+    db.add_all(
+        GroupInvitation(group_id=group.id, user_id=user_id, invited_by=inviter_id) for user_id in target_ids
+    )
+    db.commit()
+    return list(
+        db.query(User)
+        .options(selectinload(User.profile))
+        .filter(User.id.in_(target_ids))
+        .order_by(User.id)
+        .all()
+    )
+
+
+def list_user_invitations(db: Session, user_id: int) -> list[Group]:
+    """Klubbar användaren är inbjuden till (och inte redan med i), nyaste inbjudan först."""
+    my_group_ids = select(GroupMember.group_id).where(GroupMember.user_id == user_id)
+    return (
+        _base_query(db)
+        .join(GroupInvitation, GroupInvitation.group_id == Group.id)
+        .filter(GroupInvitation.user_id == user_id, Group.id.not_in(my_group_ids))
+        .order_by(GroupInvitation.created_at.desc(), GroupInvitation.id.desc())
+        .all()
+    )
+
+
+def decline_invitation(db: Session, group: Group, user_id: int) -> None:
+    """Avböjer inbjudan (tar bort den). Går att upprepa utan fel."""
+    db.query(GroupInvitation).filter(
+        GroupInvitation.group_id == group.id, GroupInvitation.user_id == user_id
+    ).delete(synchronize_session=False)
     db.commit()

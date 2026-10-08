@@ -8,7 +8,7 @@ from app.models.interest import Interest  # noqa: F401
 from app.models.associations import user_interests  # noqa: F401
 from app.models.contact import Contact  # noqa: F401
 from app.models.message import Message  # noqa: F401
-from app.models.group import Group, GroupMember  # noqa: F401
+from app.models.group import Group, GroupInvitation, GroupMember  # noqa: F401
 from app.models.group_message import GroupMessage  # noqa: F401
 from app.models.dismissed_suggestion import DismissedSuggestion  # noqa: F401
 from app.models.event import Event, EventInvitation, EventResponse  # noqa: F401
