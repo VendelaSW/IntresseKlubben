@@ -380,11 +380,11 @@ function StyleGuide() {
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Lista med länkar, gul penna vid hover (.person-list .person-list-compact .person-list-marker)
+          Lista med länkar, gul penna vid hover och tangentbordsfokus (.person-list .person-list-compact .person-list-marker)
         </p>
         <p className="hint-text">
           Samma lista utan avatarer. Titeln får den gula överstrykningspennan (som .highlight) när
-          man pekar på raden, i stället för understrykning. Tid och plats ligger i .hint-text.
+          man pekar på raden eller tabbar dit, i stället för understrykning. Tid och plats ligger i .hint-text.
           Används t.ex. för klubbens kommande events.
         </p>
         <div className="card sheet" style={{ marginTop: '1rem' }}>

@@ -1553,14 +1553,15 @@ span.tag-selected:hover {
 }
 
 /* Lägg på .person-list: titeln får den gula överstrykningspennan (samma som
-   .highlight) vid hover i stället för understrykning. Luften runt titeln finns
-   hela tiden, så att texten inte hoppar när strecket kommer. */
+   .highlight) vid hover och tangentbordsfokus i stället för understrykning. Luften
+   runt titeln finns hela tiden, så att texten inte hoppar när strecket kommer. */
 .person-list-marker .person-list-item > span:first-child {
   padding: 0 0.15em;
   margin: 0 -0.15em;
 }
 
-.person-list-marker .person-list-item:hover span:not(.hint-text):not(.person-list-avatar) {
+.person-list-marker .person-list-item:hover span:not(.hint-text):not(.person-list-avatar),
+.person-list-marker .person-list-item:focus-visible span:not(.hint-text):not(.person-list-avatar) {
   text-decoration: none;
   background: linear-gradient(transparent 58%, var(--color-accent) 58%, var(--color-accent) 88%, transparent 88%);
 }
