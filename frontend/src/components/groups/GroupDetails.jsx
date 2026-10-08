@@ -1,13 +1,11 @@
 import GroupMembers from './GroupMembers'
 import { RoleBadge, memberCountText } from './GroupList'
 
-// Mer information om en grupp, med knapparna som passar ens roll.
-function GroupDetails({ group, busy, onJoin, onLeave, onDelete, onBack }) {
+// Mer information om en grupp, med knapparna som passar ens roll. Tillbaka-
+// knappen ligger ovanför rutan, i GroupsPanel.
+function GroupDetails({ group, busy, onJoin, onLeave, onDelete }) {
   return (
     <section className="detail-view">
-      <button type="button" className="secondary-button button-small" onClick={onBack}>
-        ← Tillbaka
-      </button>
       <p className="card-title">{group.name}</p>
       <p className="card-subheading">
         {group.municipality_name} · {memberCountText(group.member_count)}

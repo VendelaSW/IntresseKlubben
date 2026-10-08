@@ -87,6 +87,17 @@ def test_create_group_rejects_invalid_input(client, user, interests, municipalit
     assert text == message
 
 
+def test_create_group_rejects_inactive_interest(client, db, user, interests, municipalities):
+    # Ett inaktivt intresse (t.ex. Gaming, som slogs ihop med Tv-spel) går inte
+    # att välja, inte heller via API:t. Samma fel som ett okänt.
+    gaming = Interest(name="Gaming", status="inactive")
+    db.add(gaming)
+    db.commit()
+    response = client.post("/groups/", json=_payload(interests, interest_id=gaming.id))
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Okänt intresse"
+
+
 def test_same_name_in_same_municipality_is_not_allowed(client, user, new_group, interests):
     new_group()
     response = client.post("/groups/", json=_payload(interests, name="MORGONLÖPARNA"))

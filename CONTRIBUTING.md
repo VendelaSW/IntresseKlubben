@@ -135,6 +135,12 @@ En ticket ger en liten PR. Ju längre en branch lever, desto mer av `dev` missar
 - **Kör inte `alembic upgrade head` innan merge.** Vi delar en Neon-databas (lokalt, dev och produktion), så en migration ändrar databasen för alla direkt. Testa i stället med `pytest`, som använder en egen databas.
 - **Direkt efter merge** kör den som mergade `alembic upgrade head` och skriver i Discord att det är gjort.
 
+### Intressebiblioteket
+- Alla intressen och deras träd (huvudområde › intresse › mer specifikt) står i `backend/app/data/interests.json`. Vill du lägga till, byta namn på eller flytta ett intresse ändrar du där, inte direkt i databasen.
+- `slug` är intressets fasta id. Ändra inte en slug som redan finns, då blir det ett nytt intresse. Ett intresse som tas bort ur filen blir inaktivt i databasen, det raderas aldrig (användarnas val finns kvar).
+- `pytest` kontrollerar att filen är giltig (unika slugs, föräldrar som finns, inga loopar).
+- **Direkt efter merge**, efter `alembic upgrade head`, kör den som mergade (från `backend/`): `python -m app.sync_interests`. Kör det aldrig från en branch som inte är mergad, av samma skäl som migrationerna.
+
 ### Miljövariabler
 - Ny variabel? Lägg till den i `.env.example` **utan riktigt värde**, skriv i Discord att alla behöver lägga till den lokalt, och lägg in den i Vercel.
 - I Vercel: backend-variabler i **backend-projektet**, för både **Preview** och **Production**. Inga citattecken runt värdet. Hemligheter (nycklar, lösenord, `JWT_SECRET`, `DATABASE_URL`) markeras **Sensitive**.

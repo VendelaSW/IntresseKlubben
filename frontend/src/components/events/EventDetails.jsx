@@ -19,7 +19,8 @@ const ANSWERS = [
 // "Bjud in" syns för den som får bjuda in (event.can_invite: skaparen, eller alla
 // om skaparen har slagit på "Gäster får bjuda in") och öppnar en popup med ens
 // kontakter och klubbar (`contacts`, `groups`). Skaparen kan slå på och av valet här.
-function EventDetails({ event, myInterestIds, contacts, groups, onBack, onAnswered }) {
+// Tillbaka-knappen ligger ovanför rutan, i EventsPanel.
+function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
   const [responses, setResponses] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -86,9 +87,6 @@ function EventDetails({ event, myInterestIds, contacts, groups, onBack, onAnswer
 
   return (
     <section className="detail-view">
-      <button type="button" className="secondary-button button-small" onClick={onBack}>
-        ← Tillbaka
-      </button>
       <div className="title-row">
         <p className="card-title">{event.title}</p>
         <span className={visibilityPillClass(event)}>{visibilityText(event)}</span>
