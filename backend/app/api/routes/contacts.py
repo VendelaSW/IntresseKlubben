@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.auth.security import get_current_user
 from app.core import storage
 from app.crud import contact as contact_crud
-from app.crud.user import get_user_by_username
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.contact import (BlockResponse, ContactAnswer, ContactListItem,
@@ -14,11 +13,10 @@ from app.schemas.contact import (BlockResponse, ContactAnswer, ContactListItem,
 router = APIRouter(tags=["contacts"])
 
 
-def _user_id_or_404(db: Session, username: str) -> int:
-    user = get_user_by_username(db, username)
-    if user is None:
+def _user_id_or_404(db: Session, user_id: int) -> int:
+    if db.get(User, user_id) is None:
         raise HTTPException(status_code=404, detail="Användaren finns inte")
-    return user.id
+    return user_id
 
 
 def _to_contact_user(other: User) -> ContactUser:
@@ -51,7 +49,7 @@ def list_contacts(db: Session = Depends(get_db),
              status_code=status.HTTP_201_CREATED)
 def send_contact_request(request: ContactRequest, db: Session = Depends(get_db),
                          current_user: User = Depends(get_current_user)):
-    addressee_id = _user_id_or_404(db, request.addressee_username)
+    addressee_id = _user_id_or_404(db, request.addressee_id)
     # Samma neutrala 404 som för en användare som inte finns, så att
     # blockeringen inte avslöjas för den som blivit blockerad.
     if contact_crud.is_blocked(db, current_user.id, addressee_id):
@@ -100,20 +98,20 @@ def list_blocked_users(db: Session = Depends(get_db),
     return [_to_contact_user(u) for u in contact_crud.list_blocked_by(db, current_user.id)]
 
 
-@router.post("/users/{username}/block", response_model=BlockResponse)
-def block_user(username: str, db: Session = Depends(get_db),
+@router.post("/users/{user_id}/block", response_model=BlockResponse)
+def block_user(user_id: int, db: Session = Depends(get_db),
                current_user: User = Depends(get_current_user)):
-    user_id = _user_id_or_404(db, username)
+    _user_id_or_404(db, user_id)
     try:
         return contact_crud.block_user(db, current_user.id, user_id)
     except contact_crud.ContactError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
-@router.delete("/users/{username}/block", status_code=status.HTTP_204_NO_CONTENT)
-def unblock_user(username: str, db: Session = Depends(get_db),
+@router.delete("/users/{user_id}/block", status_code=status.HTTP_204_NO_CONTENT)
+def unblock_user(user_id: int, db: Session = Depends(get_db),
                  current_user: User = Depends(get_current_user)):
-    user_id = _user_id_or_404(db, username)
+    _user_id_or_404(db, user_id)
     try:
         contact_crud.unblock_user(db, current_user.id, user_id)
     except contact_crud.ContactError as exc:

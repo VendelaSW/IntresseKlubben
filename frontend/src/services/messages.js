@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from './api'
 
-// "Sett" per konversation: användarnamn → tidpunkt för senaste meddelandet
+// "Sett" per konversation: användarens id → tidpunkt för senaste meddelandet
 // man har sett. Tiderna kommer från servern (last_message_at/created_at),
 // så en felställd klocka i webbläsaren påverkar inte. Sparas i webbläsaren,
 // så på en annan enhet börjar det om. Riktig läst/oläst kräver ändring i
@@ -23,20 +23,20 @@ function writeSeen(seen) {
   }
 }
 
-function markSeen(username, timestamp) {
-  writeSeen({ ...readSeen(), [username]: timestamp })
+function markSeen(userId, timestamp) {
+  writeSeen({ ...readSeen(), [userId]: timestamp })
 }
 
 // Markerar en konversation som sedd fram till timestamp (t.ex. när nya brev
 // visas i den öppna chatten).
-export function markConversationSeen(username, timestamp) {
-  markSeen(username, timestamp)
+export function markConversationSeen(userId, timestamp) {
+  markSeen(userId, timestamp)
 }
 
 // Markerar alla konversationer i listan som sedda (t.ex. när man öppnar Meddelanden).
 export function markConversationsSeen(conversations) {
   const seen = readSeen()
-  for (const c of conversations) seen[c.username] = c.last_message_at
+  for (const c of conversations) seen[c.id] = c.last_message_at
   writeSeen(seen)
 }
 
@@ -48,19 +48,20 @@ export function countUnseenConversations(conversations) {
   return conversations.filter(
     (c) =>
       !c.last_message_from_me &&
-      (!seen[c.username] || new Date(c.last_message_at) > new Date(seen[c.username])),
+      (!seen[c.id] || new Date(c.last_message_at) > new Date(seen[c.id])),
   ).length
 }
 
 // Ens eget meddelande räknas som sett, så att det inte ger en badge.
-export async function sendMessage(username, text) {
-  const message = await apiPost('/messages', { recipient_username: username, text })
-  markSeen(username, message.created_at)
+export async function sendMessage(userId, text) {
+  const message = await apiPost('/messages', { recipient_id: userId, text })
+  markSeen(userId, message.created_at)
   return message
 }
 
-export function getConversation(username) {
-  return apiGet(`/messages/${encodeURIComponent(username)}`)
+// { user, messages }: vem konversationen är med, och alla brev äldst först.
+export function getConversation(userId) {
+  return apiGet(`/messages/${userId}`)
 }
 
 export function getConversations() {

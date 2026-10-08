@@ -127,6 +127,7 @@ En ticket ger en liten PR. Ju längre en branch lever, desto mer av `dev` missar
 ### API
 - Inga prefix som `/api` på endpoints; följ samma mönster som `/profile/`, `/users/...`, `/interests/`.
 - Felmeddelanden till användaren skrivs på **svenska**.
+- **Användarnamn syns aldrig i en adress**, varken i sidans adressfält (`/anvandare/12`, inte `/anvandare/anna`) eller i API:t (`/users/12/profile`). Peka ut användare med id, också i request-bodyn (`recipient_id`, `user_ids`). Ett test i `test_app_structure.py` fäller endpoints med användarnamn i adressen.
 
 ### Databas och migrationer
 - Ändrar du en modell behövs en migration: `alembic revision --autogenerate -m "kort beskrivning"`.

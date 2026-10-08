@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session, selectinload
 from app.core import error_messages as msg
 from app.crud.contact import blocked_by_me_ids, blocked_user_ids
 from app.crud.group import get_group, get_membership
-from app.crud.user import get_user_by_username
 from app.models.contact import Contact
 from app.models.event import Event, EventAnswer, EventInvitation, EventResponse, EventVisibility
 from app.models.group import Group, GroupMember, GroupVisibility
@@ -164,9 +163,9 @@ def _accepted_contact_ids(db: Session, user_id: int) -> set[int]:
 
 
 def invite(
-    db: Session, event: Event, inviter_id: int, usernames: list[str], group_ids: list[int]
+    db: Session, event: Event, inviter_id: int, user_ids: list[int], group_ids: list[int]
 ) -> list[User]:
-    """Bjuder in kontakter till inviter_id (efter användarnamn) och/eller alla
+    """Bjuder in kontakter till inviter_id (efter id) och/eller alla
     nuvarande medlemmar i klubbar som inviter_id är med i. Vem som helst som kan
     se eventet får bjuda in, och det är den som bjuder in som kontakterna och
     klubbarna räknas från. Antingen går alla inbjudningar igenom eller ingen.
@@ -176,12 +175,11 @@ def invite(
     target_ids: set[int] = set()
 
     contact_ids = _accepted_contact_ids(db, inviter_id)
-    for username in usernames:
-        user = get_user_by_username(db, username)
+    for user_id in user_ids:
         # Samma svar för en okänd användare och en som inte är en kontakt.
-        if user is None or user.id not in contact_ids:
+        if user_id not in contact_ids:
             raise EventRuleError(422, msg.CAN_ONLY_INVITE_CONTACTS)
-        target_ids.add(user.id)
+        target_ids.add(user_id)
 
     hidden = blocked_user_ids(db, inviter_id)
     for group_id in group_ids:
@@ -220,11 +218,10 @@ def list_invitees(db: Session, event: Event, viewer_id: int) -> list[User]:
     return [users[user_id] for user_id in user_ids if user_id in users]
 
 
-def remove_invitation(db: Session, event: Event, username: str) -> None:
-    user = get_user_by_username(db, username)
+def remove_invitation(db: Session, event: Event, user_id: int) -> None:
     invitation = (
         db.query(EventInvitation)
-        .filter(EventInvitation.event_id == event.id, EventInvitation.user_id == (user.id if user else None))
+        .filter(EventInvitation.event_id == event.id, EventInvitation.user_id == user_id)
         .first()
     )
     if invitation is None:

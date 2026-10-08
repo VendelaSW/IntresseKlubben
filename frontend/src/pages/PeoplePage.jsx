@@ -139,12 +139,12 @@ function PeoplePage() {
   // sin egen flik - visa dem inte i Förslag också. Den som redan fått en
   // förfrågan skickad till sig stannar kvar, men med en statuspill i stället
   // för "Skicka förfrågan".
-  const outgoingByUsername = new Map(
-    contactsData.outgoing_requests.map((request) => [request.user.username, request]),
+  const outgoingByUserId = new Map(
+    contactsData.outgoing_requests.map((request) => [request.user.id, request]),
   )
-  const excludedUsernames = new Set([
-    ...contactsData.contacts.map((c) => c.user.username),
-    ...contactsData.incoming_requests.map((r) => r.user.username),
+  const excludedUserIds = new Set([
+    ...contactsData.contacts.map((c) => c.user.id),
+    ...contactsData.incoming_requests.map((r) => r.user.id),
   ])
 
   function sharedCount(person) {
@@ -152,8 +152,8 @@ function PeoplePage() {
   }
 
   const suggested = people
-    .filter((person) => !excludedUsernames.has(person.username))
-    .map((person) => ({ person, outgoing: outgoingByUsername.get(person.username) }))
+    .filter((person) => !excludedUserIds.has(person.id))
+    .map((person) => ({ person, outgoing: outgoingByUserId.get(person.id) }))
     .sort((a, b) => sharedCount(b.person) - sharedCount(a.person))
 
   // Förslag delas i två: de man har minst ett intresse gemensamt med, och alla andra.
@@ -163,7 +163,7 @@ function PeoplePage() {
   function suggestionCard({ person, outgoing }) {
     return (
       <PersonCard
-        key={person.username}
+        key={person.id}
         person={person}
         sharedInterestIds={myInterestIds}
         reason={sharedInterestsText(person, myInterestIds)}
@@ -171,7 +171,7 @@ function PeoplePage() {
           <PersonActions
             relation={outgoing ? 'outgoing' : null}
             busy={busy}
-            onSend={() => runAction(() => sendContactRequest(person.username))}
+            onSend={() => runAction(() => sendContactRequest(person.id))}
             onCancel={() => handleCancelRequest(outgoing)}
             onDismiss={() => handleDismiss(person)}
           />
@@ -211,7 +211,7 @@ function PeoplePage() {
   }
 
   function handleDismiss(person) {
-    runAction(() => dismissSuggestion(person.username))
+    runAction(() => dismissSuggestion(person.id))
   }
 
   function handleResetDismissed() {

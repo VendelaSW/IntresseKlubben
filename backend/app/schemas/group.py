@@ -72,7 +72,9 @@ class GroupResponse(BaseModel):
 
 
 class GroupMemberResponse(BaseModel):
-    # Publik vy av en medlem: aldrig e-post, födelsedatum eller kön.
+    # Publik vy av en medlem: aldrig e-post, födelsedatum eller kön. id används
+    # för länken till medlemmens profil.
+    id: int
     username: str
     name: str | None
     image_url: str | None
