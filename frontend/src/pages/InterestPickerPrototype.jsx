@@ -89,19 +89,24 @@ const EXAMPLES = {
 
 // Ett underintresse identifieras av "Huvudintresse/Underintresse", eftersom
 // samma namn kan finnas under flera (t.ex. Fantasy under både Film och Böcker).
-const keyOf = (category, sub) => `${category}/${sub}`
+// Huvudintresset självt (t.ex. bara "Musik") har bara namnet som nyckel.
+const keyOf = (category, sub = null) => (sub ? `${category}/${sub}` : category)
+const categoryOf = (key) => key.split('/')[0]
+// Namnet som visas: underintresset, eller huvudintresset om det är det som valts.
+const nameOf = (key) => key.split('/')[1] ?? key
+const isMain = (key) => !key.includes('/')
 
 // Sökningen bryr sig inte om stora/små bokstäver eller mellanslag runt texten.
 const normalize = (text) => text.normalize('NFC').trim().toLocaleLowerCase('sv')
 
 function InterestPickerPrototype() {
-  // Valda underintressen: nyckel -> fritext (tom sträng om ingen fritext).
+  // Valda intressen (huvudintressen och underintressen): nyckel -> fritext
+  // (tom sträng om ingen fritext).
   const [selected, setSelected] = useState(new Map())
   const [open, setOpen] = useState(new Set())
   const [query, setQuery] = useState('')
 
-  function toggle(category, sub) {
-    const key = keyOf(category, sub)
+  function toggle(key) {
     const next = new Map(selected)
     if (next.has(key)) next.delete(key)
     else next.set(key, '')
@@ -121,22 +126,26 @@ function InterestPickerPrototype() {
 
   const search = normalize(query)
   // Vid sökning: underintressen vars namn (eller huvudintresse) innehåller
-  // söktexten, och de kategorierna visas utfällda.
-  const visible = CATEGORIES.map((category) => ({
-    ...category,
-    subinterests: search
-      ? category.subinterests.filter(
-          (sub) => normalize(sub).includes(search) || normalize(category.name).includes(search),
-        )
-      : category.subinterests,
-  })).filter((category) => category.subinterests.length > 0)
+  // söktexten, och de kategorierna visas utfällda. Huvudintresset självt går
+  // att välja när det inte söks, eller när det är huvudintresset som matchar.
+  const visible = CATEGORIES.map((category) => {
+    const mainMatches = !search || normalize(category.name).includes(search)
+    return {
+      ...category,
+      showMain: mainMatches,
+      subinterests: mainMatches
+        ? category.subinterests
+        : category.subinterests.filter((sub) => normalize(sub).includes(search)),
+    }
+  }).filter((category) => category.showMain || category.subinterests.length > 0)
 
   return (
     <main className="app-main">
       <section className="app-section interest-picker">
         <h1 className="app-title">Mina intressen</h1>
         <p className="hint-text">
-          Prototyp: inget sparas. Välj underintressen, och skriv gärna något mer specifikt under dem.
+          Prototyp: inget sparas. Välj ett helt område (t.ex. Musik i allmänhet) eller underintressen, och
+          skriv gärna något mer specifikt under dem.
         </p>
 
         <div className="interest-picker-chosen">
@@ -146,18 +155,19 @@ function InterestPickerPrototype() {
           ) : (
             <ul className="tags">
               {[...selected.keys()].map((key, _, keys) => {
-                const [category, sub] = key.split('/')
+                const name = nameOf(key)
                 // Visa huvudintresset bara när två valda heter likadant (t.ex. Fantasy).
-                const twin = keys.some((other) => other !== key && other.split('/')[1] === sub)
+                const twin = !isMain(key) && keys.some((other) => other !== key && nameOf(other) === name)
+                const label = twin ? `${name} (${categoryOf(key)})` : name
                 return (
                   <li key={key}>
                     <button
                       type="button"
                       className="tag tag-selected"
-                      aria-label={`Ta bort ${sub} (${category})`}
-                      onClick={() => toggle(category, sub)}
+                      aria-label={`Ta bort ${label}`}
+                      onClick={() => toggle(key)}
                     >
-                      {twin ? `${sub} (${category})` : sub} <span aria-hidden="true">×</span>
+                      {label} <span aria-hidden="true">×</span>
                     </button>
                   </li>
                 )
@@ -180,7 +190,10 @@ function InterestPickerPrototype() {
         <ul className="interest-picker-categories">
           {visible.map((category, categoryIndex) => {
             const isOpen = search !== '' || open.has(category.name)
-            const chosenHere = [...selected.keys()].filter((key) => key.startsWith(`${category.name}/`))
+            // Huvudintresset först, sedan valda underintressen.
+            const chosenHere = [...selected.keys()]
+              .filter((key) => categoryOf(key) === category.name)
+              .sort((a, b) => Number(isMain(b)) - Number(isMain(a)))
             const panelId = `interest-category-${categoryIndex}`
             return (
               <li key={category.name} className="interest-category">
@@ -199,17 +212,21 @@ function InterestPickerPrototype() {
                 {isOpen && (
                   <div id={panelId} className="interest-category-body">
                     <ul className="tags">
-                      {category.subinterests.map((sub) => {
-                        const isSelected = selected.has(keyOf(category.name, sub))
+                      {[
+                        // Hela området, för den som inte vill välja underintressen.
+                        ...(category.showMain ? [{ key: keyOf(category.name), label: `${category.name} i allmänhet` }] : []),
+                        ...category.subinterests.map((sub) => ({ key: keyOf(category.name, sub), label: sub })),
+                      ].map(({ key, label }) => {
+                        const isSelected = selected.has(key)
                         return (
-                          <li key={sub}>
+                          <li key={key}>
                             <button
                               type="button"
                               className={`tag${isSelected ? ' tag-selected' : ''}`}
                               aria-pressed={isSelected}
-                              onClick={() => toggle(category.name, sub)}
+                              onClick={() => toggle(key)}
                             >
-                              {sub}
+                              {label}
                             </button>
                           </li>
                         )
@@ -217,11 +234,10 @@ function InterestPickerPrototype() {
                     </ul>
 
                     {chosenHere.map((key, i) => {
-                      const sub = key.split('/')[1]
                       const inputId = `${panelId}-freetext-${i}`
                       return (
                         <div key={key} className="interest-freetext">
-                          <label htmlFor={inputId}>{sub}: något specifikt? (valfritt)</label>
+                          <label htmlFor={inputId}>{nameOf(key)}: något specifikt? (valfritt)</label>
                           <input
                             id={inputId}
                             type="text"
