@@ -178,6 +178,7 @@ def read_members(group_id: int, current_user=Depends(get_current_user), db: Sess
         profile = member.profile
         image_key = profile.profile_image_url if profile else None
         result.append(GroupMemberResponse(
+            id=member.id,
             username=member.username,
             name=profile.name if profile else None,
             image_url=storage.public_url(image_key) if image_key else None,

@@ -12,9 +12,9 @@ function localInputValue(date) {
 }
 
 // "2 personer och 1 klubb", eller en kort uppmaning om inget är valt än.
-function inviteSummary({ usernames, groupIds }) {
+function inviteSummary({ userIds, groupIds }) {
   const parts = []
-  if (usernames.length > 0) parts.push(`${usernames.length} ${usernames.length === 1 ? 'person' : 'personer'}`)
+  if (userIds.length > 0) parts.push(`${userIds.length} ${userIds.length === 1 ? 'person' : 'personer'}`)
   if (groupIds.length > 0) parts.push(`${groupIds.length} ${groupIds.length === 1 ? 'klubb' : 'klubbar'}`)
   return parts.length > 0 ? `${parts.join(' och ')} valda. Skickas när eventet har skapats.` : 'Valfritt.'
 }
@@ -37,7 +37,7 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
   const [groupId, setGroupId] = useState(initialGroupId ? String(initialGroupId) : '')
   const [isOpen, setIsOpen] = useState(false)
   const [guestsCanInvite, setGuestsCanInvite] = useState(false)
-  const [invites, setInvites] = useState({ usernames: [], groupIds: [] })
+  const [invites, setInvites] = useState({ userIds: [], groupIds: [] })
   const [inviteOpen, setInviteOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -69,7 +69,7 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
         guests_can_invite: guestsCanInvite,
       })
       let inviteProblem = ''
-      if (invites.usernames.length + invites.groupIds.length > 0) {
+      if (invites.userIds.length + invites.groupIds.length > 0) {
         try {
           await inviteToEvent(created.id, invites)
         } catch (err) {

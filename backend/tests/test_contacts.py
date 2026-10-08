@@ -44,7 +44,7 @@ class ContactRoutesTest(unittest.TestCase):
         self.engine.dispose()
 
     def test_request_accept_and_remove_only_by_participants(self):
-        created = self.client.post("/contacts/request", json={"addressee_username": "user2"})
+        created = self.client.post("/contacts/request", json={"addressee_id": 2})
         self.assertEqual(created.status_code, 201)
         self.assertEqual(created.json()["status"], "PENDING")
         contact_id = created.json()["id"]
@@ -65,7 +65,7 @@ class ContactRoutesTest(unittest.TestCase):
 
     def test_reject_removes_pending_request(self):
         contact_id = self.client.post("/contacts/request",
-                                       json={"addressee_username": "user2"}).json()["id"]
+                                       json={"addressee_id": 2}).json()["id"]
         self.actor_id = 2
         rejected = self.client.patch(f"/contacts/requests/{contact_id}",
                                      json={"action": "reject"})
@@ -75,7 +75,7 @@ class ContactRoutesTest(unittest.TestCase):
 
     def test_requester_can_cancel_pending_request_but_nobody_else(self):
         contact_id = self.client.post("/contacts/request",
-                                       json={"addressee_username": "user2"}).json()["id"]
+                                       json={"addressee_id": 2}).json()["id"]
 
         self.actor_id = 2  # mottagaren ska använda avböj, inte ångra
         self.assertEqual(self.client.delete(f"/contacts/requests/{contact_id}").status_code, 403)
@@ -89,11 +89,11 @@ class ContactRoutesTest(unittest.TestCase):
         # Raden är borta, så båda kan skicka en ny förfrågan.
         self.assertEqual(self.client.delete(f"/contacts/requests/{contact_id}").status_code, 404)
         self.assertEqual(self.client.post("/contacts/request",
-                                           json={"addressee_username": "user2"}).status_code, 201)
+                                           json={"addressee_id": 2}).status_code, 201)
 
     def test_cancel_request_only_works_on_pending(self):
         contact_id = self.client.post("/contacts/request",
-                                       json={"addressee_username": "user2"}).json()["id"]
+                                       json={"addressee_id": 2}).json()["id"]
         self.actor_id = 2
         self.client.patch(f"/contacts/requests/{contact_id}", json={"action": "accept"})
         self.actor_id = 1
@@ -102,30 +102,30 @@ class ContactRoutesTest(unittest.TestCase):
 
     def test_cancel_request_does_not_touch_a_block(self):
         contact_id = self.client.post("/contacts/request",
-                                       json={"addressee_username": "user2"}).json()["id"]
+                                       json={"addressee_id": 2}).json()["id"]
         self.actor_id = 2
-        self.client.post("/users/user1/block")
+        self.client.post("/users/1/block")
         self.actor_id = 1
         self.assertEqual(self.client.delete(f"/contacts/requests/{contact_id}").status_code, 404)
         self.assertEqual(self.db.get(Contact, contact_id).status, "BLOCKED")
 
     def test_request_rejects_self_missing_user_and_duplicate_in_both_directions(self):
         self.assertEqual(self.client.post("/contacts/request",
-                                           json={"addressee_username": "user1"}).status_code, 400)
+                                           json={"addressee_id": 1}).status_code, 400)
         self.assertEqual(self.client.post("/contacts/request",
-                                           json={"addressee_username": "okand"}).status_code, 404)
+                                           json={"addressee_id": 999}).status_code, 404)
         self.assertEqual(self.client.post("/contacts/request",
-                                           json={"addressee_username": "user2"}).status_code, 201)
+                                           json={"addressee_id": 2}).status_code, 201)
         self.actor_id = 2
         self.assertEqual(self.client.post("/contacts/request",
-                                           json={"addressee_username": "user1"}).status_code, 409)
+                                           json={"addressee_id": 1}).status_code, 409)
 
     def test_block_replaces_request_and_only_blocker_can_unblock(self):
         self.actor_id = 2
         contact_id = self.client.post("/contacts/request",
-                                       json={"addressee_username": "user1"}).json()["id"]
+                                       json={"addressee_id": 1}).json()["id"]
         self.actor_id = 1
-        blocked = self.client.post("/users/user2/block")
+        blocked = self.client.post("/users/2/block")
         self.assertEqual(blocked.status_code, 200)
         self.assertEqual(blocked.json()["id"], contact_id)
         self.assertEqual(blocked.json()["requester_id"], 1)
@@ -135,23 +135,23 @@ class ContactRoutesTest(unittest.TestCase):
         # Den som blivit blockerad får samma neutrala 404 som för en användare
         # som inte finns, så att blockeringen inte avslöjas.
         self.assertEqual(self.client.post("/contacts/request",
-                                           json={"addressee_username": "user1"}).status_code, 404)
-        self.assertEqual(self.client.post("/users/user1/block").status_code, 409)
-        self.assertEqual(self.client.delete("/users/user1/block").status_code, 404)
+                                           json={"addressee_id": 1}).status_code, 404)
+        self.assertEqual(self.client.post("/users/1/block").status_code, 409)
+        self.assertEqual(self.client.delete("/users/1/block").status_code, 404)
         self.actor_id = 1
-        self.assertEqual(self.client.delete("/users/user2/block").status_code, 204)
+        self.assertEqual(self.client.delete("/users/2/block").status_code, 204)
         self.actor_id = 2
         self.assertEqual(self.client.post("/contacts/request",
-                                           json={"addressee_username": "user1"}).status_code, 201)
+                                           json={"addressee_id": 1}).status_code, 201)
 
     def test_block_replaces_accepted_contact(self):
         contact_id = self.client.post("/contacts/request",
-                                       json={"addressee_username": "user2"}).json()["id"]
+                                       json={"addressee_id": 2}).json()["id"]
         self.actor_id = 2
         self.client.patch(f"/contacts/requests/{contact_id}", json={"action": "accept"})
-        self.assertEqual(self.client.post("/users/user2/block").status_code, 400)
+        self.assertEqual(self.client.post("/users/2/block").status_code, 400)
         self.actor_id = 1
-        blocked = self.client.post("/users/user2/block")
+        blocked = self.client.post("/users/2/block")
         self.assertEqual(blocked.json()["id"], contact_id)
         self.assertEqual(blocked.json()["status"], "BLOCKED")
         self.assertEqual(self.client.delete(f"/contacts/{contact_id}").status_code, 404)
@@ -167,18 +167,18 @@ class ContactRoutesTest(unittest.TestCase):
         ])
         self.db.commit()
         outgoing_id = self.client.post("/contacts/request",
-                                        json={"addressee_username": "user2"}).json()["id"]
+                                        json={"addressee_id": 2}).json()["id"]
         accepted_id = self.client.post("/contacts/request",
-                                        json={"addressee_username": "user4"}).json()["id"]
+                                        json={"addressee_id": 4}).json()["id"]
         self.actor_id = 4
         self.client.patch(f"/contacts/requests/{accepted_id}", json={"action": "accept"})
         self.actor_id = 3
         incoming_id = self.client.post("/contacts/request",
-                                        json={"addressee_username": "user1"}).json()["id"]
+                                        json={"addressee_id": 1}).json()["id"]
         self.actor_id = 5
-        self.assertEqual(self.client.post("/users/user1/block").status_code, 200)
+        self.assertEqual(self.client.post("/users/1/block").status_code, 200)
         self.actor_id = 2
-        self.client.post("/contacts/request", json={"addressee_username": "user3"})
+        self.client.post("/contacts/request", json={"addressee_id": 3})
 
         self.actor_id = 1
         with mock.patch.object(settings, "aws_endpoint_url_s3", "https://s3.test"), \
@@ -206,7 +206,7 @@ class ContactRoutesTest(unittest.TestCase):
                          email="secret@example.com"))
         self.db.add(make_profile(4, name="Fyra", birth_date=date(1990, 1, 1)))
         self.db.commit()
-        self.client.post("/contacts/request", json={"addressee_username": "fyran"})
+        self.client.post("/contacts/request", json={"addressee_id": 4})
 
         listed = self.client.get("/contacts")
         user = listed.json()["outgoing_requests"][0]["user"]

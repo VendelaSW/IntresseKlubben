@@ -48,6 +48,7 @@ def test_create_event_defaults_to_invite_only(client, user, interest):
     assert body["ends_at"] is None
     assert body["group_id"] is None
     assert body["interest_name"] == "Löpning"
+    assert body["creator_id"] == user.id
     assert body["creator_username"] == "testuser"
     assert body["is_owner"] is True
 

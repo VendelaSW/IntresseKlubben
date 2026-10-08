@@ -104,7 +104,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
       </div>
       <p className="hint-text">
         Skapat av{' '}
-        <Link to={`/anvandare/${encodeURIComponent(event.creator_username)}`} className="info-link">
+        <Link to={`/anvandare/${event.creator_id}`} className="info-link">
           {creatorName}
         </Link>
         {event.group_name && ` i ${event.group_name}`}
@@ -198,8 +198,8 @@ function Attendees({ responses, failed }) {
             </p>
             <ul>
               {people.map((p) => (
-                <li key={p.username}>
-                  <Link to={`/anvandare/${encodeURIComponent(p.username)}`} className="person-list-item">
+                <li key={p.id}>
+                  <Link to={`/anvandare/${p.id}`} className="person-list-item">
                     {p.image_url ? (
                       <img src={p.image_url} alt="" className="person-list-avatar" />
                     ) : (

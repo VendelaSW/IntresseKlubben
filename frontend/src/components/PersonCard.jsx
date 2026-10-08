@@ -26,7 +26,7 @@ function PersonCard({ person, sharedInterestIds, reason, actions }) {
 
   return (
     <article className="card card-interactive person-card">
-      <Link to={`/anvandare/${encodeURIComponent(person.username)}`} className="person-card-link">
+      <Link to={`/anvandare/${person.id}`} className="person-card-link">
         {person.image_url ? (
           <img src={person.image_url} alt="" className="card-avatar" />
         ) : (

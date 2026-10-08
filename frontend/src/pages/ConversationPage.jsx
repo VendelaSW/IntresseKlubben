@@ -32,13 +32,15 @@ function sameMessages(a, b) {
   return a.length === b.length && a.at(-1)?.id === b.at(-1)?.id
 }
 
-// Hela konversationen med en specifik person (/meddelanden/:username) +
+// Hela konversationen med en specifik person (/meddelanden/:userId) +
 // ett fält för att svara. Ingen bubbel-stil än, bara vanlig text, en sån
 // ändring kräver nya klasser i stilguiden.
 function ConversationPage() {
-  const { username } = useParams()
+  const { userId } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
+  // Vem konversationen är med (från servern), för namnet överst och vid breven.
+  const [other, setOther] = useState(null)
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
@@ -54,18 +56,20 @@ function ConversationPage() {
     let fetching = false // ingen ny hämtning medan den förra pågår
     setStatus('loading')
     setMessages([])
+    setOther(null)
 
     async function refresh() {
       if (fetching || document.hidden) return
       fetching = true
       try {
-        const data = await getConversation(username)
+        const { user: person, messages: data } = await getConversation(userId)
         if (cancelled) return
+        setOther(person)
         setMessages((current) => (sameMessages(current, data) ? current : data))
         setStatus('ready')
         // Det man ser i chatten räknas som läst, så att det inte blir en
         // badge när man sedan lämnar sidan.
-        if (data.length > 0) markConversationSeen(username, data.at(-1).created_at)
+        if (data.length > 0) markConversationSeen(person.id, data.at(-1).created_at)
       } catch {
         if (!cancelled) setStatus((s) => (s === 'loading' ? 'error' : s))
       } finally {
@@ -85,7 +89,7 @@ function ConversationPage() {
       clearInterval(timer)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [username])
+  }, [userId])
 
   // Tillbaka dit man kom ifrån (t.ex. någons profil), som på profilsidan.
   // Öppnades chatten direkt via en länk finns ingen tidigare sida i appen, och
@@ -104,7 +108,7 @@ function ConversationPage() {
     setSending(true)
     setError('')
     try {
-      const message = await sendMessage(username, text)
+      const message = await sendMessage(Number(userId), text)
       setText('')
       // Visa det skickade brevet direkt, i stället för att vänta på nästa hämtning.
       setMessages((current) => (current.some((m) => m.id === message.id) ? current : [...current, message]))
@@ -115,10 +119,12 @@ function ConversationPage() {
     }
   }
 
+  const otherName = other ? (other.name ?? other.username) : ''
+
   return (
     <div className="content-stack conversation-page">
       <BackButton onClick={handleBack} />
-      <h1>{username}</h1>
+      <h1>{otherName}</h1>
 
       {/* En vänsterställd spalt mitt på sidan, lika bred som tillbaka-raden. */}
       <div className="conversation">
@@ -133,7 +139,7 @@ function ConversationPage() {
             {messages.map((m) => (
               <div key={m.id} className="message">
                 <p className="card-text">
-                  <strong>{m.sender_id === user.id ? 'Du' : username}</strong>{' '}
+                  <strong>{m.sender_id === user.id ? 'Du' : otherName}</strong>{' '}
                   <time className="hint-text" dateTime={m.created_at}>
                     {formatSentAt(m.created_at)}
                   </time>

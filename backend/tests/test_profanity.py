@@ -37,11 +37,11 @@ def test_sent_message_is_censored(client, db, user):
     db.add(User(id=2, username="friend", password_hash="unused"))
     db.commit()
 
-    response = client.post("/messages", json={"recipient_username": "friend", "text": "Din CUNT!"})
+    response = client.post("/messages", json={"recipient_id": 2, "text": "Din CUNT!"})
     assert response.status_code == 201
     assert response.json()["text"] == "Din ****!"
 
-    assert client.get("/messages/friend").json()[0]["text"] == "Din ****!"
+    assert client.get("/messages/2").json()["messages"][0]["text"] == "Din ****!"
 
 
 @pytest.mark.parametrize(
@@ -235,8 +235,8 @@ def test_sent_message_masks_normalized_profanity(client, db, user):
     db.add(User(id=2, username="friend", password_hash="unused"))
     db.commit()
     response = client.post(
-        "/messages", json={"recipient_username": "friend", "text": "Hej h0ran och fiiiitta!"}
+        "/messages", json={"recipient_id": 2, "text": "Hej h0ran och fiiiitta!"}
     )
     assert response.status_code == 201
     assert response.json()["text"] == "Hej ***** och ********!"
-    assert client.get("/messages/friend").json()[0]["text"] == "Hej ***** och ********!"
+    assert client.get("/messages/2").json()["messages"][0]["text"] == "Hej ***** och ********!"
