@@ -103,7 +103,8 @@ function InterestPickerPrototype() {
   // Valda intressen (huvudintressen och underintressen): nyckel -> fritext
   // (tom sträng om ingen fritext).
   const [selected, setSelected] = useState(new Map())
-  const [open, setOpen] = useState(new Set())
+  // Huvudintresset vars underkategorier visas, eller null. Bara ett åt gången.
+  const [openCategory, setOpenCategory] = useState(null)
   const [query, setQuery] = useState('')
 
   function toggle(key) {
@@ -117,17 +118,9 @@ function InterestPickerPrototype() {
     setSelected(new Map(selected).set(key, text))
   }
 
-  function toggleOpen(category) {
-    const next = new Set(open)
-    if (next.has(category)) next.delete(category)
-    else next.add(category)
-    setOpen(next)
-  }
-
   const search = normalize(query)
-  // Vid sökning: underintressen vars namn (eller huvudintresse) innehåller
-  // söktexten, och de kategorierna visas utfällda. Huvudintresset självt går
-  // att välja när det inte söks, eller när det är huvudintresset som matchar.
+  // Vid sökning: huvudintressen vars namn, eller något underintresse, innehåller
+  // söktexten. Matchar bara underintressen visas bara de i rutan.
   const visible = CATEGORIES.map((category) => {
     const mainMatches = !search || normalize(category.name).includes(search)
     return {
@@ -139,13 +132,19 @@ function InterestPickerPrototype() {
     }
   }).filter((category) => category.showMain || category.subinterests.length > 0)
 
+  // Den öppna kategorin, om den syns med nuvarande sökning. Ger sökningen bara
+  // en enda kategori öppnas den direkt.
+  const open =
+    visible.find((category) => category.name === openCategory) ?? (search && visible.length === 1 ? visible[0] : null)
+  const countIn = (name) => [...selected.keys()].filter((key) => categoryOf(key) === name).length
+
   return (
     <main className="app-main">
       <section className="app-section interest-picker">
         <h1 className="app-title">Mina intressen</h1>
         <p className="hint-text">
-          Prototyp: inget sparas. Välj ett helt område (t.ex. Musik i allmänhet) eller underintressen, och
-          skriv gärna något mer specifikt under dem.
+          Prototyp: inget sparas. Klicka på ett område för att se underkategorierna. Välj hela området (t.ex. Musik i
+          allmänhet) eller underkategorier, och skriv gärna något mer specifikt.
         </p>
 
         <div className="interest-picker-chosen">
@@ -185,76 +184,82 @@ function InterestPickerPrototype() {
           onChange={(e) => setQuery(e.target.value)}
         />
 
-        {visible.length === 0 && <p className="hint-text">Inget intresse matchar "{query.trim()}".</p>}
+        {visible.length === 0 ? (
+          <p className="hint-text">Inget intresse matchar "{query.trim()}".</p>
+        ) : (
+          <>
+            {/* Huvudintressena som taggar. Den öppna har gul kant, och antalet
+                valda inom ett område står efter namnet. */}
+            <ul className="tags">
+              {visible.map((category) => {
+                const isOpen = open?.name === category.name
+                const count = countIn(category.name)
+                return (
+                  <li key={category.name}>
+                    <button
+                      type="button"
+                      className={`tag interest-area${isOpen ? ' interest-area-open' : ''}`}
+                      aria-expanded={isOpen}
+                      aria-controls="interest-panel"
+                      onClick={() => setOpenCategory(isOpen ? null : category.name)}
+                    >
+                      {category.name}
+                      {count > 0 && <span className="interest-area-count">{count}</span>}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
 
-        <ul className="interest-picker-categories">
-          {visible.map((category, categoryIndex) => {
-            const isOpen = search !== '' || open.has(category.name)
-            // Huvudintresset först, sedan valda underintressen.
-            const chosenHere = [...selected.keys()]
-              .filter((key) => categoryOf(key) === category.name)
-              .sort((a, b) => Number(isMain(b)) - Number(isMain(a)))
-            const panelId = `interest-category-${categoryIndex}`
-            return (
-              <li key={category.name} className="interest-category">
-                <button
-                  type="button"
-                  className="interest-category-header"
-                  aria-expanded={isOpen}
-                  aria-controls={panelId}
-                  onClick={() => toggleOpen(category.name)}
-                >
-                  <span aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
-                  {category.name}
-                  {chosenHere.length > 0 && <span className="hint-text">{chosenHere.length} valda</span>}
-                </button>
+            {open && (
+              <div id="interest-panel" className="card interest-panel">
+                <h2>{open.name}</h2>
+                <ul className="tags">
+                  {[
+                    // Hela området, för den som inte vill välja underkategorier.
+                    ...(open.showMain ? [{ key: keyOf(open.name), label: `${open.name} i allmänhet` }] : []),
+                    ...open.subinterests.map((sub) => ({ key: keyOf(open.name, sub), label: sub })),
+                  ].map(({ key, label }) => {
+                    const isSelected = selected.has(key)
+                    return (
+                      <li key={key}>
+                        <button
+                          type="button"
+                          className={`tag${isSelected ? ' tag-selected' : ''}`}
+                          aria-pressed={isSelected}
+                          onClick={() => toggle(key)}
+                        >
+                          {label}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
 
-                {isOpen && (
-                  <div id={panelId} className="interest-category-body">
-                    <ul className="tags">
-                      {[
-                        // Hela området, för den som inte vill välja underintressen.
-                        ...(category.showMain ? [{ key: keyOf(category.name), label: `${category.name} i allmänhet` }] : []),
-                        ...category.subinterests.map((sub) => ({ key: keyOf(category.name, sub), label: sub })),
-                      ].map(({ key, label }) => {
-                        const isSelected = selected.has(key)
-                        return (
-                          <li key={key}>
-                            <button
-                              type="button"
-                              className={`tag${isSelected ? ' tag-selected' : ''}`}
-                              aria-pressed={isSelected}
-                              onClick={() => toggle(key)}
-                            >
-                              {label}
-                            </button>
-                          </li>
-                        )
-                      })}
-                    </ul>
-
-                    {chosenHere.map((key, i) => {
-                      const inputId = `${panelId}-freetext-${i}`
-                      return (
-                        <div key={key} className="interest-freetext">
-                          <label htmlFor={inputId}>{nameOf(key)}: något specifikt? (valfritt)</label>
-                          <input
-                            id={inputId}
-                            type="text"
-                            maxLength={100}
-                            placeholder={EXAMPLES[key] ? `t.ex. ${EXAMPLES[key]}` : 'Skriv något mer specifikt'}
-                            value={selected.get(key)}
-                            onChange={(e) => setFreetext(key, e.target.value)}
-                          />
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </li>
-            )
-          })}
-        </ul>
+                {/* Fritext för det man valt inom området: huvudintresset först. */}
+                {[...selected.keys()]
+                  .filter((key) => categoryOf(key) === open.name)
+                  .sort((a, b) => Number(isMain(b)) - Number(isMain(a)))
+                  .map((key, i) => {
+                    const inputId = `interest-freetext-${i}`
+                    return (
+                      <div key={key} className="interest-freetext">
+                        <label htmlFor={inputId}>{nameOf(key)}: något specifikt? (valfritt)</label>
+                        <input
+                          id={inputId}
+                          type="text"
+                          maxLength={100}
+                          placeholder={EXAMPLES[key] ? `t.ex. ${EXAMPLES[key]}` : 'Skriv något mer specifikt'}
+                          value={selected.get(key)}
+                          onChange={(e) => setFreetext(key, e.target.value)}
+                        />
+                      </div>
+                    )
+                  })}
+              </div>
+            )}
+          </>
+        )}
       </section>
     </main>
   )
