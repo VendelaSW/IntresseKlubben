@@ -205,6 +205,8 @@ function InterestPickerPrototype() {
                     >
                       {category.name}
                       {count > 0 && <span className="interest-area-count">{count}</span>}
+                      {/* Pekar nedåt (går att öppna), vänds uppåt när området är öppet. */}
+                      <span className="interest-area-arrow" aria-hidden="true" />
                     </button>
                   </li>
                 )

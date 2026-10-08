@@ -1388,6 +1388,27 @@ span.tag-selected:hover {
   text-align: center;
 }
 
+/* Svart trekant efter namnet: nedåt när området går att öppna, uppåt när
+   det är öppet och går att stänga. */
+.interest-area-arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--color-text);
+  transition: transform 0.15s ease;
+}
+
+.interest-area-open .interest-area-arrow {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interest-area-arrow {
+    transition: none;
+  }
+}
+
 /* Rutan med underkategorierna till det öppna området, under taggarna. */
 .interest-panel {
   display: flex;
