@@ -1,8 +1,9 @@
-from sqlalchemy import or_
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.contact import Contact
+from app.models.group import GroupInvitation, GroupMember, GroupRole
 from app.models.user import User
 
 
@@ -103,6 +104,19 @@ def remove_contact(db: Session, contact_id: int, actor_id: int) -> None:
     db.commit()
 
 
+def _drop_club_invitations_between(db: Session, first_id: int, second_id: int) -> None:
+    """Tar bort inbjudningar till klubbar där den andra av de två är ägare. Annars
+    skulle den som blockerats kunna se och gå med i en privat klubb hos den som
+    blockerade, bara för att inbjudan skickades före blockeringen."""
+    for invitee_id, owner_id in ((first_id, second_id), (second_id, first_id)):
+        owned = select(GroupMember.group_id).where(
+            GroupMember.user_id == owner_id, GroupMember.role == GroupRole.owner
+        )
+        db.query(GroupInvitation).filter(
+            GroupInvitation.user_id == invitee_id, GroupInvitation.group_id.in_(owned)
+        ).delete(synchronize_session=False)
+
+
 def block_user(db: Session, blocker_id: int, blocked_id: int) -> Contact:
     _require_other_user(db, blocker_id, blocked_id)
     key = _pair_key(blocker_id, blocked_id)
@@ -117,6 +131,7 @@ def block_user(db: Session, blocker_id: int, blocked_id: int) -> Contact:
         contact.requester_id = blocker_id
         contact.addressee_id = blocked_id
         contact.status = "BLOCKED"
+    _drop_club_invitations_between(db, blocker_id, blocked_id)
     return _save(db, contact)
 
 

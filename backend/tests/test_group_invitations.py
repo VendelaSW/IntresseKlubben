@@ -134,6 +134,7 @@ def test_members_cannot_invite_by_default(client, db, user, people, group):
     assert client.get(f"/groups/{group.id}").json()["can_invite"] is False
     response = invite(client, group, 3)
     assert response.status_code == 403
+    assert response.json()["detail"] == "Du kan inte bjuda in till den här klubben"
     assert db.query(GroupInvitation).count() == 0
 
 
@@ -195,6 +196,38 @@ def test_invited_person_can_open_a_private_club_and_join_it(client, db, user, pe
     # Inbjudan har gjort sitt.
     assert db.query(GroupInvitation).count() == 0
     assert invitation_count(client) == 0
+
+
+def test_blocking_an_invited_person_removes_the_invitation(client, db, user, people, group):
+    add_contact(db, user.id, people["user2"].id)
+    invite(client, group, 2)
+    assert db.query(GroupInvitation).count() == 1
+
+    # Ägaren blockerar den inbjudna: klubben syns inte längre och går inte att gå med i.
+    assert client.post(f"/users/{people['user2'].id}/block").status_code == 200
+    assert db.query(GroupInvitation).count() == 0
+    login_as(people["user2"])
+    assert invitation_count(client) == 0
+    assert client.get(f"/groups/{group.id}").status_code == 404
+    assert client.put(f"/groups/{group.id}/members/me").status_code == 404
+
+
+def test_an_invited_person_blocking_the_owner_removes_the_invitation(client, db, user, people, group):
+    add_contact(db, user.id, people["user2"].id)
+    invite(client, group, 2)
+
+    login_as(people["user2"])
+    assert client.post(f"/users/{user.id}/block").status_code == 200
+    assert db.query(GroupInvitation).count() == 0
+
+
+def test_blocking_someone_leaves_other_invitations_alone(client, db, user, people, group):
+    add_contact(db, user.id, people["user2"].id)
+    add_contact(db, user.id, people["user3"].id)
+    invite(client, group, 2, 3)
+
+    assert client.post(f"/users/{people['user2'].id}/block").status_code == 200
+    assert [i.user_id for i in db.query(GroupInvitation).all()] == [people["user3"].id]
 
 
 def test_a_private_club_is_still_hidden_from_everyone_else(client, db, user, people, group):
