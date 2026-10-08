@@ -123,10 +123,12 @@ def create(
 
 @router.get("/", response_model=list[EventOut])
 def read_events(
+    group_id: int | None = None,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return [_to_response(e, current_user.id) for e in list_visible_events(db, current_user.id)]
+    events = list_visible_events(db, current_user.id, group_id=group_id)
+    return [_to_response(e, current_user.id) for e in events]
 
 
 @router.patch("/{event_id}", response_model=EventOut)

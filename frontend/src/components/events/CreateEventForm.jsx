@@ -25,7 +25,7 @@ function inviteSummary({ userIds, groupIds }) {
 // Tiden skickas som ISO med tidszon, tolkad som webbläsarens lokala tid.
 // "Bjud in" öppnar samma popup som på eventets egen vy. Valen sparas bara här, och
 // inbjudningarna skickas direkt efter att eventet har skapats.
-function CreateEventForm({ interests, groups, contacts, onCreated, onCancel }) {
+function CreateEventForm({ interests, groups, contacts, initialGroupId = null, onCreated, onCancel }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [interestId, setInterestId] = useState('')
@@ -33,7 +33,8 @@ function CreateEventForm({ interests, groups, contacts, onCreated, onCancel }) {
   const [endsAt, setEndsAt] = useState('')
   const [placeName, setPlaceName] = useState('')
   const [address, setAddress] = useState('')
-  const [groupId, setGroupId] = useState('')
+  // Klubben kan vara vald från början (när man skapar ett event från en klubbs sida).
+  const [groupId, setGroupId] = useState(initialGroupId ? String(initialGroupId) : '')
   const [isOpen, setIsOpen] = useState(false)
   const [guestsCanInvite, setGuestsCanInvite] = useState(false)
   const [invites, setInvites] = useState({ userIds: [], groupIds: [] })

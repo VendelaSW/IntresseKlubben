@@ -192,6 +192,30 @@ def test_list_shows_group_events_to_current_members_only(client, db, user, other
     assert titles(client) == ["Klubbträff"]
 
 
+def test_list_can_be_limited_to_one_group(client, db, user, other, interest, municipalities):
+    first = add_group(db, user.id, name="Löparna")
+    second = add_group(db, user.id, name="Cyklisterna")
+    add_event(db, user.id, title="Löptur", group_id=first.id)
+    add_event(db, user.id, title="Cykeltur", group_id=second.id)
+    add_event(db, user.id, title="Utan klubb")
+
+    response = client.get(f"/events/?group_id={first.id}")
+    assert response.status_code == 200
+    assert [e["title"] for e in response.json()] == ["Löptur"]
+    assert sorted(titles(client)) == ["Cykeltur", "Löptur", "Utan klubb"]
+
+
+def test_group_filter_does_not_show_events_the_user_may_not_see(client, db, user, other, interest, municipalities):
+    private = add_group(db, other.id, visibility=GroupVisibility.private)
+    add_event(db, other.id, title="Hemligt", group_id=private.id, visibility=EventVisibility.invite_only)
+
+    # Samma svar som för en klubb som inte finns: en tom lista, ingen avslöjad klubb.
+    hidden = client.get(f"/events/?group_id={private.id}")
+    missing = client.get("/events/?group_id=9999")
+    assert hidden.status_code == missing.status_code == 200
+    assert hidden.json() == missing.json() == []
+
+
 def test_list_hides_events_from_blocked_users_in_both_directions(client, db, user, other, interest):
     add_event(db, other.id, title="Öppet", visibility=EventVisibility.open)
     assert titles(client) == ["Öppet"]

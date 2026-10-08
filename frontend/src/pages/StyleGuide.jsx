@@ -378,6 +378,34 @@ function StyleGuide() {
             </div>
           </div>
         </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Lista med länkar, gul penna vid hover och tangentbordsfokus (.person-list .person-list-compact .person-list-marker)
+        </p>
+        <p className="hint-text">
+          Samma lista utan avatarer. Titeln får den gula överstrykningspennan (som .highlight) när
+          man pekar på raden eller tabbar dit, i stället för understrykning. Tid och plats ligger i .hint-text.
+          Används t.ex. för klubbens kommande events.
+        </p>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <div className="person-list person-list-compact person-list-marker">
+            <p className="card-subheading">Kommande events</p>
+            <ul>
+              <li>
+                <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                  <span>Fota katter</span>
+                  <span className="hint-text">lör 10 okt 13:30 · I plugget</span>
+                </a>
+              </li>
+              <li>
+                <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                  <span>Stenjakt</span>
+                  <span className="hint-text">sön 11 okt 10:00 · Slottsskogen</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
       </section>
 
       <section className="style-section">
