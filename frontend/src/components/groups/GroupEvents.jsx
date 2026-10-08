@@ -4,7 +4,7 @@ import { eventTimeText } from '../events/EventList'
 import { getEvents } from '../../services/events'
 
 // Klubbens kommande events i klubbens vy: titel, tid och plats, och ett klick
-// öppnar eventets egen vy på eventsidan. Listan är alla events man får se som hör
+// öppnar eventets egen vy på eventsidan (med klubben i adressen, så att Tillbaka går hit). Listan är alla events man får se som hör
 // till klubben (passerade är redan dolda av backend), tidigast först.
 function GroupEvents({ groupId }) {
   const [events, setEvents] = useState(null) // null = laddar
@@ -31,7 +31,7 @@ function GroupEvents({ groupId }) {
         <ul>
           {events.map((event) => (
             <li key={event.id}>
-              <Link to={`/events?event=${event.id}`} className="person-list-item">
+              <Link to={`/events?event=${event.id}&klubb=${groupId}`} className="person-list-item">
                 <span>{event.title}</span>
                 <span className="hint-text">
                   {eventTimeText(event)} · {event.place_name}

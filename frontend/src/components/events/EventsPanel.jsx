@@ -65,6 +65,13 @@ function EventsPanel() {
   const [fromGroupId] = useState(() =>
     searchParams.get('skapa') ? Number(searchParams.get('klubb')) || null : null,
   )
+  // Öppnas ett event från en klubb (?event=ID&klubb=ID) går Tillbaka dit, men bara
+  // för just det eventet. Öppnar man ett annat event i listan går man tillbaka till listan.
+  const [eventFromGroup] = useState(() => {
+    const eventId = Number(searchParams.get('event'))
+    const groupId = Number(searchParams.get('klubb'))
+    return eventId && groupId ? { eventId, groupId } : null
+  })
   useEffect(() => {
     // Adressen har gjort sitt, så en omladdning ska inte öppna samma vy igen.
     if (searchParams.toString()) setSearchParams({}, { replace: true })
@@ -105,6 +112,11 @@ function EventsPanel() {
 
   function backToGroup() {
     navigate(`/klubbar?klubb=${fromGroupId}`)
+  }
+
+  function backFromEvent() {
+    if (eventFromGroup && view === eventFromGroup.eventId) navigate(`/klubbar?klubb=${eventFromGroup.groupId}`)
+    else setView('list')
   }
 
   async function handleCreated(created, problem) {
@@ -180,7 +192,7 @@ function EventsPanel() {
             <p className="status-error">Kunde inte hämta events. Försök igen senare.</p>
           ) : selected ? (
             <>
-              <BackButton onClick={() => setView('list')} />
+              <BackButton onClick={backFromEvent} />
               <div className="card sheet">
                 <EventDetails
                   event={selected}
