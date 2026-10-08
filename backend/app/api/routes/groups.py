@@ -18,9 +18,9 @@ from app.crud.group import (
     list_suggested_groups,
     list_user_groups,
 )
+from app.crud.interest import get_active_interest
 from app.db.session import get_db
 from app.models.group import Group, GroupRole, GroupVisibility
-from app.models.interest import Interest
 from app.models.municipality import Municipality
 from app.schemas.group import GroupCreate, GroupMemberResponse, GroupResponse
 
@@ -76,8 +76,9 @@ def create(
     db: Session = Depends(get_db),
 ):
     # Kolla här så att okända värden ger ett tydligt fel i stället för ett
-    # databasfel (500) från de främmande nycklarna.
-    if db.get(Interest, data.interest_id) is None:
+    # databasfel (500) från de främmande nycklarna. Ett inaktivt intresse går inte
+    # att välja och ger samma fel som ett okänt.
+    if get_active_interest(db, data.interest_id) is None:
         raise HTTPException(status_code=422, detail="Okänt intresse")
     if db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail="Okänd kommun")
