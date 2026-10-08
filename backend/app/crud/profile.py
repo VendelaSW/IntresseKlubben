@@ -2,7 +2,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.interest import Interest
+from app.models.interest import Interest, InterestStatus
 from app.models.profile import GenderEnum, Profile
 from app.models.user import User
 from app.schemas.profile import ProfileCreate, ProfileUpdate
@@ -47,7 +47,12 @@ def create_profile(db: Session, user_id: int, data: ProfileCreate) -> Profile:
     if get_profile(db, user_id) is not None:
         raise ProfileExistsError(user_id)
 
-    interests = db.query(Interest).filter(Interest.id.in_(data.interest_ids)).all()
+    # Bara intressen som går att välja; ett inaktivt räknas som okänt.
+    interests = (
+        db.query(Interest)
+        .filter(Interest.id.in_(data.interest_ids), Interest.status == InterestStatus.active.value)
+        .all()
+    )
     if len(interests) != len(data.interest_ids):
         raise UnknownInterestError()
 

@@ -939,6 +939,10 @@ span.tag-selected:hover {
   width: 100%;
 }
 
+/* Menypunkterna krymper steglöst med skärmbredden (clamp), så att alla ryms på en
+   rad även på små telefoner. Det största måttet i varje clamp är det vanliga: ikon
+   (34 px) och text (0,8 rem) från ca 400 px bredd, luften på sidorna (0,9 rem) från
+   ca 800 px. */
 .app-nav-link {
   display: inline-flex;
   flex-direction: column;
@@ -946,16 +950,16 @@ span.tag-selected:hover {
   justify-content: flex-end;
   gap: 0.15rem;
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: clamp(0.72rem, 3.2vw, 0.8rem);
   color: var(--color-text);
   text-decoration: none;
-  padding: 0.3rem 0.9rem 0.1rem;
+  padding: 0.3rem clamp(0.2rem, 1.8vw, 0.9rem) 0.1rem;
   border-radius: 12px;
   white-space: nowrap;
 }
 
 .nav-icon {
-  height: 34px;
+  height: clamp(28px, 8.5vw, 34px);
   width: auto;
   transition: transform 0.15s ease, filter 0.15s ease;
 }
@@ -1704,4 +1708,240 @@ label.person-list-item {
 
 .hub-card-action {
   align-self: flex-start;
+}
+
+/* Min profil: profilkortet och "Vad gillar du?" under varandra på mobil, och
+   bredvid varandra när det finns plats. Korten följer sin egen höjd. */
+.profile-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+@media (min-width: 900px) {
+  .profile-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2rem;
+  }
+
+  .profile-layout > .card-wide {
+    margin: 0;
+  }
+}
+
+/* ---------- Intressesidan: "Vad gillar du?" (components/InterestExplorer.jsx) ----------
+   Alla regler börjar med .explorer, så att .auth-form-stilarna (knappar och
+   fält) inte tar över när komponenten ligger i formuläret "Skapa din profil". */
+
+.explorer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  text-align: left;
+}
+
+.explorer h2,
+.explorer .card-title {
+  margin: 0;
+}
+
+.explorer .explorer-heading {
+  margin: 0 0 0.5rem;
+  font-size: var(--text-subheading);
+}
+
+/* Sökfältet: samma fält som i formulären, men bredare och med plats för text. */
+.explorer .explorer-search {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  padding: 0.7rem 0.85rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-text);
+}
+
+.explorer .explorer-search::placeholder {
+  color: var(--color-muted);
+}
+
+.explorer .explorer-search:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* Rutan med sökträffar eller det öppna området. */
+.explorer .explorer-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--color-line);
+  border-radius: 4px;
+}
+
+.explorer .explorer-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.explorer .explorer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 2px solid var(--color-bg);
+}
+
+.explorer .explorer-row:last-child {
+  border-bottom: none;
+}
+
+.explorer .explorer-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 44px;
+  justify-content: center;
+  font-size: var(--text-body);
+}
+
+/* Ett intresse med underintressen: klicka för att gå ner en nivå. */
+.explorer .explorer-drill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: left;
+  cursor: pointer;
+}
+
+.explorer .explorer-drill:hover,
+.explorer .explorer-drill:focus-visible {
+  background: var(--color-bg);
+  outline: none;
+  opacity: 1;
+}
+
+/* + / ✓: lägg till eller ta bort. Gul när det är valt, som de valda taggarna. */
+.explorer .explorer-add {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-white);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 1.3rem;
+  line-height: 1;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.explorer .explorer-add:hover,
+.explorer .explorer-add:focus-visible {
+  border-color: var(--color-accent);
+  outline: none;
+  opacity: 1;
+}
+
+.explorer .explorer-add-on {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* Huvudområdena som taggar. Det öppna får gul kant och fetstil; gult fyllt
+   betyder fortfarande "valt". */
+.explorer .tag {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.explorer .explorer-area-open {
+  border-color: var(--color-accent);
+  font-weight: 700;
+}
+
+/* Svart trekant: nedåt när området går att öppna, uppåt när det är öppet. */
+.explorer .explorer-arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--color-text);
+  transition: transform 0.15s ease;
+}
+
+/* "Lägg till intressen" / "Klar" på profilen. Triangeln vänds när den är öppen,
+   som på områdestaggarna. */
+.explorer .explorer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+}
+
+.explorer .explorer-area-open .explorer-arrow,
+.explorer .explorer-toggle-open .explorer-arrow {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explorer .explorer-arrow {
+    transition: none;
+  }
+}
+
+/* Var man är: "Sport och träning › Löpning". */
+.explorer .explorer-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--text-small);
+}
+
+.explorer .explorer-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.explorer .explorer-crumb button {
+  padding: 0 0 1px;
+  border: none;
+  border-bottom: 2px solid var(--color-accent);
+  border-radius: 0;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+.explorer .explorer-crumb-current {
+  font-weight: 700;
 }
