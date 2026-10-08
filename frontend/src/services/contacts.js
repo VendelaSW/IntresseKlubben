@@ -5,8 +5,8 @@ export function getContacts() {
   return apiGet('/contacts')
 }
 
-export function sendContactRequest(username) {
-  return apiPost('/contacts/request', { addressee_username: username })
+export function sendContactRequest(userId) {
+  return apiPost('/contacts/request', { addressee_id: userId })
 }
 
 // action är 'accept' eller 'reject'.
@@ -23,8 +23,8 @@ export function removeContact(contactId) {
   return apiDelete(`/contacts/${contactId}`)
 }
 
-export function blockUser(username) {
-  return apiPost(`/users/${encodeURIComponent(username)}/block`)
+export function blockUser(userId) {
+  return apiPost(`/users/${userId}/block`)
 }
 
 // De man själv har blockerat (aldrig de som blockerat en själv).
@@ -32,6 +32,6 @@ export function getBlockedUsers() {
   return apiGet('/users/blocked')
 }
 
-export function unblockUser(username) {
-  return apiDelete(`/users/${encodeURIComponent(username)}/block`)
+export function unblockUser(userId) {
+  return apiDelete(`/users/${userId}/block`)
 }

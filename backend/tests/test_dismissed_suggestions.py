@@ -1,4 +1,4 @@
-"""Tester för "Ta bort kontaktförslag": POST /users/{username}/dismiss
+"""Tester för "Ta bort kontaktförslag": POST /users/{user_id}/dismiss
 och DELETE /users/dismissed-suggestions (nollställning av alla borttagna)."""
 
 from app.models.user import User
@@ -17,7 +17,7 @@ def _create_person(db, username, name):
 def test_dismiss_removes_person_from_suggestions(client, db, user):
     bob = _create_person(db, "bob", "Bob")
 
-    response = client.post("/users/bob/dismiss")
+    response = client.post(f"/users/{bob.id}/dismiss")
     assert response.status_code == 204
 
     names = [p["name"] for p in client.get("/users/").json()]
@@ -27,10 +27,10 @@ def test_dismiss_removes_person_from_suggestions(client, db, user):
 
 
 def test_dismiss_is_idempotent(client, db, user):
-    _create_person(db, "bob", "Bob")
+    bob = _create_person(db, "bob", "Bob")
 
-    assert client.post("/users/bob/dismiss").status_code == 204
-    assert client.post("/users/bob/dismiss").status_code == 204
+    assert client.post(f"/users/{bob.id}/dismiss").status_code == 204
+    assert client.post(f"/users/{bob.id}/dismiss").status_code == 204
 
     names = [p["name"] for p in client.get("/users/").json()]
     assert names == []
@@ -40,13 +40,13 @@ def test_dismiss_rejects_self_and_missing_user(client, db, user):
     db.add(make_profile(user.id, name="Jag"))
     db.commit()
 
-    assert client.post(f"/users/{user.username}/dismiss").status_code == 400
-    assert client.post("/users/okand/dismiss").status_code == 404
+    assert client.post(f"/users/{user.id}/dismiss").status_code == 400
+    assert client.post("/users/9999/dismiss").status_code == 404
 
 
 def test_reset_brings_dismissed_suggestions_back(client, db, user):
-    _create_person(db, "bob", "Bob")
-    client.post("/users/bob/dismiss")
+    bob = _create_person(db, "bob", "Bob")
+    client.post(f"/users/{bob.id}/dismiss")
     assert [p["name"] for p in client.get("/users/").json()] == []
 
     response = client.delete("/users/dismissed-suggestions")
@@ -57,7 +57,7 @@ def test_reset_brings_dismissed_suggestions_back(client, db, user):
 
 
 def test_dismiss_requires_login(client, db):
-    assert client.post("/users/bob/dismiss").status_code == 401
+    assert client.post("/users/2/dismiss").status_code == 401
 
 
 def test_reset_requires_login(client, db):

@@ -4,7 +4,7 @@ Dessutom GET /users/blocked, listan över dem man själv har blockerat.
 
 Själva blockeringen sätts här direkt i databasen (en Contact-rad med status
 BLOCKED, där requester är den som blockerar), så att testerna inte beror på
-hur POST /users/{username}/block fungerar."""
+hur POST /users/{user_id}/block fungerar."""
 
 from app.auth.security import get_current_user
 from app.main import app
@@ -69,7 +69,7 @@ def test_unblocking_makes_the_person_visible_again(client, db, user):
     _block(db, user, bob)
     assert _names(client.get("/users/")) == []
 
-    assert client.delete("/users/bob/block").status_code == 204
+    assert client.delete(f"/users/{bob.id}/block").status_code == 204
 
     assert _names(client.get("/users/")) == ["Bob"]
 
@@ -80,18 +80,18 @@ def test_unblocking_makes_the_person_visible_again(client, db, user):
 def test_profile_of_blocked_user_is_hidden_in_both_directions(client, db, user):
     bob = _person(db, "bob", "Bob")
     carol = _person(db, "carol", "Carol")
-    _person(db, "dave", "Dave")
+    dave = _person(db, "dave", "Dave")
     _block(db, user, bob)
     _block(db, carol, user)
 
-    unknown = client.get("/users/finnsinte/profile")
-    for username in ("bob", "carol"):
-        response = client.get(f"/users/{username}/profile")
+    unknown = client.get("/users/9999/profile")
+    for person in (bob, carol):
+        response = client.get(f"/users/{person.id}/profile")
         # Exakt samma svar som för en användare som inte finns - annars
         # avslöjar svaret att en blockering finns.
         assert response.status_code == 404
         assert response.json() == unknown.json()
-    assert client.get("/users/dave/profile").status_code == 200
+    assert client.get(f"/users/{dave.id}/profile").status_code == 200
 
 
 # --- Vänförfrågan -------------------------------------------------------------
@@ -103,10 +103,10 @@ def test_contact_request_to_or_from_blocked_user_looks_like_unknown_user(client,
     _block(db, user, bob)
     _block(db, carol, user)
 
-    unknown = client.post("/contacts/request", json={"addressee_username": "finnsinte"})
+    unknown = client.post("/contacts/request", json={"addressee_id": 9999})
     assert unknown.status_code == 404
-    for username in ("bob", "carol"):
-        response = client.post("/contacts/request", json={"addressee_username": username})
+    for person in (bob, carol):
+        response = client.post("/contacts/request", json={"addressee_id": person.id})
         assert response.status_code == 404
         assert response.json() == unknown.json()
 
@@ -138,10 +138,11 @@ def test_blocked_list_has_no_private_fields(client, db, user):
 
 def test_blocked_list_is_empty_without_blocks_and_shrinks_on_unblock(client, db, user):
     assert client.get("/users/blocked").json() == []
-    _block(db, user, _person(db, "bob", "Bob"))
+    bob = _person(db, "bob", "Bob")
+    _block(db, user, bob)
     assert len(client.get("/users/blocked").json()) == 1
 
-    client.delete("/users/bob/block")
+    client.delete(f"/users/{bob.id}/block")
 
     assert client.get("/users/blocked").json() == []
 
@@ -255,6 +256,6 @@ def test_warning_goes_away_when_unblocking(client, db, user, municipalities):
     _block(db, user, bob)
     assert client.get(f"/groups/{group.id}").json()["has_blocked_member"] is True
 
-    assert client.delete("/users/bob/block").status_code == 204
+    assert client.delete(f"/users/{bob.id}/block").status_code == 204
 
     assert client.get(f"/groups/{group.id}").json()["has_blocked_member"] is False

@@ -41,8 +41,8 @@ function App() {
             <Route path="/personer" element={<PeoplePage />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/meddelanden" element={<InboxPage />} />
-            <Route path="/meddelanden/:username" element={<ConversationPage />} />
-            <Route path="/anvandare/:username" element={<UserProfilePage />} />
+            <Route path="/meddelanden/:userId" element={<ConversationPage />} />
+            <Route path="/anvandare/:userId" element={<UserProfilePage />} />
           </Route>
         </Route>
 

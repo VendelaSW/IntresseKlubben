@@ -1,4 +1,4 @@
-"""Tester för GET /users/{username}/profile - att se en annan
+"""Tester för GET /users/{user_id}/profile - att se en annan
 användares profil (skrivskyddat)."""
 
 from app.models.interest import Interest
@@ -17,9 +17,9 @@ def _create_user_with_profile(db, username, name="Bob"):
 
 
 def test_view_another_users_profile(client, db, user):
-    _create_user_with_profile(db, "bob")
+    bob = _create_user_with_profile(db, "bob")
 
-    response = client.get("/users/bob/profile")
+    response = client.get(f"/users/{bob.id}/profile")
 
     assert response.status_code == 200
     body = response.json()
@@ -27,33 +27,33 @@ def test_view_another_users_profile(client, db, user):
 
 
 def test_view_profile_requires_login(client, db):
-    _create_user_with_profile(db, "bob")
+    bob = _create_user_with_profile(db, "bob")
 
-    response = client.get("/users/bob/profile")
+    response = client.get(f"/users/{bob.id}/profile")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Du är inte inloggad."
 
 
-def test_unknown_username_gives_404(client, user):
-    response = client.get("/users/finnsinte/profile")
+def test_unknown_user_gives_404(client, user):
+    response = client.get("/users/9999/profile")
     assert response.status_code == 404
 
 
 def test_user_without_profile_gives_404(client, db, user):
-    User_ = User(username="bob", password_hash="unused")
-    db.add(User_)
+    bob = User(username="bob", password_hash="unused")
+    db.add(bob)
     db.commit()
 
-    response = client.get("/users/bob/profile")
+    response = client.get(f"/users/{bob.id}/profile")
 
     assert response.status_code == 404
 
 
 def test_other_users_private_fields_not_in_response(client, db, user):
-    _create_user_with_profile(db, "bob")
+    bob = _create_user_with_profile(db, "bob")
 
-    response = client.get("/users/bob/profile")
+    response = client.get(f"/users/{bob.id}/profile")
 
     body = response.json()
     assert set(body) == {
@@ -67,7 +67,7 @@ def test_other_users_profile_text_is_visible(client, db, user):
     profile.profile_text = "Jag gillar brädspel."
     db.commit()
 
-    body = client.get("/users/bob/profile").json()
+    body = client.get(f"/users/{other.id}/profile").json()
 
     assert body["profile_text"] == "Jag gillar brädspel."
 
@@ -79,7 +79,7 @@ def test_other_users_interests_are_visible_sorted_by_name(client, db, user):
     other.interests = [chess, board_games]
     db.commit()
 
-    body = client.get("/users/bob/profile").json()
+    body = client.get(f"/users/{other.id}/profile").json()
 
     # Bara id och namn, samma som på personkorten, sorterade på namn.
     assert body["interests"] == [
@@ -89,6 +89,6 @@ def test_other_users_interests_are_visible_sorted_by_name(client, db, user):
 
 
 def test_other_user_without_interests_gives_empty_list(client, db, user):
-    _create_user_with_profile(db, "bob")
+    bob = _create_user_with_profile(db, "bob")
 
-    assert client.get("/users/bob/profile").json()["interests"] == []
+    assert client.get(f"/users/{bob.id}/profile").json()["interests"] == []

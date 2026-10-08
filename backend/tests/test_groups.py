@@ -177,10 +177,10 @@ def test_sort_by_members_does_not_count_blocked_users(client, user, new_group, l
     new_group(name="Aftonen")
     bryggan = new_group(name="Bryggan")
     # Bryggan har en medlem fler, men det är någon testuser har blockerat.
-    login_as("blockerad")
+    blocked = login_as("blockerad")
     client.put(f"/groups/{bryggan['id']}/members/me")
     login_as("testuser")
-    assert client.post("/users/blockerad/block").status_code in (200, 201)
+    assert client.post(f"/users/{blocked.id}/block").status_code in (200, 201)
 
     groups = client.get("/groups/", params={"sort": "members"}).json()
 
@@ -385,8 +385,8 @@ def test_members_lists_public_info_longest_member_first(client, db, user, new_gr
     response = client.get(f"/groups/{group['id']}/members")
     assert response.status_code == 200
     assert response.json() == [
-        {"username": "testuser", "name": None, "image_url": None, "role": "owner"},
-        {"username": "anna", "name": "Anna Berg", "image_url": None, "role": "member"},
+        {"id": user.id, "username": "testuser", "name": None, "image_url": None, "role": "owner"},
+        {"id": anna.id, "username": "anna", "name": "Anna Berg", "image_url": None, "role": "member"},
     ]
 
 
@@ -406,7 +406,7 @@ def test_members_hides_blocked_users_in_both_directions(client, user, new_group,
     group = new_group()
     login_as("anna")
     client.put(f"/groups/{group['id']}/members/me")
-    assert client.post("/users/testuser/block").status_code in (200, 201)
+    assert client.post(f"/users/{user.id}/block").status_code in (200, 201)
 
     # Anna har blockerat testuser: ingen av dem ser den andra i listan.
     assert [m["username"] for m in client.get(f"/groups/{group['id']}/members").json()] == ["anna"]

@@ -27,10 +27,10 @@ export function answerEvent(eventId, answer) {
   return apiPut(`/events/${eventId}/response`, { answer })
 }
 
-// Bjuder in kontakter (usernames) och/eller alla medlemmar i klubbar (groupIds).
+// Bjuder in kontakter (userIds) och/eller alla medlemmar i klubbar (groupIds).
 // Returnerar de som blev inbjudna den här gången.
-export function inviteToEvent(eventId, { usernames = [], groupIds = [] }) {
-  return apiPost(`/events/${eventId}/invitations`, { usernames, group_ids: groupIds })
+export function inviteToEvent(eventId, { userIds = [], groupIds = [] }) {
+  return apiPost(`/events/${eventId}/invitations`, { user_ids: userIds, group_ids: groupIds })
 }
 
 // Ändrar bara de fält som skickas, t.ex. { guests_can_invite: true }. Bara skaparen får.

@@ -5,15 +5,15 @@ import { memberCountText } from '../groups/GroupList'
 // över ens klubbar (alla medlemmar bjuds då in), med en kryssruta per rad.
 // Kontakter visas med liten text och små avatarer (samma kompakta personlista som
 // svarslistan). `initial` är det som redan var valt när popupen öppnades, och
-// `onSubmit` får { usernames, groupIds }. Själva inbjudan skickas av föräldern.
+// `onSubmit` får { userIds, groupIds }. Själva inbjudan skickas av föräldern.
 function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onSubmit, onCancel }) {
   const [query, setQuery] = useState('')
-  const [usernames, setUsernames] = useState(initial?.usernames ?? [])
+  const [userIds, setUserIds] = useState(initial?.userIds ?? [])
   const [groupIds, setGroupIds] = useState(initial?.groupIds ?? [])
 
   const needle = query.trim().toLowerCase()
   const shown = contacts.filter((c) => `${c.name ?? ''} ${c.username}`.toLowerCase().includes(needle))
-  const count = usernames.length + groupIds.length
+  const count = userIds.length + groupIds.length
 
   const toggle = (list, setList, value) =>
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
@@ -41,12 +41,12 @@ function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onS
             ) : (
               <ul>
                 {shown.map((c) => (
-                  <li key={c.username}>
+                  <li key={c.id}>
                     <label className="person-list-item">
                       <input
                         type="checkbox"
-                        checked={usernames.includes(c.username)}
-                        onChange={() => toggle(usernames, setUsernames, c.username)}
+                        checked={userIds.includes(c.id)}
+                        onChange={() => toggle(userIds, setUserIds, c.id)}
                       />
                       {c.image_url ? (
                         <img src={c.image_url} alt="" className="person-list-avatar" />
@@ -97,7 +97,7 @@ function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onS
           type="button"
           className="primary-button button-small"
           disabled={busy || count === 0}
-          onClick={() => onSubmit({ usernames, groupIds })}
+          onClick={() => onSubmit({ userIds, groupIds })}
         >
           {submitLabel}
           {count > 0 && ` (${count})`}

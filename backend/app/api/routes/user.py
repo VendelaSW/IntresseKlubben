@@ -28,18 +28,18 @@ GET /users/ - andra användare med sparad profil, valfritt filtrerade på
 gå att hitta på kön (gender_searchable), så att filtret inte avslöjar könet
 hos alla andra. Utesluter dig själv, dina
 borttagna förslag och alla som har blockerat dig eller som du har blockerat. Samma
-dataminimering som PublicProfileResponse, men med username (länk till
-/anvandare/{username}) och interests (taggar/matchning) - se PersonResponse.
+dataminimering som PublicProfileResponse, men med id (länk till
+/anvandare/{id}) och interests (taggar/matchning) - se PersonResponse.
 
-GET /users/{username}/profile - visar en annan användares profil
-via användarnamn (inte id, så adressen går att dela/komma ihåg),
-skrivskyddat. Ger samma 404 som för en profil som inte finns om någon av er
+GET /users/{user_id}/profile - visar en annan användares profil,
+skrivskyddat. Via id, aldrig användarnamn: användarnamn ska inte synas i
+några adresser. Ger samma 404 som för en profil som inte finns om någon av er
 har blockerat den andra. Kräver inloggning, precis som resten av profil- och
 intresse-anropen. Använder ett eget, mindre svar (PublicProfileResponse):
 bara namn, ålder, kommun, stadsdel och bild - aldrig födelsedatum, kön,
 användarnamn eller e-post.
 
-POST /users/{username}/dismiss - tar bort en person från dina Förslag
+POST /users/{user_id}/dismiss - tar bort en person från dina Förslag
 (GET /users/ ovan). Ensidigt, påverkar inget annat. Idempotent.
 
 DELETE /users/dismissed-suggestions - nollställer alla dina borttagna
@@ -160,6 +160,7 @@ def delete_account(
 
 def _to_person_response(profile) -> PersonResponse:
     return PersonResponse(
+        id=profile.user.id,
         username=profile.user.username,
         name=profile.name,
         age=calculate_age(profile.birth_date) if profile.birth_date else None,
@@ -193,13 +194,13 @@ def read_people(
     return [_to_person_response(p) for p in profiles]
 
 
-@router.post("/{username}/dismiss", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/{user_id}/dismiss", status_code=status.HTTP_204_NO_CONTENT)
 def dismiss_person(
-    username: str,
+    user_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> None:
-    other = get_user_by_username(db, username)
+    other = db.get(User, user_id)
     if other is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Användaren finns inte")
     if other.id == current_user.id:
@@ -230,13 +231,13 @@ def _to_public_response(profile) -> PublicProfileResponse:
     )
 
 
-@router.get("/{username}/profile", response_model=PublicProfileResponse)
+@router.get("/{user_id}/profile", response_model=PublicProfileResponse)
 def read_user_profile(
-    username: str,
+    user_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> PublicProfileResponse:
-    user = get_user_by_username(db, username)
+    user = db.get(User, user_id)
     # Samma neutrala 404 som för en profil som inte finns, så att en blockering
     # aldrig avslöjas (se AGENTS.md).
     if user is not None and is_blocked(db, current_user.id, user.id):
