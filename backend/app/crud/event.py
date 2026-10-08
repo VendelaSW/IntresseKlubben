@@ -108,25 +108,26 @@ def get_visible_event(db: Session, event_id: int, user_id: int) -> Event | None:
     return _event_query(db).filter(Event.id == event_id, _can_see(db, user_id)).first()
 
 
-def list_visible_events(db: Session, user_id: int, now: datetime | None = None) -> list[Event]:
+def list_visible_events(
+    db: Session, user_id: int, now: datetime | None = None, group_id: int | None = None
+) -> list[Event]:
     """Kommande events som användaren får se, tidigast först.
 
     Ett event syns om det är öppet, om användaren har skapat det eller är
     inbjuden, eller om användaren är medlem i eventets klubb. Events av den
     som har blockerat användaren, eller som användaren har blockerat, syns
     inte. Passerade events döljs: de ligger kvar i databasen men visas inte.
+    Med group_id visas bara den klubbens events, men synlighetsreglerna är desamma.
     """
     now = now or datetime.now(timezone.utc)
     not_over = or_(
         and_(Event.ends_at.isnot(None), Event.ends_at >= now),
         and_(Event.ends_at.is_(None), Event.starts_at >= now - OPEN_ENDED_EVENT_LENGTH),
     )
-    return (
-        _event_query(db)
-        .filter(_can_see(db, user_id), not_over)
-        .order_by(Event.starts_at, Event.id)
-        .all()
-    )
+    query = _event_query(db).filter(_can_see(db, user_id), not_over)
+    if group_id is not None:
+        query = query.filter(Event.group_id == group_id)
+    return query.order_by(Event.starts_at, Event.id).all()
 
 
 # ---------- Klubbar ----------

@@ -4,8 +4,9 @@ import { eventTimeText } from '../events/EventList'
 import { getEvents } from '../../services/events'
 
 // Klubbens kommande events i klubbens vy: titel, tid och plats, och ett klick
-// öppnar eventets egen vy på eventsidan (med klubben i adressen, så att Tillbaka går hit). Listan är alla events man får se som hör
-// till klubben (passerade är redan dolda av backend), tidigast först.
+// öppnar eventets egen vy på eventsidan (med klubben i adressen, så att Tillbaka
+// går hit). Listan är alla events man får se som hör till klubben, hämtade med
+// group_id (passerade är redan dolda av backend), tidigast först.
 function GroupEvents({ groupId }) {
   const [events, setEvents] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
@@ -13,8 +14,8 @@ function GroupEvents({ groupId }) {
   useEffect(() => {
     setEvents(null)
     setFailed(false)
-    getEvents()
-      .then((all) => setEvents(all.filter((event) => event.group_id === groupId)))
+    getEvents(groupId)
+      .then(setEvents)
       .catch(() => setFailed(true))
   }, [groupId])
 
