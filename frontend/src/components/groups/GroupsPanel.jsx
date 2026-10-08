@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import CreateGroupForm from './CreateGroupForm'
+import BackButton from '../BackButton'
 import GroupDetails from './GroupDetails'
 import GroupList from './GroupList'
 import GroupSortMenu from './GroupSortMenu'
@@ -242,15 +243,18 @@ function GroupsPanel() {
       {status === 'loading' ? (
         <p className="hint-text">Laddar klubbar...</p>
       ) : view === 'create' ? (
-        <div className="card sheet">
-          <CreateGroupForm
-            interests={interests}
-            municipalities={municipalities}
-            defaultMunicipality={myMunicipality}
-            onCreated={handleCreated}
-            onCancel={() => setView('list')}
-          />
-        </div>
+        <>
+          <BackButton onClick={() => setView('list')} />
+          <div className="card sheet">
+            <CreateGroupForm
+              interests={interests}
+              municipalities={municipalities}
+              defaultMunicipality={myMunicipality}
+              onCreated={handleCreated}
+              onCancel={() => setView('list')}
+            />
+          </div>
+        </>
       ) : (
         <>
           <div className="filter-tabs" role="tablist">
@@ -275,16 +279,18 @@ function GroupsPanel() {
           {error && <p className="status-error">{error}</p>}
 
           {selected ? (
-            <div className="card sheet">
-              <GroupDetails
-                group={selected}
-                busy={busy}
-                onJoin={handleJoin}
-                onLeave={handleLeave}
-                onDelete={handleDelete}
-                onBack={() => setView('list')}
-              />
-            </div>
+            <>
+              <BackButton onClick={() => setView('list')} />
+              <div className="card sheet">
+                <GroupDetails
+                  group={selected}
+                  busy={busy}
+                  onJoin={handleJoin}
+                  onLeave={handleLeave}
+                  onDelete={handleDelete}
+                />
+              </div>
+            </>
           ) : (
             <>
               <div className="search-row">
