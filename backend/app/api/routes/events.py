@@ -19,10 +19,10 @@ from app.crud.event import (
     set_answer,
     update_event,
 )
+from app.crud.interest import get_active_interest
 from app.db.session import get_db
 from app.models.event import Event, EventVisibility
 from app.models.group import GroupVisibility
-from app.models.interest import Interest
 from app.models.user import User
 from app.schemas.contact import ContactUser
 from app.schemas.event import (
@@ -103,8 +103,9 @@ def create(
     db: Session = Depends(get_db),
 ):
     # Kolla här så att okända värden ger ett tydligt fel i stället för ett
-    # databasfel (500) från de främmande nycklarna.
-    if db.get(Interest, data.interest_id) is None:
+    # databasfel (500) från de främmande nycklarna. Ett inaktivt intresse går inte
+    # att välja och ger samma fel som ett okänt.
+    if get_active_interest(db, data.interest_id) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
     if data.group_id is not None:
         try:
@@ -135,7 +136,7 @@ def edit_event(
     db: Session = Depends(get_db),
 ):
     event = _own_event_or_error(db, event_id, current_user.id)
-    if data.interest_id is not None and db.get(Interest, data.interest_id) is None:
+    if data.interest_id is not None and get_active_interest(db, data.interest_id) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
     try:
         event = update_event(db, event, data)

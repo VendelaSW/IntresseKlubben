@@ -101,6 +101,21 @@ def test_unknown_interest_is_rejected(client, user, interest):
     assert response.json()["detail"] == "Okänt intresse"
 
 
+def test_inactive_interest_is_rejected_when_creating_and_editing(client, db, user, interest):
+    # Ett inaktivt intresse (t.ex. Gaming, som slogs ihop med Tv-spel) syns inte
+    # och går inte att välja, inte heller via API:t. Samma fel som ett okänt.
+    db.add(Interest(id=2, name="Gaming", status="inactive"))
+    db.commit()
+    response = client.post("/events/", json=payload(interest_id=2))
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Okänt intresse"
+
+    own = add_event(db, user.id)
+    response = client.patch(f"/events/{own.id}", json={"interest_id": 2})
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Okänt intresse"
+
+
 def test_create_event_in_own_group(client, db, user, interest, municipalities):
     group = add_group(db, user.id)
     response = client.post("/events/", json=payload(group_id=group.id, visibility="open"))
