@@ -4,7 +4,7 @@ import InterestTags from '../InterestTags'
 import Modal from '../Modal'
 import InvitePicker from './InvitePicker'
 import { eventTimeText, visibilityPillClass, visibilityText } from './EventList'
-import { EVENT_ANSWER, answerEvent, getEventResponses, inviteToEvent } from '../../services/events'
+import { EVENT_ANSWER, answerEvent, getEventResponses, inviteToEvent, updateEvent } from '../../services/events'
 
 const ANSWERS = [
   { id: EVENT_ANSWER.yes, label: 'Ja' },
@@ -16,9 +16,10 @@ const ANSWERS = [
 // som har svarat, i liten text. Namnen är länkar till personens profil. Den man
 // själv har blockerat visas med märket "Blockerad". `onAnswered` får
 // föräldern att hämta om eventlistorna, så att ens svar och flikarna stämmer.
-// "Bjud in" syns bara för skaparen och öppnar en popup med ens kontakter och
-// klubbar (`contacts`, `groups`). Tillbaka-knappen ligger ovanför rutan, i
-// EventsPanel.
+// "Bjud in" syns för den som får bjuda in (event.can_invite: skaparen, eller alla
+// om skaparen har slagit på "Gäster får bjuda in") och öppnar en popup med ens
+// kontakter och klubbar (`contacts`, `groups`). Skaparen kan slå på och av valet här.
+// Tillbaka-knappen ligger ovanför rutan, i EventsPanel.
 function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
   const [responses, setResponses] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
@@ -28,6 +29,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
   const [inviteBusy, setInviteBusy] = useState(false)
   const [inviteError, setInviteError] = useState('')
   const [inviteNotice, setInviteNotice] = useState('')
+  const [settingBusy, setSettingBusy] = useState(false)
 
   useEffect(() => {
     setResponses(null)
@@ -65,6 +67,19 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
       setInviteError(err.message)
     } finally {
       setInviteBusy(false)
+    }
+  }
+
+  async function handleGuestsCanInvite(value) {
+    setSettingBusy(true)
+    setError('')
+    try {
+      await updateEvent(event.id, { guests_can_invite: value })
+      await onAnswered()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSettingBusy(false)
     }
   }
 
@@ -116,7 +131,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
         </section>
       </div>
 
-      {event.is_owner && (
+      {event.can_invite && (
         <>
           <div className="card-actions">
             <button
@@ -146,6 +161,18 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
             </Modal>
           )}
         </>
+      )}
+
+      {event.is_owner && (
+        <label>
+          <input
+            type="checkbox"
+            checked={event.guests_can_invite}
+            disabled={settingBusy}
+            onChange={(e) => handleGuestsCanInvite(e.target.checked)}
+          />{' '}
+          Gäster får bjuda in
+        </label>
       )}
 
       <Attendees responses={responses} failed={failed} />
