@@ -9,6 +9,7 @@ function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCre
   const [meetingInfo, setMeetingInfo] = useState('')
   const [description, setDescription] = useState('')
   const [isPrivate, setIsPrivate] = useState(false)
+  const [membersCanInvite, setMembersCanInvite] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -24,6 +25,7 @@ function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCre
         interest_id: Number(interestId),
         municipality_code: municipalityCode,
         visibility: isPrivate ? VISIBILITY.private : VISIBILITY.public,
+        members_can_invite: membersCanInvite,
       })
       onCreated(group)
     } catch (err) {
@@ -103,6 +105,12 @@ function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCre
         <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} /> Privat klubb
         (syns bara för medlemmar)
       </label>
+
+      <label>
+        <input type="checkbox" checked={membersCanInvite} onChange={(e) => setMembersCanInvite(e.target.checked)} />{' '}
+        Medlemmar får bjuda in
+      </label>
+      <p className="hint-text">Utan bockning kan bara du bjuda in.</p>
 
       {error && <p className="status-error">{error}</p>}
 

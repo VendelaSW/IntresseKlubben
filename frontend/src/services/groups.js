@@ -82,3 +82,31 @@ export function leaveGroup(id) {
 export function deleteGroup(id) {
   return apiDelete(`/groups/${id}`)
 }
+
+// Klubbar man är inbjuden till (och inte redan med i), nyaste inbjudan först.
+export function getGroupInvitations() {
+  return apiGet('/groups/invitations')
+}
+
+// Bara antalet, för märket i headern.
+export async function getGroupInvitationCount() {
+  const data = await apiGet('/groups/invitations/count')
+  return data.count
+}
+
+// Bjuder in kontakter (usernames). Svaret är de som blev inbjudna den här gången.
+export function inviteToGroup(id, usernames) {
+  return apiPost(`/groups/${id}/invitations`, { usernames })
+}
+
+// Avböjer en inbjudan.
+export function declineGroupInvitation(id) {
+  return apiDelete(`/groups/${id}/invitations/me`)
+}
+
+// Märket i headern räknas om när man har gått med i eller avböjt en klubb.
+export const INVITATIONS_CHANGED = 'group-invitations-changed'
+
+export function notifyInvitationsChanged() {
+  window.dispatchEvent(new Event(INVITATIONS_CHANGED))
+}
