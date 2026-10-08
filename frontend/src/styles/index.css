@@ -1039,11 +1039,14 @@ span.tag-selected:hover {
   gap: 1rem;
 }
 
-/* Ett meddelande: raden med namn och tid, och texten tätt under. */
+/* Ett meddelande: raden med namn och tid, och texten tätt under. Långa ord
+   och länkar bryts, så att de inte sticker ut ur den smala spalten (som
+   .soft-box-text). */
 .message {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
+  overflow-wrap: anywhere;
 }
 
 .app-main {

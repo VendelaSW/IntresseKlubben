@@ -87,6 +87,18 @@ function ConversationPage() {
     }
   }, [username])
 
+  // Tillbaka dit man kom ifrån (t.ex. någons profil), som på profilsidan.
+  // Öppnades chatten direkt via en länk finns ingen tidigare sida i appen, och
+  // då går vi till Brev i stället för ut ur appen. window.history.state.idx är
+  // satt av react-router och är 0 bara för sidans allra första post.
+  function handleBack() {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1)
+    } else {
+      navigate('/meddelanden')
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
     setSending(true)
@@ -105,8 +117,7 @@ function ConversationPage() {
 
   return (
     <div className="content-stack conversation-page">
-      {/* Till Brev, även om chatten öppnades direkt via en länk. */}
-      <BackButton onClick={() => navigate('/meddelanden')} />
+      <BackButton onClick={handleBack} />
       <h1>{username}</h1>
 
       {/* En vänsterställd spalt mitt på sidan, lika bred som tillbaka-raden. */}
