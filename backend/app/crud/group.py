@@ -243,8 +243,8 @@ def is_invited(group: Group, user_id: int) -> bool:
     return any(i.user_id == user_id for i in group.invitations)
 
 
-def invite_to_group(db: Session, group: Group, inviter_id: int, usernames: list[str]) -> list[User]:
-    """Bjuder in inviter_id:s kontakter (efter användarnamn). Att inviter_id får
+def invite_to_group(db: Session, group: Group, inviter_id: int, user_ids: list[int]) -> list[User]:
+    """Bjuder in inviter_id:s kontakter (efter id). Att inviter_id får
     bjuda in kontrolleras av den som anropar (can_invite). Antingen går alla
     inbjudningar igenom eller ingen. Redan medlemmar, redan inbjudna och de som
     har en blockering med ägaren hoppas över tyst: ett fel skulle avslöja för
@@ -252,12 +252,11 @@ def invite_to_group(db: Session, group: Group, inviter_id: int, usernames: list[
     Returnerar de som blev inbjudna den här gången (profil förladdad)."""
     contact_ids = accepted_contact_ids(db, inviter_id)
     target_ids: set[int] = set()
-    for username in usernames:
-        user = db.query(User).filter(func.lower(User.username) == username.lower()).first()
+    for user_id in user_ids:
         # Samma svar för en okänd användare och en som inte är en kontakt.
-        if user is None or user.id not in contact_ids:
+        if user_id not in contact_ids:
             raise NotAContactError(msg.CAN_ONLY_INVITE_CONTACTS)
-        target_ids.add(user.id)
+        target_ids.add(user_id)
 
     for owner in (m for m in group.members if m.role == GroupRole.owner):
         target_ids -= blocked_user_ids(db, owner.user_id)

@@ -20,11 +20,11 @@ function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecl
   const [inviteError, setInviteError] = useState('')
   const [inviteNotice, setInviteNotice] = useState('')
 
-  async function handleInvite({ usernames }) {
+  async function handleInvite({ userIds }) {
     setInviteBusy(true)
     setInviteError('')
     try {
-      const invited = await inviteToGroup(group.id, usernames)
+      const invited = await inviteToGroup(group.id, userIds)
       setInviteOpen(false)
       setInviteNotice(
         invited.length === 0

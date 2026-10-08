@@ -33,8 +33,8 @@ def login_as(person):
     app.dependency_overrides[get_current_user] = lambda: person
 
 
-def invite(client, group, *names):
-    return client.post(f"/groups/{group.id}/invitations", json={"usernames": list(names)})
+def invite(client, group, *user_ids):
+    return client.post(f"/groups/{group.id}/invitations", json={"user_ids": list(user_ids)})
 
 
 def invitation_count(client):
@@ -49,7 +49,7 @@ def invitation_count(client):
 def test_owner_invites_a_contact_who_then_sees_the_invitation(client, db, user, people, group):
     add_contact(db, user.id, people["user2"].id)
 
-    response = invite(client, group, "user2")
+    response = invite(client, group, 2)
     assert response.status_code == 200
     assert [u["username"] for u in response.json()] == ["user2"]
 
@@ -61,10 +61,21 @@ def test_owner_invites_a_contact_who_then_sees_the_invitation(client, db, user, 
     assert invitation_count(client) == 1
 
 
+def test_contacts_expose_the_ids_used_to_invite_and_the_answer_has_them_too(client, db, user, people, group):
+    add_contact(db, user.id, people["user2"].id)
+
+    # Frontend bjuder in med id (aldrig användarnamn), så kontaktlistan måste ha dem.
+    contacts = client.get("/contacts/").json()["contacts"]
+    assert [c["user"]["id"] for c in contacts] == [people["user2"].id]
+
+    invited = invite(client, group, contacts[0]["user"]["id"]).json()
+    assert [u["id"] for u in invited] == [people["user2"].id]
+
+
 def test_can_invite_to_a_public_club_too(client, db, user, people):
     public = add_group(db, user.id, visibility=GroupVisibility.public)
     add_contact(db, user.id, people["user2"].id)
-    assert invite(client, public, "user2").status_code == 200
+    assert invite(client, public, 2).status_code == 200
 
     login_as(people["user2"])
     assert invitation_count(client) == 1
@@ -73,8 +84,8 @@ def test_can_invite_to_a_public_club_too(client, db, user, people):
 def test_only_contacts_can_be_invited(client, db, user, people, group):
     add_contact(db, user.id, people["user2"].id)
     # En okänd användare och en som inte är en kontakt ger samma svar, och ingen blir inbjuden.
-    unknown = invite(client, group, "user2", "ingenting")
-    stranger = invite(client, group, "user2", "user3")
+    unknown = invite(client, group, 2, 999)
+    stranger = invite(client, group, 2, 3)
     assert unknown.status_code == stranger.status_code == 422
     assert unknown.json() == stranger.json()
     assert db.query(GroupInvitation).count() == 0
@@ -90,8 +101,8 @@ def test_inviting_twice_or_a_member_does_nothing(client, db, user, people, group
     db.add(GroupMember(group_id=group.id, user_id=people["user3"].id))
     db.commit()
 
-    assert [u["username"] for u in invite(client, group, "user2", "user3").json()] == ["user2"]
-    assert invite(client, group, "user2").json() == []
+    assert [u["username"] for u in invite(client, group, 2, 3).json()] == ["user2"]
+    assert invite(client, group, 2).json() == []
     assert db.query(GroupInvitation).count() == 1
 
 
@@ -105,7 +116,7 @@ def test_someone_blocked_with_the_owner_is_skipped_silently(client, db, user, pe
     db.commit()
 
     login_as(people["user2"])
-    response = invite(client, allowed, "user3")
+    response = invite(client, allowed, 3)
     assert response.status_code == 200
     assert response.json() == []
     assert db.query(GroupInvitation).count() == 0
@@ -121,7 +132,7 @@ def test_members_cannot_invite_by_default(client, db, user, people, group):
 
     login_as(people["user2"])
     assert client.get(f"/groups/{group.id}").json()["can_invite"] is False
-    response = invite(client, group, "user3")
+    response = invite(client, group, 3)
     assert response.status_code == 403
     assert db.query(GroupInvitation).count() == 0
 
@@ -134,7 +145,7 @@ def test_members_can_invite_when_the_owner_allows_it(client, db, user, people):
 
     login_as(people["user2"])
     assert client.get(f"/groups/{allowed.id}").json()["can_invite"] is True
-    assert [u["username"] for u in invite(client, allowed, "user3").json()] == ["user3"]
+    assert [u["username"] for u in invite(client, allowed, 3).json()] == ["user3"]
 
 
 def test_only_someone_who_is_a_member_can_invite(client, db, user, people, group):
@@ -142,9 +153,9 @@ def test_only_someone_who_is_a_member_can_invite(client, db, user, people, group
 
     login_as(people["user2"])
     # En privat klubb avslöjas inte för den som inte är med.
-    assert invite(client, group, "user3").status_code == 404
+    assert invite(client, group, 3).status_code == 404
     public = add_group(db, user.id, name="Öppna")
-    assert invite(client, public, "user3").status_code == 403
+    assert invite(client, public, 3).status_code == 403
 
 
 def test_owner_sees_can_invite_and_the_setting(client, user, people, group):
@@ -173,7 +184,7 @@ def test_create_group_stores_members_can_invite(client, user, municipalities):
 
 def test_invited_person_can_open_a_private_club_and_join_it(client, db, user, people, group):
     add_contact(db, user.id, people["user2"].id)
-    invite(client, group, "user2")
+    invite(client, group, 2)
 
     login_as(people["user2"])
     assert client.get(f"/groups/{group.id}").status_code == 200
@@ -188,7 +199,7 @@ def test_invited_person_can_open_a_private_club_and_join_it(client, db, user, pe
 
 def test_a_private_club_is_still_hidden_from_everyone_else(client, db, user, people, group):
     add_contact(db, user.id, people["user2"].id)
-    invite(client, group, "user2")
+    invite(client, group, 2)
 
     login_as(people["user3"])
     assert client.get(f"/groups/{group.id}").status_code == 404
@@ -198,7 +209,7 @@ def test_a_private_club_is_still_hidden_from_everyone_else(client, db, user, peo
 
 def test_declining_removes_the_invitation_and_hides_the_club_again(client, db, user, people, group):
     add_contact(db, user.id, people["user2"].id)
-    invite(client, group, "user2")
+    invite(client, group, 2)
 
     login_as(people["user2"])
     assert client.delete(f"/groups/{group.id}/invitations/me").status_code == 204
@@ -210,7 +221,7 @@ def test_declining_removes_the_invitation_and_hides_the_club_again(client, db, u
 def test_declining_twice_is_fine_for_a_public_club(client, db, user, people):
     public = add_group(db, user.id)
     add_contact(db, user.id, people["user2"].id)
-    invite(client, public, "user2")
+    invite(client, public, 2)
 
     login_as(people["user2"])
     assert client.delete(f"/groups/{public.id}/invitations/me").status_code == 204
@@ -219,7 +230,7 @@ def test_declining_twice_is_fine_for_a_public_club(client, db, user, people):
 
 def test_invitations_list_leaves_out_clubs_you_are_already_in(client, db, user, people, group):
     add_contact(db, user.id, people["user2"].id)
-    invite(client, group, "user2")
+    invite(client, group, 2)
     db.add(GroupMember(group_id=group.id, user_id=people["user2"].id))
     db.commit()
 
@@ -230,6 +241,6 @@ def test_invitations_list_leaves_out_clubs_you_are_already_in(client, db, user, 
 
 def test_deleting_the_club_removes_its_invitations(client, db, user, people, group):
     add_contact(db, user.id, people["user2"].id)
-    invite(client, group, "user2")
+    invite(client, group, 2)
     assert client.delete(f"/groups/{group.id}").status_code == 204
     assert db.query(GroupInvitation).count() == 0

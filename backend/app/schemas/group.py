@@ -89,11 +89,11 @@ class GroupMemberResponse(BaseModel):
 
 
 class GroupInvite(BaseModel):
-    # Kontakter efter användarnamn. Minst en krävs.
-    usernames: list[str]
+    # Kontakter efter id. Minst en krävs.
+    user_ids: list[int]
 
     @model_validator(mode="after")
     def someone_is_invited(self):
-        if not self.usernames:
+        if not self.user_ids:
             raise ValueError(msg.GROUP_INVITE_NOBODY)
         return self

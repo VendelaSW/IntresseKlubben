@@ -229,7 +229,7 @@ def add_invitations(
     if not can_invite(group, current_user.id):
         raise HTTPException(status_code=403, detail=msg.GROUP_ONLY_OWNER_CAN_INVITE)
     try:
-        invited = invite_to_group(db, group, current_user.id, data.usernames)
+        invited = invite_to_group(db, group, current_user.id, data.user_ids)
     except GroupRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=str(err))
     return [_to_invitee(u) for u in invited]

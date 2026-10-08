@@ -94,9 +94,9 @@ export async function getGroupInvitationCount() {
   return data.count
 }
 
-// Bjuder in kontakter (usernames). Svaret är de som blev inbjudna den här gången.
-export function inviteToGroup(id, usernames) {
-  return apiPost(`/groups/${id}/invitations`, { usernames })
+// Bjuder in kontakter (userIds). Svaret är de som blev inbjudna den här gången.
+export function inviteToGroup(id, userIds) {
+  return apiPost(`/groups/${id}/invitations`, { user_ids: userIds })
 }
 
 // Avböjer en inbjudan.
