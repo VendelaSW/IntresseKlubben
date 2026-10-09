@@ -16,8 +16,8 @@ function initials(name) {
 function ConversationCard({ conversation }) {
   return (
     <Link
-      to={`/meddelanden/${encodeURIComponent(conversation.username)}`}
-      className="card person-card"
+      to={`/meddelanden/${conversation.id}`}
+      className="card card-interactive person-card"
     >
       {conversation.image_url ? (
         <img src={conversation.image_url} alt="" className="card-avatar" />

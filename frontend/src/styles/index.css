@@ -39,6 +39,7 @@
   --color-bg: #f7f1e3;
   --color-text: #1a1a1a;
   --color-accent: #f4c430;
+  --color-accent-soft: #fdf6e0;
   --color-line: #bfd7ed;
   --color-white: #ffffff;
   --color-muted: #6b6b6b;
@@ -268,7 +269,8 @@ h2 {
 }
 
 .auth-form input,
-.auth-form select {
+.auth-form select,
+.auth-form textarea {
   font-family: var(--font-body);
   font-weight: 400;
   font-size: var(--text-body);
@@ -279,14 +281,41 @@ h2 {
   color: var(--color-text);
 }
 
-.auth-form input::placeholder {
+.auth-form input::placeholder,
+.auth-form textarea::placeholder {
   color: var(--color-muted);
 }
 
 .auth-form input:focus-visible,
-.auth-form select:focus-visible {
+.auth-form select:focus-visible,
+.auth-form textarea:focus-visible {
   outline: none;
   border-color: var(--color-accent);
+}
+
+/* Flerradigt fält, t.ex. "Om mig". Går bara att dra större i höjdled. */
+.auth-form textarea {
+  resize: vertical;
+  min-height: 7rem;
+}
+
+/* Teckenräknaren ligger inne i fältet, nere till höger (till vänster om
+   dra-handtaget). Extra utrymme under texten så de inte överlappar. */
+.textarea-count {
+  position: relative;
+  display: flex;
+}
+
+.textarea-count textarea {
+  flex: 1;
+  padding-bottom: 1.75rem;
+}
+
+.textarea-count-number {
+  position: absolute;
+  right: 1.75rem;
+  bottom: 0.5rem;
+  pointer-events: none;
 }
 
 .auth-form button {
@@ -354,13 +383,42 @@ button.banner-button {
   margin: 0;
 }
 
-.profile-interests {
+/* Avsnitten Intressen och E-post på profilen. */
+.profile-interests,
+.profile-email {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   width: 100%;
   max-width: 320px;
   text-align: left;
+}
+
+/* Blek ruta: ett eget fält med samma rundning som formulärfälten, i blekt
+   ljusgult (--color-accent-soft) och utan kant. Används t.ex. för "Om mig" i ett
+   profilkort och för "Kommer du?" på ett event. Smal som standard (passar ett
+   profilkort), .soft-box-wide fyller hela bredden i ett ark. */
+.soft-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 320px;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: var(--color-accent-soft);
+  text-align: left;
+}
+
+.soft-box-wide {
+  max-width: none;
+}
+
+/* pre-line behåller radbrytningarna, anywhere bryter även mycket långa ord. */
+.soft-box-text {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 /* Taggar som bara visas (InterestTags) går inte att klicka på, så de ska
@@ -414,11 +472,6 @@ span.tag-selected:hover {
   cursor: pointer;
 }
 
-.button-small {
-  padding: 0.1rem 0.4rem;
-  font-size: var(--text-small);
-}
-
 .primary-button:hover {
   opacity: 0.85;
 }
@@ -460,6 +513,48 @@ span.tag-selected:hover {
   border-radius: 4px;
   padding: 1.5rem;
   max-width: 320px;
+}
+
+/* Bredare kort för att visa en hel profil (egen eller någon annans). Inte
+   klickbart, så blå hård skugga hela tiden i stället för den gula hover-
+   effekten som klickbara kort får. */
+.card-wide {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem;
+  box-shadow: 0 6px 0 var(--color-line);
+}
+
+/* Caveat i stor storlek har mycket luft i radhöjden, vilket syns som tom
+   yta överst i kortet. */
+.card-wide h1 {
+  line-height: 1.1;
+}
+
+/* Klickbart kort, t.ex. en tumnagel i personlistan: lyfts och får gul kant
+   och skugga vid hover/fokus. Läggs på kort som är klickbara, inte på kort
+   som bara är behållare. */
+.card-interactive {
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-interactive:hover,
+.card-interactive:focus-within {
+  transform: translateY(-3px);
+  border-color: var(--color-accent);
+  box-shadow: 0 6px 0 var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-interactive {
+    transition: none;
+  }
+
+  .card-interactive:hover,
+  .card-interactive:focus-within {
+    transform: none;
+  }
 }
 
 .card-avatar {
@@ -604,6 +699,52 @@ span.tag-selected:hover {
   background: var(--color-accent);
 }
 
+/* Liten variant. Måste ligga efter .primary-button och .secondary-button,
+   annars vinner deras padding och knappen blir inte mindre. */
+.button-small {
+  padding: 0.1rem 0.4rem;
+  font-size: var(--text-small);
+}
+
+/* Rund "+"-knapp, t.ex. för att skapa något. Plusset är en bild (inget tecken
+   i knappen), så det blir exakt centrerat. Läggs på .primary-button, och måste
+   ligga efter den av samma skäl som .button-small. */
+.round-button {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border-radius: 50%;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Det handritade "+" är en bild (assets/plus.png, genomskinlig) ovanpå den gula
+   cirkeln. Bara bildlagret sätts här, så att primary-buttons färg och
+   hover-lägen gäller som vanligt. */
+.round-button {
+  background-image: url('../assets/plus.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 55%;
+}
+
+.round-button:hover,
+.round-button:focus-visible {
+  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 0 var(--color-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .round-button {
+    transition: none;
+  }
+
+  .round-button:hover,
+  .round-button:focus-visible {
+    transform: none;
+  }
+}
+
 .tag-static {
   cursor: default;
 }
@@ -669,6 +810,12 @@ span.tag-selected:hover {
   border-color: var(--color-success);
 }
 
+/* Röd: något stängt eller begränsat, t.ex. ett event som bara är för inbjudna. */
+.status-pill-error {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
 /* Ägare av t.ex. en klubb: mörk, så att den skiljer sig både från
    grön "Medlem" och från de gula taggarna. */
 .status-pill-owner {
@@ -726,22 +873,24 @@ span.tag-selected:hover {
   grid-template-columns: repeat(auto-fill, minmax(260px, 300px));
 }
 
-/* Ett klickbart card-kort, hela kortet länkar vidare (t.ex. till en profil). */
-/* person-card är ett <article> (inte en länk), så att åtgärdsknappar kan
-   ligga i kortet utan att hamna nästlade i en <a>. person-card-link är den
-   klickbara länken till profilen runt avatar/namn/plats. */
+/* Layouten för personkort och brevkort. Hover-effekten kommer från
+   .card-interactive, som korten också har. person-card är ett <article>
+   (inte en länk), så att åtgärdsknappar kan ligga i kortet utan att hamna
+   nästlade i en <a>. person-card-link är den klickbara länken till profilen
+   runt avatar/namn/plats. */
 .person-card {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.person-card:hover,
-.person-card:focus-within {
-  transform: translateY(-3px);
-  border-color: var(--color-accent);
-  box-shadow: 0 6px 0 var(--color-accent);
+/* Siffran i "Ni har 2 gemensamma intressen" på personkorten: fet och mörk,
+   med samma gula understrykning som länkarna, så att den syns i den grå
+   texten. */
+.shared-count {
+  color: var(--color-text);
+  font-weight: 700;
+  border-bottom: 2px solid var(--color-accent);
 }
 
 .person-card-link {
@@ -750,17 +899,6 @@ span.tag-selected:hover {
   gap: 0.75rem;
   text-decoration: none;
   color: inherit;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .person-card {
-    transition: none;
-  }
-
-  .person-card:hover,
-  .person-card:focus-within {
-    transform: none;
-  }
 }
 
 .app-shell {
@@ -801,6 +939,10 @@ span.tag-selected:hover {
   width: 100%;
 }
 
+/* Menypunkterna krymper steglöst med skärmbredden (clamp), så att alla ryms på en
+   rad även på små telefoner. Det största måttet i varje clamp är det vanliga: ikon
+   (34 px) och text (0,8 rem) från ca 400 px bredd, luften på sidorna (0,9 rem) från
+   ca 800 px. */
 .app-nav-link {
   display: inline-flex;
   flex-direction: column;
@@ -808,22 +950,31 @@ span.tag-selected:hover {
   justify-content: flex-end;
   gap: 0.15rem;
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: clamp(0.72rem, 3.2vw, 0.8rem);
   color: var(--color-text);
   text-decoration: none;
-  padding: 0.3rem 0.9rem 0.1rem;
+  padding: 0.3rem clamp(0.2rem, 1.8vw, 0.9rem) 0.1rem;
   border-radius: 12px;
   white-space: nowrap;
 }
 
 .nav-icon {
-  height: 34px;
+  height: clamp(28px, 8.5vw, 34px);
   width: auto;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
-.app-nav-link:hover .nav-icon,
-.app-nav-link:focus-visible .nav-icon,
+/* Hover/fokus på en menypunkt som inte är aktiv: ikonen växer och får en gul
+   kontur längs de svarta linjerna. drop-shadow följer PNG:ens genomskinlighet,
+   och fyra hårda skuggor (en åt varje håll) blir tillsammans en kant. */
+.app-nav-link:not(.active):hover .nav-icon,
+.app-nav-link:not(.active):focus-visible .nav-icon {
+  transform: scale(1.15);
+  filter: drop-shadow(1px 0 0 var(--color-accent)) drop-shadow(-1px 0 0 var(--color-accent))
+    drop-shadow(0 1px 0 var(--color-accent)) drop-shadow(0 -1px 0 var(--color-accent));
+}
+
+/* Aktiv sida: ingen kontur, ikonen är lite större och texten har strecket. */
 .app-nav-link.active .nav-icon {
   transform: scale(1.15);
 }
@@ -859,6 +1010,47 @@ span.tag-selected:hover {
   align-items: center;
   gap: 2rem;
   text-align: center;
+}
+
+/* "← Tillbaka" (components/BackButton.jsx) överst på en sida eller vy,
+   ovanför rutan: vänsterställd, i samma bredd som rutorna (.sheet och
+   profilkortet), så att den linjerar med rutans vänsterkant. */
+.back-row {
+  width: 100%;
+  max-width: 480px;
+  text-align: left;
+}
+
+/* Chatten: meddelanden och svarsfält i en vänsterställd spalt mitt på
+   sidan. Smalare än profilkortet, så att raderna inte blir för långa att
+   läsa; tillbaka-knappen följer med så att de linjerar. */
+.conversation,
+.conversation-page .back-row {
+  width: 100%;
+  max-width: 400px;
+}
+
+.conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  text-align: left;
+}
+
+.conversation-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Ett meddelande: raden med namn och tid, och texten tätt under. Långa ord
+   och länkar bryts, så att de inte sticker ut ur den smala spalten (som
+   .soft-box-text). */
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  overflow-wrap: anywhere;
 }
 
 .app-main {
@@ -962,70 +1154,88 @@ span.tag-selected:hover {
   outline-offset: 2px;
 }
 
-/* ---------- Klubbar (intressegrupper) ---------- */
+/* ---------- Sidlayout och listor (Klubbar, Events och fler sidor) ---------- */
 
-/* Bygger på .card. Smal, eftersom den senare ska visas i ett litet fönster. */
-.groups-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  width: 100%;
-  max-width: 460px;
-  text-align: left;
-}
-
-/* Rubriken "Klubbar" till vänster och "+" till höger, flikarna under. */
-.groups-panel-header {
+/* Sidans rubrik till vänster och en rund "+"-knapp (skapa ny) till höger. */
+.page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
 
-/* Samma stil oavsett om rubriken är h1 (egen sida) eller h2 (fönster). */
-.groups-panel-title {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: var(--text-h1);
-  line-height: 1;
+.page-header .app-title {
   margin: 0;
 }
 
-/* Rund "+" för att skapa en klubb. */
-.groups-panel-add {
-  display: inline-flex;
+/* Centrerad sida: lägg på <section className="app-section app-section-centered">.
+   Rubriken med "+"-knappen alldeles bredvid, flikarna, kortrutnätet och arken
+   centreras, och avstånden blir tätare. Personer och Brev är inte centrerade. */
+.app-section-centered {
   align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  padding: 0;
-  border-radius: 50%;
-  font-size: 1.75rem;
-  line-height: 1;
+  gap: 0.75rem;
 }
 
-/* Tre lika breda flikar: Mina klubbar, Förslag, Alla. */
-.groups-panel-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+/* Lite luft mellan rubriken och "+"-knappen. */
+.app-section-centered .page-header {
+  justify-content: center;
+  gap: 1.5rem;
 }
 
-.groups-panel-tabs .tag {
+.app-section-centered .filter-tabs {
   justify-content: center;
-  padding: 0.3rem 0.4rem;
-  white-space: nowrap;
+}
+
+/* Rutnätet och filtren fyller hela bredden (annars krymper de till sitt
+   innehåll i den centrerade kolumnen) och centrerar sina kolumner. */
+.app-section-centered .card-grid {
+  width: 100%;
+  justify-content: center;
+}
+
+/* En rad luft mellan flikarna och listan (korten, eller texten när den är tom). */
+.app-section-centered .card-grid,
+.app-section-centered > .hint-text {
+  margin-top: 1.5rem;
+}
+
+/* Högst tre kort per rad (tre kortbredder plus två mellanrum). auto-fit
+   tar bort tomma kolumner, så att ett enstaka kort hamnar mitt på sidan. På
+   smala skärmar får bara en eller två kolumner plats, så korten lägger sig
+   under varandra av sig själva. */
+.app-section-centered .card-grid-compact {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
+  max-width: calc(3 * 300px + 2 * 1rem);
+}
+
+.app-section-centered .filter-select-row {
+  width: 100%;
+}
+
+/* Bara sidans egna texter (tom lista, fel) centreras, inte texter inne i ett ark. */
+.app-section-centered > .hint-text,
+.app-section-centered > .status-error {
+  text-align: center;
+}
+
+/* Ett ark: ett vitt kort lika brett som profilkorten, vänsterställt som resten
+   av sidan. Används för en posts egen vy och för formulär för att skapa en post. */
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  text-align: left;
 }
 
 /* Rad med två lika breda filter-dropdowns (intresse/kommun). Delad mellan
-   klubbar och personer, inte knuten till bara den ena sidan. */
+   sidorna, inte knuten till bara en av dem. */
 .filter-select-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
 
-.filter-select-row select {
+.filter-select-row select,
+.filter-select-row input {
   font-family: var(--font-body);
   font-size: var(--text-small);
   padding: 0.4rem 0.5rem;
@@ -1036,6 +1246,27 @@ span.tag-selected:hover {
   width: 100%;
 }
 
+/* "Ålder" följt av från- och till-ålder, i en av filtrens rutor. */
+.filter-age-range {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-small);
+}
+
+/* Utan upp/ner-pilarna, så att platshållartexten får plats. */
+.filter-age-range input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.filter-age-range input::-webkit-outer-spin-button,
+.filter-age-range input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* Filtren kompakta, tillsammans inte bredare än ett personkort (300px), i
    stället för att sträcka ut sig över hela sidan. Sida vid sida som
    filter-select-row redan gör. Lägg till utöver filter-select-row. */
@@ -1043,66 +1274,263 @@ span.tag-selected:hover {
   max-width: 300px;
 }
 
-.group-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border-top: 2px solid var(--color-line);
+/* Sökfältet för klubbar med sorteringsknappen bredvid, ovanför filtren. */
+.search-row {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 300px;
 }
 
-.group-row {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.15rem;
-  width: 100%;
-  padding: 0.75rem 0.5rem;
-  border: none;
-  border-bottom: 2px solid var(--color-line);
-  background: transparent;
+.filter-search {
+  flex: 1;
+  min-width: 0;
   font-family: var(--font-body);
+  font-size: var(--text-small);
+  padding: 0.4rem 0.5rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
   color: var(--color-text);
-  text-align: left;
+  width: 100%;
+}
+
+/* Sorteringsknappen (en ikon) och menyn den öppnar. */
+.sort-menu {
+  position: relative;
+}
+
+.sort-menu-button {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 100%;
+  min-height: 2rem;
+  padding: 0;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-text);
   cursor: pointer;
 }
 
-.group-row:hover,
-.group-row:focus-visible {
-  background: var(--color-bg);
+.sort-menu-button:hover,
+.sort-menu-button:focus-visible,
+.sort-menu-button-open {
+  border-color: var(--color-accent);
 }
 
-.group-row-name {
-  font-weight: 700;
+.sort-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 10;
+  min-width: 11rem;
+  padding: 0.4rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.group-row-meta {
+.sort-menu-group + .sort-menu-group {
+  margin-top: 0.3rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.sort-menu-heading {
+  display: block;
+  padding: 0.15rem 0.5rem;
   font-size: var(--text-small);
   color: var(--color-muted);
 }
 
-.group-details {
+.sort-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sort-menu-item:hover,
+.sort-menu-item:focus-visible {
+  background: var(--color-accent-soft);
+}
+
+.sort-menu-item-selected {
+  background: var(--color-accent);
+  font-weight: 600;
+}
+
+.sort-menu-item-selected:hover,
+.sort-menu-item-selected:focus-visible {
+  background: var(--color-accent);
+}
+
+/* Kort för en post i en lista, i samma rutnät och med samma hover som
+   personkorten (.card-grid, .card-interactive). list-card-link är den
+   klickbara delen som öppnar postens egen vy; knappar ligger utanför den. */
+.list-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.list-card-link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.list-card-link .card-title,
+.list-card-link .card-subheading {
+  margin: 0;
+  line-height: 1.1;
+}
+
+/* Bara början av beskrivningen på kortet; hela syns i postens egen vy. */
+.list-card-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Titel till vänster och ett märke (.status-pill) i högerkanten, i en posts egen
+   vy. Titeln bryts på flera rader om den är lång, märket behåller sin storlek. */
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.title-row .card-title {
+  min-width: 0;
+}
+
+.title-row .status-pill {
+  flex-shrink: 0;
+  margin-top: 0.35rem;
+}
+
+/* Innehållet i ett ark som visar en post: titel, undertext och information
+   under varandra, vänsterställt. */
+.detail-view {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.5rem;
 }
 
-.group-details .card-title,
-.group-details .card-subheading {
+.detail-view .card-title,
+.detail-view .card-subheading {
   margin: 0;
   line-height: 1.1;
 }
 
-.groups-form {
+/* Ett avsnitt i en posts egen vy med en rad luft ovanför, t.ex. "Kommer du?" med
+   sina knappar. Läggs i .detail-view. */
+.detail-view-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Ett formulär (.auth-form) som fyller hela bredden i stället för att vara smalt.
+   Gäller bara bredden: de mindre måtten för skapa-formulär ligger på .form-compact,
+   så att andra bredd-formulär (t.ex. chattens svarsfält) behåller vanliga fält. */
+.form-wide {
   max-width: none;
 }
 
-.group-members {
+/* Ett kompakt formulär (.auth-form .form-compact), för att skapa en post: mindre
+   fält, text och knappar än de vanliga formulären (inloggning, profil). Läggs
+   oftast tillsammans med .form-wide. Titel och beskrivning, som får mer text, kan
+   få de större måtten med .field-large (flerradiga fält med teckenräknare är alltid
+   stora). Varje fält ligger i en .form-field, och flera kan ligga bredvid varandra
+   i en .form-row. */
+.form-compact {
+  gap: 0.6rem;
+}
+
+.form-compact label {
+  font-size: var(--text-small);
+}
+
+.form-compact input,
+.form-compact select,
+.form-compact textarea {
+  font-size: var(--text-small);
+  padding: 0.3rem 0.5rem;
+}
+
+.form-compact .field-large,
+.form-compact .textarea-count textarea {
+  font-size: var(--text-body);
+  padding: 0.55rem 0.75rem;
+}
+
+.form-compact .textarea-count textarea {
+  padding-bottom: 1.75rem;
+}
+
+.form-compact button {
+  font-size: var(--text-small);
+  padding: 0.3rem 0.7rem;
+  margin-top: 0;
+}
+
+/* Etiketten tätt ovanför sitt fält (till skillnad från mellanrummet mellan fälten). */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+/* Två eller fler fält bredvid varandra. På smala skärmar får de inte plats och
+   lägger sig under varandra av sig själva. */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.5rem;
+}
+
+/* Knapparna längst ner i ett formulär, sida vid sida. */
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* En lista med personer (avatar och namn på varje rad), t.ex. medlemmar i en
+   klubb eller blockerade användare. */
+.person-list {
   width: 100%;
   margin-top: 0.5rem;
 }
 
-.group-members ul {
+.person-list ul {
   list-style: none;
   margin: 0.5rem 0 0;
   padding: 0;
@@ -1111,7 +1539,7 @@ span.tag-selected:hover {
   gap: 0.5rem;
 }
 
-.group-member {
+.person-list-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -1120,17 +1548,102 @@ span.tag-selected:hover {
   font-weight: 700;
 }
 
-.group-member:hover span:not(.hint-text):not(.group-member-avatar) {
+.person-list-item:hover span:not(.hint-text):not(.person-list-avatar) {
   text-decoration: underline;
 }
 
-.group-member-avatar {
+/* Lägg på .person-list: titeln får den gula överstrykningspennan (samma som
+   .highlight) vid hover och tangentbordsfokus i stället för understrykning. Luften
+   runt titeln finns hela tiden, så att texten inte hoppar när strecket kommer. */
+.person-list-marker .person-list-item > span:first-child {
+  padding: 0 0.15em;
+  margin: 0 -0.15em;
+}
+
+.person-list-marker .person-list-item:hover span:not(.hint-text):not(.person-list-avatar),
+.person-list-marker .person-list-item:focus-visible span:not(.hint-text):not(.person-list-avatar) {
+  text-decoration: none;
+  background: linear-gradient(transparent 58%, var(--color-accent) 58%, var(--color-accent) 88%, transparent 88%);
+}
+
+.person-list-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   background: var(--color-line);
   object-fit: cover;
   flex-shrink: 0;
+}
+
+/* Kompakt personlista: liten text och små avatarer, för när många personer ska
+   rymmas (t.ex. vilka som har svarat på ett event). Läggs på .person-list. */
+.person-list-compact {
+  margin-top: 1rem;
+}
+
+.person-list-compact > div + div {
+  margin-top: 0.75rem;
+}
+
+.person-list-compact ul {
+  gap: 0.25rem;
+}
+
+.person-list-compact .person-list-item {
+  gap: 0.5rem;
+  font-size: var(--text-small);
+}
+
+.person-list-compact .person-list-avatar {
+  width: 24px;
+  height: 24px;
+}
+
+.person-list-compact .card-avatar-initials {
+  font-size: 0.75rem;
+}
+
+/* Popup (Modal.jsx), byggd på det inbyggda <dialog>-elementet. Ligger på .card
+   (vit ruta med kant), men utan egen padding så att ett klick på själva
+   bakgrunden går att skilja från ett klick i rutan. Innehållet ligger i
+   .modal-content, rubrikraden i .modal-header och en lista som kan rulla i
+   .modal-scroll. */
+.modal {
+  width: min(92vw, 420px);
+  max-width: none;
+  max-height: 85vh;
+  padding: 0;
+  text-align: left;
+}
+
+.modal::backdrop {
+  background: rgba(26, 26, 26, 0.45);
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  max-height: calc(85vh - 4px);
+  box-sizing: border-box;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.modal-scroll {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* En rad som hela går att klicka på för att bocka i (kryssruta först). */
+label.person-list-item {
+  cursor: pointer;
 }
 
 /* ---------- Hem (hubben) ---------- */
@@ -1187,14 +1700,11 @@ span.tag-selected:hover {
   border-radius: 8px;
   color: var(--color-text);
   text-decoration: none;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.hub-card:hover,
+/* Hover-effekten kommer från .card-interactive. Gul kant och skugga visar
+   redan fokus, så webbläsarens egen ram behövs inte. */
 .hub-card:focus-visible {
-  transform: translateY(-3px);
-  border-color: var(--color-accent);
-  box-shadow: 0 6px 0 var(--color-accent);
   outline: none;
 }
 
@@ -1214,13 +1724,238 @@ span.tag-selected:hover {
   align-self: flex-start;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .hub-card {
-    transition: none;
+/* Min profil: profilkortet och "Vad gillar du?" under varandra på mobil, och
+   bredvid varandra när det finns plats. Korten följer sin egen höjd. */
+.profile-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+@media (min-width: 900px) {
+  .profile-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2rem;
   }
 
-  .hub-card:hover,
-  .hub-card:focus-visible {
-    transform: none;
+  .profile-layout > .card-wide {
+    margin: 0;
   }
+}
+
+/* ---------- Intressesidan: "Vad gillar du?" (components/InterestExplorer.jsx) ----------
+   Alla regler börjar med .explorer, så att .auth-form-stilarna (knappar och
+   fält) inte tar över när komponenten ligger i formuläret "Skapa din profil". */
+
+.explorer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  text-align: left;
+}
+
+.explorer h2,
+.explorer .card-title {
+  margin: 0;
+}
+
+.explorer .explorer-heading {
+  margin: 0 0 0.5rem;
+  font-size: var(--text-subheading);
+}
+
+/* Sökfältet: samma fält som i formulären, men bredare och med plats för text. */
+.explorer .explorer-search {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  padding: 0.7rem 0.85rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-text);
+}
+
+.explorer .explorer-search::placeholder {
+  color: var(--color-muted);
+}
+
+.explorer .explorer-search:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* Rutan med sökträffar eller det öppna området. */
+.explorer .explorer-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--color-line);
+  border-radius: 4px;
+}
+
+.explorer .explorer-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.explorer .explorer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 2px solid var(--color-bg);
+}
+
+.explorer .explorer-row:last-child {
+  border-bottom: none;
+}
+
+.explorer .explorer-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 44px;
+  justify-content: center;
+  font-size: var(--text-body);
+}
+
+/* Ett intresse med underintressen: klicka för att gå ner en nivå. */
+.explorer .explorer-drill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: left;
+  cursor: pointer;
+}
+
+.explorer .explorer-drill:hover,
+.explorer .explorer-drill:focus-visible {
+  background: var(--color-bg);
+  outline: none;
+  opacity: 1;
+}
+
+/* + / ✓: lägg till eller ta bort. Gul när det är valt, som de valda taggarna. */
+.explorer .explorer-add {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-white);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 1.3rem;
+  line-height: 1;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.explorer .explorer-add:hover,
+.explorer .explorer-add:focus-visible {
+  border-color: var(--color-accent);
+  outline: none;
+  opacity: 1;
+}
+
+.explorer .explorer-add-on {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* Huvudområdena som taggar. Det öppna får gul kant och fetstil; gult fyllt
+   betyder fortfarande "valt". */
+.explorer .tag {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.explorer .explorer-area-open {
+  border-color: var(--color-accent);
+  font-weight: 700;
+}
+
+/* Svart trekant: nedåt när området går att öppna, uppåt när det är öppet. */
+.explorer .explorer-arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--color-text);
+  transition: transform 0.15s ease;
+}
+
+/* "Lägg till intressen" / "Klar" på profilen. Triangeln vänds när den är öppen,
+   som på områdestaggarna. */
+.explorer .explorer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+}
+
+.explorer .explorer-area-open .explorer-arrow,
+.explorer .explorer-toggle-open .explorer-arrow {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explorer .explorer-arrow {
+    transition: none;
+  }
+}
+
+/* Var man är: "Sport och träning › Löpning". */
+.explorer .explorer-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--text-small);
+}
+
+.explorer .explorer-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.explorer .explorer-crumb button {
+  padding: 0 0 1px;
+  border: none;
+  border-bottom: 2px solid var(--color-accent);
+  border-radius: 0;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+.explorer .explorer-crumb-current {
+  font-weight: 700;
 }

@@ -7,6 +7,7 @@ export const GENDER_OPTIONS = [
   { value: 'man', label: 'Man' },
   { value: 'ickebinär', label: 'Icke-binär' },
   { value: 'annat', label: 'Annat' },
+  { value: 'vill inte uppge', label: 'Vill inte uppge' },
 ]
 
 export function genderLabel(value) {
@@ -31,17 +32,25 @@ export async function getMunicipalities() {
   return list.sort((a, b) => swedishOrder.compare(a.name, b.name))
 }
 
+// Skapar profilen. Alla obligatoriska fält och minst ett intresse
+// (interest_ids) måste vara med, intressena sparas i samma anrop.
+export function createProfile(data) {
+  return apiPost('/profile/', data)
+}
+
+// Ändrar en befintlig profil, bara fälten som skickas med.
 export function updateProfile(data) {
   return apiPatch('/profile/', data)
 }
 
 // En annan användares profil, skrivskyddat. null om personen inte har
-// skapat någon profil än (samma 404-hantering som getProfile).
-export async function getUserProfile(username) {
+// skapat någon profil än (samma 404-hantering som getProfile). Också null för
+// en adress som inte är ett id (422), t.ex. en gammal länk med användarnamn.
+export async function getUserProfile(userId) {
   try {
-    return await apiGet(`/users/${encodeURIComponent(username)}/profile`)
+    return await apiGet(`/users/${userId}/profile`)
   } catch (err) {
-    if (err instanceof ApiError && err.status === 404) return null
+    if (err instanceof ApiError && (err.status === 404 || err.status === 422)) return null
     throw err
   }
 }

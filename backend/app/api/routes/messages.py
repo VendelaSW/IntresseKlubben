@@ -6,11 +6,14 @@ med, senaste meddelandet i varje, nyast konversation först.
 
 POST /messages - skickar ett meddelande. Avsändaren är alltid den
 inloggade användaren (current_user), aldrig något som skickas med i
-request-bodyn. Mottagaren anges med username (se MessageCreate),
-eftersom frontend bara känner till den andras username, inte id.
+request-bodyn. Mottagaren anges med id (se MessageCreate).
 
-GET /messages/{username} - hela konversationen med en specifik
-användare, båda riktningarna, kronologiskt sorterad.
+GET /messages/{user_id} - hela konversationen med en specifik
+användare, båda riktningarna, kronologiskt sorterad, och vem personen är
+(se ConversationDetail).
+
+Användare pekas alltid ut med id, aldrig användarnamn, så att namnen inte
+syns i några adresser.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -20,16 +23,16 @@ from app.auth.security import get_current_user
 from app.core import storage
 from app.crud.contact import is_blocked
 from app.crud.message import CannotMessageSelfError, get_conversation, list_conversations, send_message
-from app.crud.user import get_user_by_username
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.message import ConversationResponse, MessageCreate, MessageOut
+from app.schemas.contact import ContactUser
+from app.schemas.message import ConversationDetail, ConversationResponse, MessageCreate, MessageOut
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
 
-def _reachable_user_or_404(db: Session, current_user_id: int, username: str) -> User:
-    user = get_user_by_username(db, username)
+def _reachable_user_or_404(db: Session, current_user_id: int, user_id: int) -> User:
+    user = db.get(User, user_id)
     # Samma neutrala fel om användaren inte finns eller om någon av de två
     # har blockerat den andra - annars avslöjar svaret att en blockering
     # finns, vilket är precis det en blockering ska dölja.
@@ -51,11 +54,13 @@ def list_my_conversations(
         profile = other.profile
         image_key = profile.profile_image_url if profile else None
         result.append(ConversationResponse(
+            id=other.id,
             username=other.username,
             name=profile.name if profile else None,
             image_url=storage.public_url(image_key) if image_key else None,
             last_message=last_message.text,
             last_message_at=last_message.created_at,
+            last_message_from_me=last_message.sender_id == current_user.id,
         ))
     return result
 
@@ -66,7 +71,7 @@ def create_message(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MessageOut:
-    recipient = _reachable_user_or_404(db, current_user.id, message_in.recipient_username)
+    recipient = _reachable_user_or_404(db, current_user.id, message_in.recipient_id)
     try:
         return send_message(db, current_user.id, recipient.id, message_in.text)
     except CannotMessageSelfError:
@@ -76,11 +81,21 @@ def create_message(
         )
 
 
-@router.get("/{username}", response_model=list[MessageOut])
+@router.get("/{user_id}", response_model=ConversationDetail)
 def read_conversation(
-    username: str,
+    user_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[MessageOut]:
-    other = _reachable_user_or_404(db, current_user.id, username)
-    return get_conversation(db, current_user.id, other.id)
+) -> ConversationDetail:
+    other = _reachable_user_or_404(db, current_user.id, user_id)
+    profile = other.profile
+    image_key = profile.profile_image_url if profile else None
+    return ConversationDetail(
+        user=ContactUser(
+            id=other.id,
+            username=other.username,
+            name=profile.name if profile else None,
+            image_url=storage.public_url(image_key) if image_key else None,
+        ),
+        messages=get_conversation(db, current_user.id, other.id),
+    )

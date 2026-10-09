@@ -17,14 +17,16 @@ function initials(name) {
 // bort) skickas in via `actions` och ligger utanför länken, så de inte
 // hamnar nästlade i en <a> (ogiltig HTML och krockande klick).
 // `sharedInterestIds` är valfri (en Set) och markerar gemensamma intressen.
-function PersonCard({ person, sharedInterestIds, actions }) {
+// `reason` är valfri: en kort förklaring till varför personen föreslås,
+// t.ex. "Ni har 2 gemensamma intressen" (text eller JSX).
+function PersonCard({ person, sharedInterestIds, reason, actions }) {
   // Kontakter/förfrågningar har bara username garanterat (inget namn valt än).
   const displayName = person.name ?? person.username
   const place = [person.district, person.municipality_name].filter(Boolean).join(', ')
 
   return (
-    <article className="card person-card">
-      <Link to={`/anvandare/${encodeURIComponent(person.username)}`} className="person-card-link">
+    <article className="card card-interactive person-card">
+      <Link to={`/anvandare/${person.id}`} className="person-card-link">
         {person.image_url ? (
           <img src={person.image_url} alt="" className="card-avatar" />
         ) : (
@@ -38,6 +40,7 @@ function PersonCard({ person, sharedInterestIds, actions }) {
         </p>
         {place && <p className="card-subheading">{place}</p>}
       </Link>
+      {reason && <p className="hint-text">{reason}</p>}
       {person.interests?.length > 0 && (
         <InterestTags interests={person.interests} highlight={sharedInterestIds} />
       )}

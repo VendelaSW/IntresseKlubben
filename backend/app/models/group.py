@@ -1,6 +1,7 @@
 import enum
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     Enum,
@@ -9,6 +10,7 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    false,
     func,
 )
 from sqlalchemy.orm import relationship
@@ -37,6 +39,8 @@ class Group(Base):
     interest_id = Column(Integer, ForeignKey("interests.id"), nullable=False, index=True)
     municipality_code = Column(String(4), ForeignKey("municipalities.code"), nullable=False, index=True)
     visibility = Column(Enum(GroupVisibility), nullable=False, default=GroupVisibility.public)
+    # Av som standard: bara ägaren bjuder in. På: alla medlemmar får bjuda in.
+    members_can_invite = Column(Boolean, nullable=False, default=False, server_default=false())
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -49,6 +53,8 @@ class Group(Base):
         cascade="all, delete-orphan",
         order_by="[GroupMember.joined_at, GroupMember.id]",
     )
+
+    invitations = relationship("GroupInvitation", back_populates="group", cascade="all, delete-orphan")
 
     __table_args__ = (
         # Samma namn får inte finnas två gånger i samma kommun, oavsett
@@ -69,3 +75,20 @@ class GroupMember(Base):
     group = relationship("Group", back_populates="members")
 
     __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_members_group_user"),)
+
+
+# Vem som är inbjuden till en klubb. En rad per person och klubb. Den inbjudna
+# blir inte medlem förrän hen själv går med, och raden tas bort då (eller när hen
+# avböjer). Tas den som bjöd in bort finns inbjudan kvar.
+class GroupInvitation(Base):
+    __tablename__ = "group_invitations"
+
+    id = Column(Integer, primary_key=True)
+    group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    invited_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    group = relationship("Group", back_populates="invitations")
+
+    __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_invitations_group_user"),)

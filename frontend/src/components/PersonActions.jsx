@@ -2,7 +2,7 @@
 // Förfrågningar/Kontakter. `relation` beskriver läget mellan den inloggade
 // användaren och personen på kortet: null (inget), 'outgoing' (väntar på
 // svar), 'incoming' (väntar på mitt svar) eller 'contact'.
-function PersonActions({ relation, busy, onSend, onAccept, onDecline, onRemove }) {
+function PersonActions({ relation, busy, onSend, onAccept, onDecline, onCancel, onRemove, onDismiss }) {
   if (relation === 'incoming') {
     return (
       <div className="card-actions">
@@ -17,12 +17,11 @@ function PersonActions({ relation, busy, onSend, onAccept, onDecline, onRemove }
   }
 
   if (relation === 'outgoing') {
-    // Ingen ångra-knapp: backend kan bara låta mottagaren svara på en
-    // förfrågan (answer_request), det finns inget sätt att själv avbryta en
-    // skickad förfrågan än.
     return (
       <div className="card-actions">
-        <span className="status-pill">Förfrågan skickad</span>
+        <button type="button" className="secondary-button" disabled={busy} onClick={onCancel}>
+          Ångra förfrågan
+        </button>
       </div>
     )
   }
@@ -42,6 +41,9 @@ function PersonActions({ relation, busy, onSend, onAccept, onDecline, onRemove }
     <div className="card-actions">
       <button type="button" className="primary-button" disabled={busy} onClick={onSend}>
         Skicka förfrågan
+      </button>
+      <button type="button" className="text-button" disabled={busy} onClick={onDismiss}>
+        Ta bort förslag
       </button>
     </div>
   )

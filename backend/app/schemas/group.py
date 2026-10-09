@@ -1,7 +1,9 @@
 from datetime import datetime
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
+from app.core import error_messages as msg
+from app.core.profanity import validate_clean_text
 from app.models.group import GroupRole, GroupVisibility
 
 
@@ -22,16 +24,22 @@ class GroupCreate(BaseModel):
     interest_id: int
     municipality_code: str
     visibility: GroupVisibility = GroupVisibility.public
+    # Av som standard bara ägaren. På: alla medlemmar får bjuda in.
+    members_can_invite: bool = False
 
     @field_validator("name")
     @classmethod
     def name_not_empty_or_too_long(cls, v: str) -> str:
-        return _required_text(v, "Namn", 30, "Namn får inte vara tomt")
+        value = _required_text(v, "Namn", 30, "Namn får inte vara tomt")
+        validate_clean_text(value, "Gruppnamnet")
+        return value
 
     @field_validator("description")
     @classmethod
     def description_not_empty_or_too_long(cls, v: str) -> str:
-        return _required_text(v, "Beskrivning", 200, "Beskrivning får inte vara tom")
+        value = _required_text(v, "Beskrivning", 200, "Beskrivning får inte vara tom")
+        validate_clean_text(value, "Beskrivningen")
+        return value
 
     @field_validator("meeting_info")
     @classmethod
@@ -40,7 +48,9 @@ class GroupCreate(BaseModel):
         if v is None or v.strip() == "":
             return None
         # Tom text hanteras ovan, så empty_message används aldrig här.
-        return _required_text(v, "När och var ni träffas", 100, "")
+        value = _required_text(v, "När och var ni träffas", 100, "")
+        validate_clean_text(value, "Mötesinformationen")
+        return value
 
 
 class GroupResponse(BaseModel):
@@ -53,16 +63,37 @@ class GroupResponse(BaseModel):
     municipality_code: str
     municipality_name: str
     visibility: GroupVisibility
+    members_can_invite: bool
     member_count: int
     # Gäller den inloggade användaren, så att frontend vet vilka knappar som ska visas.
     is_member: bool
     is_owner: bool
+    # Får den inloggade bjuda in till klubben? Och har hen själv blivit inbjuden?
+    can_invite: bool
+    is_invited: bool
     created_at: datetime
+    # Är någon den inloggade själv har blockerat med i gruppen? Bara för en
+    # varning till den inloggade; vem det är syns inte (medlemslistan döljer
+    # blockerade), och den som blockerat en själv räknas aldrig.
+    has_blocked_member: bool
 
 
 class GroupMemberResponse(BaseModel):
-    # Publik vy av en medlem: aldrig e-post, födelsedatum eller kön.
+    # Publik vy av en medlem: aldrig e-post, födelsedatum eller kön. id används
+    # för länken till medlemmens profil.
+    id: int
     username: str
     name: str | None
     image_url: str | None
     role: GroupRole
+
+
+class GroupInvite(BaseModel):
+    # Kontakter efter id. Minst en krävs.
+    user_ids: list[int]
+
+    @model_validator(mode="after")
+    def someone_is_invited(self):
+        if not self.user_ids:
+            raise ValueError(msg.GROUP_INVITE_NOBODY)
+        return self
