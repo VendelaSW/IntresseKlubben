@@ -16,6 +16,7 @@ from app.crud.group import list_user_groups, remove_member
 from app.models.contact import Contact
 from app.models.dismissed_suggestion import DismissedSuggestion
 from app.models.event import Event, EventInvitation, EventResponse
+from app.models.group import GroupInvitation
 from app.models.group_message import GroupMessage
 from app.models.message import Message
 from app.models.user import User
@@ -163,6 +164,10 @@ def delete_user(db: Session, user: User) -> str | None:
     # kan kontot hinna raderas före dem.
     db.flush()
     db.query(EventInvitation).filter(EventInvitation.user_id == user_id).delete(synchronize_session=False)
+    db.query(GroupInvitation).filter(GroupInvitation.user_id == user_id).delete(synchronize_session=False)
+    db.query(GroupInvitation).filter(GroupInvitation.invited_by == user_id).update(
+        {GroupInvitation.invited_by: None}, synchronize_session=False
+    )
     db.query(EventResponse).filter(EventResponse.user_id == user_id).delete(synchronize_session=False)
 
     db.query(Message).filter(

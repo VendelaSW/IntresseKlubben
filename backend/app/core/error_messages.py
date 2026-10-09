@@ -61,6 +61,8 @@ GROUP_NOT_FOUND = "Klubben finns inte"
 MUST_BE_GROUP_MEMBER = "Du måste vara med i klubben"
 CAN_ONLY_INVITE_CONTACTS = "Du kan bara bjuda in dina kontakter"
 PERSON_NOT_INVITED = "Personen är inte inbjuden"
+GROUP_INVITE_NOBODY = "Välj minst en person att bjuda in"
+GROUP_CANNOT_INVITE = "Du kan inte bjuda in till den här klubben"
 
 # ---------- Texter för standardfel (används längst ner) ----------
 FIELD_REQUIRED = "Fältet är obligatoriskt"

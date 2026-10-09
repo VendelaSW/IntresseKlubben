@@ -4,7 +4,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, selectinload
 
 from app.core import error_messages as msg
-from app.crud.contact import blocked_by_me_ids, blocked_user_ids
+from app.crud.contact import accepted_contact_ids, blocked_by_me_ids, blocked_user_ids
 from app.crud.group import get_group, get_membership
 from app.models.contact import Contact
 from app.models.event import Event, EventAnswer, EventInvitation, EventResponse, EventVisibility
@@ -150,18 +150,6 @@ def get_group_for_member(db: Session, group_id: int, user_id: int) -> Group:
 # ---------- Inbjudningar ----------
 
 
-def _accepted_contact_ids(db: Session, user_id: int) -> set[int]:
-    rows = (
-        db.query(Contact)
-        .filter(
-            Contact.status == "ACCEPTED",
-            or_(Contact.requester_id == user_id, Contact.addressee_id == user_id),
-        )
-        .all()
-    )
-    return {c.addressee_id if c.requester_id == user_id else c.requester_id for c in rows}
-
-
 def invite(
     db: Session, event: Event, inviter_id: int, user_ids: list[int], group_ids: list[int]
 ) -> list[User]:
@@ -174,7 +162,7 @@ def invite(
     Returnerar de som blev inbjudna den här gången (profil förladdad)."""
     target_ids: set[int] = set()
 
-    contact_ids = _accepted_contact_ids(db, inviter_id)
+    contact_ids = accepted_contact_ids(db, inviter_id)
     for user_id in user_ids:
         # Samma svar för en okänd användare och en som inte är en kontakt.
         if user_id not in contact_ids:
