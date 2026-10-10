@@ -223,3 +223,7 @@ node_modules/
 
 # macOS
 .DS_Store
+
+# Videor till demon (Intressekompisen): ligger bara på datorn, inte i git. Då finns filerna kvar
+# oavsett vilken branch man står i.
+frontend/public/video/
