@@ -83,22 +83,6 @@ const REQUIRE_ANSWERS = false
 // i stilguiden (samma som .card-wide).
 const FIXED_CARD_SHADOW = { boxShadow: '0 6px 0 var(--color-line)' }
 
-// Intressena som visas på sista sidan när ingen AI har läst ut några (backend körs inte med
-// DEMO_AI, ingen nyckel, anropet misslyckades, eller man skrev ingenting). Då är de påhittade.
-const EXAMPLE_INTERESTS = [
-  { name: 'klättring', aliases: [], subtags: [{ name: 'bouldering', aliases: [] }] },
-  { name: 'katter', aliases: [], subtags: [] },
-  {
-    name: 'musik',
-    aliases: [],
-    subtags: [
-      { name: 'jazz', aliases: [] },
-      { name: 'gitarr', aliases: [] },
-    ],
-  },
-  { name: 'cosplay', aliases: ['utklädning'], subtags: [] },
-]
-
 const EMPTY_ANSWERS = { name: '', birthDate: '', gender: '', municipality: '', district: '', likes: '', about: '' }
 
 // Intervjun som sätt att skapa en profil: en fråga i taget på samma sida, i stället
@@ -326,7 +310,8 @@ function DemoInterview() {
   }, [analysis, analysisMs, shownVideo])
 
   // AI:n läser intressetexten i bakgrunden. Samma text läses bara ut en gång (så att det går bra att
-  // anropa den flera gånger), och ändras texten börjar den om. Misslyckas den visas exemplen.
+  // anropa den flera gånger), och ändras texten börjar den om. Misslyckas den (t.ex. utan nyckel) visas inga intressen alls, och
+  // ingen varning.
   function startExtraction(text) {
     const trimmed = text.trim()
     if (extractedText.current === trimmed) return
@@ -467,23 +452,25 @@ function DemoInterview() {
             <div className="card sheet content-stack" style={{ ...FIXED_CARD_SHADOW, margin: '0 auto' }}>
               <p className="card-title">Tack{answers.name.trim() && `, ${answers.name.trim()}`}!</p>
               <p className="card-text">Nu kan vi lättare matcha dig mot andra som delar dina intressen.</p>
-              <div>
-                <p className="card-subheading">Dina intressen är:</p>
-                {/* Det AI:n hittade i det man skrev, annars påhittade exempel (se EXAMPLE_INTERESTS).
-                    Är utläsningen inte klar än står det så, och hittade AI:n inget (en tom lista)
-                    står det också, i stället för exempel. */}
-                {extractionStatus === 'pending' ? (
-                  <p className="hint-text" style={{ marginTop: '0.75rem' }}>
-                    Läser ut dina intressen...
-                  </p>
-                ) : extractionStatus === 'done' && foundInterests.length === 0 ? (
-                  <p className="hint-text" style={{ marginTop: '0.75rem' }}>
-                    Jag hittade inga tydliga intressen i det du skrev.
-                  </p>
-                ) : (
-                  <InterestTree interests={extractionStatus === 'done' ? foundInterests : EXAMPLE_INTERESTS} />
-                )}
-              </div>
+              {/* Det AI:n hittade i det man skrev. Är utläsningen inte klar än står det så, och hittade
+                  AI:n inget (en tom lista) står det också. Misslyckas den, t.ex. för att backend
+                  körs utan nyckel, visas ingenting: varken intressen eller en varning. */}
+              {(extractionStatus === 'pending' || extractionStatus === 'done') && (
+                <div>
+                  <p className="card-subheading">Dina intressen är:</p>
+                  {extractionStatus === 'pending' ? (
+                    <p className="hint-text" style={{ marginTop: '0.75rem' }}>
+                      Läser ut dina intressen...
+                    </p>
+                  ) : foundInterests.length === 0 ? (
+                    <p className="hint-text" style={{ marginTop: '0.75rem' }}>
+                      Jag hittade inga tydliga intressen i det du skrev.
+                    </p>
+                  ) : (
+                    <InterestTree interests={foundInterests} />
+                  )}
+                </div>
+              )}
               <p className="card-text">Du kan alltid lägga till eller ta bort intressen senare. Säg bara till mig!</p>
               <button type="button" className="secondary-button" onClick={restart}>
                 Börja om
