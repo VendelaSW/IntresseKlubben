@@ -8,6 +8,7 @@ import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import { useAuth } from '../hooks/useAuth'
 import { getContacts } from '../services/contacts'
+import { INVITATIONS_CHANGED, getGroupInvitationCount } from '../services/groups'
 import {
   countUnseenConversations,
   getConversations,
@@ -35,6 +36,7 @@ function AppShell() {
   const location = useLocation()
   const [incomingCount, setIncomingCount] = useState(0)
   const [unseenMessages, setUnseenMessages] = useState(0)
+  const [clubInvitations, setClubInvitations] = useState(0)
 
   // Antal obesvarade kontaktförfrågningar, för badgen vid Personer. Hämtas
   // om vid varje sidbyte - enkel och "nog bra" uppdatering utan att bygga
@@ -43,6 +45,23 @@ function AppShell() {
     getContacts()
       .then((data) => setIncomingCount(data.incoming_requests.length))
       .catch(() => {})
+  }, [location.pathname])
+
+  // Antal klubbar man är inbjuden till, för märket vid Klubbar. Räknas om vid
+  // sidbyte och när man har gått med i eller avböjt en klubb.
+  useEffect(() => {
+    let cancelled = false
+    function refresh() {
+      getGroupInvitationCount()
+        .then((count) => !cancelled && setClubInvitations(count))
+        .catch(() => {})
+    }
+    refresh()
+    window.addEventListener(INVITATIONS_CHANGED, refresh)
+    return () => {
+      cancelled = true
+      window.removeEventListener(INVITATIONS_CHANGED, refresh)
+    }
   }, [location.pathname])
 
   // Konversationer med nya brev, för siffran på brev-loggan. När man kommer
@@ -113,6 +132,11 @@ function AppShell() {
                 {to === '/personer' && incomingCount > 0 && (
                   <span className="nav-badge" aria-label={`${incomingCount} nya förfrågningar`}>
                     {incomingCount}
+                  </span>
+                )}
+                {to === '/klubbar' && clubInvitations > 0 && (
+                  <span className="nav-badge" aria-label={`${clubInvitations} klubbinbjudningar`}>
+                    {clubInvitations}
                   </span>
                 )}
                 {to === '/meddelanden' && unseenMessages > 0 && (

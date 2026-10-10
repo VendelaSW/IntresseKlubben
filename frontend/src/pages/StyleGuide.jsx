@@ -5,6 +5,7 @@ import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
+import BackButton from '../components/BackButton'
 import Modal from '../components/Modal'
 import FormField from '../components/FormField'
 import ProfileAbout from '../components/ProfileAbout'
@@ -154,6 +155,9 @@ function StyleGuide() {
         <h2>Ikoner</h2>
         <p className="swatch-label">
           Handritade, matchar loggans stil (.nav-icon). Ikon ovanför text, används i huvudmenyn.
+          På smala skärmar krymper ikonerna, texten och luften mellan menypunkterna steglöst
+          (clamp), så att alla ryms på en rad ned till 320 px. Från ca 400 px gäller de vanliga
+          måtten: 34 px ikon, 0,8 rem text.
         </p>
         <div className="swatch-grid" style={{ marginTop: '1rem' }}>
           {NAV_ICONS.map(({ icon, label }) => (
@@ -276,9 +280,14 @@ function StyleGuide() {
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Ark (.card .sheet) för en posts egen vy (.detail-view) eller ett formulär (.auth-form .form-wide)
         </p>
+        <p className="swatch-label" style={{ marginTop: '1rem' }}>
+          "← Tillbaka" (BackButton) ligger ovanför rutan, inte inuti den
+        </p>
+        <div style={{ marginTop: '0.5rem' }}>
+          <BackButton onClick={() => {}} />
+        </div>
         <div className="card sheet" style={{ marginTop: '1rem' }}>
           <section className="detail-view">
-            <button type="button" className="secondary-button button-small">← Tillbaka</button>
             <p className="card-title">Exempel</p>
             <p className="card-subheading">Göteborg · 3 medlemmar</p>
             <p className="card-text">Hela beskrivningen visas här.</p>
@@ -367,6 +376,34 @@ function StyleGuide() {
                 </li>
               </ul>
             </div>
+          </div>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Lista med länkar, gul penna vid hover och tangentbordsfokus (.person-list .person-list-compact .person-list-marker)
+        </p>
+        <p className="hint-text">
+          Samma lista utan avatarer. Titeln får den gula överstrykningspennan (som .highlight) när
+          man pekar på raden eller tabbar dit, i stället för understrykning. Tid och plats ligger i .hint-text.
+          Används t.ex. för klubbens kommande events.
+        </p>
+        <div className="card sheet" style={{ marginTop: '1rem' }}>
+          <div className="person-list person-list-compact person-list-marker">
+            <p className="card-subheading">Kommande events</p>
+            <ul>
+              <li>
+                <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                  <span>Fota katter</span>
+                  <span className="hint-text">lör 10 okt 13:30 · I plugget</span>
+                </a>
+              </li>
+              <li>
+                <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
+                  <span>Stenjakt</span>
+                  <span className="hint-text">sön 11 okt 10:00 · Slottsskogen</span>
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
       </section>

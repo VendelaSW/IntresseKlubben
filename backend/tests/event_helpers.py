@@ -40,13 +40,16 @@ def add_event(db, creator_id, **overrides):
     return event
 
 
-def add_group(db, owner_id, visibility=GroupVisibility.public, members=(), name="Löparna"):
+def add_group(
+    db, owner_id, visibility=GroupVisibility.public, members=(), name="Löparna", members_can_invite=False
+):
     group = Group(
         name=name,
         description="Springer",
         interest_id=1,
         municipality_code="1480",
         visibility=visibility,
+        members_can_invite=members_can_invite,
         created_by=owner_id,
     )
     group.members.append(GroupMember(user_id=owner_id, role=GroupRole.owner))

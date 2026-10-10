@@ -16,6 +16,7 @@ from app.models import (
     EventResponse,
     Group,
     GroupMember,
+    GroupMessage,
     Interest,
     Message,
     Profile,
@@ -147,6 +148,21 @@ def test_owned_club_goes_to_the_longest_member_and_empty_club_is_removed(client,
     assert [(m.user_id, m.role) for m in members] == [(other.id, GroupRole.owner)]
 
 
+def test_own_group_messages_are_removed_but_others_stay(client, db, me, other):
+    user, headers = me
+    group = add_group(db, user.id, members=[other.id])
+    db.add_all([
+        GroupMessage(group_id=group.id, sender_id=user.id, content="Från Anna"),
+        GroupMessage(group_id=group.id, sender_id=other.id, content="Från Bertil"),
+    ])
+    db.commit()
+
+    assert _delete(client, headers).status_code == 204
+
+    db.expire_all()
+    assert [m.content for m in db.query(GroupMessage).all()] == ["Från Bertil"]
+
+
 def test_other_users_keep_their_own_data(client, db, me, other):
     user, headers = me
     third, _ = _register(client, db, "cecilia")
@@ -181,7 +197,10 @@ def test_every_column_pointing_at_users_is_handled():
         "event_invitations.user_id",
         "event_responses.user_id",
         "events.created_by",
+        "group_invitations.invited_by",  # sätts till tomt: inbjudan finns kvar utan avsändare
+        "group_invitations.user_id",
         "group_members.user_id",
+        "group_messages.sender_id",
         "groups.created_by",  # ON DELETE SET NULL: klubben finns kvar utan skapare
         "messages.recipient_id",
         "messages.sender_id",

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import BackButton from '../components/BackButton'
 import InterestTags from '../components/InterestTags'
 import ProfileAbout from '../components/ProfileAbout'
 import { useAuth } from '../hooks/useAuth'
@@ -18,7 +19,7 @@ import { getUserProfile } from '../services/profile'
 
 // Skickar ett meddelande till personen man tittar på. Visar bara
 // formuläret, själva konversationen läses på en egen sida senare.
-function MessageForm({ username }) {
+function MessageForm({ userId }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
@@ -29,7 +30,7 @@ function MessageForm({ username }) {
     setSending(true)
     setError('')
     try {
-      await sendMessage(username, text)
+      await sendMessage(userId, text)
       setText('')
       setSent(true)
     } catch (err) {
@@ -62,15 +63,15 @@ function MessageForm({ username }) {
 }
 
 // Vem man är i förhållande till personen man tittar på, hämtat från
-// GET /contacts och matchat på username. contactId pekar på själva
+// GET /contacts och matchat på id. contactId pekar på själva
 // relations-raden (inte personen), behövs för att acceptera/avböja/ta
 // bort/svara på just den.
-function useRelation(username) {
+function useRelation(userId) {
   const [relation, setRelation] = useState(null)
 
   function refresh() {
     getContacts().then((data) => {
-      const findIn = (list) => list.find((c) => c.user.username === username)
+      const findIn = (list) => list.find((c) => c.user.id === userId)
       const friend = findIn(data.contacts)
       const outgoing = findIn(data.outgoing_requests)
       const incoming = findIn(data.incoming_requests)
@@ -81,7 +82,7 @@ function useRelation(username) {
     })
   }
 
-  useEffect(refresh, [username])
+  useEffect(refresh, [userId])
 
   return [relation, refresh]
 }
@@ -89,11 +90,11 @@ function useRelation(username) {
 // Vänförfrågan/blockera-knapparna för en annan användares profil. Alla
 // relationsknappar delar samma utseende (secondary-button), bara
 // texten och vad de gör skiljer sig åt beroende på relation.type.
-function RelationButtons({ username, name, blocked, onBlockedChange }) {
-  const [relation, refresh] = useRelation(username)
+function RelationButtons({ userId, name, blocked, onBlockedChange }) {
+  const [relation, refresh] = useRelation(userId)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const displayName = name ?? username
+  const displayName = name
 
   // Returnerar true om åtgärden lyckades, så att anroparen kan reagera.
   async function run(action) {
@@ -114,7 +115,7 @@ function RelationButtons({ username, name, blocked, onBlockedChange }) {
   async function handleBlock() {
     const question = `Blockera ${displayName}? Ni kan inte längre kontakta varandra. Du kan avblockera senare.`
     if (!window.confirm(question)) return
-    if (await run(() => blockUser(username))) onBlockedChange(true)
+    if (await run(() => blockUser(userId))) onBlockedChange(true)
   }
 
   function handleCancelRequest() {
@@ -123,7 +124,7 @@ function RelationButtons({ username, name, blocked, onBlockedChange }) {
   }
 
   async function handleUnblock() {
-    if (await run(() => unblockUser(username))) onBlockedChange(false)
+    if (await run(() => unblockUser(userId))) onBlockedChange(false)
   }
 
   // Blockeringar syns inte i GET /contacts, så "blockerad" hålls här på
@@ -151,7 +152,7 @@ function RelationButtons({ username, name, blocked, onBlockedChange }) {
           type="button"
           className="secondary-button"
           disabled={busy}
-          onClick={() => run(() => sendContactRequest(username))}
+          onClick={() => run(() => sendContactRequest(userId))}
         >
           Skicka vänförfrågan
         </button>
@@ -207,7 +208,8 @@ function RelationButtons({ username, name, blocked, onBlockedChange }) {
 // Visar en annan användares profil, skrivskyddat. Ingen redigering och
 // ingen bilduppladdning här - det är bara ägaren som kan ändra sin profil.
 function UserProfilePage() {
-  const { username } = useParams()
+  // Id:t från adressen (/anvandare/:userId) är text, men id:n från API:t är tal.
+  const userId = Number(useParams().userId)
   const navigate = useNavigate()
   const { user } = useAuth()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'not-found' | 'error'
@@ -218,18 +220,18 @@ function UserProfilePage() {
   const [myInterestIds, setMyInterestIds] = useState(null)
   // Den egna profilen kan öppnas via adressen, men man ska inte kunna
   // skicka vänförfrågan, meddelande eller blockera sig själv.
-  const isMe = user?.username === username
+  const isMe = user?.id === userId
 
   useEffect(() => {
     setStatus('loading')
     setBlocked(false)
-    getUserProfile(username)
+    getUserProfile(userId)
       .then((data) => {
         setProfile(data)
         setStatus(data === null ? 'not-found' : 'ready')
       })
       .catch(() => setStatus('error'))
-  }, [username])
+  }, [userId])
 
   useEffect(() => {
     getMyInterests()
@@ -254,6 +256,8 @@ function UserProfilePage() {
 
   return (
     <div className="content-stack">
+      {/* Ovanför kortet, som i Klubbar och Events. */}
+      <BackButton onClick={handleBack} />
       {status === 'loading' && <p>Laddar profil...</p>}
       {status === 'not-found' && <p className="form-error">Den profilen finns inte.</p>}
       {status === 'error' && <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>}
@@ -300,20 +304,17 @@ function UserProfilePage() {
           {!isMe && (
             <>
               <RelationButtons
-                username={username}
+                userId={userId}
                 name={profile.name}
                 blocked={blocked}
                 onBlockedChange={setBlocked}
               />
-              {!blocked && <MessageForm username={username} />}
+              {!blocked && <MessageForm userId={userId} />}
             </>
           )}
         </div>
       )}
 
-      <button type="button" className="text-button" onClick={handleBack}>
-        ← Tillbaka
-      </button>
     </div>
   )
 }

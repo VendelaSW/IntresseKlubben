@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import CreateGroupForm from './CreateGroupForm'
+import BackButton from '../BackButton'
 import GroupDetails from './GroupDetails'
 import GroupList from './GroupList'
 import GroupSortMenu from './GroupSortMenu'
+import { getContacts } from '../../services/contacts'
 import {
+  declineGroupInvitation,
   deleteGroup,
+  getGroupInvitations,
   getGroups,
   getMyGroups,
   getSuggestedGroups,
   joinGroup,
   leaveGroup,
   matchesSearch,
+  notifyInvitationsChanged,
   sortGroups,
 } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
@@ -20,12 +26,14 @@ const TABS = [
   { id: 'mine', label: 'Mina klubbar' },
   { id: 'suggested', label: 'Förslag' },
   { id: 'all', label: 'Alla' },
+  { id: 'invitations', label: 'Inbjudningar' },
 ]
 
 const EMPTY_TEXT = {
   mine: 'Du är inte med i någon klubb än.',
   suggested: 'Inga förslag just nu. Lägg till fler intressen på din profil för att få fler.',
   all: 'Inga klubbar hittades.',
+  invitations: 'Du har inga inbjudningar just nu.',
 }
 
 // "Alla" hämtas så här många åt gången, med "Visa fler" för nästa.
@@ -43,9 +51,15 @@ const SEARCH_DELAY_MS = 300
 function GroupsPanel() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [tab, setTab] = useState('mine')
-  // 'list', 'create' eller id för den grupp som visas.
-  const [view, setView] = useState('list')
-  const [lists, setLists] = useState({ mine: [], suggested: [], all: [] })
+  const [searchParams, setSearchParams] = useSearchParams()
+  // 'list', 'create' eller id för den grupp som visas. /klubbar?klubb=ID öppnar en
+  // klubb direkt (t.ex. efter att man har skapat ett event från den).
+  const [view, setView] = useState(() => Number(searchParams.get('klubb')) || 'list')
+  useEffect(() => {
+    // Adressen har gjort sitt, så en omladdning ska inte öppna samma klubb igen.
+    if (searchParams.toString()) setSearchParams({}, { replace: true })
+  }, [])
+  const [lists, setLists] = useState({ mine: [], suggested: [], all: [], invitations: [] })
   // Finns det fler i "Alla" än de som hämtats?
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -63,16 +77,19 @@ function GroupsPanel() {
   // Ens egna intressen, för att markera klubbarnas intresse om det är ett av dem.
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [municipalities, setMunicipalities] = useState([])
+  // Ens kontakter, för "Bjud in" i en klubb.
+  const [contacts, setContacts] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   const handleError = (err) => setError(err.message)
 
   useEffect(() => {
-    Promise.all([getAllInterests(), getMunicipalities(), getProfile(), getMyInterests()])
-      .then(([i, m, profile, mine]) => {
+    Promise.all([getAllInterests(), getMunicipalities(), getProfile(), getMyInterests(), getContacts()])
+      .then(([i, m, profile, mine, contactData]) => {
         setInterests(i)
         setMunicipalities(m)
+        setContacts(contactData.contacts.map((c) => c.user))
         setMyInterestIds(new Set(mine.map((interest) => interest.id)))
         setMyMunicipality(profile?.municipality_code ?? '')
         setFilters({
@@ -95,9 +112,10 @@ function GroupsPanel() {
 
   const loadMineAndSuggested = useCallback(
     () =>
-      Promise.all([getMyGroups(), getSuggestedGroups()]).then(([mine, suggested]) =>
-        // Förslag innehåller redan bara klubbar man inte är med i.
-        setLists((current) => ({ ...current, mine, suggested })),
+      Promise.all([getMyGroups(), getSuggestedGroups(), getGroupInvitations()]).then(
+        ([mine, suggested, invitations]) =>
+          // Förslag och inbjudningar innehåller redan bara klubbar man inte är med i.
+          setLists((current) => ({ ...current, mine, suggested, invitations })),
       ),
     [],
   )
@@ -164,6 +182,8 @@ function GroupsPanel() {
       } else {
         await Promise.all([loadMineAndSuggested(), loadAll()])
       }
+      // Gå med och avböj tar bort en inbjudan, och märket i headern ska stämma.
+      notifyInvitationsChanged()
     } catch (err) {
       handleError(err)
     } finally {
@@ -180,6 +200,12 @@ function GroupsPanel() {
   function handleLeave(group) {
     if (!window.confirm(`Gå ur ${group.name}?`)) return
     runAction(group, leaveGroup)
+  }
+
+  async function handleDecline(group) {
+    await runAction(group, declineGroupInvitation)
+    // En privat klubb man har avböjt syns inte längre, så vi går tillbaka till listan.
+    if (group.visibility === 'private') setView('list')
   }
 
   async function handleDelete(group) {
@@ -216,13 +242,15 @@ function GroupsPanel() {
     mine: searchAndSort(lists.mine).sort((a, b) => Number(b.is_owner) - Number(a.is_owner)),
     suggested: searchAndSort(lists.suggested),
     all: lists.all,
+    // Inbjudningarna visas alla, nyaste först, utan sökning och filter.
+    invitations: lists.invitations,
   }
   const filtering = filters && (filters.q || filters.interestId || filters.municipalityCode)
 
   // Leta upp gruppen i listorna, så att den visar senaste antal medlemmar och roll.
   const selected =
     typeof view === 'number'
-      ? [...lists.mine, ...lists.suggested, ...lists.all].find((g) => g.id === view)
+      ? [...lists.mine, ...lists.suggested, ...lists.all, ...lists.invitations].find((g) => g.id === view)
       : null
 
   return (
@@ -242,15 +270,18 @@ function GroupsPanel() {
       {status === 'loading' ? (
         <p className="hint-text">Laddar klubbar...</p>
       ) : view === 'create' ? (
-        <div className="card sheet">
-          <CreateGroupForm
-            interests={interests}
-            municipalities={municipalities}
-            defaultMunicipality={myMunicipality}
-            onCreated={handleCreated}
-            onCancel={() => setView('list')}
-          />
-        </div>
+        <>
+          <BackButton onClick={() => setView('list')} />
+          <div className="card sheet">
+            <CreateGroupForm
+              interests={interests}
+              municipalities={municipalities}
+              defaultMunicipality={myMunicipality}
+              onCreated={handleCreated}
+              onCancel={() => setView('list')}
+            />
+          </div>
+        </>
       ) : (
         <>
           <div className="filter-tabs" role="tablist">
@@ -275,16 +306,20 @@ function GroupsPanel() {
           {error && <p className="status-error">{error}</p>}
 
           {selected ? (
-            <div className="card sheet">
-              <GroupDetails
-                group={selected}
-                busy={busy}
-                onJoin={handleJoin}
-                onLeave={handleLeave}
-                onDelete={handleDelete}
-                onBack={() => setView('list')}
-              />
-            </div>
+            <>
+              <BackButton onClick={() => setView('list')} />
+              <div className="card sheet">
+                <GroupDetails
+                  group={selected}
+                  contacts={contacts}
+                  busy={busy}
+                  onJoin={handleJoin}
+                  onLeave={handleLeave}
+                  onDelete={handleDelete}
+                  onDecline={handleDecline}
+                />
+              </div>
+            </>
           ) : (
             <>
               <div className="search-row">
@@ -346,6 +381,7 @@ function GroupsPanel() {
                   busy={busy}
                   onSelect={(g) => setView(g.id)}
                   onJoin={handleJoin}
+                  onDecline={handleDecline}
                 />
               )}
               {tab === 'all' && hasMore && (

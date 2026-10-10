@@ -4,9 +4,8 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, selectinload
 
 from app.core import error_messages as msg
-from app.crud.contact import blocked_by_me_ids, blocked_user_ids
+from app.crud.contact import accepted_contact_ids, blocked_by_me_ids, blocked_user_ids
 from app.crud.group import get_group, get_membership
-from app.crud.user import get_user_by_username
 from app.models.contact import Contact
 from app.models.event import Event, EventAnswer, EventInvitation, EventResponse, EventVisibility
 from app.models.group import Group, GroupMember, GroupVisibility
@@ -108,25 +107,26 @@ def get_visible_event(db: Session, event_id: int, user_id: int) -> Event | None:
     return _event_query(db).filter(Event.id == event_id, _can_see(db, user_id)).first()
 
 
-def list_visible_events(db: Session, user_id: int, now: datetime | None = None) -> list[Event]:
+def list_visible_events(
+    db: Session, user_id: int, now: datetime | None = None, group_id: int | None = None
+) -> list[Event]:
     """Kommande events som användaren får se, tidigast först.
 
     Ett event syns om det är öppet, om användaren har skapat det eller är
     inbjuden, eller om användaren är medlem i eventets klubb. Events av den
     som har blockerat användaren, eller som användaren har blockerat, syns
     inte. Passerade events döljs: de ligger kvar i databasen men visas inte.
+    Med group_id visas bara den klubbens events, men synlighetsreglerna är desamma.
     """
     now = now or datetime.now(timezone.utc)
     not_over = or_(
         and_(Event.ends_at.isnot(None), Event.ends_at >= now),
         and_(Event.ends_at.is_(None), Event.starts_at >= now - OPEN_ENDED_EVENT_LENGTH),
     )
-    return (
-        _event_query(db)
-        .filter(_can_see(db, user_id), not_over)
-        .order_by(Event.starts_at, Event.id)
-        .all()
-    )
+    query = _event_query(db).filter(_can_see(db, user_id), not_over)
+    if group_id is not None:
+        query = query.filter(Event.group_id == group_id)
+    return query.order_by(Event.starts_at, Event.id).all()
 
 
 # ---------- Klubbar ----------
@@ -150,22 +150,10 @@ def get_group_for_member(db: Session, group_id: int, user_id: int) -> Group:
 # ---------- Inbjudningar ----------
 
 
-def _accepted_contact_ids(db: Session, user_id: int) -> set[int]:
-    rows = (
-        db.query(Contact)
-        .filter(
-            Contact.status == "ACCEPTED",
-            or_(Contact.requester_id == user_id, Contact.addressee_id == user_id),
-        )
-        .all()
-    )
-    return {c.addressee_id if c.requester_id == user_id else c.requester_id for c in rows}
-
-
 def invite(
-    db: Session, event: Event, inviter_id: int, usernames: list[str], group_ids: list[int]
+    db: Session, event: Event, inviter_id: int, user_ids: list[int], group_ids: list[int]
 ) -> list[User]:
-    """Bjuder in kontakter till inviter_id (efter användarnamn) och/eller alla
+    """Bjuder in kontakter till inviter_id (efter id) och/eller alla
     nuvarande medlemmar i klubbar som inviter_id är med i. Vem som helst som kan
     se eventet får bjuda in, och det är den som bjuder in som kontakterna och
     klubbarna räknas från. Antingen går alla inbjudningar igenom eller ingen.
@@ -174,13 +162,12 @@ def invite(
     Returnerar de som blev inbjudna den här gången (profil förladdad)."""
     target_ids: set[int] = set()
 
-    contact_ids = _accepted_contact_ids(db, inviter_id)
-    for username in usernames:
-        user = get_user_by_username(db, username)
+    contact_ids = accepted_contact_ids(db, inviter_id)
+    for user_id in user_ids:
         # Samma svar för en okänd användare och en som inte är en kontakt.
-        if user is None or user.id not in contact_ids:
+        if user_id not in contact_ids:
             raise EventRuleError(422, msg.CAN_ONLY_INVITE_CONTACTS)
-        target_ids.add(user.id)
+        target_ids.add(user_id)
 
     hidden = blocked_user_ids(db, inviter_id)
     for group_id in group_ids:
@@ -219,11 +206,10 @@ def list_invitees(db: Session, event: Event, viewer_id: int) -> list[User]:
     return [users[user_id] for user_id in user_ids if user_id in users]
 
 
-def remove_invitation(db: Session, event: Event, username: str) -> None:
-    user = get_user_by_username(db, username)
+def remove_invitation(db: Session, event: Event, user_id: int) -> None:
     invitation = (
         db.query(EventInvitation)
-        .filter(EventInvitation.event_id == event.id, EventInvitation.user_id == (user.id if user else None))
+        .filter(EventInvitation.event_id == event.id, EventInvitation.user_id == user_id)
         .first()
     )
     if invitation is None:

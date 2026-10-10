@@ -17,8 +17,9 @@ export function RoleBadge({ group }) {
 // Ett kort per grupp, i samma rutnät som personkorten. Klick på kortet visar
 // mer information. "Gå med" ligger utanför den klickbara delen, så att
 // knapparna inte hamnar nästlade i varandra (samma upplägg som PersonCard).
+// "Avböj" visas bara om `onDecline` skickas med och man är inbjuden till klubben.
 // `myInterestIds` (en Set) markerar intresset om det är ett av ens egna.
-function GroupList({ groups, emptyText, myInterestIds, busy, onSelect, onJoin }) {
+function GroupList({ groups, emptyText, myInterestIds, busy, onSelect, onJoin, onDecline }) {
   if (groups.length === 0) return <p className="hint-text">{emptyText}</p>
 
   return (
@@ -40,9 +41,21 @@ function GroupList({ groups, emptyText, myInterestIds, busy, onSelect, onJoin })
             {group.is_member ? (
               <RoleBadge group={group} />
             ) : (
-              <button type="button" className="primary-button button-small" disabled={busy} onClick={() => onJoin(group)}>
-                Gå med
-              </button>
+              <>
+                <button type="button" className="primary-button button-small" disabled={busy} onClick={() => onJoin(group)}>
+                  Gå med
+                </button>
+                {onDecline && group.is_invited && (
+                  <button
+                    type="button"
+                    className="secondary-button button-small"
+                    disabled={busy}
+                    onClick={() => onDecline(group)}
+                  >
+                    Avböj
+                  </button>
+                )}
+              </>
             )}
             {group.visibility === 'private' && <span className="status-pill">Privat</span>}
           </div>

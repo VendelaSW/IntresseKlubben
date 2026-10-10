@@ -20,12 +20,12 @@ function GroupMembers({ groupId, memberCount }) {
   if (members === null) return <p className="hint-text">Laddar medlemmar...</p>
 
   return (
-    <div className="person-list">
+    <div className="person-list person-list-compact">
       <p className="card-subheading">Medlemmar</p>
       <ul>
         {members.map((m) => (
-          <li key={m.username}>
-            <Link to={`/anvandare/${encodeURIComponent(m.username)}`} className="person-list-item">
+          <li key={m.id}>
+            <Link to={`/anvandare/${m.id}`} className="person-list-item">
               {m.image_url ? (
                 <img src={m.image_url} alt="" className="person-list-avatar" />
               ) : (

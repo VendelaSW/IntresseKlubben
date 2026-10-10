@@ -48,6 +48,7 @@ def test_create_event_defaults_to_invite_only(client, user, interest):
     assert body["ends_at"] is None
     assert body["group_id"] is None
     assert body["interest_name"] == "Löpning"
+    assert body["creator_id"] == user.id
     assert body["creator_username"] == "testuser"
     assert body["is_owner"] is True
 
@@ -97,6 +98,21 @@ def test_invalid_values_are_rejected(client, user, interest, overrides):
 
 def test_unknown_interest_is_rejected(client, user, interest):
     response = client.post("/events/", json=payload(interest_id=999))
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Okänt intresse"
+
+
+def test_inactive_interest_is_rejected_when_creating_and_editing(client, db, user, interest):
+    # Ett inaktivt intresse (t.ex. Gaming, som slogs ihop med Tv-spel) syns inte
+    # och går inte att välja, inte heller via API:t. Samma fel som ett okänt.
+    db.add(Interest(id=2, name="Gaming", status="inactive"))
+    db.commit()
+    response = client.post("/events/", json=payload(interest_id=2))
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Okänt intresse"
+
+    own = add_event(db, user.id)
+    response = client.patch(f"/events/{own.id}", json={"interest_id": 2})
     assert response.status_code == 422
     assert response.json()["detail"] == "Okänt intresse"
 
@@ -174,6 +190,30 @@ def test_list_shows_group_events_to_current_members_only(client, db, user, other
     db.add(GroupMember(group_id=group.id, user_id=user.id))
     db.commit()
     assert titles(client) == ["Klubbträff"]
+
+
+def test_list_can_be_limited_to_one_group(client, db, user, other, interest, municipalities):
+    first = add_group(db, user.id, name="Löparna")
+    second = add_group(db, user.id, name="Cyklisterna")
+    add_event(db, user.id, title="Löptur", group_id=first.id)
+    add_event(db, user.id, title="Cykeltur", group_id=second.id)
+    add_event(db, user.id, title="Utan klubb")
+
+    response = client.get(f"/events/?group_id={first.id}")
+    assert response.status_code == 200
+    assert [e["title"] for e in response.json()] == ["Löptur"]
+    assert sorted(titles(client)) == ["Cykeltur", "Löptur", "Utan klubb"]
+
+
+def test_group_filter_does_not_show_events_the_user_may_not_see(client, db, user, other, interest, municipalities):
+    private = add_group(db, other.id, visibility=GroupVisibility.private)
+    add_event(db, other.id, title="Hemligt", group_id=private.id, visibility=EventVisibility.invite_only)
+
+    # Samma svar som för en klubb som inte finns: en tom lista, ingen avslöjad klubb.
+    hidden = client.get(f"/events/?group_id={private.id}")
+    missing = client.get("/events/?group_id=9999")
+    assert hidden.status_code == missing.status_code == 200
+    assert hidden.json() == missing.json() == []
 
 
 def test_list_hides_events_from_blocked_users_in_both_directions(client, db, user, other, interest):

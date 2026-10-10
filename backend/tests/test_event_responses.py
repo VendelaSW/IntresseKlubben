@@ -176,7 +176,7 @@ def test_removing_an_invitation_also_hides_the_answers(client, db, user, people)
     answer(client, event, "yes")
 
     login_as(user)
-    assert client.delete(f"/events/{event.id}/invitations/user2").status_code == 204
+    assert client.delete(f"/events/{event.id}/invitations/2").status_code == 204
     login_as(people["user2"])
     assert responses(client, event).status_code == 404
 

@@ -25,7 +25,7 @@ def _create_person(db, username, name, *, municipality_code="1480", interests=No
 
 
 def test_lists_other_people_with_a_profile(client, db, user):
-    _create_person(db, "bob", "Bob")
+    bob = _create_person(db, "bob", "Bob")
     # Ingen profil - ska inte dyka upp i listan.
     db.add(User(username="ingenprofil", password_hash="unused"))
     db.commit()
@@ -40,7 +40,7 @@ def test_lists_other_people_with_a_profile(client, db, user):
 def test_excludes_yourself(client, db, user):
     db.add(make_profile(user.id, name="Jag"))
     db.commit()
-    _create_person(db, "bob", "Bob")
+    bob = _create_person(db, "bob", "Bob")
 
     names = [p["name"] for p in client.get("/users/").json()]
 
@@ -73,10 +73,11 @@ def test_includes_username_and_interests(client, db, user):
     climbing = Interest(name="Klättring")
     db.add(climbing)
     db.commit()
-    _create_person(db, "bob", "Bob", interests=[climbing])
+    bob = _create_person(db, "bob", "Bob", interests=[climbing])
 
     body = client.get("/users/").json()[0]
 
+    assert body["id"] == bob.id
     assert body["username"] == "bob"
     assert [i["name"] for i in body["interests"]] == ["Klättring"]
 
@@ -95,16 +96,16 @@ def test_interests_are_sorted_by_name(client, db, user):
 
 
 def test_private_fields_not_in_response(client, db, user):
-    _create_person(db, "bob", "Bob")
+    bob = _create_person(db, "bob", "Bob")
 
     body = client.get("/users/").json()[0]
 
-    assert set(body) == {"username", "name", "age", "municipality_name", "district", "image_url", "interests"}
+    assert set(body) == {"id", "username", "name", "age", "municipality_name", "district", "image_url", "interests"}
 
 
 def test_excludes_dismissed_suggestions(client, db, user):
-    _create_person(db, "bob", "Bob")
-    client.post("/users/bob/dismiss")
+    bob = _create_person(db, "bob", "Bob")
+    client.post(f"/users/{bob.id}/dismiss")
 
     names = [p["name"] for p in client.get("/users/").json()]
 
