@@ -10,6 +10,9 @@ function DemoStart() {
       <button type="button" className="primary-button" onClick={() => navigate('/demo/intervju')}>
         Skapa din intresseprofil
       </button>
+      <p className="hint-text">
+        För att testa en OpenAI-modell som plockar ut intressen från fritext, fråga Nick om en api-nyckel!
+      </p>
     </div>
   )
 }
