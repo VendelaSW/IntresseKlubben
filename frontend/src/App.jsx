@@ -16,6 +16,7 @@ import DemoLayout from './pages/demo/DemoLayout'
 import DemoStart from './pages/demo/DemoStart'
 import DemoAuth from './pages/demo/DemoAuth'
 import DemoProfile from './pages/demo/DemoProfile'
+import DemoInterview from './pages/demo/DemoInterview'
 import DemoApp, { DemoComingSoon, DemoOverview } from './pages/demo/DemoApp'
 import DemoPeople from './pages/demo/DemoPeople'
 import DemoClubs from './pages/demo/DemoClubs'
@@ -52,6 +53,7 @@ function App() {
           <Route path="registrera" element={<DemoAuth key="register" mode="register" />} />
           <Route path="logga-in" element={<DemoAuth key="login" mode="login" />} />
           <Route path="profil" element={<DemoProfile />} />
+          <Route path="intervju" element={<DemoInterview />} />
           <Route path="app" element={<DemoApp />}>
             <Route index element={<DemoOverview />} />
             <Route path="personer" element={<DemoPeople />} />
