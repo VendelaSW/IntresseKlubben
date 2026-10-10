@@ -41,13 +41,13 @@ const STEPS = [
   },
   {
     id: 'intressen',
-    question: 'Nu till det viktiga! Berätta mer om dina specifika intressen eller vad du tycker om att göra.',
+    question: 'Berätta om dina intressen och vad du tycker om att göra!',
     video: '/video/intressen_fix.mp4',
     captions: [{ from: 2.0, to: 3.9, text: 'Berätta om dina intressen!' }],
   },
   {
     id: 'person',
-    question: 'Till sist. Vem är du? Beskriv din personlighet!',
+    question: 'Till sist.\nVem är du? Beskriv din personlighet!',
     video: '/video/person_fix.mp4',
     captions: [{ from: 0.9, to: 3.0, text: 'Berätta om din personlighet!' }],
   },
@@ -64,7 +64,7 @@ const FALLBACK_ANALYSIS_MS = 9400
 const ALL_CLIPS = [INTRO, ...STEPS, OUTRO]
 
 // Väntklippen: när ett klipp har spelat klart loopas ett av dem, tills nästa klipp tar
-// över. Intressekompisen står då och väntar medan man svarar. De turas om: efter ett
+// över (direkt, utan att vänta ut en runda). Intressekompisen står då och väntar medan man svarar. De turas om: efter ett
 // svar kommer det ena, efter nästa svar det andra, och så vidare.
 const IDLE_VIDEOS = ['/video/idle_fix.mp4', '/video/idle2_fix.mp4']
 
@@ -182,14 +182,16 @@ function DemoInterview() {
     })
   }, [visible, current])
 
-  // Står uppspelningen still (webbläsaren har stoppat den) finns inget att vänta på, så
-  // då byts klippet direkt.
+  // Ett väntklipp väntar man inte ut: när nästa klipp ska spelas byts det direkt, mitt i
+  // väntklippet (bytet är ändå utan blink, eftersom väntklippet ligger kvar tills det nya har
+  // en bild). Står uppspelningen still (webbläsaren har stoppat den) finns inget att vänta på
+  // heller, så då byts klippet direkt.
   useEffect(() => {
-    if (pending && blocked) {
+    if (pending && (idle || blocked)) {
       setIdle(false)
       setShownVideo(wantedVideo)
     }
-  }, [pending, blocked, wantedVideo])
+  }, [pending, idle, blocked, wantedVideo])
 
   // Läser avslutningsklippets längd (bara metadata, ingen uppspelning) när sidan öppnas.
   useEffect(() => {
@@ -219,18 +221,11 @@ function DemoInterview() {
     setCaption(cue ? cue.text : '')
   }
 
-  // Ett klipp har spelat klart. Väntar nästa klipp spelas det direkt (efter ett väntklipp som
-  // har spelat klart sin runda), annars tar ett väntklipp över.
+  // Ett klipp har spelat klart. Väntar nästa klipp spelas det direkt, annars tar ett väntklipp
+  // över (väntklippen loopas och "tar aldrig slut").
   function handleEnded(src) {
-    if (src !== current) return
+    if (src !== current || idle) return
     setCaption('')
-    if (idle) {
-      if (pending) {
-        setIdle(false)
-        setShownVideo(wantedVideo)
-      }
-      return
-    }
     if (pending) {
       setShownVideo(wantedVideo)
       return
@@ -352,9 +347,8 @@ function DemoInterview() {
                 aria-hidden={src !== visible}
                 playsInline
                 preload="auto"
-                // Ett väntklipp loopas, men inte när ett nytt klipp väntar: då spelar det klart sin
-                // runda och byts sedan.
-                loop={IDLE_VIDEOS.includes(src) && !pending}
+                // Väntklippen loopas tills nästa klipp tar över.
+                loop={IDLE_VIDEOS.includes(src)}
                 onTimeUpdate={(event) => handleTimeUpdate(event, src)}
                 onEnded={() => handleEnded(src)}
                 style={{
@@ -432,7 +426,8 @@ function DemoInterview() {
             </div>
           ) : (
             <>
-              <h1 className="app-title" style={{ textAlign: 'left' }}>
+              {/* pre-line gör att \n i frågan blir en radbrytning. */}
+              <h1 className="app-title" style={{ textAlign: 'left', whiteSpace: 'pre-line' }}>
                 {step.question}
               </h1>
               <p className="hint-text" style={{ textAlign: 'left', margin: '0.5rem 0' }}>
