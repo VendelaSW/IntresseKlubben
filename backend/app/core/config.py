@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     # Lång slumpad sträng, olika i Preview och Production, aldrig i Git.
     jwt_secret: str = ""
 
+    # Demo: en språkmodell läser ut intressen ur fri text (se app/api/routes/demo.py).
+    # Av som standard. Nyckeln och modellen sätts bara i .env (lokalt) eller i Vercel som
+    # Sensitive, aldrig i Git eller i frontend.
+    demo_ai: bool = False
+    openai_api_key: str = ""
+    openai_model: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

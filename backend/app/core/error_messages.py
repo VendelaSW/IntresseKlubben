@@ -64,6 +64,13 @@ PERSON_NOT_INVITED = "Personen är inte inbjuden"
 GROUP_INVITE_NOBODY = "Välj minst en person att bjuda in"
 GROUP_CANNOT_INVITE = "Du kan inte bjuda in till den här klubben"
 
+# Demo: intressen ur fri text
+DEMO_TEXT_EMPTY = "Skriv något om dina intressen"
+DEMO_NOT_FOUND = "Finns inte"
+DEMO_AI_NOT_CONFIGURED = "AI-tjänsten är inte inställd (OPENAI_API_KEY och OPENAI_MODEL saknas)"
+DEMO_AI_FAILED = "AI-tjänsten svarade inte. Försök igen om en stund"
+DEMO_TOO_MANY_REQUESTS = "För många försök. Vänta en stund"
+
 # ---------- Texter för standardfel (används längst ner) ----------
 FIELD_REQUIRED = "Fältet är obligatoriskt"
 INVALID_VALUE = "Ogiltigt värde"

@@ -79,6 +79,9 @@ PUBLIC_ENDPOINTS = {
     ("POST", "/users/login"),
     ("GET", "/municipalities/"),
     ("GET", "/interests/"),
+    # Demon har ingen inloggning. Endpointen är avstängd (404) om inte DEMO_AI är satt, och har en
+    # gräns för antal anrop (se app/api/routes/demo.py). Ta bort den när demon är borta.
+    ("POST", "/demo/extract-interests"),
 }
 
 
