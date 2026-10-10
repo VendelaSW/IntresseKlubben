@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import FormField from '../../components/FormField'
 import TextareaWithCount from '../../components/TextareaWithCount'
 import { extractInterests } from '../../services/demoAi'
+import InterestTree from './InterestTree'
 import { DEMO_MUNICIPALITIES } from '../../services/demoData'
 import { GENDER_OPTIONS } from '../../services/profile'
 
@@ -85,15 +86,18 @@ const FIXED_CARD_SHADOW = { boxShadow: '0 6px 0 var(--color-line)' }
 // Intressena som visas på sista sidan när ingen AI har läst ut några (backend körs inte med
 // DEMO_AI, ingen nyckel, anropet misslyckades, eller man skrev ingenting). Då är de påhittade.
 const EXAMPLE_INTERESTS = [
-  { name: 'klättring', subtags: ['bouldering'] },
-  { name: 'brädspel', subtags: [] },
-  { name: 'katter', subtags: [] },
-  { name: 'musik', subtags: ['gitarr'] },
-  { name: 'matlagning', subtags: ['bakning'] },
+  { name: 'klättring', aliases: [], subtags: [{ name: 'bouldering', aliases: [] }] },
+  { name: 'katter', aliases: [], subtags: [] },
+  {
+    name: 'musik',
+    aliases: [],
+    subtags: [
+      { name: 'jazz', aliases: [] },
+      { name: 'gitarr', aliases: [] },
+    ],
+  },
+  { name: 'cosplay', aliases: ['utklädning'], subtags: [] },
 ]
-
-// Första bokstaven stor, så att taggarna ser ut som resten av appens taggar.
-const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 
 const EMPTY_ANSWERS = { name: '', birthDate: '', gender: '', municipality: '', district: '', likes: '', about: '' }
 
@@ -125,9 +129,17 @@ function DemoInterview() {
   const [finished, setFinished] = useState(false)
   // Mätaren efter sista svaret: null = ingen analys pågår, annars 0-100.
   const [analysis, setAnalysis] = useState(null)
-  // Intressena en AI har läst ut ur intressetexten, som [{ name, subtags }] (huvudtaggar med
-  // undertaggar), eller null om ingen har gjort det.
+  // Intressena en AI har läst ut ur intressetexten, som ett träd [{ name, aliases, subtags: [{ name, aliases, details }] }]
+  // (huvudkategorier, underkategorier och detaljer, med alias), eller null om ingen har gjort det.
   const [foundInterests, setFoundInterests] = useState(null)
+  // Hur det går med utläsningen: 'idle' (inte startad), 'pending' (pågår i bakgrunden), 'done' eller
+  // 'failed'. Den startar redan när man går vidare från intressefrågan, så att den hinner bli klar
+  // medan man skriver den sista frågan.
+  const [extractionStatus, setExtractionStatus] = useState('idle')
+  // Numret på senaste utläsningen och texten den gjordes på. Ett svar på en äldre utläsning (man
+  // gick tillbaka och ändrade texten) kastas.
+  const extractionId = useRef(0)
+  const extractedText = useRef(null)
 
   const step = STEPS[index]
   const isLast = index === STEPS.length - 1
@@ -313,17 +325,39 @@ function DemoInterview() {
     return () => clearTimeout(tick)
   }, [analysis, analysisMs, shownVideo])
 
+  // AI:n läser intressetexten i bakgrunden. Samma text läses bara ut en gång (så att det går bra att
+  // anropa den flera gånger), och ändras texten börjar den om. Misslyckas den visas exemplen.
+  function startExtraction(text) {
+    const trimmed = text.trim()
+    if (extractedText.current === trimmed) return
+    extractedText.current = trimmed
+    const id = ++extractionId.current
+    setFoundInterests(null)
+    if (!trimmed) {
+      setExtractionStatus('idle')
+      return
+    }
+    setExtractionStatus('pending')
+    extractInterests(trimmed)
+      .then((interests) => {
+        if (extractionId.current !== id) return
+        setFoundInterests(interests)
+        setExtractionStatus('done')
+      })
+      .catch(() => {
+        if (extractionId.current !== id) return
+        extractedText.current = null // så att den kan försöka igen
+        setExtractionStatus('failed')
+      })
+  }
+
   function handleSubmit(event) {
     event.preventDefault()
+    // Går man vidare från intressefrågan startar utläsningen direkt, medan man skriver nästa fråga.
+    if (step.id === 'intressen') startExtraction(answers.likes)
     if (isLast) {
       setAnalysis(0)
-      // AI:n läser intressetexten medan analysen pågår. Misslyckas den visas exemplen.
-      setFoundInterests(null)
-      if (answers.likes.trim()) {
-        extractInterests(answers.likes)
-          .then(setFoundInterests)
-          .catch(() => setFoundInterests(null))
-      }
+      startExtraction(answers.likes) // gör inget om den redan är igång eller klar för samma text
     } else {
       setIndex(index + 1)
     }
@@ -339,7 +373,10 @@ function DemoInterview() {
 
   function restart() {
     setAnswers(EMPTY_ANSWERS)
+    extractionId.current += 1
+    extractedText.current = null
     setFoundInterests(null)
+    setExtractionStatus('idle')
     setIndex(0)
     setFinished(false)
     setAnalysis(null)
@@ -433,42 +470,18 @@ function DemoInterview() {
               <div>
                 <p className="card-subheading">Dina intressen är:</p>
                 {/* Det AI:n hittade i det man skrev, annars påhittade exempel (se EXAMPLE_INTERESTS).
-                    Hittade AI:n inget (en tom lista) står det så, i stället för exempel. */}
-                {foundInterests?.length === 0 ? (
+                    Är utläsningen inte klar än står det så, och hittade AI:n inget (en tom lista)
+                    står det också, i stället för exempel. */}
+                {extractionStatus === 'pending' ? (
+                  <p className="hint-text" style={{ marginTop: '0.75rem' }}>
+                    Läser ut dina intressen...
+                  </p>
+                ) : extractionStatus === 'done' && foundInterests.length === 0 ? (
                   <p className="hint-text" style={{ marginTop: '0.75rem' }}>
                     Jag hittade inga tydliga intressen i det du skrev.
                   </p>
                 ) : (
-                  // Varje huvudtagg är gul, med sina undertaggar som mindre ljusa taggar under sig.
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      justifyContent: 'center',
-                      gap: '1rem 1.25rem',
-                      marginTop: '0.75rem',
-                    }}
-                  >
-                    {(foundInterests ?? EXAMPLE_INTERESTS).map((interest) => (
-                      <div
-                        key={interest.name}
-                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}
-                      >
-                        <span className="tag tag-selected tag-static">{capitalize(interest.name)}</span>
-                        {interest.subtags.length > 0 && (
-                          <ul className="tags" style={{ justifyContent: 'center', gap: '0.35rem' }}>
-                            {interest.subtags.map((subtag) => (
-                              <li key={subtag}>
-                                <span className="tag tag-static" style={{ fontSize: '0.85em' }}>
-                                  {capitalize(subtag)}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  <InterestTree interests={extractionStatus === 'done' ? foundInterests : EXAMPLE_INTERESTS} />
                 )}
               </div>
               <p className="card-text">Du kan alltid lägga till eller ta bort intressen senare. Säg bara till mig!</p>
