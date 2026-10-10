@@ -1,12 +1,18 @@
 // Intresseträdet på demons sista sida: intressen så som man själv kallar dem (större, gula) och
-// något specifikt inom dem, subs (mindre, blå), tätt under sitt intresse så att man ser att de hör
-// ihop. Kategorierna (fältet `category`) visas inte, eftersom de kan bli för breda. Andra ord för
-// samma sak (alias, t.ex. "utklädning" för cosplay) står som en liten text under taggen. Färgerna
-// är appens egna (--color-accent, --color-line), och formen är samma som övriga taggar (.tag
-// .tag-static). Storlekarna ligger här i stället för i index.css, eftersom trädet bara finns i demon.
+// något specifikt inom dem, subs (mindre, ljusgula med gul kant), tätt under sitt intresse så att
+// man ser att de hör ihop. Kategorierna (fältet `category`) visas inte, eftersom de kan bli för
+// breda. Andra ord för samma sak (alias, t.ex. "utklädning" för cosplay) står som en liten text
+// under taggen. Färgerna är appens egna (--color-accent, --color-accent-soft), och formen är samma
+// som övriga taggar (.tag .tag-static). Storlekarna ligger här i stället för i index.css, eftersom
+// trädet bara finns i demon.
 const LEVELS = [
   { background: 'var(--color-accent)', borderColor: 'var(--color-accent)', fontSize: '1.1rem', padding: '0.45rem 1.1rem' },
-  { background: 'var(--color-line)', borderColor: 'var(--color-line)', fontSize: '0.7rem', padding: '0.1rem 0.5rem' },
+  {
+    background: 'var(--color-accent-soft)',
+    borderColor: 'var(--color-accent)',
+    fontSize: '0.7rem',
+    padding: '0.1rem 0.5rem',
+  },
 ]
 
 // Första bokstaven stor, så att taggarna ser ut som resten av appens taggar.
