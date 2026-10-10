@@ -33,7 +33,7 @@ const STEPS = [
     id: 'fodelse',
     question: 'När är du född, och vilket kön identifierar du dig med?',
     video: '/video/datum_ny_fix.mp4',
-    captions: [{ from: 1.65, to: 3.0, text: 'Hur gammal är du?' }],
+    captions: [{ from: 0.5, to: 3.0, text: 'Hur gammal är du?' }],
   },
   {
     id: 'plats',
@@ -45,7 +45,7 @@ const STEPS = [
     id: 'intressen',
     question: 'Berätta om dina intressen och vad du tycker om att göra!',
     video: '/video/intressen_ny_fix.mp4',
-    captions: [{ from: 2.2, to: 3.2, text: 'Berätta om dina intressen!' }],
+    captions: [{ from: 0.2, to: 3.2, text: 'Berätta om dina intressen!' }],
   },
   {
     id: 'person',
