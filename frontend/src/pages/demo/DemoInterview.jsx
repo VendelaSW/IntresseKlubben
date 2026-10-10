@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import FormField from '../../components/FormField'
 import TextareaWithCount from '../../components/TextareaWithCount'
 import { extractInterests } from '../../services/demoAi'
 import InterestTree from './InterestTree'
 import { DEMO_MUNICIPALITIES } from '../../services/demoData'
-import { GENDER_OPTIONS } from '../../services/profile'
+import { GENDER_OPTIONS, genderLabel } from '../../services/profile'
 
 // Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions`
 // är undertexterna som visas under videon medan klippet spelas (för den som har ljudet
@@ -82,6 +82,15 @@ const REQUIRE_ANSWERS = false
 // Korten här är fasta (inte klickbara), så de får den blå hårda skuggan som fasta kort har
 // i stilguiden (samma som .card-wide).
 const FIXED_CARD_SHADOW = { boxShadow: '0 6px 0 var(--color-line)' }
+
+// Åldern i hela år för ett födelsedatum på formen ÅÅÅÅ-MM-DD, eller null om datumet saknas.
+function ageFrom(birthDate) {
+  if (!birthDate) return null
+  const [year, month, day] = birthDate.split('-').map(Number)
+  const today = new Date()
+  const hadBirthday = today.getMonth() + 1 > month || (today.getMonth() + 1 === month && today.getDate() >= day)
+  return today.getFullYear() - year - (hadBirthday ? 0 : 1)
+}
 
 const EMPTY_ANSWERS = { name: '', birthDate: '', gender: '', municipality: '', district: '', likes: '', about: '' }
 
@@ -371,6 +380,15 @@ function DemoInterview() {
     setShownVideo(INTRO.video)
   }
 
+  // Raderna på profilen på sista sidan: bara det man fyllde i.
+  const age = ageFrom(answers.birthDate)
+  const place = [answers.municipality, answers.district.trim()].filter(Boolean).join(', ')
+  const profileRows = [
+    ['Ålder', age !== null && age >= 0 ? `${age} år` : null],
+    ['Kön', genderLabel(answers.gender)],
+    ['Plats', place || null],
+  ].filter(([, value]) => value)
+
   return (
     <div className="page">
       {/* Fast bredd, så att raden inte flyttar sig när innehållet i rutan byter (.page centrerar
@@ -449,33 +467,66 @@ function DemoInterview() {
               </div>
             </>
           ) : finished ? (
-            <div className="card sheet content-stack" style={{ ...FIXED_CARD_SHADOW, margin: '0 auto' }}>
-              <p className="card-title">Tack{answers.name.trim() && `, ${answers.name.trim()}`}!</p>
-              <p className="card-text">Nu kan vi lättare matcha dig mot andra som delar dina intressen.</p>
-              {/* Det AI:n hittade i det man skrev. Är utläsningen inte klar än står det så, och hittade
-                  AI:n inget (en tom lista) står det också. Misslyckas den, t.ex. för att backend
-                  körs utan nyckel, visas ingenting: varken intressen eller en varning. */}
-              {(extractionStatus === 'pending' || extractionStatus === 'done') && (
-                <div>
-                  <p className="card-subheading">Dina intressen är:</p>
-                  {extractionStatus === 'pending' ? (
-                    <p className="hint-text" style={{ marginTop: '0.75rem' }}>
-                      Läser ut dina intressen...
+            <>
+              <h1 className="app-title" style={{ textAlign: 'center' }}>
+                Tack!
+              </h1>
+              <p className="card-text" style={{ textAlign: 'center', margin: '0.5rem 0 1rem' }}>
+                Nu kan vi lättare matcha dig mot andra som delar dina intressen.
+              </p>
+              <div className="card sheet content-stack" style={{ ...FIXED_CARD_SHADOW, margin: '0 auto' }}>
+                <p className="card-title">Det här är din profil{answers.name.trim() && `, ${answers.name.trim()}`}</p>
+                {/* Det man svarade, bara det som är ifyllt. */}
+                {profileRows.length > 0 && (
+                  <dl className="profile-details">
+                    {profileRows.map(([label, value]) => (
+                      <Fragment key={label}>
+                        <dt>{label}</dt>
+                        <dd>{value}</dd>
+                      </Fragment>
+                    ))}
+                  </dl>
+                )}
+                {/* Det AI:n hittade i det man skrev. Är utläsningen inte klar än står det så, och hittade
+                    AI:n inget (en tom lista) står det också. Misslyckas den, t.ex. för att backend
+                    körs utan nyckel, visas ingenting: varken intressen eller en varning. */}
+                {(extractionStatus === 'pending' || extractionStatus === 'done') && (
+                  <div>
+                    <p className="card-subheading" style={{ textAlign: 'center' }}>
+                      Dina intressen:
                     </p>
-                  ) : foundInterests.length === 0 ? (
-                    <p className="hint-text" style={{ marginTop: '0.75rem' }}>
-                      Jag hittade inga tydliga intressen i det du skrev.
+                    {extractionStatus === 'pending' ? (
+                      <p className="hint-text" style={{ marginTop: '0.75rem' }}>
+                        Läser ut dina intressen...
+                      </p>
+                    ) : foundInterests.length === 0 ? (
+                      <p className="hint-text" style={{ marginTop: '0.75rem' }}>
+                        Jag hittade inga tydliga intressen i det du skrev.
+                      </p>
+                    ) : (
+                      <InterestTree interests={foundInterests} />
+                    )}
+                  </div>
+                )}
+                {answers.about.trim() && (
+                  <div style={{ width: '100%' }}>
+                    <p className="card-subheading" style={{ textAlign: 'center' }}>
+                      Det här är du:
                     </p>
-                  ) : (
-                    <InterestTree interests={foundInterests} />
-                  )}
-                </div>
-              )}
-              <p className="card-text">Du kan alltid lägga till eller ta bort intressen senare. Säg bara till mig!</p>
-              <button type="button" className="secondary-button" onClick={restart}>
-                Börja om
-              </button>
-            </div>
+                    <p
+                      className="card-text"
+                      style={{ whiteSpace: 'pre-line', overflowWrap: 'anywhere', textAlign: 'center' }}
+                    >
+                      {answers.about.trim()}
+                    </p>
+                  </div>
+                )}
+                <p className="hint-text">Du kan ändra din profil och dina intressen senare om vi missat något!</p>
+                <button type="button" className="secondary-button" onClick={restart}>
+                  Börja om
+                </button>
+              </div>
+            </>
           ) : (
             <>
               {/* pre-line gör att \n i frågan blir en radbrytning. */}
