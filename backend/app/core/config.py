@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     demo_ai: bool = False
     openai_api_key: str = ""
     openai_model: str = ""
+    # Valfri egen modell för att sortera intressen i kategorier (tom = samma som OPENAI_MODEL). Kan vara
+    # en klokare, långsammare modell, eftersom det körs i bakgrunden medan man skriver sin profiltext.
+    openai_category_model: str = ""
+    # Sortera intressena i kategorier (ett osynligt fält per intresse)? Av som standard, eftersom det
+    # kostar ett modellanrop till och inget i demon visar kategorierna. Sätt DEMO_CATEGORIES=1 för att
+    # testa.
+    demo_categories: bool = False
 
     @property
     def cors_origins_list(self) -> list[str]:

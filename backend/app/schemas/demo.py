@@ -18,11 +18,20 @@ class InterestExtractRequest(BaseModel):
         return value
 
 
-class ExtractedInterest(BaseModel):
-    # En huvudtagg, t.ex. "fotografi", med undertaggar för specifika varianter, t.ex.
-    # ["analogt fotografi", "gatufotografi"]. Undertaggarna kan vara en tom lista.
+class ExtractedSub(BaseModel):
+    # Något specifikt inom ett intresse, t.ex. "gatufotografi", med andra ord för samma sak (alias).
     name: str
-    subtags: list[str]
+    aliases: list[str]
+
+
+class ExtractedInterest(BaseModel):
+    # Ett intresse, t.ex. "fotografering", med alias och subs (listorna kan vara tomma). `category`
+    # är en av våra kategorier (t.ex. "Foto & video") som ett osynligt fält för filtrering, eller None
+    # om kategoriseringen är avstängd. Den visas inte för användaren.
+    name: str
+    aliases: list[str]
+    category: str | None
+    subtags: list[ExtractedSub]
 
 
 class InterestExtractResponse(BaseModel):
