@@ -2166,6 +2166,295 @@ label.person-list-item {
   border-top: 1.5px solid #3a2f25;
 }
 
+/* Profillappen uppe till höger, till vänster om zoomknapparna (MapLibres
+   kontroller sitter 10px från kanten och är 29px breda + kant). Namnet till
+   vänster med handstil, profilbilden till höger. Samma bläckkant och skugga
+   som zoomknapparna. Ett klick fäller ut menyn under lappen. */
+.map-profile-wrap {
+  position: absolute;
+  top: 10px;
+  right: 54px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.map-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 16rem;
+  padding: 0.3rem 0.35rem 0.3rem 0.9rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 225px 12px 255px 12px / 12px 255px 12px 225px;
+  box-shadow: 3px 3px 0 #3a2f25;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Nedtryckt när man hovrar och medan menyn är öppen, som verktygsknapparna. */
+.map-profile:hover,
+.map-profile.is-open {
+  box-shadow: none;
+  transform: translate(3px, 3px);
+}
+
+/* Menyn: en liten lapp under profillappen, högerställd. */
+.map-profile-menu {
+  min-width: 10rem;
+  margin: 0.6rem 0 0;
+  padding: 0.3rem 0;
+  list-style: none;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  box-shadow: 3px 3px 0 #3a2f25;
+}
+
+.map-profile-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 1rem;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  line-height: 1.1;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.map-profile-menu-item:hover,
+.map-profile-menu-item:focus-visible {
+  background: var(--color-accent-soft);
+}
+
+.map-profile-menu li + li {
+  border-top: 1.5px dashed #3a2f25;
+}
+
+.map-profile-name {
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.map-profile-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid #3a2f25;
+  border-radius: 50%;
+  background: var(--color-line);
+  object-fit: cover;
+}
+
+.map-profile-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* ---------- Profilblocket: ett anteckningsblock som läggs på kartan ---------- */
+
+/* Scenen täcker kartan och har samma perspektiv som kartans kamera, så att
+   blocket ser ut att ligga på samma bord. Ett klick på scenen (bredvid
+   blocket) stänger. */
+.map-pad-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4.5rem 1rem 2rem;
+  perspective: 150vh;
+  perspective: 150dvh;
+}
+
+/* Blocket ligger lite på snedden och lutar en aning bakåt, som bordet, men
+   mindre än kartan så att texten går att läsa. Skuggan är tät, för att
+   blocket ligger direkt på pappret. */
+.map-pad {
+  --pad-rest: rotateX(14deg) rotateZ(-1.5deg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(30rem, 100%);
+  max-height: 100%;
+  transform: var(--pad-rest);
+  transform-origin: 50% 60%;
+  filter: drop-shadow(2px 4px 0 rgba(58, 47, 37, 0.85)) drop-shadow(0 10px 14px rgba(40, 30, 20, 0.25));
+  animation: map-pad-land 620ms cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+
+/* Faller in uppifrån (närmare kameran, större, mer snett och med en mjuk,
+   förskjuten skugga), landar och studsar till. */
+@keyframes map-pad-land {
+  0% {
+    opacity: 0;
+    transform: translate3d(-3rem, -45vh, 260px) rotateX(-8deg) rotateZ(-11deg);
+    filter: drop-shadow(30px 60px 18px rgba(40, 30, 20, 0.18));
+  }
+  12% {
+    opacity: 1;
+  }
+  72% {
+    transform: translate3d(0, 0, 0) rotateX(16deg) rotateZ(-1deg);
+    filter: drop-shadow(2px 4px 0 rgba(58, 47, 37, 0.85)) drop-shadow(0 10px 14px rgba(40, 30, 20, 0.25));
+  }
+  86% {
+    transform: translate3d(0, -6px, 12px) rotateX(13deg) rotateZ(-1.7deg);
+  }
+  100% {
+    transform: var(--pad-rest);
+  }
+}
+
+/* Lyfts upp och bort när det stängs. */
+.map-pad.is-leaving {
+  animation: map-pad-lift 260ms ease-in both;
+}
+
+@keyframes map-pad-lift {
+  from {
+    opacity: 1;
+    transform: var(--pad-rest);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(2rem, -30vh, 200px) rotateX(-4deg) rotateZ(6deg);
+    filter: drop-shadow(24px 48px 16px rgba(40, 30, 20, 0.15));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-pad,
+  .map-pad.is-leaving {
+    animation: none;
+  }
+}
+
+/* Spiralen överst: ringar som går genom hål i kartongen. */
+.map-pad-rings {
+  position: relative;
+  z-index: 1;
+  height: 22px;
+  margin: 0 1.25rem -11px;
+  background: radial-gradient(circle at 50% 70%, #3a2f25 0 3.5px, transparent 4px) 0 0 / 22px 22px repeat-x,
+    linear-gradient(to right, #6d655c, #c9c2b8 45%, #6d655c) 0 0 / 22px 14px repeat-x;
+  -webkit-mask: radial-gradient(ellipse 4px 11px at 11px 11px, #000 98%, transparent) 0 0 / 22px 22px repeat-x;
+  mask: radial-gradient(ellipse 4px 11px at 11px 11px, #000 98%, transparent) 0 0 / 22px 22px repeat-x;
+}
+
+/* Sidan: vitt rutat papper med bläckkant, som lapparna på kartan. */
+.map-pad-page {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.6rem 1.5rem 1.4rem;
+  background-color: #fffdf6;
+  background-image:
+    linear-gradient(rgba(80, 140, 200, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 140, 200, 0.18) 1px, transparent 1px);
+  background-size: 18px 18px;
+  border: 1.5px solid #3a2f25;
+  border-radius: 6px 6px 12px 225px / 6px 6px 225px 12px;
+  color: var(--color-text);
+  font-size: var(--text-small);
+}
+
+.map-pad-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.map-pad-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.map-pad-close {
+  padding: 0 0.3rem;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-pad-who {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.map-pad-avatar {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border: 1.5px solid #3a2f25;
+  border-radius: 50%;
+  background: var(--color-line);
+  object-fit: cover;
+  font-size: 2.4rem;
+}
+
+.map-pad-name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.9rem;
+  line-height: 1.1;
+}
+
+.map-pad-where {
+  margin: 0.15rem 0 0;
+  color: var(--color-muted);
+}
+
+.map-pad-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.map-pad-details dt {
+  font-weight: 700;
+}
+
+.map-pad-details dd {
+  margin: 0;
+}
+
+.map-pad-subheading {
+  margin: 1rem 0 0.4rem;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+}
+
+.map-pad-edit {
+  margin-top: 1.25rem;
+  text-decoration: none;
+}
+
 /* ---------- Kartprototyp på mobil ---------- */
 
 @media (max-width: 600px) {
@@ -2174,8 +2463,23 @@ label.person-list-item {
   .map-sketch-tools {
     top: calc(0.6rem + env(safe-area-inset-top));
     left: calc(0.6rem + env(safe-area-inset-left));
-    right: 3.4rem;
+    /* Plats för zoomknapparna och profilbilden uppe till höger. */
+    right: calc(3.4rem + 54px);
     gap: 0.35rem;
+  }
+
+  /* Bara profilbilden på smala skärmar; namnet finns för skärmläsare i aria-label. */
+  .map-profile-wrap {
+    top: calc(10px + env(safe-area-inset-top));
+  }
+
+  .map-profile {
+    padding: 0.2rem;
+    border-radius: 50%;
+  }
+
+  .map-profile-name {
+    display: none;
   }
 
   .map-tool {

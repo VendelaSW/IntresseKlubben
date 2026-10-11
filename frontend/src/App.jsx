@@ -30,15 +30,6 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/om" element={<ServiceInfo />} />
-        {/* PROTOTYP: inte länkad från menyn än. */}
-        <Route
-          path="/karta-prototyp"
-          element={
-            <Suspense fallback={<p className="hint-text">Laddar karta...</p>}>
-              <MapPrototype />
-            </Suspense>
-          }
-        />
         {/* Ersatta av inloggning/registrering inline på /, kvar som omdirigering
             ifall någon har ett gammalt bokmärke eller en gammal länk. */}
         <Route path="/konto" element={<Navigate to="/" replace />} />
@@ -47,6 +38,16 @@ function App() {
         <Route path="/stilguide" element={<StyleGuide />} />
 
         <Route element={<ProtectedRoute />}>
+          {/* PROTOTYP: inte länkad från menyn än. Bara för inloggade, och utanför
+              AppShell eftersom kartan tar hela skärmen. */}
+          <Route
+            path="/karta-prototyp"
+            element={
+              <Suspense fallback={<p className="hint-text">Laddar karta...</p>}>
+                <MapPrototype />
+              </Suspense>
+            }
+          />
           <Route element={<AppShell />}>
             <Route path="/hem" element={<HubPage />} />
             <Route path="/profil" element={<ProfilePage />} />

@@ -6,6 +6,8 @@ import { attachPlaceNotes } from './mapPrototypeNotes'
 import { attachSketchedBuildings } from './mapPrototypeBuildings'
 import { attachPinsAndThread } from './mapPrototypeRoute'
 import { attachPlaceSigns } from './mapPrototypeSigns'
+import MapProfilePad from './MapProfilePad'
+import MapProfileWidget from './MapProfileWidget'
 import mapStyle from './mapPrototypeStyle'
 
 // PROTOTYP: "skattkarta ritad på ett gult block". Vektordata från
@@ -73,6 +75,8 @@ function MapPrototype() {
   const threadRef = useRef(null)
   const routeRef = useRef(null) // knapparnas funktioner (se attachPinsAndThread)
   const [route, setRoute] = useState({ placing: false, style: 'road', pinCount: 0, hint: '' })
+  // Profilblocket som ligger ovanpå kartan, öppnat från profilmenyn.
+  const [profileOpen, setProfileOpen] = useState(false)
 
   useEffect(() => {
     const map = new MapLibreMap({
@@ -111,6 +115,7 @@ function MapPrototype() {
     const mapArea = map.getCanvasContainer()
     function forwardWheel(event) {
       if (mapArea.contains(event.target)) return // kartan sköter det själv
+      if (event.target.closest('.map-pad')) return // blocket scrollar själv
       event.preventDefault()
       mapArea.dispatchEvent(
         new WheelEvent('wheel', {
@@ -192,8 +197,10 @@ function MapPrototype() {
           </button>
         )}
       </div>
+      <MapProfileWidget onOpenProfile={() => setProfileOpen(true)} />
       {route.hint && <p className="map-sketch-hint">{route.hint}</p>}
       <div className="map-sketch-table" aria-hidden="true" />
+      {profileOpen && <MapProfilePad onClose={() => setProfileOpen(false)} />}
     </div>
   )
 }
