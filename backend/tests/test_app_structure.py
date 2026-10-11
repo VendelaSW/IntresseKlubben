@@ -118,6 +118,12 @@ def test_no_api_prefix_on_routes():
     assert not with_prefix, f"Endpoints med /api-prefix: {with_prefix}"
 
 
+def test_no_username_in_route_paths():
+    """Användarnamn ska aldrig synas i en adress. Peka ut användare med id."""
+    with_username = sorted(p for p, _ in _registered_routes() if "username" in p.lower())
+    assert not with_username, f"Endpoints med användarnamn i adressen: {with_username}"
+
+
 def test_health_endpoint(client):
     response = client.get("/health")
     assert response.status_code == 200

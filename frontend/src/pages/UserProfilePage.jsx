@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import BackButton from '../components/BackButton'
+import InterestTags from '../components/InterestTags'
+import ProfileAbout from '../components/ProfileAbout'
 import { useAuth } from '../hooks/useAuth'
 import {
   answerContactRequest,
   blockUser,
+  cancelContactRequest,
   getContacts,
   removeContact,
   sendContactRequest,
   unblockUser,
 } from '../services/contacts'
+import { getMyInterests } from '../services/interests'
 import { sendMessage } from '../services/messages'
 import { getUserProfile } from '../services/profile'
 
 // Skickar ett meddelande till personen man tittar på. Visar bara
 // formuläret, själva konversationen läses på en egen sida senare.
-function MessageForm({ username }) {
+function MessageForm({ userId }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
@@ -25,7 +30,7 @@ function MessageForm({ username }) {
     setSending(true)
     setError('')
     try {
-      await sendMessage(username, text)
+      await sendMessage(userId, text)
       setText('')
       setSent(true)
     } catch (err) {
@@ -58,15 +63,15 @@ function MessageForm({ username }) {
 }
 
 // Vem man är i förhållande till personen man tittar på, hämtat från
-// GET /contacts och matchat på username. contactId pekar på själva
+// GET /contacts och matchat på id. contactId pekar på själva
 // relations-raden (inte personen), behövs för att acceptera/avböja/ta
 // bort/svara på just den.
-function useRelation(username) {
+function useRelation(userId) {
   const [relation, setRelation] = useState(null)
 
   function refresh() {
     getContacts().then((data) => {
-      const findIn = (list) => list.find((c) => c.user.username === username)
+      const findIn = (list) => list.find((c) => c.user.id === userId)
       const friend = findIn(data.contacts)
       const outgoing = findIn(data.outgoing_requests)
       const incoming = findIn(data.incoming_requests)
@@ -77,7 +82,7 @@ function useRelation(username) {
     })
   }
 
-  useEffect(refresh, [username])
+  useEffect(refresh, [userId])
 
   return [relation, refresh]
 }
@@ -85,11 +90,11 @@ function useRelation(username) {
 // Vänförfrågan/blockera-knapparna för en annan användares profil. Alla
 // relationsknappar delar samma utseende (secondary-button), bara
 // texten och vad de gör skiljer sig åt beroende på relation.type.
-function RelationButtons({ username, name, blocked, onBlockedChange }) {
-  const [relation, refresh] = useRelation(username)
+function RelationButtons({ userId, name, blocked, onBlockedChange }) {
+  const [relation, refresh] = useRelation(userId)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const displayName = name ?? username
+  const displayName = name
 
   // Returnerar true om åtgärden lyckades, så att anroparen kan reagera.
   async function run(action) {
@@ -110,16 +115,22 @@ function RelationButtons({ username, name, blocked, onBlockedChange }) {
   async function handleBlock() {
     const question = `Blockera ${displayName}? Ni kan inte längre kontakta varandra. Du kan avblockera senare.`
     if (!window.confirm(question)) return
-    if (await run(() => blockUser(username))) onBlockedChange(true)
+    if (await run(() => blockUser(userId))) onBlockedChange(true)
+  }
+
+  function handleCancelRequest() {
+    if (!window.confirm('Ångrar du denna förfrågan?')) return
+    run(() => cancelContactRequest(relation.contactId))
   }
 
   async function handleUnblock() {
-    if (await run(() => unblockUser(username))) onBlockedChange(false)
+    if (await run(() => unblockUser(userId))) onBlockedChange(false)
   }
 
   // Blockeringar syns inte i GET /contacts, så "blockerad" hålls här på
-  // sidan efter att man själv har blockerat. Laddar man om sidan syns det
-  // inte längre (kräver en lista över egna blockeringar i backend).
+  // sidan direkt efter att man själv har blockerat. Laddar man om sidan är
+  // profilen dold (en blockerad person syns ingenstans), och då avblockerar
+  // man från listan "Blockerade användare" på sin egen profilsida.
   if (blocked) {
     return (
       <>
@@ -141,14 +152,14 @@ function RelationButtons({ username, name, blocked, onBlockedChange }) {
           type="button"
           className="secondary-button"
           disabled={busy}
-          onClick={() => run(() => sendContactRequest(username))}
+          onClick={() => run(() => sendContactRequest(userId))}
         >
           Skicka vänförfrågan
         </button>
       )}
       {relation.type === 'outgoing' && (
-        <button type="button" className="secondary-button" disabled>
-          Väntar på svar
+        <button type="button" className="secondary-button" disabled={busy} onClick={handleCancelRequest}>
+          Ångra förfrågan
         </button>
       )}
       {relation.type === 'incoming' && (
@@ -197,26 +208,36 @@ function RelationButtons({ username, name, blocked, onBlockedChange }) {
 // Visar en annan användares profil, skrivskyddat. Ingen redigering och
 // ingen bilduppladdning här - det är bara ägaren som kan ändra sin profil.
 function UserProfilePage() {
-  const { username } = useParams()
+  // Id:t från adressen (/anvandare/:userId) är text, men id:n från API:t är tal.
+  const userId = Number(useParams().userId)
   const navigate = useNavigate()
   const { user } = useAuth()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'not-found' | 'error'
   const [profile, setProfile] = useState(null)
   const [blocked, setBlocked] = useState(false)
+  // Ens egna intressen, för att markera de gemensamma med gult (som på
+  // personkorten). null tills de är hämtade - då visas alla som vanliga taggar.
+  const [myInterestIds, setMyInterestIds] = useState(null)
   // Den egna profilen kan öppnas via adressen, men man ska inte kunna
   // skicka vänförfrågan, meddelande eller blockera sig själv.
-  const isMe = user?.username === username
+  const isMe = user?.id === userId
 
   useEffect(() => {
     setStatus('loading')
     setBlocked(false)
-    getUserProfile(username)
+    getUserProfile(userId)
       .then((data) => {
         setProfile(data)
         setStatus(data === null ? 'not-found' : 'ready')
       })
       .catch(() => setStatus('error'))
-  }, [username])
+  }, [userId])
+
+  useEffect(() => {
+    getMyInterests()
+      .then((mine) => setMyInterestIds(new Set(mine.map((interest) => interest.id))))
+      .catch(() => {})
+  }, [])
 
   const initial = profile?.name?.trim()?.[0]?.toUpperCase() ?? '?'
 
@@ -235,12 +256,14 @@ function UserProfilePage() {
 
   return (
     <div className="content-stack">
+      {/* Ovanför kortet, som i Klubbar och Events. */}
+      <BackButton onClick={handleBack} />
       {status === 'loading' && <p>Laddar profil...</p>}
       {status === 'not-found' && <p className="form-error">Den profilen finns inte.</p>}
       {status === 'error' && <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>}
 
       {status === 'ready' && (
-        <>
+        <div className="card card-wide content-stack">
           <h1>{profile.name ?? 'Profil'}</h1>
           <div className="profile-image">
             {profile.image_url ? (
@@ -265,23 +288,33 @@ function UserProfilePage() {
             <dt>Stadsdel</dt>
             <dd>{profile.district ?? '–'}</dd>
           </dl>
+          <ProfileAbout text={profile.profile_text} />
+          <section className="profile-interests">
+            <h2>Intressen</h2>
+            {/* Gemensamma intressen gula. Den egna profilen: alla gula, som på Min profil. */}
+            {profile.interests.length > 0 ? (
+              <InterestTags
+                interests={profile.interests}
+                highlight={isMe ? undefined : (myInterestIds ?? new Set())}
+              />
+            ) : (
+              <p className="hint-text">Inga intressen valda än.</p>
+            )}
+          </section>
           {!isMe && (
             <>
               <RelationButtons
-                username={username}
+                userId={userId}
                 name={profile.name}
                 blocked={blocked}
                 onBlockedChange={setBlocked}
               />
-              {!blocked && <MessageForm username={username} />}
+              {!blocked && <MessageForm userId={userId} />}
             </>
           )}
-        </>
+        </div>
       )}
 
-      <button type="button" className="text-button" onClick={handleBack}>
-        ← Tillbaka
-      </button>
     </div>
   )
 }

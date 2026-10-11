@@ -4,9 +4,9 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ContactRequest(BaseModel):
-    # Mottagaren anges med username, inte id - samma skäl som för
-    # POST /messages: frontend känner bara till den andras username.
-    addressee_username: str
+    # Mottagaren anges med id. Användarnamn används aldrig för att peka ut
+    # någon i API:t (de ska inte synas i adresser, se CONTRIBUTING.md).
+    addressee_id: int
 
 
 class ContactAnswer(BaseModel):

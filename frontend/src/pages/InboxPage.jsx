@@ -35,7 +35,7 @@ function InboxPage() {
         ) : conversations.length > 0 ? (
           <div className="card-grid">
             {conversations.map((conversation) => (
-              <ConversationCard key={conversation.username} conversation={conversation} />
+              <ConversationCard key={conversation.id} conversation={conversation} />
             ))}
           </div>
         ) : (

@@ -5,7 +5,7 @@ FastAPI-backend. Kör lokalt:
 ```
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt  # allt för lokalt (uvicorn, alembic, tester)
 cp .env.example .env  # fyll i DATABASE_URL (och ev. CORS_ORIGINS)
 uvicorn app.main:app --reload
 ```
@@ -60,6 +60,9 @@ Backend deployas som ett eget Vercel-projekt, separat från frontend:
 1. Skapa ett nytt Vercel-projekt från repot och sätt **Root Directory** till `backend`.
 2. Vercel hittar automatiskt FastAPI-appen via `app/main.py` (definierar `app`), och `requirements.txt` i samma mapp.
 3. Sätt miljövariablerna i projektet: `DATABASE_URL` (Neons *pooled* connection-sträng, se `.env.example`) och `CORS_ORIGINS` (frontendens Vercel-URL, t.ex. `https://intresseklubben-frontend.vercel.app`).
-4. `vercel.json` i den här mappen sätter en `maxDuration` på funktionen — höj vid behov.
+4. `vercel.json` i den här mappen sätter en `maxDuration` på funktionen — höj vid behov. Den håller också nere Vercels lagring (Functions Storage, som räknas per bygge och dag):
+   - `ignoreCommand` hoppar över bygget om inget i `backend/` har ändrats sedan förra bygget, så att ändringar som bara rör frontend inte bygger om backend.
+   - `excludeFiles` lämnar tester och migrationer utanför funktionen.
+   - Bara det som behövs när appen kör ligger i `requirements.txt`; allt för lokal utveckling (uvicorn, alembic, tester) ligger i `requirements-dev.txt`.
 
 `alembic upgrade head` körs inte automatiskt vid deploy — kör den manuellt (lokalt, mot samma `DATABASE_URL`) efter varje ny migration.

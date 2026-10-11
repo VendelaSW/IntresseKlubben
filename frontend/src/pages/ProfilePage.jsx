@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react'
-import InterestPicker from '../components/InterestPicker'
-import InterestTags from '../components/InterestTags'
+import BlockedUsers from '../components/BlockedUsers'
+import DeleteAccount from '../components/DeleteAccount'
+import InterestExplorer from '../components/InterestExplorer'
+import ProfileAbout from '../components/ProfileAbout'
+import TextareaWithCount from '../components/TextareaWithCount'
+import { addMyEmail, getCurrentUser } from '../services/api'
 import { imageToWebp } from '../services/imageToWebp'
-import { addInterest, getAllInterests, getMyInterests, removeInterest } from '../services/interests'
+import { addInterest, getMyInterests, removeInterest } from '../services/interests'
 import {
   GENDER_OPTIONS,
+  createProfile,
   genderLabel,
   getMunicipalities,
   getProfile,
@@ -21,7 +26,15 @@ function todayString() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-function ProfileImage({ profile, onUploaded }) {
+// Felmeddelanden från servern saknar ibland punkt i slutet, och då skulle en
+// mening som läggs efter dem gå ihop med dem.
+function withPeriod(text) {
+  return /[.!?]$/.test(text) ? text : `${text}.`
+}
+
+// Visar profilbilden. Själva bildbytet (knappen) finns bara när editable är
+// satt, alltså i "Redigera profil", inte i den vanliga profilvyn.
+function ProfileImage({ profile, onUploaded, editable = false }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
@@ -51,18 +64,87 @@ function ProfileImage({ profile, onUploaded }) {
           {initial}
         </div>
       )}
-      <label className={`secondary-button${uploading ? ' is-disabled' : ''}`}>
-        {uploading ? 'Laddar upp...' : profile.image_url ? 'Byt bild' : 'Lägg till bild'}
-        <input
-          type="file"
-          accept="image/*"
-          className="visually-hidden"
-          onChange={handleFile}
-          disabled={uploading}
-        />
-      </label>
+      {editable && (
+        <label className={`secondary-button button-small${uploading ? ' is-disabled' : ''}`}>
+          {uploading ? 'Laddar upp...' : profile.image_url ? 'Byt bild' : 'Lägg till bild'}
+          <input
+            type="file"
+            accept="image/*"
+            className="visually-hidden"
+            onChange={handleFile}
+            disabled={uploading}
+          />
+        </label>
+      )}
       {error && <p className="form-error">{error}</p>}
     </div>
+  )
+}
+
+// Ens e-post. Konton som skapades innan e-post krävdes vid registrering
+// saknar den, och får här lägga till den (tänkt att behövas för att kunna
+// återställa lösenordet, när det finns). En befintlig e-post går inte att
+// ändra här.
+function ProfileEmail() {
+  const [email, setEmail] = useState(undefined) // undefined = laddar, null = saknas
+  const [draft, setDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    getCurrentUser()
+      .then((me) => setEmail(me.email))
+      .catch(() => setError('Kunde inte hämta din e-post.'))
+  }, [])
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const me = await addMyEmail(draft)
+      setEmail(me.email)
+      setSaved(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (email === undefined && !error) return null
+
+  return (
+    <section className="profile-email">
+      <h2>E-post</h2>
+      {email ? (
+        <>
+          <p className="card-text">{email}</p>
+          {saved && <p className="status-success">E-posten är sparad.</p>}
+          <p className="hint-text">Syns bara för dig.</p>
+        </>
+      ) : (
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <p className="hint-text">
+            Lägg till din e-post. Den syns bara för dig.
+          </p>
+          <label htmlFor="profile-email">E-postadress</label>
+          <input
+            id="profile-email"
+            type="email"
+            autoComplete="email"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            required
+          />
+          {error && <p className="form-error">{error}</p>}
+          <button type="submit" disabled={saving}>
+            {saving ? 'Sparar...' : 'Spara e-post'}
+          </button>
+        </form>
+      )}
+    </section>
   )
 }
 
@@ -101,7 +183,7 @@ function NewProfileImage({ name, image, onChange }) {
           {initial}
         </div>
       )}
-      <label className="secondary-button">
+      <label className="secondary-button button-small">
         {image ? 'Byt bild' : 'Lägg till bild'}
         <input type="file" accept="image/*" className="visually-hidden" onChange={handleFile} />
       </label>
@@ -116,15 +198,17 @@ function ProfilePage() {
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   const [editing, setEditing] = useState(false)
   const [municipalities, setMunicipalities] = useState([])
-  const [allInterests, setAllInterests] = useState([])
   const [myInterests, setMyInterests] = useState([])
 
   const [name, setName] = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [gender, setGender] = useState('')
+  const [genderSearchable, setGenderSearchable] = useState(false)
   const [municipalityCode, setMunicipalityCode] = useState('')
   const [district, setDistrict] = useState('')
-  // Valda intressen i formuläret. Sparas först när man trycker Spara.
+  const [aboutText, setAboutText] = useState('')
+  // Valda intressen när profilen skapas. Sparas tillsammans med profilen.
+  // (En befintlig profils intressen ändras direkt i "Vad gillar du?".)
   const [draftInterests, setDraftInterests] = useState([])
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
@@ -135,13 +219,11 @@ function ProfilePage() {
   useEffect(() => {
     // Själva inloggningskollen sköts redan av ProtectedRoute, så vi kan
     // anta att det finns en giltig token när den här sidan visas.
-    Promise.all([getProfile(), getMunicipalities(), getAllInterests(), getMyInterests()])
-      .then(([data, list, all, mine]) => {
+    Promise.all([getProfile(), getMunicipalities(), getMyInterests()])
+      .then(([data, list, mine]) => {
         setProfile(data)
         setMunicipalities(list)
-        setAllInterests(all)
         setMyInterests(mine)
-        setDraftInterests(mine)
         // Ingen profil än → visa formuläret direkt.
         setEditing(data === null)
         setStatus('ready')
@@ -158,47 +240,55 @@ function ProfilePage() {
     setName(profile?.name ?? '')
     setBirthDate(profile?.birth_date ?? '')
     setGender(profile?.gender ?? '')
+    setGenderSearchable(profile?.gender_searchable ?? false)
     setMunicipalityCode(profile?.municipality_code ?? '')
     setDistrict(profile?.district ?? '')
-    setDraftInterests(myInterests)
+    setAboutText(profile?.profile_text ?? '')
     setFormError('')
     setEditing(true)
   }
 
-  function toggleInterest(id, add) {
-    setDraftInterests((current) =>
-      add ? [...current, allInterests.find((i) => i.id === id)] : current.filter((i) => i.id !== id),
-    )
+  const byName = (a, b) => a.name.localeCompare(b.name, 'sv')
+
+  // "Vad gillar du?" på profilen sparar direkt. Backend svarar med den
+  // uppdaterade listan, och stoppar att det sista intresset tas bort.
+  async function addSavedInterest(interest) {
+    setMyInterests(await addInterest(interest.id))
   }
 
-  // Skickar bara skillnaden mot det som redan är sparat.
-  async function saveInterests() {
-    const savedIds = new Set(myInterests.map((i) => i.id))
-    const draftIds = new Set(draftInterests.map((i) => i.id))
-    await Promise.all([
-      ...draftInterests.filter((i) => !savedIds.has(i.id)).map((i) => addInterest(i.id)),
-      ...myInterests.filter((i) => !draftIds.has(i.id)).map((i) => removeInterest(i.id)),
-    ])
-    // allInterests är sorterad på namn, så listan behåller samma ordning.
-    setMyInterests(allInterests.filter((i) => draftIds.has(i.id)))
+  async function removeSavedInterest(interest) {
+    setMyInterests(await removeInterest(interest.id))
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
-    setSaving(true)
     setFormError('')
+    const isNew = profile === null
+    if (isNew && draftInterests.length === 0) {
+      setFormError('Välj minst ett intresse.')
+      return
+    }
+    setSaving(true)
 
-    // Skicka bara ifyllda fält. Tomma fält lämnar backend orörda.
-    const data = { name }
-    if (birthDate) data.birth_date = birthDate
-    if (gender) data.gender = gender
-    if (municipalityCode) data.municipality_code = municipalityCode
+    // Namn, födelsedatum, kön, kommun och Om mig är obligatoriska och skickas
+    // alltid med. Stadsdel är valfri och skickas bara om den är ifylld.
+    const data = {
+      name,
+      birth_date: birthDate,
+      gender,
+      gender_searchable: genderSearchable,
+      municipality_code: municipalityCode,
+      profile_text: aboutText,
+    }
     if (district.trim()) data.district = district
 
-    // 1. Profilen. Misslyckas den sparas inget annat heller.
+    // 1. Profilen. Misslyckas den sparas inget annat heller. En ny profil
+    //    skapas tillsammans med intressena i samma anrop, en befintlig ändras.
     let saved
     try {
-      saved = await updateProfile(data)
+      saved = isNew
+        ? await createProfile({ ...data, interest_ids: draftInterests.map((i) => i.id) })
+        : await updateProfile(data)
     } catch (err) {
       setFormError(err.message)
       setSaving(false)
@@ -218,14 +308,8 @@ function ProfilePage() {
     }
     setProfile(saved)
 
-    // 3. Intressena. Misslyckas de stannar formuläret kvar så att man kan försöka igen.
-    try {
-      await saveInterests()
-    } catch (err) {
-      setFormError(err.message)
-      setSaving(false)
-      return
-    }
+    // 3. En ny profil sparade intressena i steg 1.
+    if (isNew) setMyInterests([...draftInterests].sort(byName))
 
     setEditing(false)
     setSaving(false)
@@ -251,7 +335,7 @@ function ProfilePage() {
   if (editing) {
     const isNew = profile === null
     return (
-      <div className="content-stack">
+      <div className="card card-wide content-stack">
         <h1>{isNew ? 'Skapa din profil' : 'Redigera profil'}</h1>
         {isNew && (
           <p className="profile-intro">
@@ -263,7 +347,17 @@ function ProfilePage() {
         {isNew ? (
           <NewProfileImage name={name} image={pendingImage} onChange={setPendingImage} />
         ) : (
-          <ProfileImage profile={profile} onUploaded={setProfile} />
+          <>
+            <ProfileImage
+              profile={profile}
+              onUploaded={(updated) => {
+                setImageNotice('')
+                setProfile(updated)
+              }}
+              editable
+            />
+            {imageNotice && <p className="form-error">{imageNotice}</p>}
+          </>
         )}
         <form className="auth-form" onSubmit={handleSubmit}>
           <label htmlFor="profile-name">Namn</label>
@@ -283,10 +377,11 @@ function ProfilePage() {
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
             max={todayString()}
+            required
           />
 
           <label htmlFor="profile-gender">Kön</label>
-          <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)}>
+          <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)} required>
             <option value="">Välj...</option>
             {GENDER_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -294,12 +389,21 @@ function ProfilePage() {
               </option>
             ))}
           </select>
+          <label>
+            <input
+              type="checkbox"
+              checked={genderSearchable}
+              onChange={(e) => setGenderSearchable(e.target.checked)}
+            />{' '}
+            Låt andra hitta mig när de filtrerar på kön (då kan de räkna ut mitt kön)
+          </label>
 
           <label htmlFor="profile-municipality">Kommun</label>
           <select
             id="profile-municipality"
             value={municipalityCode}
             onChange={(e) => setMunicipalityCode(e.target.value)}
+            required
           >
             <option value="">Välj...</option>
             {municipalities.map((m) => (
@@ -309,7 +413,7 @@ function ProfilePage() {
             ))}
           </select>
 
-          <label htmlFor="profile-district">Stadsdel</label>
+          <label htmlFor="profile-district">Stadsdel (valfritt)</label>
           <input
             id="profile-district"
             type="text"
@@ -318,11 +422,25 @@ function ProfilePage() {
             maxLength={100}
           />
 
-          <section className="profile-interests">
-            <h2>Intressen</h2>
-            <p className="hint-text">Klicka för att välja.</p>
-            <InterestPicker allInterests={allInterests} selected={draftInterests} onToggle={toggleInterest} />
-          </section>
+          <label htmlFor="profile-about">Om mig</label>
+          <TextareaWithCount
+            id="profile-about"
+            value={aboutText}
+            onChange={(e) => setAboutText(e.target.value)}
+            maxLength={800}
+            required
+          />
+
+          {/* En ny profil väljer intressen här (minst ett). En befintlig ändrar
+              dem i "Vad gillar du?" på profilen. */}
+          {isNew && (
+            <InterestExplorer
+              card={false}
+              selected={draftInterests}
+              onAdd={(interest) => setDraftInterests((current) => [...current, interest].sort(byName))}
+              onRemove={(interest) => setDraftInterests((current) => current.filter((i) => i.id !== interest.id))}
+            />
+          )}
 
           {formError && <p className="form-error">{formError}</p>}
 
@@ -340,16 +458,13 @@ function ProfilePage() {
   }
 
   return (
-    <div className="content-stack">
+    <div className="profile-layout">
+    <div className="card card-wide content-stack">
       <h1>Min profil</h1>
-      {imageNotice && <p className="form-error">{imageNotice}</p>}
-      <ProfileImage
-        profile={profile}
-        onUploaded={(updated) => {
-          setImageNotice('')
-          setProfile(updated)
-        }}
-      />
+      {imageNotice && (
+        <p className="form-error">{withPeriod(imageNotice)} Försök igen under Redigera profil.</p>
+      )}
+      <ProfileImage profile={profile} />
       <dl className="profile-details">
         <dt>Namn</dt>
         <dd>{profile.name ?? '–'}</dd>
@@ -357,22 +472,24 @@ function ProfilePage() {
         <dd>{profile.age ?? '–'}</dd>
         <dt>Kön</dt>
         <dd>{genderLabel(profile.gender) ?? '–'}</dd>
+        <dt>Sökbar på kön</dt>
+        <dd>{profile.gender_searchable ? 'Ja' : 'Nej'}</dd>
         <dt>Kommun</dt>
         <dd>{profile.municipality_name ?? '–'}</dd>
         <dt>Stadsdel</dt>
         <dd>{profile.district ?? '–'}</dd>
       </dl>
-      <section className="profile-interests">
-        <h2>Intressen</h2>
-        {myInterests.length > 0 ? (
-          <InterestTags interests={myInterests} />
-        ) : (
-          <p className="hint-text">Inga intressen valda än.</p>
-        )}
-      </section>
+      <ProfileEmail />
+      <ProfileAbout text={profile.profile_text} />
+      <BlockedUsers />
       <button type="button" className="primary-button" onClick={startEditing}>
         Redigera profil
       </button>
+      <DeleteAccount />
+    </div>
+    {/* Intressena som ett eget vitt kort bredvid profilen (under på mobil).
+        Ändringar sparas direkt. */}
+    <InterestExplorer selected={myInterests} onAdd={addSavedInterest} onRemove={removeSavedInterest} />
     </div>
   )
 }

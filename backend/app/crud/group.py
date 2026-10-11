@@ -1,9 +1,12 @@
-from sqlalchemy import func, or_
+import enum
+
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.contact import Contact
-from app.models.group import Group, GroupMember, GroupRole, GroupVisibility
+from app.core import error_messages as msg
+from app.crud.contact import accepted_contact_ids, blocked_user_ids
+from app.models.group import Group, GroupInvitation, GroupMember, GroupRole, GroupVisibility
 from app.models.user import User
 from app.schemas.group import GroupCreate
 
@@ -14,11 +17,28 @@ MAX_MEMBERSHIPS = 20
 class GroupRuleError(Exception):
     """En regel för grupper bröts, t.ex. ett upptaget namn. Meddelandet visas för användaren."""
 
+    status_code = 409
+
+
+class NotAContactError(GroupRuleError):
+    """Någon som inte är en kontakt försökte bjudas in."""
+
+    status_code = 422
+
+
+class GroupSort(str, enum.Enum):
+    """Sorteringar för listan över öppna grupper (GET /groups/)."""
+
+    name = "name"  # A-Ö, standard
+    members = "members"  # flest medlemmar först
+    newest = "newest"  # senast skapad först
+
 
 def _base_query(db: Session):
     # Laddar medlemmarna i samma veva, så att antal och roller inte ger en fråga per grupp.
     return db.query(Group).options(
         selectinload(Group.members),
+        selectinload(Group.invitations),
         selectinload(Group.interest),
         selectinload(Group.municipality),
     )
@@ -38,11 +58,7 @@ def list_members(db: Session, group: Group, viewer_id: int) -> list[tuple[GroupM
     Den som har blockerat tittaren, eller som tittaren har blockerat, visas
     inte - samma regel som i resten av appen.
     """
-    blocks = (db.query(Contact)
-              .filter(Contact.status == "BLOCKED",
-                      or_(Contact.requester_id == viewer_id, Contact.addressee_id == viewer_id))
-              .all())
-    hidden = {c.addressee_id if c.requester_id == viewer_id else c.requester_id for c in blocks}
+    hidden = blocked_user_ids(db, viewer_id)
     member_ids = [m.user_id for m in group.members if m.user_id not in hidden]
     users = {u.id: u for u in (db.query(User).options(selectinload(User.profile))
                                .filter(User.id.in_(member_ids)).all())}
@@ -81,15 +97,66 @@ def create_group(db: Session, user: User, data: GroupCreate) -> Group:
     return get_group(db, group.id)
 
 
+def _escape_like(text: str) -> str:
+    # % och _ är jokertecken i LIKE. Här ska de betyda sig själva.
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def list_public_groups(
-    db: Session, interest_id: int | None = None, municipality_code: str | None = None
+    db: Session,
+    interest_id: int | None = None,
+    municipality_code: str | None = None,
+    q: str | None = None,
+    sort: GroupSort = GroupSort.name,
+    reverse: bool = False,
+    limit: int | None = None,
+    offset: int = 0,
+    exclude_member_id: int | None = None,
+    hidden_user_ids: set[int] | None = None,
 ) -> list[Group]:
+    """Öppna grupper, valfritt filtrerade, sökta, sorterade och en sida i taget.
+
+    q söker i namn och beskrivning, utan hänsyn till versaler. reverse vänder
+    sorteringen (Ö-A, färst medlemmar först, äldst först).
+    exclude_member_id tar bort grupper den användaren redan är med i.
+    hidden_user_ids (blockerade åt något håll) räknas inte med när det sorteras
+    på medlemmar, så att ordningen stämmer med antalet som visas och inte
+    avslöjar någon dold. Varje sortering slutar på id, så att samma grupp
+    aldrig hamnar på två sidor eller hoppas över mellan limit/offset-anrop.
+    """
     query = _base_query(db).filter(Group.visibility == GroupVisibility.public)
     if interest_id is not None:
         query = query.filter(Group.interest_id == interest_id)
     if municipality_code is not None:
         query = query.filter(Group.municipality_code == municipality_code)
-    return query.order_by(Group.name).all()
+    if q and q.strip():
+        pattern = f"%{_escape_like(q.strip())}%"
+        query = query.filter(
+            or_(Group.name.ilike(pattern, escape="\\"), Group.description.ilike(pattern, escape="\\"))
+        )
+    if exclude_member_id is not None:
+        my_group_ids = select(GroupMember.group_id).where(GroupMember.user_id == exclude_member_id)
+        query = query.filter(Group.id.not_in(my_group_ids))
+
+    if sort == GroupSort.members:
+        counted = select(func.count(GroupMember.id)).where(GroupMember.group_id == Group.id)
+        if hidden_user_ids:
+            counted = counted.where(GroupMember.user_id.not_in(hidden_user_ids))
+        # Flest först, och vid lika antal i namnordning.
+        keys = [(counted.correlate(Group).scalar_subquery(), True), (Group.name, False), (Group.id, False)]
+    elif sort == GroupSort.newest:
+        keys = [(Group.created_at, True), (Group.id, True)]
+    else:
+        keys = [(Group.name, False), (Group.id, False)]
+    # (kolumn, fallande). reverse vänder alla, även det som avgör vid lika, så
+    # att omvänd ordning är exakt den vanliga baklänges.
+    query = query.order_by(*(col.desc() if descending != reverse else col.asc() for col, descending in keys))
+
+    if offset:
+        query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(limit)
+    return query.all()
 
 
 def list_user_groups(db: Session, user_id: int) -> list[Group]:
@@ -126,25 +193,103 @@ def join_group(db: Session, group: Group, user: User) -> Group:
     if get_membership(group, user.id) is None:
         _check_can_join(db, user.id)
         group.members.append(GroupMember(user_id=user.id, role=GroupRole.member))
+        # Inbjudan har gjort sitt när man har gått med.
+        db.query(GroupInvitation).filter(
+            GroupInvitation.group_id == group.id, GroupInvitation.user_id == user.id
+        ).delete(synchronize_session=False)
         db.commit()
     return get_group(db, group.id)
 
 
-def leave_group(db: Session, group: Group, user: User) -> None:
-    """Lämnar gruppen. Ägaren ersätts av den som varit med längst, och en tom grupp raderas."""
-    membership = get_membership(group, user.id)
+def remove_member(db: Session, group: Group, user_id: int) -> None:
+    """Tar bort användaren ur gruppen, utan att spara. Ägaren ersätts av den som
+    varit med längst, och en tom grupp raderas. Delas av leave_group och
+    radering av konto (crud/user.py), som sparar allt på en gång."""
+    membership = get_membership(group, user_id)
     if membership is None:
         return
-    others = [m for m in group.members if m.user_id != user.id]
+    others = [m for m in group.members if m.user_id != user_id]
     if not others:
         db.delete(group)
     else:
         if membership.role == GroupRole.owner:
             others[0].role = GroupRole.owner  # members är sorterad på joined_at
         group.members.remove(membership)
+
+
+def leave_group(db: Session, group: Group, user: User) -> None:
+    """Lämnar gruppen. Ägaren ersätts av den som varit med längst, och en tom grupp raderas."""
+    remove_member(db, group, user.id)
     db.commit()
 
 
 def delete_group(db: Session, group: Group) -> None:
     db.delete(group)
+    db.commit()
+
+
+# ---------- Inbjudningar ----------
+
+
+def can_invite(group: Group, user_id: int) -> bool:
+    """Ägaren får alltid bjuda in, andra medlemmar bara om ägaren har slagit på det."""
+    membership = get_membership(group, user_id)
+    if membership is None:
+        return False
+    return membership.role == GroupRole.owner or group.members_can_invite
+
+
+def is_invited(group: Group, user_id: int) -> bool:
+    return any(i.user_id == user_id for i in group.invitations)
+
+
+def invite_to_group(db: Session, group: Group, inviter_id: int, user_ids: list[int]) -> list[User]:
+    """Bjuder in inviter_id:s kontakter (efter id). Att inviter_id får
+    bjuda in kontrolleras av den som anropar (can_invite). Antingen går alla
+    inbjudningar igenom eller ingen. Redan medlemmar, redan inbjudna och de som
+    har en blockering med ägaren hoppas över tyst: ett fel skulle avslöja för
+    den som bjuder in att ägaren har en blockering.
+    Returnerar de som blev inbjudna den här gången (profil förladdad)."""
+    contact_ids = accepted_contact_ids(db, inviter_id)
+    target_ids: set[int] = set()
+    for user_id in user_ids:
+        # Samma svar för en okänd användare och en som inte är en kontakt.
+        if user_id not in contact_ids:
+            raise NotAContactError(msg.CAN_ONLY_INVITE_CONTACTS)
+        target_ids.add(user_id)
+
+    for owner in (m for m in group.members if m.role == GroupRole.owner):
+        target_ids -= blocked_user_ids(db, owner.user_id)
+    target_ids -= {m.user_id for m in group.members}
+    target_ids -= {i.user_id for i in group.invitations}
+    db.add_all(
+        GroupInvitation(group_id=group.id, user_id=user_id, invited_by=inviter_id) for user_id in target_ids
+    )
+    db.commit()
+    return list(
+        db.query(User)
+        .options(selectinload(User.profile))
+        .filter(User.id.in_(target_ids))
+        .order_by(User.id)
+        .all()
+    )
+
+
+def list_user_invitations(db: Session, user_id: int) -> list[Group]:
+    """Klubbar användaren är inbjuden till (och inte redan med i), nyaste inbjudan först."""
+    my_group_ids = select(GroupMember.group_id).where(GroupMember.user_id == user_id)
+    return (
+        _base_query(db)
+        .join(GroupInvitation, GroupInvitation.group_id == Group.id)
+        .filter(GroupInvitation.user_id == user_id, Group.id.not_in(my_group_ids))
+        .order_by(GroupInvitation.created_at.desc(), GroupInvitation.id.desc())
+        .all()
+    )
+
+
+def decline_invitation(db: Session, group: Group, user_id: int) -> None:
+    """Avböjer inbjudan (tar bort den). Går att upprepa utan fel."""
+    db.query(GroupInvitation).filter(
+        GroupInvitation.group_id == group.id, GroupInvitation.user_id == user_id
+    ).delete(synchronize_session=False)
     db.commit()

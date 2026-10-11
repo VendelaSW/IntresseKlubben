@@ -79,12 +79,19 @@ export function apiPut(path, data) {
   })
 }
 
-export function apiDelete(path) {
-  return request(path, { method: 'DELETE' })
+// data är valfri, som för apiPut: med data skickas den som JSON (t.ex.
+// lösenordet när man raderar sitt konto).
+export function apiDelete(path, data) {
+  if (data === undefined) return request(path, { method: 'DELETE' })
+  return request(path, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
 }
 
-export function registerUser(username, password) {
-  return apiPost('/users/register', { username, password })
+export function registerUser(username, email, password) {
+  return apiPost('/users/register', { username, email, password })
 }
 
 export function loginUser(username, password) {
@@ -93,4 +100,15 @@ export function loginUser(username, password) {
 
 export function getCurrentUser() {
   return apiGet('/users/me')
+}
+
+// Raderar kontot och allt som hör till det. Fel lösenord ger 403 (inte 401),
+// så man loggas inte ut av ett felskrivet lösenord.
+export function deleteAccount(password) {
+  return apiDelete('/users/me', { password })
+}
+
+// För konton som skapades innan e-post krävdes. Går bara när e-post saknas.
+export function addMyEmail(email) {
+  return apiPut('/users/me/email', { email })
 }

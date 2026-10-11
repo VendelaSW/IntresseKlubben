@@ -1,3 +1,5 @@
+import InterestTags from '../InterestTags'
+
 export function memberCountText(count) {
   return `${count} ${count === 1 ? 'medlem' : 'medlemmar'}`
 }
@@ -12,24 +14,54 @@ export function RoleBadge({ group }) {
   )
 }
 
-// Kompakt lista: en rad per grupp. Klick på en rad visar mer information.
-function GroupList({ groups, emptyText, onSelect }) {
+// Ett kort per grupp, i samma rutnät som personkorten. Klick på kortet visar
+// mer information. "Gå med" ligger utanför den klickbara delen, så att
+// knapparna inte hamnar nästlade i varandra (samma upplägg som PersonCard).
+// "Avböj" visas bara om `onDecline` skickas med och man är inbjuden till klubben.
+// `myInterestIds` (en Set) markerar intresset om det är ett av ens egna.
+function GroupList({ groups, emptyText, myInterestIds, busy, onSelect, onJoin, onDecline }) {
   if (groups.length === 0) return <p className="hint-text">{emptyText}</p>
 
   return (
-    <ul className="group-list">
+    <div className="card-grid card-grid-compact">
       {groups.map((group) => (
-        <li key={group.id}>
-          <button type="button" className="group-row" onClick={() => onSelect(group)}>
-            <span className="group-row-name">{group.name}</span>
-            <span className="group-row-meta">
-              {group.interest_name} · {group.municipality_name} · {memberCountText(group.member_count)}
+        <article key={group.id} className="card card-interactive list-card">
+          <button type="button" className="list-card-link" onClick={() => onSelect(group)}>
+            <span className="card-title">{group.name}</span>
+            <span className="card-subheading">
+              {group.municipality_name} · {memberCountText(group.member_count)}
             </span>
-            <RoleBadge group={group} />
+            {group.description && <span className="card-text list-card-description">{group.description}</span>}
           </button>
-        </li>
+          <InterestTags
+            interests={[{ id: group.interest_id, name: group.interest_name }]}
+            highlight={myInterestIds}
+          />
+          <div className="card-actions">
+            {group.is_member ? (
+              <RoleBadge group={group} />
+            ) : (
+              <>
+                <button type="button" className="primary-button button-small" disabled={busy} onClick={() => onJoin(group)}>
+                  Gå med
+                </button>
+                {onDecline && group.is_invited && (
+                  <button
+                    type="button"
+                    className="secondary-button button-small"
+                    disabled={busy}
+                    onClick={() => onDecline(group)}
+                  >
+                    Avböj
+                  </button>
+                )}
+              </>
+            )}
+            {group.visibility === 'private' && <span className="status-pill">Privat</span>}
+          </div>
+        </article>
       ))}
-    </ul>
+    </div>
   )
 }
 

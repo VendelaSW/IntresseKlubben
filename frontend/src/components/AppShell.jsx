@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import eventIcon from '../assets/event.png'
 import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import brevIcon from '../assets/brev.png'
@@ -7,11 +8,15 @@ import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import { useAuth } from '../hooks/useAuth'
 import { getContacts } from '../services/contacts'
+import { INVITATIONS_CHANGED, getGroupInvitationCount } from '../services/groups'
 import {
   countUnseenConversations,
   getConversations,
   markConversationsSeen,
 } from '../services/messages'
+
+// Hur ofta siffran på brev-loggan räknas om medan man står kvar på en sida.
+const MESSAGES_POLL_MS = 30000
 
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
@@ -19,6 +24,7 @@ const NAV_ITEMS = [
   { label: 'Brev', to: '/meddelanden', icon: brevIcon },
   { label: 'Personer', to: '/personer', icon: personerIcon },
   { label: 'Klubbar', to: '/klubbar', icon: klubbarIcon },
+  { label: 'Events', to: '/events', icon: eventIcon },
 ]
 
 // Ram runt alla inloggade sidor: header (logga, meny, användare) + sidans
@@ -30,6 +36,7 @@ function AppShell() {
   const location = useLocation()
   const [incomingCount, setIncomingCount] = useState(0)
   const [unseenMessages, setUnseenMessages] = useState(0)
+  const [clubInvitations, setClubInvitations] = useState(0)
 
   // Antal obesvarade kontaktförfrågningar, för badgen vid Personer. Hämtas
   // om vid varje sidbyte - enkel och "nog bra" uppdatering utan att bygga
@@ -40,16 +47,65 @@ function AppShell() {
       .catch(() => {})
   }, [location.pathname])
 
-  // Konversationer med nya brev, för badgen vid Brev. När man är på Brev
-  // (/meddelanden) räknas allt som sett och badgen försvinner.
+  // Antal klubbar man är inbjuden till, för märket vid Klubbar. Räknas om vid
+  // sidbyte och när man har gått med i eller avböjt en klubb.
+  useEffect(() => {
+    let cancelled = false
+    function refresh() {
+      getGroupInvitationCount()
+        .then((count) => !cancelled && setClubInvitations(count))
+        .catch(() => {})
+    }
+    refresh()
+    window.addEventListener(INVITATIONS_CHANGED, refresh)
+    return () => {
+      cancelled = true
+      window.removeEventListener(INVITATIONS_CHANGED, refresh)
+    }
+  }, [location.pathname])
+
+  // Konversationer med nya brev, för siffran på brev-loggan. När man kommer
+  // till Brev (/meddelanden) räknas allt som sett och siffran försvinner.
+  // Räknas om vid sidbyte och var MESSAGES_POLL_MS, så att nya brev syns utan
+  // att man byter sida. Pausar när fliken inte syns och räknar om direkt när
+  // man kommer tillbaka.
   useEffect(() => {
     const onMessages = location.pathname.startsWith('/meddelanden')
-    getConversations()
-      .then((conversations) => {
-        if (onMessages) markConversationsSeen(conversations)
+    let cancelled = false
+    let fetching = false
+    // Allt markeras som sett bara vid första hämtningen efter sidbytet. Brev
+    // som kommer medan man står kvar (t.ex. från B medan man chattar med A)
+    // har man inte sett, och ska räknas som nya när man går därifrån.
+    let firstFetch = true
+
+    async function refresh() {
+      if (fetching || document.hidden) return
+      fetching = true
+      try {
+        const conversations = await getConversations()
+        if (cancelled) return
+        if (onMessages && firstFetch) markConversationsSeen(conversations)
+        firstFetch = false
         setUnseenMessages(onMessages ? 0 : countUnseenConversations(conversations))
-      })
-      .catch(() => {})
+      } catch {
+        // Siffran är inte viktig nog för ett felmeddelande; nästa försök kommer snart.
+      } finally {
+        fetching = false
+      }
+    }
+
+    function onVisibilityChange() {
+      if (!document.hidden) refresh()
+    }
+
+    refresh()
+    const timer = setInterval(refresh, MESSAGES_POLL_MS)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [location.pathname])
 
   function handleLogout() {
@@ -76,6 +132,11 @@ function AppShell() {
                 {to === '/personer' && incomingCount > 0 && (
                   <span className="nav-badge" aria-label={`${incomingCount} nya förfrågningar`}>
                     {incomingCount}
+                  </span>
+                )}
+                {to === '/klubbar' && clubInvitations > 0 && (
+                  <span className="nav-badge" aria-label={`${clubInvitations} klubbinbjudningar`}>
+                    {clubInvitations}
                   </span>
                 )}
                 {to === '/meddelanden' && unseenMessages > 0 && (

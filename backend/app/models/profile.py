@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Column, Date, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, Date, Enum, ForeignKey, Integer, String, Text, false
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -12,6 +12,7 @@ class GenderEnum(str, enum.Enum):
     man = "man"
     ickebinar = "ickebinär"
     annat = "annat"
+    vill_inte_uppge = "vill inte uppge"
 
 
 class Profile(Base):
@@ -20,13 +21,20 @@ class Profile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
 
-    name = Column(String(50), nullable=True)
-    birth_date = Column(Date, nullable=True)
-    gender = Column(Enum(GenderEnum), nullable=True)
-    profile_text = Column(Text, nullable=True)
+    # Obligatoriska: en profil skapas alltid med alla fem (se ProfileCreate).
+    name = Column(String(50), nullable=False)
+    birth_date = Column(Date, nullable=False)
+    gender = Column(Enum(GenderEnum), nullable=False)
+    profile_text = Column(Text, nullable=False)
+    municipality_code = Column(String(4), ForeignKey("municipalities.code"), nullable=False)
+
     profile_image_url = Column(String, nullable=True)
-    municipality_code = Column(String(4), ForeignKey("municipalities.code"), nullable=True)
     district = Column(String, nullable=True)
+
+    # Kön visas aldrig för andra. Den som slår på det här kan ändå hittas när
+    # någon filtrerar Personer på kön (vilket avslöjar könet), därför är det
+    # avstängt tills man själv väljer det.
+    gender_searchable = Column(Boolean, nullable=False, default=False, server_default=false())
 
     user = relationship("User", back_populates="profile")
     municipality = relationship("Municipality")

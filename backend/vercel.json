@@ -1,8 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "git diff --quiet \"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\" HEAD -- .",
   "functions": {
     "app/main.py": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "excludeFiles": "{tests/**,alembic/**,alembic.ini,pytest.ini,requirements-dev.txt,README.md}"
     }
   }
 }

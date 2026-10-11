@@ -1,8 +1,9 @@
-from sqlalchemy import or_
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.contact import Contact
+from app.models.group import GroupInvitation, GroupMember, GroupRole
 from app.models.user import User
 
 
@@ -82,6 +83,17 @@ def answer_request(db: Session, request_id: int, addressee_id: int,
     return _save(db, contact)
 
 
+def cancel_request(db: Session, request_id: int, requester_id: int) -> None:
+    """Avsändaren ångrar en förfrågan som ännu inte besvarats."""
+    contact = db.query(Contact).filter(Contact.id == request_id).with_for_update().one_or_none()
+    if contact is None or contact.status != "PENDING":
+        raise ContactError(404, "Förfrågan finns inte")
+    if contact.requester_id != requester_id:
+        raise ContactError(403, "Bara den som skickat förfrågan kan ångra den")
+    db.delete(contact)
+    db.commit()
+
+
 def remove_contact(db: Session, contact_id: int, actor_id: int) -> None:
     contact = db.query(Contact).filter(Contact.id == contact_id).with_for_update().one_or_none()
     if contact is None or contact.status != "ACCEPTED":
@@ -90,6 +102,19 @@ def remove_contact(db: Session, contact_id: int, actor_id: int) -> None:
         raise ContactError(403, "Only a participant can remove this contact")
     db.delete(contact)
     db.commit()
+
+
+def _drop_club_invitations_between(db: Session, first_id: int, second_id: int) -> None:
+    """Tar bort inbjudningar till klubbar där den andra av de två är ägare. Annars
+    skulle den som blockerats kunna se och gå med i en privat klubb hos den som
+    blockerade, bara för att inbjudan skickades före blockeringen."""
+    for invitee_id, owner_id in ((first_id, second_id), (second_id, first_id)):
+        owned = select(GroupMember.group_id).where(
+            GroupMember.user_id == owner_id, GroupMember.role == GroupRole.owner
+        )
+        db.query(GroupInvitation).filter(
+            GroupInvitation.user_id == invitee_id, GroupInvitation.group_id.in_(owned)
+        ).delete(synchronize_session=False)
 
 
 def block_user(db: Session, blocker_id: int, blocked_id: int) -> Contact:
@@ -106,6 +131,7 @@ def block_user(db: Session, blocker_id: int, blocked_id: int) -> Contact:
         contact.requester_id = blocker_id
         contact.addressee_id = blocked_id
         contact.status = "BLOCKED"
+    _drop_club_invitations_between(db, blocker_id, blocked_id)
     return _save(db, contact)
 
 
@@ -114,6 +140,50 @@ def is_blocked(db: Session, user_a_id: int, user_b_id: int) -> bool:
     key = _pair_key(user_a_id, user_b_id)
     contact = db.query(Contact).filter(Contact.pair_key == key).one_or_none()
     return contact is not None and contact.status == "BLOCKED"
+
+
+def blocked_user_ids(db: Session, user_id: int) -> set[int]:
+    """Id:n på alla som har blockerat user_id eller som user_id har blockerat,
+    oavsett riktning. Används överallt där andra användare visas, så att en
+    blockering döljer personerna för varandra (jämför is_blocked ovan, som
+    svarar för ett enskilt par)."""
+    blocks = (db.query(Contact)
+              .filter(Contact.status == "BLOCKED",
+                      or_(Contact.requester_id == user_id, Contact.addressee_id == user_id))
+              .all())
+    return {c.addressee_id if c.requester_id == user_id else c.requester_id for c in blocks}
+
+
+def accepted_contact_ids(db: Session, user_id: int) -> set[int]:
+    """Id:n på user_id:s kontakter (accepterade, inte blockerade)."""
+    rows = (db.query(Contact)
+            .filter(Contact.status == "ACCEPTED",
+                    or_(Contact.requester_id == user_id, Contact.addressee_id == user_id))
+            .all())
+    return {c.addressee_id if c.requester_id == user_id else c.requester_id for c in rows}
+
+
+def blocked_by_me_ids(db: Session, user_id: int) -> set[int]:
+    """Id:n på dem user_id själv har blockerat, inte dem som har blockerat
+    user_id. För varningar som bara den som blockerat ska se (t.ex. i events
+    och klubbar): den omvända riktningen får aldrig synas, eftersom den
+    blockerade då förstår att hen är blockerad."""
+    rows = (db.query(Contact.addressee_id)
+            .filter(Contact.status == "BLOCKED", Contact.requester_id == user_id)
+            .all())
+    return {row[0] for row in rows}
+
+
+def list_blocked_by(db: Session, user_id: int) -> list[User]:
+    """De användare user_id själv har blockerat (profil förladdad), äldsta
+    blockeringen först. Den som blivit blockerad får aldrig veta det, så den
+    omvända listan finns inte."""
+    rows = (db.query(Contact)
+            .filter(Contact.status == "BLOCKED", Contact.requester_id == user_id)
+            .order_by(Contact.id).all())
+    users = {u.id: u for u in (db.query(User).options(selectinload(User.profile))
+                               .filter(User.id.in_([c.addressee_id for c in rows])).all())}
+    return [users[c.addressee_id] for c in rows if c.addressee_id in users]
 
 
 def unblock_user(db: Session, blocker_id: int, blocked_id: int) -> None:

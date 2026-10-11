@@ -1,14 +1,11 @@
 import GroupsPanel from '../components/groups/GroupsPanel'
 
-// Tillfällig egen sida för klubbar. Ligger innanför ProtectedRoute och
-// AppShell, som sköter inloggning och header. Senare flyttas GroupsPanel in i
-// ett litet fönster som öppnas från en knapp, och då kan sidan tas bort.
+// Klubbsidan. Ligger innanför ProtectedRoute och AppShell, som sköter
+// inloggning och header. GroupsPanel är sin egen <section className="app-section">,
+// som Personer-sidan, och läggs inte i content-stack (den är byggd för smala
+// centrerade sidor och skulle krympa korten).
 function GroupsPage() {
-  return (
-    <div className="content-stack">
-      <GroupsPanel titleTag="h1" />
-    </div>
-  )
+  return <GroupsPanel />
 }
 
 export default GroupsPage
