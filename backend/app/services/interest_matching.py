@@ -9,7 +9,8 @@ Utläsningen (interest_extractor.py) ger taggar med modellens egna ord. Här avg
 Det görs i tre steg:
 1. EXAKT TRÄFF i kod: taggens namn eller alias slås upp bland bibliotekets namn och alias, utan
    hänsyn till stora och små bokstäver. Finns namnet på flera ställen i trädet ("Historia" under både
-   Böcker och Historia) avgör sammanhanget, taggens föräldertagg ("film" för "fantasy"). Det kostar
+   Böcker och Historia) avgör sammanhanget, taggens föräldertagg ("film" för "fantasy"). Saknas
+   sammanhanget gäller det som ligger högst upp i trädet, om det går att avgöra. Det kostar
    inget, och blir det ingenting kvar att avgöra görs inget modellanrop alls.
 2. MODELLEN väljer för resten, i ett enda anrop: den får hela biblioteket som en lista och väljer
    same, new eller none. Den får bara svara med JSON enligt ett schema.
@@ -167,6 +168,13 @@ def exact_match(tag: Tag, index: LibraryIndex) -> LibraryItem | None:
         in_context = [item for item in found if _context_matches(item, tag, index)]
         if len(in_context) == 1:
             return in_context[0]
+        if tag.context is None:
+            # Sagt ensamt, utan något bredare intresse över sig, är det det översta som menas
+            # ("historia" är området Historia, inte Böcker > Historia).
+            top = min(item.level for item in found)
+            highest = [item for item in found if item.level == top]
+            if len(highest) == 1:
+                return highest[0]
     return None
 
 

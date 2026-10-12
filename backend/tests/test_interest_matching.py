@@ -107,10 +107,18 @@ def test_a_name_in_two_places_is_decided_by_the_context(index):
     assert exact_match(tag("fantasy", context="Film och tv"), index).id == 14
 
 
-def test_a_name_in_two_places_without_a_context_is_left_to_the_model(index):
-    assert exact_match(tag("fantasy"), index) is None
-    assert exact_match(tag("historia"), index) is None
-    assert exact_match(tag("fantasy", context="sport"), index) is None
+def test_a_name_in_two_places_without_a_context_and_without_a_clear_winner_is_left_to_the_model(index):
+    assert exact_match(tag("fantasy"), index) is None  # två intressen på samma nivå
+    assert exact_match(tag("fantasy", context="sport"), index) is None  # ett sammanhang som inte stämmer
+
+
+def test_a_name_said_on_its_own_is_the_one_highest_up_in_the_tree(index):
+    # "historia" finns som området Historia och som Böcker > Historia: ensamt sagt menas området.
+    assert exact_match(tag("historia"), index).id == 11
+
+
+def test_with_a_context_the_context_wins_over_the_highest_one(index):
+    assert exact_match(tag("historia", context="böcker"), index).id == 10
 
 
 def test_the_context_can_be_given_as_one_of_its_aliases(index):
