@@ -87,7 +87,14 @@ export async function kommunByCode(code) {
   const kommun = kommuner.find((f) => f.properties.kod === code)
   if (!kommun) return null
   const [w, s, e, n] = kommun.properties.bbox
-  return { name: `${kommun.properties.namn} kommun`, bounds: [[w, s], [e, n]], kod: code, geometry: kommun.geometry }
+  return {
+    name: `${kommun.properties.namn} kommun`,
+    bounds: [[w, s], [e, n]],
+    kod: code,
+    lan: kommun.properties.lan,
+    geometry: kommun.geometry,
+    label: kommun.properties.label,
+  }
 }
 
 // Ligger punkten i ytan (för t.ex. kommunens yta från kommunByCode)?
@@ -159,5 +166,33 @@ export async function regionAt(level, [lng, lat]) {
   const region = level === 'lan' ? lan.get(kommun.properties.lan) : kommun
   const [w, s, e, n] = region.properties.bbox
   const name = level === 'lan' ? region.properties.namn : `${region.properties.namn} kommun`
-  return { name, bounds: [[w, s], [e, n]], kod: region.properties.kod }
+  // `lan`: länets kod (för en kommun dess län, för ett län länet självt).
+  return {
+    name,
+    bounds: [[w, s], [e, n]],
+    kod: region.properties.kod,
+    lan: kommun.properties.lan,
+    // Kommunens yta och namnpunkt (för att hitta centralorten, se MapPrototype.jsx).
+    ...(level === 'kommun' && { geometry: kommun.geometry, label: kommun.properties.label }),
+  }
+}
+
+// Ett län efter kod: { name, bounds, kod, lan }, eller null.
+export async function lanByCode(code) {
+  const { lan } = await loadRegions()
+  const region = lan.get(code)
+  if (!region) return null
+  const [w, s, e, n] = region.properties.bbox
+  return { name: region.properties.namn, bounds: [[w, s], [e, n]], kod: code, lan: code }
+}
+
+// Kommunerna i ett län, som GeoJSON (för gränserna i länsvyn) och som
+// namnpunkter ({ id, name, lngLat }).
+export async function kommunerInLan(code) {
+  const { kommuner } = await loadRegions()
+  const features = kommuner.filter((f) => f.properties.lan === code)
+  return {
+    geojson: { type: 'FeatureCollection', features },
+    labels: features.map((f) => ({ id: f.properties.kod, name: f.properties.namn, lngLat: f.properties.label })),
+  }
 }

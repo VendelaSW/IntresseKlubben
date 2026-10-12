@@ -152,6 +152,8 @@ const mapStyle = {
     // promoteId: landskapskoden blir id, så att hovring kan markeras (feature-state).
     'landskap-areas': { type: 'geojson', data: LANDSKAP_AREAS, promoteId: 'kod' },
     'lan-areas': { type: 'geojson', data: LAN_AREAS, promoteId: 'kod' },
+    // Kommunerna i det valda länet (fylls i när man kommer till länsvyn).
+    kommuner: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
   },
   glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
   layers: [
@@ -353,6 +355,21 @@ const mapStyle = {
         'line-width': 2,
         'line-opacity': 0.75,
         'line-dasharray': [4, 1.6, 0.4, 1.6],
+      },
+    },
+
+    // Kommungränserna i länsvyn: blyerts, glesare streck än landskapens och
+    // länens, så att de inte tar över när man är inzoomad.
+    {
+      id: 'kommun-borders',
+      type: 'line',
+      source: 'kommuner',
+      layout: { visibility: 'none', 'line-join': 'round', 'line-cap': 'round' },
+      paint: {
+        'line-color': PENCIL,
+        'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1, 12, 2],
+        'line-opacity': 0.55,
+        'line-dasharray': [3, 2],
       },
     },
 

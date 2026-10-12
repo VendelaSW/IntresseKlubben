@@ -1886,14 +1886,23 @@ label.person-list-item {
 /* Landskapslistan bredvid Sverige: namnen går att klicka på (zoomar till
    landskapet). */
 .map-sketch-landskap.is-listed,
-.map-sketch-landskap.is-lan {
+.map-sketch-landskap.is-lan,
+.map-sketch-landskap.is-kommun {
   pointer-events: auto;
   cursor: pointer;
 }
 
 .map-sketch-landskap.is-listed:hover,
-.map-sketch-landskap.is-lan:hover {
+.map-sketch-landskap.is-lan:hover,
+.map-sketch-landskap.is-kommun:hover {
   text-decoration: underline;
+}
+
+/* Kommunernas namn i länsvyn: blyerts i stället för rödbrunt, som deras
+   gränser. */
+.map-sketch-landskap.is-kommun {
+  color: #3a2f25;
+  letter-spacing: 0.06em;
 }
 
 /* TILLFÄLLIGT: redigeringsläget för landskapslistan (?redigera i adressen). */
