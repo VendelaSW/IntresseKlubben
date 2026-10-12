@@ -48,8 +48,8 @@ function HubPage() {
       })
   }, [])
 
-  // Utan profil finns inget att matcha på, så skicka till "Skapa din profil".
-  if (status === 'no-profile') return <Navigate to="/profil" replace />
+  // Utan profil finns inget att matcha på, så en ny användare skickas till intervjun, där profilen skapas.
+  if (status === 'no-profile') return <Navigate to="/profil/intervju" replace />
 
   if (status === 'loading') {
     return (

@@ -3,9 +3,10 @@ from sqlalchemy.orm import Session
 
 # Samma skydd mot jokertecken (% och _) som klubbsökningen.
 from app.crud.group import _escape_like
-from app.models.interest import Interest, InterestStatus
+from app.models.interest import Interest, InterestSource, InterestStatus
 from app.models.user import User
 from app.models.user_interest import UserInterest
+from app.services.interest_matching import LibraryIndex, LibraryItem
 
 # Hur många träffar en sökning ger som mest.
 SEARCH_LIMIT = 20
@@ -55,6 +56,40 @@ def search_interests(db: Session, query: str, limit: int = SEARCH_LIMIT) -> list
     return sorted(candidates, key=rank)[:limit]
 
 
+def load_library_index(db: Session) -> LibraryIndex:
+    """Alla aktiva intressen som ett uppslagsregister för matchningen (se
+    services/interest_matching.py): nivå, plats i trädet, alias och om intresset är ett eget som en
+    användare skapat. Hämtas med en fråga, och trädet byggs i minnet."""
+    rows = _active(db).all()
+    by_id = {row.id: row for row in rows}
+
+    def ancestors(row: Interest) -> list[Interest]:
+        chain: list[Interest] = []
+        parent = by_id.get(row.parent_id) if row.parent_id is not None else None
+        while parent is not None and len(chain) < 10:  # skydd mot en cirkel
+            chain.insert(0, parent)
+            parent = by_id.get(parent.parent_id) if parent.parent_id is not None else None
+        return chain
+
+    items = []
+    for row in rows:
+        chain = ancestors(row)
+        items.append(
+            LibraryItem(
+                id=row.id,
+                name=row.name,
+                aliases=tuple(alias.strip() for alias in (row.aliases or "").split("\n") if alias.strip()),
+                parent_id=row.parent_id if row.parent_id in by_id else None,
+                level=len(chain) + 1,
+                path=tuple(parent.name for parent in chain),
+                own=row.source != InterestSource.library.value,
+                activities=tuple(row.activities) if row.activities is not None else None,
+            )
+        )
+    items.sort(key=lambda item: (*item.path, item.name))
+    return LibraryIndex(items)
+
+
 def interest_path(interest: Interest) -> list[str]:
     """Namnen ovanför intresset i trädet, uppifrån."""
     path = []
@@ -89,10 +124,9 @@ def allowed_activities(interest: Interest) -> list[str]:
 
     Ett intresse utan egen lista ärver förälderns, så att Pokémon TCG får
     Kortspels "spela" och "samla" men aldrig "odla". En tom lista betyder
-    uttryckligen inga. Ett huvudområde har aldrig någon aktivitet: listan där
-    är bara ett standardvärde för det som ligger under."""
-    if interest.parent_id is None:
-        return []
+    uttryckligen inga. Också ett huvudområdes egen lista räknas: den som skriver
+    "jag gillar att lyssna på musik" får Musik med "lyssna". Skriver man inget om
+    hur, sätts ingen aktivitet (det avgörs av analysen, inte av den här listan)."""
     node = interest
     while node is not None:
         if node.activities is not None:

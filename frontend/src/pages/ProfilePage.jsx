@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import BlockedUsers from '../components/BlockedUsers'
 import DeleteAccount from '../components/DeleteAccount'
 import InterestExplorer from '../components/InterestExplorer'
@@ -194,6 +195,11 @@ function NewProfileImage({ name, image, onChange }) {
 }
 
 function ProfilePage() {
+  const navigate = useNavigate()
+  // ?lista=1: formuläret där man väljer intressen ur listan i stället för att gå igenom intervjun. Dit länkar
+  // intervjun när AI:n inte kan tolka texten.
+  const [searchParams] = useSearchParams()
+  const listMode = searchParams.has('lista')
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   const [editing, setEditing] = useState(false)
@@ -221,10 +227,14 @@ function ProfilePage() {
     // anta att det finns en giltig token när den här sidan visas.
     Promise.all([getProfile(), getMunicipalities(), getMyInterests()])
       .then(([data, list, mine]) => {
+        // Ingen profil än → intervjun, där profilen skapas. Med ?lista=1 visas formuläret i stället.
+        if (data === null && !listMode) {
+          navigate('/profil/intervju', { replace: true })
+          return
+        }
         setProfile(data)
         setMunicipalities(list)
         setMyInterests(mine)
-        // Ingen profil än → visa formuläret direkt.
         setEditing(data === null)
         setStatus('ready')
       })

@@ -7,6 +7,8 @@ from app.api.routes.contacts import router as contacts_router
 from app.api.routes.events import router as events_router
 from app.api.routes.groups import router as groups_router
 from app.api.routes.health import router as health_router
+from app.api.routes.interest_analysis import router as interest_analysis_router
+from app.api.routes.interest_confirm import router as interest_confirm_router
 from app.api.routes.interests import router as interests_router
 from app.api.routes.interview import router as interview_router
 from app.api.routes.messages import router as messages_router
@@ -33,6 +35,8 @@ app.include_router(health_router)
 app.include_router(profile_router)
 app.include_router(interview_router)
 app.include_router(interests_router)
+app.include_router(interest_analysis_router)
+app.include_router(interest_confirm_router)
 app.include_router(user_router)
 app.include_router(municipalities_router)
 app.include_router(contacts_router)
