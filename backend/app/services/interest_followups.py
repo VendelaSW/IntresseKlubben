@@ -2,21 +2,19 @@
 Följdfrågor när AI:n är osäker på vad användaren menar, och vilka förslag som blir kvar när ett mer
 specifikt förslag täcker ett bredare.
 
-Två sorters frågor, och de kommer i den här ordningen för ett intresse:
-1. NARROW: användaren nämnde bara ett huvudområde ("Jag gillar musik") som har underintressen. Frågan är
-   "Något särskilt inom musik?", med områdets underintressen som alternativ plus "Bara allmänt". Svarar
-   man allmänt är det området självt som sparas och visas på profilen, och väljer man något är det det
-   som sparas, utan området ovanför.
-2. ACTIVITY: texten har inte sagt hur man håller på med intresset, och intresset kan utövas på minst två
-   sätt. Frågan är "Hur håller du på med Metal?", med intressets aktiviteter (spelar, lyssnar på...) plus
-   "Allmänt". Man kan välja flera, och varje val blir en aktivitet.
-
-För ett huvudområde med underintressen ställs bara den första frågan. Aktivitetsfrågan om det man valde
-kommer efter den, och för att den ska gå att ställa utan ett nytt anrop bär varje alternativ i den första
-frågan sina aktiviteter (Option.activities), eftersom ett underintresse kan ha en annan lista än området.
+Högst EN följdfråga per förslag, och den ska fånga det som är oklart. Det är aldrig två frågor i rad om
+samma intresse. Vilken fråga det blir avgörs av vad som saknas:
+- NARROW: användaren nämnde bara ett huvudområde ("Jag gillar musik") som har underintressen. Frågan är
+  "Något särskilt inom musik?", med områdets underintressen som alternativ plus "Bara allmänt". Svarar
+  man allmänt är det området självt som sparas och visas på profilen, och väljer man något är det det
+  som sparas, utan området ovanför. Aktivitet frågas inte om för just det intresset.
+- ACTIVITY: ett mer specifikt intresse (eller ett område utan underintressen), texten har inte sagt hur
+  man håller på med det, och det kan utövas på minst två sätt. Frågan är "Hur håller du på med Metal?",
+  med intressets aktiviteter (spelar, lyssnar på...) plus "Allmänt". Man kan välja flera, och varje val
+  blir en aktivitet.
 
 Alternativen kommer ur biblioteket, så inget modellanrop behövs och svaret är alltid något som är tillåtet.
-Högst MAX_FOLLOWUPS frågor, i den ordning användaren nämnde intressena.
+Högst MAX_FOLLOWUPS frågor totalt, i den ordning användaren nämnde intressena.
 
 Ett förslag som ligger över ett annat förslag i trädet tas bort: skriver någon "musik och hårdrock" är det
 Metal som sparas, inte Musik också, och då ställs ingen fråga om musik. Aktiviteten som sades om det
@@ -36,9 +34,6 @@ ACTIVITY = "activity"
 class Option:
     value: str  # intressets id som text (narrow) eller aktivitetens slug (activity), eller "" för allmänt
     label: str
-    # Bara för narrow: aktiviteterna som gäller om man väljer alternativet, så att nästa fråga går att
-    # ställa direkt. För "Bara allmänt" är det områdets egna.
-    activities: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -114,17 +109,19 @@ def followups(matches: list[Match], index: LibraryIndex, labels: dict[str, str] 
         if match.kind == "none":
             continue
 
-        # 1. Bara ett huvudområde med underintressen: fråga om något särskilt inom det.
+        # Bara ett huvudområde med underintressen: fråga om något särskilt inom det. Det är den enda frågan
+        # om förslaget, så aktivitet frågas inte om efteråt.
         if match.kind == "same" and match.interest_id in index.by_id:
             area = index.by_id[match.interest_id]
             kids = sorted(children.get(area.id, []), key=lambda kid: kid.name)
             if area.level == 1 and kids:
-                options = tuple(Option(str(kid.id), kid.name, tuple(index.effective_activities(kid.id))) for kid in kids)
-                general = Option("", GENERAL_AREA, tuple(index.effective_activities(area.id)))
-                questions.append(FollowUp(match.tag.key, NARROW, f"Något särskilt inom {area.name.lower()}?", (*options, general)))
-                continue
+                options = tuple(Option(str(kid.id), kid.name) for kid in kids)
+                questions.append(
+                    FollowUp(match.tag.key, NARROW, f"Något särskilt inom {area.name.lower()}?", (*options, Option("", GENERAL_AREA)))
+                )
+                continue  # en fråga per förslag
 
-        # 2. Texten sa inte hur man håller på med det, och det finns flera sätt: fråga om aktiviteten.
+        # Annars, om texten inte sa hur man håller på med det och det finns flera sätt: fråga om aktiviteten.
         if match.activity:
             continue
         interest_id = match.interest_id if match.kind == "same" else match.parent_id

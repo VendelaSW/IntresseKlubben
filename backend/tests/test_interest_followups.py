@@ -80,26 +80,11 @@ def test_the_options_are_the_areas_children_by_name_then_stay_general(index):
     assert all(isinstance(o.value, str) for o in question.options)
 
 
-def test_each_option_carries_the_activities_that_apply_if_it_is_chosen(index):
+def test_the_options_carry_nothing_but_the_choice_itself(index):
+    # Ingen andra fråga följer efter, så alternativen behöver inga aktiviteter.
     (question,) = followups([same(1)], index, LABELS)
-    by_label = {o.label: o for o in question.options}
-    assert by_label["Metal"].activities == ("lyssna", "spela", "skapa", "besoka")  # ärvt från Musik
-    assert by_label["Stilla"].activities == ()  # uttryckligen inga
-    assert by_label[GENERAL_AREA].activities == ("lyssna", "spela", "skapa", "besoka")  # området självt
-
-
-def test_an_area_whose_children_have_their_own_lists_gets_them_per_option():
-    items = [
-        item(1, "Sport", activities=["utova", "titta"]),
-        item(2, "Löpning", 1, 2, ["Sport"]),
-        item(3, "Schack", 1, 2, ["Sport"], activities=["spela"]),
-    ]
-    (question,) = followups([same(1)], LibraryIndex(items))
-    assert {o.label: o.activities for o in question.options} == {
-        "Löpning": ("utova", "titta"),
-        "Schack": ("spela",),
-        GENERAL_AREA: ("utova", "titta"),
-    }
+    assert all(o == Option(o.value, o.label) for o in question.options)
+    assert not hasattr(question.options[0], "activities")
 
 
 def test_an_area_gets_the_question_even_if_it_has_only_one_way_to_do_it(index):
@@ -114,8 +99,12 @@ def test_an_area_gets_the_question_even_if_the_text_said_how(index):
     assert question.type == NARROW
 
 
-def test_an_area_gets_only_the_narrowing_question_not_the_activity_question_too(index):
-    assert [q.type for q in followups([same(1)], index)] == [NARROW]
+def test_every_proposal_gets_at_most_one_question(index):
+    matches = [same(1, "t1"), same(2, "t2"), same(9, "t3"), same(12, "t4"), same(5, "t5"), new(1, "t6", "Synthwave")]
+    for match in matches:
+        assert len(followups([match], index)) <= 1
+    questions = followups(matches, index)
+    assert len(questions) == len({q.key for q in questions})  # aldrig två frågor om samma förslag
 
 
 def test_an_area_without_children_is_asked_about_activity_instead(index):
