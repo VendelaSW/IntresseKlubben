@@ -197,7 +197,9 @@ function ProfileInterview() {
 
   // Det som ska spelas byts: det nya klippet startas från början medan det gamla ligger kvar
   // synligt, och först när det nya har en bild på skärmen tar det över.
+  // Körs först när videoelementen finns: medan sidan väntar på profilkollen (checkingProfile) visas ingenting.
   useEffect(() => {
+    if (checkingProfile) return undefined
     setCaption('')
     const next = videoEls.current[current]
     if (!next) return undefined
@@ -222,7 +224,7 @@ function ProfileInterview() {
     // Om bildrutan aldrig meddelas (t.ex. i en bakgrundsflik) visas klippet ändå.
     const fallback = setTimeout(reveal, 400)
     return () => clearTimeout(fallback)
-  }, [current])
+  }, [current, checkingProfile])
 
   // De klipp som varken syns eller ska spelas pausas, så att inget ljud hörs i onödan.
   useEffect(() => {
