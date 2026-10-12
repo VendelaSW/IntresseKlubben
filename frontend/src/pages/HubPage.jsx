@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { getMyInterests } from '../services/interests'
 import { getProfile } from '../services/profile'
 
@@ -31,7 +31,7 @@ const swedishList = new Intl.ListFormat('sv', { type: 'conjunction' })
 // Huvudsidan efter inloggning: en personlig välkomst och en väg vidare till
 // personer och klubbar. Listorna själva finns på respektive sida.
 function HubPage() {
-  const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'no-profile' | 'error'
+  const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null)
   const [interests, setInterests] = useState([])
 
@@ -40,7 +40,7 @@ function HubPage() {
       .then(([data, mine]) => {
         setProfile(data)
         setInterests(mine)
-        setStatus(data === null ? 'no-profile' : 'ready')
+        setStatus('ready')
       })
       .catch((err) => {
         // 401 hanteras globalt (useAuth loggar ut och ProtectedRoute skickar vidare).
@@ -48,8 +48,6 @@ function HubPage() {
       })
   }, [])
 
-  // Utan profil finns inget att matcha på, så skicka till "Skapa din profil".
-  if (status === 'no-profile') return <Navigate to="/profil" replace />
 
   if (status === 'loading') {
     return (

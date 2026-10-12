@@ -17,6 +17,15 @@ class User(Base):
     interests = relationship("Interest", secondary=user_interests, back_populates="users")
     profile = relationship("Profile", back_populates="user", uselist=False)
 
+    @property
+    def profile_completed(self) -> bool:
+        """Har användaren gjort klart sin profil? Tills dess är resten av appen
+        låst (se require_profile i auth/security.py). En profil kan bara sparas
+        med alla obligatoriska fält och minst ett intresse, så att den finns
+        betyder att den är klar. Ändras här om "klar" ska betyda mer, t.ex.
+        onboarding_completed_at."""
+        return self.profile is not None
+
 
 # Skiftlägesokänsligt unikt: "Vendela" och "vendela" får inte båda finnas.
 # create_user kollar redan detta i koden, indexet stoppar race conditions.

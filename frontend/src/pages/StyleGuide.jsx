@@ -157,7 +157,8 @@ function StyleGuide() {
           Handritade, matchar loggans stil (.nav-icon). Ikon ovanför text, används i huvudmenyn.
           På smala skärmar krymper ikonerna, texten och luften mellan menypunkterna steglöst
           (clamp), så att alla ryms på en rad ned till 320 px. Från ca 400 px gäller de vanliga
-          måtten: 34 px ikon, 0,8 rem text.
+          måtten: 34 px ikon, 0,8 rem text. Innan profilen är klar är menypunkterna låsta
+          (.app-nav-link-locked): nedtonade och inte klickbara.
         </p>
         <div className="swatch-grid" style={{ marginTop: '1rem' }}>
           {NAV_ICONS.map(({ icon, label }) => (

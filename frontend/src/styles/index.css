@@ -966,7 +966,13 @@ span.tag-selected:hover {
 /* Hover/fokus på en menypunkt som inte är aktiv: ikonen växer och får en gul
    kontur längs de svarta linjerna. drop-shadow följer PNG:ens genomskinlighet,
    och fyra hårda skuggor (en åt varje håll) blir tillsammans en kant. */
-.app-nav-link:not(.active):hover .nav-icon,
+/* Menyikon som inte går att använda än (innan profilen är klar). */
+.app-nav-link-locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.app-nav-link:not(.active):not(.app-nav-link-locked):hover .nav-icon,
 .app-nav-link:not(.active):focus-visible .nav-icon {
   transform: scale(1.15);
   filter: drop-shadow(1px 0 0 var(--color-accent)) drop-shadow(-1px 0 0 var(--color-accent))

@@ -7,6 +7,7 @@ import TextareaWithCount from '../components/TextareaWithCount'
 import { useAuth } from '../hooks/useAuth'
 import { checkAvailability, getCurrentUser, updateAccount } from '../services/api'
 import { imageToWebp } from '../services/imageToWebp'
+import { clearProfileDraft, loadProfileDraft, saveProfileDraft } from '../services/profileDraft'
 import { addInterest, getMyInterests, removeInterest } from '../services/interests'
 import {
   GENDER_OPTIONS,
@@ -132,7 +133,7 @@ function NewProfileImage({ name, image, onChange }) {
 }
 
 function ProfilePage() {
-  const { updateUser } = useAuth()
+  const { user, updateUser } = useAuth()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   // Kontouppgifterna (användarnamn och e-post) från /users/me. Visas i
@@ -174,7 +175,21 @@ function ProfilePage() {
         setMunicipalities(list)
         setMyInterests(mine)
         setAccount(me)
-        // Ingen profil än → visa formuläret direkt.
+        // Ingen profil än → visa formuläret direkt, med det man redan fyllt i
+        // om man lämnat sidan innan profilen sparades (se profileDraft.js).
+        if (data === null) {
+          const draft = loadProfileDraft(me.id)
+          if (draft) {
+            setName(draft.name ?? '')
+            setBirthDate(draft.birthDate ?? '')
+            setGender(draft.gender ?? '')
+            setGenderSearchable(draft.genderSearchable ?? false)
+            setMunicipalityCode(draft.municipalityCode ?? '')
+            setDistrict(draft.district ?? '')
+            setAboutText(draft.aboutText ?? '')
+            setDraftInterests(draft.interests ?? [])
+          }
+        }
         setEditing(data === null)
         setStatus('ready')
       })
@@ -185,6 +200,24 @@ function ProfilePage() {
         if (err.status !== 401) setStatus('error')
       })
   }, [])
+
+  // "Skapa din profil": spara utkastet medan man fyller i, så att inget går
+  // förlorat om man råkar lämna sidan eller laddar om den. Bilden kan inte
+  // sparas så, den väljer man igen.
+  const creating = status === 'ready' && profile === null && account !== null
+  useEffect(() => {
+    if (!creating) return
+    saveProfileDraft(account.id, {
+      name,
+      birthDate,
+      gender,
+      genderSearchable,
+      municipalityCode,
+      district,
+      aboutText,
+      interests: draftInterests,
+    })
+  }, [creating, account, name, birthDate, gender, genderSearchable, municipalityCode, district, aboutText, draftInterests])
 
   function startEditing() {
     setName(profile?.name ?? '')
@@ -306,8 +339,13 @@ function ProfilePage() {
     }
     setProfile(saved)
 
-    // 3. En ny profil sparade intressena i steg 1.
-    if (isNew) setMyInterests([...draftInterests].sort(byName))
+    // 3. En ny profil sparade intressena i steg 1. Nu är profilen klar, så
+    //    resten av appen låses upp (se RequireProfile).
+    if (isNew) {
+      setMyInterests([...draftInterests].sort(byName))
+      clearProfileDraft(account.id)
+      updateUser({ ...user, profile_completed: true })
+    }
 
     setEditing(false)
     setSaving(false)

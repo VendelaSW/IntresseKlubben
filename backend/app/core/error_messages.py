@@ -27,6 +27,8 @@ DISTRICT_TOO_LONG = "Stadsdel får max vara 100 tecken"
 PROFILE_TEXT_EMPTY = "Om mig-texten får inte vara tom"
 PROFILE_TEXT_TOO_LONG = "Om mig-texten får max vara 800 tecken"
 INTERESTS_REQUIRED = "Välj minst ett intresse"
+# Resten av appen är låst tills profilen är klar (se require_profile).
+PROFILE_REQUIRED = "Skapa din profil först."
 
 # ---------- Profil och intressen (routes/profile.py, routes/interests.py) ----------
 PROFILE_NOT_FOUND = "Ingen profil hittad"

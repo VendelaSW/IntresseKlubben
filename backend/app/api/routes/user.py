@@ -57,7 +57,7 @@ förslag, så de kan dyka upp igen.
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.auth.security import create_access_token, get_current_user, verify_password
+from app.auth.security import create_access_token, get_current_user, require_profile, verify_password
 from app.core import storage
 from app.crud.contact import blocked_user_ids, is_blocked
 from app.crud.dismissed_suggestion import (
@@ -199,7 +199,13 @@ def _to_person_response(profile) -> PersonResponse:
     )
 
 
-@router.get("/", response_model=list[PersonResponse])
+# Personer, förslag och andras profiler är låsta tills ens egen profil är klar
+# (se require_profile). /users/me och inloggningen är öppna.
+@router.get(
+    "/",
+    response_model=list[PersonResponse],
+    dependencies=[Depends(require_profile)],
+)
 def read_people(
     interest_id: int | None = None,
     municipality_code: str | None = None,
@@ -222,7 +228,11 @@ def read_people(
     return [_to_person_response(p) for p in profiles]
 
 
-@router.post("/{user_id}/dismiss", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/{user_id}/dismiss",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_profile)],
+)
 def dismiss_person(
     user_id: int,
     current_user: User = Depends(get_current_user),
@@ -239,7 +249,11 @@ def dismiss_person(
     dismiss_suggestion(db, current_user.id, other.id)
 
 
-@router.delete("/dismissed-suggestions", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/dismissed-suggestions",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_profile)],
+)
 def reset_suggestions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -259,7 +273,11 @@ def _to_public_response(profile) -> PublicProfileResponse:
     )
 
 
-@router.get("/{user_id}/profile", response_model=PublicProfileResponse)
+@router.get(
+    "/{user_id}/profile",
+    response_model=PublicProfileResponse,
+    dependencies=[Depends(require_profile)],
+)
 def read_user_profile(
     user_id: int,
     current_user: User = Depends(get_current_user),
