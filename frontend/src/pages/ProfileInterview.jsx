@@ -148,6 +148,7 @@ function ProfileInterview() {
   // Att spara profilen
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [saveStatus, setSaveStatus] = useState(null) // HTTP-koden på felet, för att veta vad man kan göra åt det
   // Har sigillen gått ut (400 vid sparande)? Då får man tolka texterna på nytt.
   const [expired, setExpired] = useState(false)
   const navigate = useNavigate()
@@ -411,6 +412,16 @@ function ProfileInterview() {
     }
   }
 
+  // Går tillbaka till sista frågan för att ändra sin text (t.ex. när "Om mig" nekades). Intressena man valt bort och
+  // lagt till finns kvar, eftersom intressetexten inte ändras.
+  function editAnswers() {
+    setFinished(false)
+    setAnalysis(null)
+    setIndex(STEPS.length - 1)
+    setSaveError('')
+    setSaveStatus(null)
+  }
+
   // Sigillen gäller i 30 minuter. Har de gått ut tolkas texterna om, och man får välja bort det man ville ta bort igen.
   async function reanalyze() {
     setSaving(true)
@@ -449,6 +460,7 @@ function ProfileInterview() {
     }
     setSaving(true)
     setSaveError('')
+    setSaveStatus(null)
     try {
       await completeInterview({
         name: answers.name.trim(),
@@ -459,9 +471,10 @@ function ProfileInterview() {
         district: answers.district.trim() || null,
         batches: approved,
       })
-      navigate('/profil')
+      navigate('/hem')
     } catch (error) {
       setExpired(error instanceof ApiError && error.status === 400)
+      setSaveStatus(error instanceof ApiError ? error.status : null)
       setSaveError(messageOf(error))
     } finally {
       setSaving(false)
@@ -679,6 +692,11 @@ function ProfileInterview() {
                 )}
                 <p className="hint-text">Du kan ändra din profil och dina intressen senare om vi missat något!</p>
                 {saveError && <p className="form-error">{saveError}</p>}
+                {saveStatus === 422 && (
+                  <button type="button" className="secondary-button" disabled={saving} onClick={editAnswers}>
+                    Ändra mina svar
+                  </button>
+                )}
                 {expired ? (
                   <button type="button" className="primary-button" disabled={saving} onClick={reanalyze}>
                     {saving ? 'Tolkar...' : 'Tolka om'}
