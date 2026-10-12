@@ -80,6 +80,19 @@ async function loadRegions() {
   return regions
 }
 
+// Kommunen med en viss kod (som i profilen), som { name, bounds, kod, geometry },
+// eller null.
+export async function kommunByCode(code) {
+  const { kommuner } = await loadRegions()
+  const kommun = kommuner.find((f) => f.properties.kod === code)
+  if (!kommun) return null
+  const [w, s, e, n] = kommun.properties.bbox
+  return { name: `${kommun.properties.namn} kommun`, bounds: [[w, s], [e, n]], kod: code, geometry: kommun.geometry }
+}
+
+// Ligger punkten i ytan (för t.ex. kommunens yta från kommunByCode)?
+export const isInside = (geometry, [lng, lat]) => contains(geometry, lng, lat)
+
 // Vilket landskap ligger punkten i? Namnet, eller null (havet, utomlands).
 // Används när landskapsnamn placeras, så att ett namn som flyttas står i sitt
 // eget landskap eller på tomt papper, men aldrig i ett annat landskap.

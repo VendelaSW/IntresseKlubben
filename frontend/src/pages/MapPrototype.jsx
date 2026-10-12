@@ -11,8 +11,11 @@ import MapPageWidgets from './MapPageWidgets'
 import MapProfilePad from './MapProfilePad'
 import MapProfileWidget from './MapProfileWidget'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
+import { getProfile } from '../services/profile'
 import {
   ZOOM_LEVELS,
+  isInside,
+  kommunByCode,
   landskapAt,
   landskapMaskAt,
   landskapNameAt,
@@ -96,6 +99,19 @@ function constrainToSweden(fit, lngLat, zoom) {
 // (som MapLibre lutar i 3D) och blockets linjer (som lutas med CSS, se
 // .map-sketch-paper) alltid ligger i samma plan.
 const TILT = 45
+
+// Platser i kartans data som en stadsdel i profilen kan matcha (fritext),
+// och zoomen man hamnar på när den hittas.
+const DISTRICT_CLASSES = ['city', 'town', 'village', 'suburb', 'quarter', 'neighbourhood', 'hamlet', 'island']
+const DISTRICT_ZOOM = 13.5
+
+// Jämför ortnamn: små bokstäver, utan extra mellanslag och skiljetecken.
+const normalizePlace = (text) =>
+  text
+    .toLocaleLowerCase('sv')
+    .replace(/[^a-zåäöéü0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 
 // Kartans nivåer. På 'sverige' och 'landskap' är zoomen låst: man tar sig
 // vidare genom att klicka (på ett landskap, eller i landskapet för att komma
@@ -831,6 +847,46 @@ function MapPrototype() {
     const next = Math.max(0, Math.min(order.length - 1, current + direction))
     if (next !== current) zoomToLevel(order[next], lngLat)
   }
+  // Kartan börjar där användaren bor enligt profilen: först kommunen (en kod
+  // från en fast lista, så den hittas alltid), sedan stadsdelen (fritext) om
+  // ett ortnamn i kartans egen data inom kommunen stämmer med den. Hittas
+  // ingen stadsdel blir kartan kvar på kommunen. Ingen profil eller kommun:
+  // kartan börjar där den gör nu.
+  async function startAtHome(map) {
+    let profile
+    try {
+      profile = await getProfile()
+    } catch {
+      return
+    }
+    const kommun = profile?.municipality_code && (await kommunByCode(profile.municipality_code))
+    if (!kommun || mapRef.current !== map) return
+    setMode('free')
+    const camera = map.cameraForBounds(kommun.bounds, { padding: LEVEL_PADDING, pitch: TILT })
+    if (camera) map.jumpTo({ center: camera.center, zoom: camera.zoom })
+    setLevelName(kommun.name)
+
+    const district = profile.district && normalizePlace(profile.district)
+    if (!district) return
+    // Ortnamnen finns först när kartrutorna har laddats.
+    map.once('idle', () => {
+      if (mapRef.current !== map) return
+      const candidates = map
+        .querySourceFeatures('openmaptiles', { sourceLayer: 'place' })
+        .filter((f) => DISTRICT_CLASSES.includes(f.properties.class) && f.properties.name)
+        .filter((f) => isInside(kommun.geometry, f.geometry.coordinates))
+      const name = (f) => normalizePlace(f.properties['name:sv'] ?? f.properties.name)
+      // Helst exakt samma namn, annars ett namn som börjar med texten (eller
+      // tvärtom, t.ex. "Gustavsberg centrum" -> Gustavsberg).
+      const match =
+        candidates.find((f) => name(f) === district) ??
+        candidates.find((f) => name(f).startsWith(district) || district.startsWith(name(f)))
+      if (!match) return
+      map.easeTo({ center: match.geometry.coordinates, zoom: DISTRICT_ZOOM, duration: 1200 })
+      setLevelName(match.properties['name:sv'] ?? match.properties.name)
+    })
+  }
+
   const zoomToLevelRef = useRef(zoomToLevel)
   zoomToLevelRef.current = zoomToLevel
   const stepLevelRef = useRef(stepLevel)
@@ -981,6 +1037,7 @@ function MapPrototype() {
     })
     // Redigeringsläget börjar på Sverige-nivån.
     if (editing) map.once('load', () => zoomToLevelRef.current('sverige'))
+    else startAtHome(map)
     labelsApiRef.current = labelsApi
     // Mätt innan Caveat hann laddas blir listans bredd fel: räkna om då.
     document.fonts?.ready.then(() => mapRef.current === map && fitSweden())
