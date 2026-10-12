@@ -27,6 +27,8 @@ bredare ("jag lyssnar på musik, särskilt hårdrock") följer med till det spec
 
 from dataclasses import dataclass, replace
 
+from app.services.ai_clients import Deadline
+from app.services.interest_activities import Subject, suggest_activities
 from app.services.interest_matching import LibraryIndex, Match
 
 MAX_FOLLOWUPS = 3
@@ -105,9 +107,20 @@ def _name_in_sentence(match: Match, index: LibraryIndex) -> str:
     return match.name or ""
 
 
-def followups(matches: list[Match], index: LibraryIndex, labels: dict[str, str] | None = None) -> list[FollowUp]:
+def _target_id(match: Match) -> int | None:
+    return match.interest_id if match.kind == "same" else match.parent_id
+
+
+def followups(
+    matches: list[Match],
+    index: LibraryIndex,
+    labels: dict[str, str] | None = None,
+    allowed: dict[str, list[str]] | None = None,
+) -> list[FollowUp]:
     """Följdfrågorna för förslagen (efter drop_covered), högst en per förslag. `labels` är aktiviteternas
-    namn ("spela" -> "Spelar"), ur bibliotekets aktivitetslista. Saknas en etikett används sluggen."""
+    namn ("spela" -> "Spelar"), ur bibliotekets aktivitetslista. Saknas en etikett används sluggen.
+    `allowed` är aktiviteterna som gäller för varje förslag (nyckel -> slugs), när de inte bara är
+    bibliotekets (se plan). Utan den används bibliotekets lista."""
     labels = labels or {}
     children: dict[int, list] = {}
     for item in index.items:
@@ -120,8 +133,7 @@ def followups(matches: list[Match], index: LibraryIndex, labels: dict[str, str] 
             break
         if match.kind == "none":
             continue
-        interest_id = match.interest_id if match.kind == "same" else match.parent_id
-        activities = index.effective_activities(interest_id)
+        activities = allowed[match.tag.key] if allowed is not None and match.tag.key in allowed else index.effective_activities(_target_id(match))
         activity_options = tuple(Option(slug, labels.get(slug, slug), ACTIVITY_KIND) for slug in activities)
         wants_activity = not match.activity and len(activities) >= 2
 
@@ -153,3 +165,49 @@ def settle(
     """Förslagen som blir kvar, och följdfrågorna till dem."""
     kept = drop_covered(matches, index)
     return kept, followups(kept, index, labels)
+
+
+@dataclass
+class Plan:
+    matches: list[Match]  # förslagen som blir kvar, med sin aktivitet
+    followups: list[FollowUp]
+    # Aktiviteterna som är tillåtna för varje förslag (nyckel -> slugs): det som får väljas i frågan eller
+    # sparas, och det sigillet ska täcka.
+    allowed: dict[str, list[str]]
+
+
+def plan(
+    matches: list[Match], index: LibraryIndex, catalog: dict[str, str], deadline: Deadline | None = None
+) -> Plan:
+    """Förslagen som blir kvar och frågorna till dem, med aktiviteter även för intressen där biblioteket
+    saknar en lista: för dem väljer modellen ur `catalog` (slug -> namn), i ett enda anrop och bara om något
+    behöver det. Biblioteket vinner när det har en lista. En aktivitet som texten sa för ett sådant intresse
+    godtas om den finns i `catalog`, eftersom användaren själv sa den."""
+    kept = drop_covered(matches, index)
+    live = [m for m in kept if m.kind != "none"]
+    gaps = [m for m in live if not index.activities_defined(_target_id(m))]
+
+    subjects = []
+    for m in gaps:
+        if m.kind == "same" and m.interest_id in index.by_id:
+            item = index.by_id[m.interest_id]
+            subjects.append(Subject(m.tag.key, item.name, item.path))
+        elif m.kind == "new" and m.parent_id in index.by_id:
+            parent = index.by_id[m.parent_id]
+            subjects.append(Subject(m.tag.key, m.name or m.tag.name, (*parent.path, parent.name)))
+    suggestions = suggest_activities(subjects, catalog, deadline)
+
+    allowed: dict[str, list[str]] = {}
+    result = list(kept)
+    for number, m in enumerate(kept):
+        if m.kind == "none":
+            continue
+        if index.activities_defined(_target_id(m)):
+            allowed[m.tag.key] = index.effective_activities(_target_id(m))
+            continue
+        options = list(suggestions.get(m.tag.key, []))
+        if m.tag.activity and m.tag.activity in catalog and m.tag.activity not in options:
+            options.append(m.tag.activity)
+        allowed[m.tag.key] = options
+        result[number] = replace(m, activity=m.tag.activity if m.tag.activity in options else m.activity)
+    return Plan(result, followups(result, index, catalog, allowed), allowed)

@@ -91,6 +91,18 @@ class LibraryIndex:
             node = self.by_id.get(node.parent_id) if node.parent_id is not None else None
         return []
 
+    def activities_defined(self, interest_id: int | None) -> bool:
+        """Har intresset, eller något över det, en aktivitetslista i biblioteket (också en uttryckligt tom)?
+        Om inte är det en lucka som modellen får fylla (se interest_activities.py)."""
+        node = self.by_id.get(interest_id) if interest_id is not None else None
+        seen: set[int] = set()
+        while node is not None and node.id not in seen:
+            if node.activities is not None:
+                return True
+            seen.add(node.id)
+            node = self.by_id.get(node.parent_id) if node.parent_id is not None else None
+        return False
+
     def find(self, text: str) -> list[LibraryItem]:
         """Intressena som heter så, och om inget heter så, de som har det som alias."""
         key = normalize(text)

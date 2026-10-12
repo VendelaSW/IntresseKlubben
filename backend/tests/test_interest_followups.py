@@ -16,9 +16,12 @@ from app.services.interest_followups import (
     Option,
     drop_covered,
     followups,
+    plan,
     settle,
 )
+from app.services.ai_clients import AIFailed, set_clients
 from app.services.interest_matching import LibraryIndex, LibraryItem, Match, Tag
+from tests.fakes import FakeLLM
 
 LABELS = {"lyssna": "Lyssnar på", "spela": "Spelar", "skapa": "Skapar", "besoka": "Besöker", "titta": "Tittar på", "samla": "Samlar"}
 
@@ -43,6 +46,10 @@ def index():
             item(10, "Ensamt område"),  # inga aktiviteter alls
             item(11, "Stilla", 1, 2, ["Musik"], activities=[]),  # uttryckligen inga
             item(12, "Fritid", activities=["spela", "samla"]),  # ett område utan underintressen
+            item(13, "Djur och natur"),  # ingen lista i biblioteket: en lucka som modellen fyller
+            item(14, "Katter", 13, 2, ["Djur och natur"]),
+            item(15, "Historia"),
+            item(16, "Mynt", 15, 2, ["Historia"]),
         ]
     )
 
@@ -288,3 +295,129 @@ def test_no_question_about_the_area_when_a_specific_proposal_already_covers_it(i
 def test_a_question_for_each_proposal_that_needs_one(index):
     _, questions = settle([same(1, "t1"), same(5, "t2"), same(9, "t3")], index, LABELS)
     assert [(q.key, q.type) for q in questions] == [("t1", SPECIFY), ("t2", NARROW), ("t3", ACTIVITY)]
+
+
+# ---------- Intressen där biblioteket saknar en lista: modellen väljer ----------
+
+CATALOG = {**LABELS, "ha": "Har", "utova": "Utövar", "lara-sig": "Lär sig"}
+
+
+def model_says(suggestions=None, answer=None):
+    llm = FakeLLM({"activities": answer if answer is not None else {"suggestions": suggestions or []}})
+    set_clients(llm=llm)
+    return llm
+
+
+def suggestion(key, *slugs):
+    return {"key": key, "activities": list(slugs)}
+
+
+def test_a_gap_gets_its_activities_from_the_model_in_one_call_for_all(index):
+    llm = model_says([suggestion("t1", "ha", "utova"), suggestion("t2", "samla", "titta")])
+    result = plan([same(14, "t1"), same(16, "t2")], index, CATALOG)
+    assert len(llm.calls_named("activities")) == 1
+    assert result.allowed == {"t1": ["ha", "utova"], "t2": ["samla", "titta"]}
+    assert [(q.key, q.type) for q in result.followups] == [("t1", ACTIVITY), ("t2", ACTIVITY)]
+    assert [o.value for o in result.followups[0].options] == ["ha", "utova", ""]
+    assert [o.label for o in result.followups[0].options] == ["Har", "Utövar", "Allmänt"]
+
+
+def test_the_model_is_not_asked_when_the_library_has_a_list(index):
+    llm = model_says([])
+    result = plan([same(2, "t1"), same(9, "t2")], index, CATALOG)
+    assert llm.calls == []
+    assert result.allowed == {"t1": ["lyssna", "spela", "skapa", "besoka"], "t2": ["spela", "samla"]}
+
+
+def test_an_explicitly_empty_list_in_the_library_is_not_a_gap(index):
+    llm = model_says([suggestion("t1", "spela")])
+    result = plan([same(11, "t1")], index, CATALOG)  # "Stilla" har uttryckligen inga
+    assert llm.calls == []
+    assert result.allowed == {"t1": []} and result.followups == []
+
+
+def test_only_the_gaps_are_sent_to_the_model(index):
+    llm = model_says([suggestion("t2", "ha")])
+    plan([same(2, "t1"), same(14, "t2")], index, CATALOG)
+    (call,) = llm.calls_named("activities")
+    assert '"key": "t1"' not in call.user and '"key": "t2"' in call.user
+
+
+def test_one_suggested_activity_is_nothing_to_ask_about(index):
+    model_says([suggestion("t1", "ha")])
+    result = plan([same(14, "t1")], index, CATALOG)
+    assert result.allowed == {"t1": ["ha"]} and result.followups == []
+
+
+def test_the_model_can_suggest_nothing(index):
+    model_says([suggestion("t1")])
+    result = plan([same(14, "t1")], index, CATALOG)
+    assert result.allowed == {"t1": []} and result.followups == []
+
+
+def test_an_area_that_is_a_gap_gets_the_combined_question_with_the_models_activities(index):
+    model_says([suggestion("t1", "ha", "utova")])
+    (question,) = plan([same(13, "t1")], index, CATALOG).followups
+    assert question.type == SPECIFY
+    assert [(o.label, o.kind) for o in question.options] == [
+        ("Katter", INTEREST),
+        ("Har", ACTIVITY_KIND),
+        ("Utövar", ACTIVITY_KIND),
+        (GENERAL_AREA, GENERAL_KIND),
+    ]
+
+
+def test_an_area_that_is_a_gap_with_one_suggestion_only_asks_about_the_children(index):
+    model_says([suggestion("t1", "ha")])
+    (question,) = plan([same(13, "t1")], index, CATALOG).followups
+    assert question.type == NARROW
+
+
+def test_the_activity_the_text_gave_is_accepted_for_a_gap_even_if_the_model_did_not_suggest_it(index):
+    model_says([suggestion("t1", "ha")])
+    tag_with_activity = Match(Tag("t1", "mynt", activity="samla"), "same", interest_id=16)
+    result = plan([tag_with_activity], index, CATALOG)
+    assert result.allowed["t1"] == ["ha", "samla"]
+    assert result.matches[0].activity == "samla"
+    assert result.followups == []  # texten sa redan hur
+
+
+def test_an_activity_the_text_gave_that_is_not_in_the_catalog_is_dropped(index):
+    model_says([suggestion("t1", "ha")])
+    result = plan([Match(Tag("t1", "katter", activity="flyga"), "same", interest_id=14)], index, CATALOG)
+    assert result.allowed["t1"] == ["ha"] and result.matches[0].activity == ""
+
+
+def test_a_failed_model_call_gives_no_activities_for_the_gap_but_the_rest_still_works(index):
+    model_says(answer=AIFailed("URLError"))
+    result = plan([same(14, "t1"), same(2, "t2")], index, CATALOG)
+    assert result.allowed == {"t1": [], "t2": ["lyssna", "spela", "skapa", "besoka"]}
+    assert [(q.key, q.type) for q in result.followups] == [("t2", ACTIVITY)]
+    assert kinds(result.matches) == ["same", "same"]
+
+
+def test_a_new_interest_under_a_gap_is_asked_about_too(index):
+    llm = model_says([suggestion("t1", "ha", "utova")])
+    result = plan([new(13, "t1", "Fjärilar")], index, CATALOG)
+    assert result.allowed == {"t1": ["ha", "utova"]}
+    assert [q.question for q in result.followups] == ["Hur håller du på med Fjärilar?"]
+    assert '"path": ["Djur och natur"]' in llm.calls[0].user
+
+
+def test_a_new_interest_under_a_listed_area_uses_the_library_list(index):
+    llm = model_says([])
+    result = plan([new(1, "t1", "Synthwave")], index, CATALOG)
+    assert llm.calls == [] and result.allowed["t1"] == ["lyssna", "spela", "skapa", "besoka"]
+
+
+def test_proposals_that_are_dropped_or_none_get_no_entry_and_no_call(index):
+    llm = model_says([])
+    result = plan([none("t1"), same(1, "t2"), same(2, "t3")], index, CATALOG)  # Musik täcks av Metal
+    assert llm.calls == []
+    assert set(result.allowed) == {"t3"}
+
+
+def test_nothing_is_asked_when_there_are_no_proposals(index):
+    llm = model_says([])
+    result = plan([], index, CATALOG)
+    assert llm.calls == [] and result.matches == [] and result.followups == [] and result.allowed == {}
