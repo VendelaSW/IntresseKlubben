@@ -83,6 +83,23 @@ def get_active_interest(db: Session, interest_id: int) -> Interest | None:
     return interest if interest is not None and interest.status == InterestStatus.active.value else None
 
 
+def allowed_activities(interest: Interest) -> list[str]:
+    """Hur intresset kan utövas, som slugs ur bibliotekets aktivitetslista.
+
+    Ett intresse utan egen lista ärver förälderns, så att Pokémon TCG får
+    Kortspels "spela" och "samla" men aldrig "odla". En tom lista betyder
+    uttryckligen inga. Ett huvudområde har aldrig någon aktivitet: listan där
+    är bara ett standardvärde för det som ligger under."""
+    if interest.parent_id is None:
+        return []
+    node = interest
+    while node is not None:
+        if node.activities is not None:
+            return list(node.activities)
+        node = node.parent
+    return []
+
+
 def get_user(db: Session, user_id: int) -> User | None:
     return db.get(User, user_id)
 
