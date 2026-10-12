@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { LngLat, Map as MapLibreMap, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { addMissingDoodle } from './mapPrototypeDoodles'
@@ -11,9 +12,13 @@ import MapPageWidgets from './MapPageWidgets'
 import MapProfilePad from './MapProfilePad'
 import MapProfileWidget from './MapProfileWidget'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
+import { getEvents } from '../services/events'
+import { getGroups, getMyGroups } from '../services/groups'
 import { getProfile } from '../services/profile'
+import { activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
 import {
   ZOOM_LEVELS,
+  allKommuner,
   isInside,
   kommunByCode,
   kommunerInLan,
@@ -110,6 +115,8 @@ const TILT = 45
 const DISTRICT_CLASSES = ['city', 'town', 'village', 'suburb', 'quarter', 'neighbourhood', 'hamlet', 'island']
 // Zoomen för en kommun eller stadsdel: där de skissade husen har vuxit upp.
 const DISTRICT_ZOOM = 15
+// Zoomen för "Visa på kartan": lappen med sin omgivning.
+const ACTIVITY_ZOOM = 11
 // Längst in man kan zooma: kvarter med husen tydliga. Kartdatan har ingen
 // mer detalj längre in (den förstoras bara), och husen blir bara större.
 const MAX_ZOOM = 17
@@ -793,6 +800,58 @@ function MapPrototype() {
   // Räknas upp för varje ny flygning till en ort, så att en gammal inte tar
   // över om man hinner välja en annan kommun.
   const flyTokenRef = useRef(0)
+  const activitiesRef = useRef(null) // klubbarnas och eventens lappar på kartan
+  const activitiesLayerRef = useRef(null)
+  // Används för att öppna en viss klubb eller ett visst event i blocket
+  // (Klubbar och Events läser ?klubb= och ?event= när de öppnas).
+  const [, setSearchParams] = useSearchParams()
+
+  // Hämtar klubbar och events som syns för användaren (samma som listorna i
+  // appen) och lägger dem på kartan.
+  async function loadActivities() {
+    try {
+      const [publicGroups, myGroups, events, kommuner] = await Promise.all([
+        getGroups(),
+        getMyGroups(),
+        getEvents(),
+        allKommuner(),
+      ])
+      const groups = [...new Map([...publicGroups, ...myGroups].map((g) => [g.id, g])).values()]
+      activitiesRef.current?.setItems(activitiesFrom({ groups, events, kommuner }))
+    } catch {
+      // Kartan fungerar utan lapparna.
+    }
+  }
+
+  // Klick på en lapp: öppna klubben eller eventet i sitt block.
+  function openActivity(item) {
+    setSearchParams(item.type === 'klubb' ? { klubb: item.id } : { event: item.id }, { replace: true })
+    setOpenPage(item.type === 'klubb' ? 'klubbar' : 'events')
+  }
+  const openActivityRef = useRef(openActivity)
+  openActivityRef.current = openActivity
+
+  // "Visa på kartan" från Klubbar och Events: stäng blocket, gå till länet
+  // där klubben eller eventet finns och flyg till lappen, som markeras.
+  const mapActions = {
+    hasLocation: (type, id) => Boolean(activitiesRef.current?.getItem(type, id)),
+    showOnMap(type, id) {
+      const item = activitiesRef.current?.getItem(type, id)
+      const map = mapRef.current
+      if (!item || !map) return
+      setOpenPage(null)
+      setMode('free', null, item.lan)
+      map.easeTo({ center: item.lngLat, zoom: ACTIVITY_ZOOM, duration: 1400 })
+      setLevelName(item.name)
+      map.once('moveend', () => activitiesRef.current?.highlight(`${type}:${id}`))
+    },
+  }
+
+  // När ett block stängs kan en klubb eller ett event ha skapats eller
+  // ändrats, så hämta lapparna igen.
+  useEffect(() => {
+    if (openPage === null && activitiesRef.current) loadActivities()
+  }, [openPage])
   // TILLFÄLLIGT: redigeringsläge för landskapslistan (adressen slutar på
   // ?redigera). Namnen går att dra, och positionerna kan kopieras.
   const editing = useMemo(() => new URLSearchParams(window.location.search).has('redigera'), [])
@@ -844,6 +903,7 @@ function MapPrototype() {
     // täcker allt utom det valda landskapet på landskapsnivån, så rita om.
     labelsApiRef.current?.render()
     outsideApiRef.current?.render()
+    activitiesRef.current?.render()
     const hidden = next === 'sverige' ? HIDDEN_ON_SWEDEN : next === 'landskap' ? HIDDEN_ON_LANDSKAP : []
     const shown = next === 'landskap' ? SHOWN_ON_LANDSKAP : []
     for (const layer of [...HIDDEN_ON_LANDSKAP, ...SHOWN_ON_LANDSKAP]) {
@@ -1149,6 +1209,12 @@ function MapPrototype() {
     // Redigeringsläget börjar på Sverige-nivån.
     if (editing) map.once('load', () => zoomToLevelRef.current('sverige'))
     else startAtHome(map)
+    activitiesRef.current = attachActivityMarkers(map, activitiesLayerRef.current, {
+      isShown: () => modeRef.current === 'free',
+      getLan: () => selectedLanRef.current,
+      onPick: (item) => openActivityRef.current(item),
+    })
+    loadActivities()
     labelsApiRef.current = labelsApi
     // Mätt innan Caveat hann laddas blir listans bredd fel: räkna om då.
     document.fonts?.ready.then(() => mapRef.current === map && fitSweden())
@@ -1216,6 +1282,7 @@ function MapPrototype() {
       <canvas ref={buildingsRef} className="map-sketch-buildings" aria-hidden="true" />
       <div ref={signsRef} className="map-sketch-signs" aria-hidden="true" />
       <div ref={labelsRef} className="map-sketch-labels" aria-hidden="true" />
+      <div ref={activitiesLayerRef} className="map-sketch-activities" />
       <div ref={notesRef} className="map-sketch-notes" />
       <div ref={threadRef} className="map-sketch-thread" hidden={!pinsShown} />
       <svg className="map-sketch-compass" viewBox="0 0 80 80" aria-hidden="true">
@@ -1301,7 +1368,7 @@ function MapPrototype() {
       {openPage === 'profil' && <MapProfilePad onClose={() => setOpenPage(null)} />}
       {openPage && openPage !== 'profil' && (
         // key: byter man sida landar ett nytt block.
-        <MapPagePad key={openPage} page={openPage} onClose={() => setOpenPage(null)} />
+        <MapPagePad key={openPage} page={openPage} onClose={() => setOpenPage(null)} mapActions={mapActions} />
       )}
     </div>
   )

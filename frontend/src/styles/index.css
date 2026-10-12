@@ -1835,6 +1835,94 @@ label.person-list-item {
   pointer-events: none;
 }
 
+/* Klubbar och events på kartan (se mapPrototypeActivities.js): små
+   papperslappar med appens ikon, namnet och kommunen/datumet. */
+.map-sketch-activities {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.map-activity {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 11rem;
+  padding: 0.2rem 0.55rem 0.2rem 0.3rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #3a2f25;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.map-activity:hover {
+  z-index: 1;
+  box-shadow: none;
+  translate: 2px 2px;
+}
+
+/* Events på gult papper, klubbar på vitt, så att de går att skilja åt. */
+.map-activity.is-event {
+  background: #fff4b8;
+}
+
+.map-activity img {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.map-activity-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.05;
+}
+
+.map-activity-name {
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.map-activity-sub {
+  color: var(--color-muted);
+  font-size: 0.68rem;
+}
+
+/* Lappen man nyss visade på kartan (från Klubbar eller Events). */
+.map-activity.is-highlighted {
+  z-index: 1;
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Utzoomat bara ikonen; namnet finns i title och syns när man hovrar. */
+.map-activity.is-compact {
+  padding: 0.2rem;
+}
+
+.map-activity.is-compact .map-activity-text {
+  display: none;
+}
+
+.map-activity.is-compact:hover .map-activity-text {
+  display: flex;
+}
+
 .map-note-stuck {
   position: absolute;
   left: 0;

@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { MapActionsContext } from '../components/ShowOnMapButton'
 import EventsPage from './EventsPage'
 import GroupsPage from './GroupsPage'
 import InboxPage from './InboxPage'
@@ -34,13 +35,16 @@ class PageErrorBoundary extends Component {
   }
 }
 
-function MapPagePad({ page, onClose }) {
+// `mapActions`: "Visa på kartan" för klubbar och events (se ShowOnMapButton).
+function MapPagePad({ page, onClose, mapActions }) {
   const { title, Page } = MAP_PAGES.find((p) => p.id === page)
   return (
     <MapPad title={title} wide onClose={onClose}>
       <div className="map-pad-app-page">
         <PageErrorBoundary>
-          <Page />
+          <MapActionsContext.Provider value={mapActions}>
+            <Page />
+          </MapActionsContext.Provider>
         </PageErrorBoundary>
       </div>
     </MapPad>

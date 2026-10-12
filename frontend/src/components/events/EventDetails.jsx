@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import InterestTags from '../InterestTags'
 import Modal from '../Modal'
+import ShowOnMapButton from '../ShowOnMapButton'
 import InvitePicker from './InvitePicker'
 import { eventTimeText, visibilityPillClass, visibilityText } from './EventList'
 import { EVENT_ANSWER, answerEvent, getEventResponses, inviteToEvent, updateEvent } from '../../services/events'
@@ -95,6 +96,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
         {eventTimeText(event)} · {event.place_name}
       </p>
       <p className="hint-text">{event.address}</p>
+      <ShowOnMapButton type="event" id={event.id} />
       <p className="card-text">{event.description}</p>
       <div className="detail-view-section">
         <InterestTags
