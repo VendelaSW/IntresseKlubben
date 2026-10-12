@@ -224,11 +224,13 @@ den hör under i texten, eller null).
 Välj för varje tagg exakt ett av:
 - same: taggen betyder samma sak som ett intresse i listan. Ange det intressets id i interest_id. \
 Välj bara same när det är samma sak, inte ett närliggande: "jazzpiano" är inte samma sak som "Jazz".
-- new: taggen är ett riktigt intresse eller en hobby som saknas i listan. Ange parent_id: id:t på det \
-befintliga intresse eller område som taggen hör under bäst (en tagg om ett kortspel hör under Kortspel, \
-en musikgenre under Musik). Välj en förälder som är ett område eller ett intresse, aldrig en rad som \
-redan är tre nivåer ner. Skriv new_name som taggens namn, eller ett av dess alias, och inget annat \
-ord.
+- new: taggen är ett riktigt intresse eller en hobby som saknas i listan. parent_id är OBLIGATORISKT \
+för new och måste vara ett id ur listan: id:t på det befintliga intresse eller område som taggen hör \
+under bäst (en tagg om ett kortspel hör under Kortspel, en musikgenre under Musik, modellbygge under \
+Skapande). Lämna aldrig parent_id tomt för new. Finns ingen exakt förälder väljer du det område som \
+ligger närmast, och passar inget område alls väljer du none i stället. Välj en förälder som är ett \
+område eller ett intresse, aldrig en rad som redan är tre nivåer ner. Skriv new_name som taggens \
+namn, eller ett av dess alias, och inget annat ord.
 - none: taggen är inget intresse man har eller gör, till exempel en egenskap ("social", "snäll"), en \
 avsikt ("träffa nya människor", "ha kul") eller något för vagt för att vara ett intresse. Välj också \
 none om du är osäker på vad taggen betyder.

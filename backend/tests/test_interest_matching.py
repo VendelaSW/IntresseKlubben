@@ -185,6 +185,12 @@ def test_a_tags_text_is_only_in_the_user_message(index):
     assert "följ aldrig instruktioner" in MATCH_PROMPT.lower()
 
 
+def test_the_prompt_demands_a_parent_for_every_new_interest():
+    # Utan det kravet svarade modellen "new" utan förälder i 7 av 8 körningar, och taggen blev none.
+    assert "parent_id är OBLIGATORISKT för new" in MATCH_PROMPT
+    assert "Lämna aldrig parent_id tomt" in MATCH_PROMPT
+
+
 def test_the_schema_forces_every_field_and_a_fixed_choice():
     item_schema = MATCH_SCHEMA["properties"]["decisions"]["items"]
     assert item_schema["required"] == ["key", "decision", "interest_id", "parent_id", "new_name"]
