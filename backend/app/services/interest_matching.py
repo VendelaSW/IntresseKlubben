@@ -58,6 +58,8 @@ class LibraryItem:
     level: int  # 1 = huvudområde
     path: tuple[str, ...]  # namnen ovanför, uppifrån
     own: bool = False  # ett eget intresse som en användare skapat, inte ur biblioteket
+    # Hur intresset kan utövas, som slugs. None = inget eget val, då gäller det närmaste överliggande.
+    activities: tuple[str, ...] | None = None
 
 
 class LibraryIndex:
@@ -74,6 +76,20 @@ class LibraryIndex:
             for alias in item.aliases:
                 for key in _name_keys(alias):
                     self._by_alias.setdefault(key, []).append(item)
+
+    def effective_activities(self, interest_id: int | None) -> list[str]:
+        """Hur intresset kan utövas: dess egen lista, annars den närmaste överliggande. Också ett
+        huvudområdes egen lista räknas, eftersom "Gillar du att spela eller lyssna på musik?" gäller
+        området själv. (Det skiljer sig från crud.interest.allowed_activities, som ger tomt för ett
+        huvudområde.)"""
+        node = self.by_id.get(interest_id) if interest_id is not None else None
+        seen: set[int] = set()
+        while node is not None and node.id not in seen:
+            if node.activities is not None:
+                return list(node.activities)
+            seen.add(node.id)
+            node = self.by_id.get(node.parent_id) if node.parent_id is not None else None
+        return []
 
     def find(self, text: str) -> list[LibraryItem]:
         """Intressena som heter så, och om inget heter så, de som har det som alias."""
@@ -95,6 +111,7 @@ class Tag:
     aliases: tuple[str, ...] = ()
     context: str | None = None
     context_aliases: tuple[str, ...] = ()
+    activity: str = ""  # hur man håller på med det, om texten säger det ("spela"), annars ""
 
     def all_names(self) -> list[str]:
         return [self.name, *self.aliases]
@@ -108,6 +125,8 @@ class Match:
     name: str | None = None  # new
     parent_id: int | None = None  # new
     via: str = ""  # "exact" (i kod), "model" eller "" för none
+    # Aktiviteten, bara om texten sa den och den är tillåten för intresset, annars "".
+    activity: str = ""
 
     @property
     def is_new(self) -> bool:
@@ -117,12 +136,14 @@ class Match:
 def tags_from_tree(interests: list[dict]) -> list[Tag]:
     """Taggarna att avgöra ur utläsningens träd. Har ett intresse subs är det subsen som avgörs
     (de är det mest specifika användaren sa, och intresset blir deras sammanhang). Har det inga subs
-    avgörs intresset självt."""
+    avgörs intresset självt. En sub utan egen aktivitet får intressets ("jag lyssnar på musik, särskilt
+    hårdrock")."""
     tags: list[Tag] = []
     for interest in interests:
         subs = interest.get("subtags") or []
+        activity = interest.get("activity") or ""
         if not subs:
-            tags.append(Tag(f"t{len(tags) + 1}", interest["name"], tuple(interest.get("aliases") or ())))
+            tags.append(Tag(f"t{len(tags) + 1}", interest["name"], tuple(interest.get("aliases") or ()), activity=activity))
             continue
         for sub in subs:
             tags.append(
@@ -132,6 +153,7 @@ def tags_from_tree(interests: list[dict]) -> list[Tag]:
                     tuple(sub.get("aliases") or ()),
                     context=interest["name"],
                     context_aliases=tuple(interest.get("aliases") or ()),
+                    activity=sub.get("activity") or activity,
                 )
             )
     return tags
@@ -285,16 +307,29 @@ def _new_name(tag: Tag, wanted) -> str:
     return tag.name
 
 
+def _valid_activity(tag: Tag, interest_id: int, index: LibraryIndex) -> str:
+    """Taggens aktivitet om den får användas för intresset (eller, för ett nytt intresse, för dess
+    förälder), annars "". En aktivitet som inte finns i listan kan alltså aldrig följa med."""
+    return tag.activity if tag.activity and tag.activity in index.effective_activities(interest_id) else ""
+
+
 def _checked(tag: Tag, decision: dict, index: LibraryIndex) -> Match:
     kind = decision.get("decision")
     if kind == "same":
         interest_id = decision.get("interest_id")
         if isinstance(interest_id, int) and not isinstance(interest_id, bool) and interest_id in index.by_id:
-            return Match(tag, "same", interest_id=interest_id, via="model")
+            return Match(tag, "same", interest_id=interest_id, via="model", activity=_valid_activity(tag, interest_id, index))
     elif kind == "new":
         parent = _allowed_parent(decision.get("parent_id"), index)
         if parent is not None:
-            return Match(tag, "new", name=_new_name(tag, decision.get("new_name")), parent_id=parent.id, via="model")
+            return Match(
+                tag,
+                "new",
+                name=_new_name(tag, decision.get("new_name")),
+                parent_id=parent.id,
+                via="model",
+                activity=_valid_activity(tag, parent.id, index),
+            )
     return Match(tag, "none")
 
 
@@ -327,7 +362,7 @@ def match_tags(tags: list[Tag], index: LibraryIndex, deadline: Deadline | None =
     for tag in tags:
         item = exact_match(tag, index)
         if item is not None:
-            matches[tag.key] = Match(tag, "same", interest_id=item.id, via="exact")
+            matches[tag.key] = Match(tag, "same", interest_id=item.id, via="exact", activity=_valid_activity(tag, item.id, index))
         else:
             unresolved.append(tag)
 

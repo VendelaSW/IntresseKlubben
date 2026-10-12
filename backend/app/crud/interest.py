@@ -83,6 +83,7 @@ def load_library_index(db: Session) -> LibraryIndex:
                 level=len(chain) + 1,
                 path=tuple(parent.name for parent in chain),
                 own=row.source != InterestSource.library.value,
+                activities=tuple(row.activities) if row.activities is not None else None,
             )
         )
     items.sort(key=lambda item: (*item.path, item.name))

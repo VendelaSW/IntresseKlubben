@@ -23,21 +23,21 @@ from app.services.interest_matching import (
 from tests.fakes import FakeLLM
 
 
-def item(id, name, parent=None, level=1, path=(), aliases=(), own=False):
-    return LibraryItem(id, name, tuple(aliases), parent, level, tuple(path), own)
+def item(id, name, parent=None, level=1, path=(), aliases=(), own=False, activities=None):
+    return LibraryItem(id, name, tuple(aliases), parent, level, tuple(path), own, None if activities is None else tuple(activities))
 
 
 @pytest.fixture
 def index():
     return LibraryIndex(
         [
-            item(1, "Musik", aliases=["musiker"]),
+            item(1, "Musik", aliases=["musiker"], activities=["lyssna", "spela", "skapa"]),
             item(2, "Metal", parent=1, level=2, path=["Musik"], aliases=["hårdrock", "heavy metal"]),
             item(3, "Jazz", parent=1, level=2, path=["Musik"]),
             item(4, "Tv-spel", aliases=["gejming", "datorspel"]),
             item(5, "Rollspel (RPG)", parent=4, level=2, path=["Tv-spel"], aliases=["rpg"]),
             item(6, "Spel och pussel"),
-            item(7, "Kortspel", parent=6, level=2, path=["Spel och pussel"]),
+            item(7, "Kortspel", parent=6, level=2, path=["Spel och pussel"], activities=["spela", "samla"]),
             item(8, "Pokémon TCG", parent=7, level=3, path=["Spel och pussel", "Kortspel"], aliases=["pokémon-kort"]),
             item(9, "Böcker"),
             item(10, "Historia", parent=9, level=2, path=["Böcker"]),
@@ -61,8 +61,8 @@ def decision(key, kind, interest_id=None, parent_id=None, new_name=None):
     return {"key": key, "decision": kind, "interest_id": interest_id, "parent_id": parent_id, "new_name": new_name}
 
 
-def tag(name, key="t1", aliases=(), context=None, context_aliases=()):
-    return Tag(key, name, tuple(aliases), context, tuple(context_aliases))
+def tag(name, key="t1", aliases=(), context=None, context_aliases=(), activity=""):
+    return Tag(key, name, tuple(aliases), context, tuple(context_aliases), activity)
 
 
 # ---------- Steg 1: exakt träff ----------
@@ -382,3 +382,71 @@ def test_a_child_of_an_inactive_parent_counts_as_a_top_level_interest(db):
     db.commit()
     (kept,) = load_library_index(db).items
     assert (kept.name, kept.level, kept.path, kept.parent_id) == ("Kvar", 1, (), None)
+
+
+# ---------- Aktivitet ----------
+
+
+def test_the_activities_of_an_interest_are_its_own_list_or_the_nearest_one_above(index):
+    assert index.effective_activities(1) == ["lyssna", "spela", "skapa"]  # området självt
+    assert index.effective_activities(2) == ["lyssna", "spela", "skapa"]  # Metal ärver
+    assert index.effective_activities(8) == ["spela", "samla"]  # Pokémon TCG ärver Kortspel, inte området
+    assert index.effective_activities(9) == []  # Böcker har ingen lista
+    assert index.effective_activities(999) == []
+    assert index.effective_activities(None) == []
+
+
+def test_an_activity_the_text_gave_follows_an_exact_match_when_it_is_allowed(index):
+    (match,) = match_tags([tag("hårdrock", activity="spela")], index)
+    assert (match.interest_id, match.activity) == (2, "spela")
+
+
+def test_an_activity_that_is_not_allowed_for_the_interest_becomes_empty(index):
+    assert match_tags([tag("hårdrock", activity="samla")], index)[0].activity == ""  # Musik tillåter inte "samla"
+    assert match_tags([tag("hårdrock", activity="odla")], index)[0].activity == ""  # finns inte alls
+    assert match_tags([tag("jazz", activity="bygga")], index)[0].activity == ""
+
+
+def test_no_activity_stays_empty(index):
+    assert match_tags([tag("hårdrock")], index)[0].activity == ""
+
+
+def test_an_activity_follows_a_model_choice_too(index):
+    llm_says([decision("t1", "same", interest_id=8), decision("t2", "new", parent_id=1, new_name="Synthwave")])
+    matches = match_tags([tag("pokémon", "t1", activity="samla"), tag("Synthwave", "t2", activity="lyssna")], index)
+    assert [(m.kind, m.activity) for m in matches] == [("same", "samla"), ("new", "lyssna")]
+
+
+def test_an_activity_for_a_new_interest_is_checked_against_its_parent(index):
+    llm_says([decision("t1", "new", parent_id=1, new_name="Synthwave")])
+    assert match_tags([tag("Synthwave", activity="samla")], index)[0].activity == ""
+
+
+def test_an_activity_for_a_new_interest_under_a_level_three_parent_uses_the_reparented_one(index):
+    llm_says([decision("t1", "new", parent_id=8, new_name="Pokémon Go")])  # 8 (nivå 3) byts mot Kortspel
+    (match,) = match_tags([tag("Pokémon Go", activity="spela")], index)
+    assert (match.parent_id, match.activity) == (7, "spela")
+
+
+def test_a_sub_gets_its_interests_activity_when_it_has_none_of_its_own():
+    tree = [
+        {"name": "musik", "aliases": [], "activity": "lyssna", "subtags": [{"name": "hårdrock", "aliases": []}, {"name": "jazz", "aliases": [], "activity": "spela"}]},
+        {"name": "katter", "aliases": [], "activity": "ha", "subtags": []},
+        {"name": "yoga", "aliases": [], "subtags": []},
+    ]
+    assert [(t.name, t.activity) for t in tags_from_tree(tree)] == [("hårdrock", "lyssna"), ("jazz", "spela"), ("katter", "ha"), ("yoga", "")]
+
+
+def test_the_index_from_the_database_has_each_interests_own_activity_list(db):
+    musik = Interest(name="Musik", activities=["lyssna", "spela"])
+    db.add(musik)
+    db.flush()
+    db.add_all([Interest(name="Metal", parent_id=musik.id), Interest(name="Stilla", parent_id=musik.id, activities=[])])
+    db.commit()
+    index = load_library_index(db)
+    by_name = {i.name: i for i in index.items}
+    assert by_name["Musik"].activities == ("lyssna", "spela")
+    assert by_name["Metal"].activities is None
+    assert by_name["Stilla"].activities == ()
+    assert index.effective_activities(by_name["Metal"].id) == ["lyssna", "spela"]  # ärvt
+    assert index.effective_activities(by_name["Stilla"].id) == []  # uttryckligen inga
