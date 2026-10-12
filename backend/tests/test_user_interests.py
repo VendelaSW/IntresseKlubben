@@ -9,6 +9,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.models import Interest, UserInterest
+from tests.helpers import profile_payload
 
 
 @pytest.fixture
@@ -89,3 +90,55 @@ def test_an_interest_keeps_its_list_of_activities(db, interests):
     db.expire_all()
     assert db.get(Interest, interests["Pokémon TCG"]).activities == ["spela", "samla"]
     assert db.get(Interest, interests["Yoga"]).activities is None
+
+
+# --- Skapa profil när man redan har intressen -------------------------------------
+
+
+def test_creating_a_profile_with_an_interest_you_already_have(client, db, user, interests, municipalities):
+    # Intresset läggs till före profilen. Förut blev det ett serverfel, eftersom
+    # hela listan byttes ut och intresset då sparades en gång till.
+    client.put(f"/profile/interests/{interests['Yoga']}")
+
+    response = client.post("/profile/", json=profile_payload([interests["Yoga"]]))
+
+    assert response.status_code == 201
+    assert [link.interest_id for link in db.query(UserInterest).all()] == [interests["Yoga"]]
+
+
+def test_creating_a_profile_keeps_the_activity_of_an_interest_you_already_have(
+    client, db, user, interests, municipalities
+):
+    _save(db, user, interests["Pokémon TCG"], "spela")
+    _save(db, user, interests["Pokémon TCG"], "samla")
+
+    response = client.post("/profile/", json=profile_payload([interests["Pokémon TCG"]]))
+
+    assert response.status_code == 201
+    assert sorted(link.activity for link in db.query(UserInterest).all()) == ["samla", "spela"]
+
+
+def test_creating_a_profile_drops_interests_that_are_not_in_the_list(client, db, user, interests, municipalities):
+    _save(db, user, interests["Yoga"], "")
+    _save(db, user, interests["Pokémon TCG"], "spela")
+
+    response = client.post("/profile/", json=profile_payload([interests["Pokémon TCG"]]))
+
+    assert response.status_code == 201
+    assert _names(client.get("/profile/interests")) == ["Pokémon TCG"]
+    assert [link.activity for link in db.query(UserInterest).all()] == ["spela"]
+
+
+# --- Styrka ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("strength", [0, 4, 99])
+def test_strength_outside_one_to_three_is_refused(user, interests, strength):
+    with pytest.raises(ValueError, match="1, 2 eller 3"):
+        UserInterest(user_id=user.id, interest_id=interests["Yoga"], strength=strength)
+
+
+def test_strength_one_to_three_is_saved(db, user, interests):
+    db.add(UserInterest(user_id=user.id, interest_id=interests["Yoga"], strength=3))
+    db.commit()
+    assert db.query(UserInterest).one().strength == 3

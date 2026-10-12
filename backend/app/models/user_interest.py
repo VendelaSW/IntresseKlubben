@@ -1,7 +1,7 @@
 import enum
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 
 from app.db.base import Base
 
@@ -27,7 +27,8 @@ class UserInterest(Base):
     # (t.ex. "spela"). Tom sträng = ingen aktivitet angiven. Inte null, så att
     # unik-villkoret nedan fungerar likadant i Postgres och i testdatabasen.
     activity = Column(String, nullable=False, default="", server_default="")
-    # Hur mycket man gillar intresset, 1-3. Sparas men visas och används inte än.
+    # Hur mycket man gillar intresset, 1-3 (se kontrollen längst ner). Sparas men
+    # visas och används inte än.
     strength = Column(Integer, nullable=False, default=2, server_default="2")
     # Användarens egna ord ("letar fula porslinsfigurer på loppis"), eller None.
     label = Column(String, nullable=True)
@@ -45,3 +46,10 @@ class UserInterest(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "interest_id", "activity", name="uq_user_interests_user_interest_activity"),
     )
+
+    @validates("strength")
+    def _strength_is_one_to_three(self, _key, value):
+        # Kontrolleras här och inte i databasen, så att ingen migration behövs.
+        if value is not None and value not in (1, 2, 3):
+            raise ValueError("strength måste vara 1, 2 eller 3")
+        return value

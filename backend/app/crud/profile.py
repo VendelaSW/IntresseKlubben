@@ -2,6 +2,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session, selectinload
 
+from app.crud.interest import set_user_interests
 from app.models.interest import Interest, InterestStatus
 from app.models.profile import GenderEnum, Profile
 from app.models.user import User
@@ -68,7 +69,9 @@ def create_profile(db: Session, user_id: int, data: ProfileCreate) -> Profile:
         gender_searchable=data.gender_searchable,
     )
     db.add(profile)
-    db.get(User, user_id).interests = interests
+    # Inte user.interests = interests: det kraschar om användaren redan har
+    # något av intressena (se set_user_interests).
+    set_user_interests(db.get(User, user_id), interests)
     db.commit()
     db.refresh(profile)
     return profile

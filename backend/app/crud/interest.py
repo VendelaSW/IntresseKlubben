@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.crud.group import _escape_like
 from app.models.interest import Interest, InterestStatus
 from app.models.user import User
+from app.models.user_interest import UserInterest
 
 # Hur många träffar en sökning ger som mest.
 SEARCH_LIMIT = 20
@@ -109,6 +110,23 @@ def sorted_interests(user: User) -> list[Interest]:
     aktiviteter kommer med en gång."""
     unique = {interest.id: interest for interest in user.interests}
     return sorted(unique.values(), key=lambda i: i.name)
+
+
+def set_user_interests(user: User, interests: list[Interest]) -> None:
+    """Gör så att användaren har exakt de här intressena, utan att spara.
+
+    Rader som redan finns behålls som de är, med aktivitet och egna ord. De som
+    inte längre är med tas bort, och de som saknas läggs till utan aktivitet.
+    Att i stället tilldela user.interests en ny lista skapar nya rader för allt,
+    också det användaren redan har, och då slår unik-villkoret till."""
+    wanted = {interest.id: interest for interest in interests}
+    for link in list(user.interest_links):
+        if link.interest.id not in wanted:
+            user.interest_links.remove(link)
+    existing = {link.interest.id for link in user.interest_links}
+    for interest_id, interest in wanted.items():
+        if interest_id not in existing:
+            user.interest_links.append(UserInterest(interest=interest))
 
 
 def add_user_interest(db: Session, user: User, interest: Interest) -> list[Interest]:

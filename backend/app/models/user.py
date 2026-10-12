@@ -19,9 +19,12 @@ class User(Base):
 
     # En rad per val, med aktivitet, styrka och egna ord (se UserInterest).
     interest_links = relationship("UserInterest", back_populates="user", cascade="all, delete-orphan")
-    # Bara intressena, för kod som inte bryr sig om aktiviteten. Går att läsa,
-    # tilldela och lägga till i som en vanlig lista: ett tillagt intresse får en
-    # rad utan aktivitet. Samma intresse finns med en gång per aktivitet.
+    # Bara intressena, för kod som inte bryr sig om aktiviteten. Går att läsa
+    # och lägga till i som en vanlig lista: ett tillagt intresse får en rad utan
+    # aktivitet. Samma intresse finns med en gång per aktivitet. Byt inte ut
+    # hela listan (user.interests = [...]) för någon som redan har intressen:
+    # då skapas nya rader innan de gamla tas bort, och unik-villkoret slår till.
+    # Använd crud.interest.set_user_interests.
     interests = association_proxy(
         "interest_links", "interest", creator=lambda interest: UserInterest(interest=interest)
     )
