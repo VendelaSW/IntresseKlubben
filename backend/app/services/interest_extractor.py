@@ -225,20 +225,9 @@ def _node(item, child_key: str) -> tuple[str | None, list, list]:
     return None, [], []
 
 
-def _activity(item) -> str:
-    """Aktiviteten modellen angav för en tagg ("spela", "lyssna"), eller "" om den saknas. Bara formen
-    kontrolleras här (en kort slug). Vilka aktiviteter ett intresse får ha avgörs mot biblioteket i
-    interest_matching.py, så en aktivitet som inte passar blir "" där."""
-    value = item.get("activity") if isinstance(item, dict) else None
-    if isinstance(value, str) and re.fullmatch(r"[a-zåäö]+(-[a-zåäö]+)*", value.strip().casefold()) and len(value) <= 30:
-        return value.strip().casefold()
-    return ""
-
-
 def clean_interests(picked: list) -> list[dict]:
     """Städar modellens träd till
-    [{"name", "aliases": [str], "subtags": [{"name", "aliases": [str]}]}] (med en valfri "activity" på
-    ett intresse eller en sub när modellen angett hur man håller på med det): korta, användbara taggar,
+    [{"name", "aliases": [str], "subtags": [{"name", "aliases": [str]}]}]: korta, användbara taggar,
     inga dubbletter (ett ord finns bara på ett ställe i trädet, också alias), högst MAX_INTERESTS
     intressen, MAX_SUBTAGS subs per intresse och MAX_ALIASES alias per tagg."""
     used: set[str] = set()
@@ -251,14 +240,13 @@ def clean_interests(picked: list) -> list[dict]:
             names.append(name)
     names = names[:MAX_INTERESTS]
     # Samma intresse kan stå två gånger i modellens svar, så alias och subs samlas ihop.
-    gathered = {name.casefold(): {"name": name, "aliases": [], "subs": [], "activity": ""} for name in names}
+    gathered = {name.casefold(): {"name": name, "aliases": [], "subs": []} for name in names}
     for item in picked:
         name, aliases, children = _node(item, "subtags")
         if name is not None and name.casefold() in gathered:
             entry = gathered[name.casefold()]
             entry["aliases"].extend(aliases)
             entry["subs"].extend(children)
-            entry["activity"] = entry["activity"] or _activity(item)
 
     mains: list[dict] = []
     for entry in gathered.values():
@@ -272,18 +260,12 @@ def clean_interests(picked: list) -> list[dict]:
             if sub_name is None or sub_name.casefold() in used or len(subs) >= MAX_SUBTAGS:
                 continue
             used.add(sub_name.casefold())
-            sub = {"name": sub_name, "aliases": sub_aliases}
-            if _activity(raw_sub):
-                sub["activity"] = _activity(raw_sub)
-            subs.append(sub)
+            subs.append({"name": sub_name, "aliases": sub_aliases})
         # Ett intresse som bara fanns för att rymma något vi stoppade ("historiska redskap" runt "gamla
         # tortyrredskap") är en omskrivning av det, så det följer med.
         if blocked and not subs:
             continue
-        main = {"name": entry["name"], "aliases": entry["aliases"], "subtags": subs}
-        if entry["activity"]:
-            main["activity"] = entry["activity"]
-        mains.append(main)
+        mains.append({"name": entry["name"], "aliases": entry["aliases"], "subtags": subs})
 
     # Alias rensas sist, när alla intressen och subs är klara.
     def keep(raws: list, limit: int) -> list[str]:

@@ -510,25 +510,10 @@ def test_too_many_calls_are_stopped(client, user, enabled, monkeypatch):
     assert [client.post(URL, json={"text": "x"}).status_code for _ in range(4)] == [200, 200, 200, 429]
 
 
-# ---------- Aktivitet (valfri, den fylls i när prompten ber om den) ----------
+# ---------- Aktivitet ----------
 
 
-def test_an_activity_the_model_gave_is_kept_on_the_interest_or_the_sub():
-    raw = [
-        {"name": "musik", "aliases": [], "activity": "Lyssna", "subtags": [{"name": "hårdrock", "aliases": [], "activity": "spela"}, {"name": "jazz", "aliases": []}]},
-        {"name": "katter", "aliases": [], "subtags": []},
-    ]
-    assert clean_interests(raw) == [
-        {"name": "musik", "aliases": [], "subtags": [{"name": "hårdrock", "aliases": [], "activity": "spela"}, {"name": "jazz", "aliases": []}], "activity": "lyssna"},
-        {"name": "katter", "aliases": [], "subtags": []},
-    ]
-
-
-@pytest.mark.parametrize("activity", ["", None, 7, "två ord", "Spela!", "x" * 40, "ö-ä-å", ["spela"]])
-def test_an_activity_that_is_not_a_short_slug_is_dropped(activity):
-    (result,) = clean_interests([{"name": "musik", "aliases": [], "activity": activity, "subtags": []}])
-    assert ("activity" in result) == (activity == "ö-ä-å")
-
-
-def test_an_interest_without_an_activity_has_no_such_key():
-    assert "activity" not in clean_interests([item("musik", "jazz")])[0]
+def test_the_cleaned_tree_has_no_activity_key_even_if_the_model_sends_one():
+    # Utläsningen frågar inte efter aktivitet (den avgörs i följdfrågorna), så ett fält som ändå kommer följer inte med.
+    raw = [{"name": "musik", "aliases": [], "activity": "lyssna", "subtags": [{"name": "jazz", "aliases": [], "activity": "spela"}]}]
+    assert clean_interests(raw) == [{"name": "musik", "aliases": [], "subtags": [{"name": "jazz", "aliases": []}]}]

@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +29,13 @@ class Settings(BaseSettings):
     # Ska analysen av intressen skicka följdfrågor (POST /interests/analyze)? Av som standard: frågorna är byggda
     # men inte aktiverade, så analysen sätter bara en aktivitet när texten säger den och gissar aldrig.
     interest_followups: bool = False
+
+    @field_validator("interest_followups", mode="before")
+    @classmethod
+    def _empty_means_off(cls, value):
+        # En tom rad (INTEREST_FOLLOWUPS=) i .env eller Vercel ska inte stoppa starten. Tomma textvärden
+        # lämnas som de är: testerna tömmer dem med flit för att inte läsa riktiga nycklar ur .env.
+        return False if isinstance(value, str) and not value.strip() else value
 
     @property
     def cors_origins_list(self) -> list[str]:

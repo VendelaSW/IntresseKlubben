@@ -52,6 +52,9 @@ def _name_keys(name: str) -> set[str]:
     return keys
 
 
+MAX_OWN_IN_PROMPT = 200  # så många egna intressen (de nyaste) får plats i prompten, utöver biblioteket
+
+
 @dataclass(frozen=True)
 class LibraryItem:
     """Ett intresse ur databasen, så som matchningen ser det."""
@@ -155,16 +158,10 @@ class Match:
 
 def tags_from_tree(interests: list[dict]) -> list[Tag]:
     """Taggarna att avgöra ur utläsningens träd: varje intresse, och efter det dess subs. Hela trädet
-    sparas, så intresset är med även när det har subs ("modellbygge" med "fyrmodeller" ger två taggar).
-    En sub utan egen aktivitet får intressets ("jag lyssnar på musik, särskilt hårdrock")."""
+    sparas, så intresset är med även när det har subs ("modellbygge" med "fyrmodeller" ger två taggar)."""
     tags: list[Tag] = []
     for interest in interests:
-        top = Tag(
-            f"t{len(tags) + 1}",
-            interest["name"],
-            tuple(interest.get("aliases") or ()),
-            activity=interest.get("activity") or "",
-        )
+        top = Tag(f"t{len(tags) + 1}", interest["name"], tuple(interest.get("aliases") or ()))
         tags.append(top)
         for sub in interest.get("subtags") or []:
             tags.append(
@@ -174,7 +171,6 @@ def tags_from_tree(interests: list[dict]) -> list[Tag]:
                     tuple(sub.get("aliases") or ()),
                     context=top.name,
                     context_aliases=top.aliases,
-                    activity=sub.get("activity") or top.activity,
                     parent_key=top.key,
                 )
             )
@@ -302,9 +298,16 @@ MATCH_SCHEMA = {
 
 
 def library_listing(index: LibraryIndex) -> str:
-    """Biblioteket som en rad per intresse, med id så att modellen kan svara med id."""
+    """Biblioteket som en rad per intresse, med id så att modellen kan svara med id. Egna intressen som
+    användare skapat kan bli hur många som helst, så av dem följer bara de MAX_OWN_IN_PROMPT nyaste med
+    (högst id). Träffen i kod (exakt namn eller alias) använder hela indexet, så ett äldre eget intresse
+    hittas ändå när någon skriver det."""
+    own = sorted((item for item in index.items if item.own), key=lambda item: item.id, reverse=True)
+    left_out = {item.id for item in own[MAX_OWN_IN_PROMPT:]}
     lines = []
     for item in index.items:
+        if item.id in left_out:
+            continue
         where = " > ".join([*item.path, item.name])
         also = f" (även: {', '.join(item.aliases[:3])})" if item.aliases else ""
         lines.append(f"{item.id}: {where}{also}")

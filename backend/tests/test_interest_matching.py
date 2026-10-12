@@ -2,6 +2,7 @@
 språkmodellen ersätts av FakeLLM."""
 
 import json
+from dataclasses import replace
 
 import pytest
 
@@ -11,6 +12,7 @@ from app.services.ai_clients import AIFailed, Deadline, set_clients
 from app.services.interest_matching import (
     MATCH_PROMPT,
     MATCH_SCHEMA,
+    MAX_OWN_IN_PROMPT,
     LibraryIndex,
     LibraryItem,
     Tag,
@@ -448,19 +450,22 @@ def test_an_activity_for_a_new_interest_under_a_level_three_parent_uses_the_repa
     assert (match.parent_id, match.activity) == (7, "spela")
 
 
-def test_a_sub_gets_its_interests_activity_when_it_has_none_of_its_own():
-    tree = [
-        {"name": "musik", "aliases": [], "activity": "lyssna", "subtags": [{"name": "hårdrock", "aliases": []}, {"name": "jazz", "aliases": [], "activity": "spela"}]},
-        {"name": "katter", "aliases": [], "activity": "ha", "subtags": []},
-        {"name": "yoga", "aliases": [], "subtags": []},
-    ]
-    assert [(t.name, t.activity) for t in tags_from_tree(tree)] == [
-        ("musik", "lyssna"),
-        ("hårdrock", "lyssna"),
-        ("jazz", "spela"),
-        ("katter", "ha"),
-        ("yoga", ""),
-    ]
+def test_tags_from_the_tree_carry_no_activity():
+    tree = [{"name": "musik", "aliases": [], "activity": "lyssna", "subtags": [{"name": "hårdrock", "aliases": []}]}]
+    assert [(t.name, t.activity) for t in tags_from_tree(tree)] == [("musik", ""), ("hårdrock", "")]
+
+
+def test_only_the_newest_own_interests_go_in_the_prompt_but_the_library_always_does():
+    library = [item(1, "Musik"), item(2, "Metal", parent=1, level=2, path=("Musik",))]
+    own = [item(100 + n, f"Eget {n}", parent=1, level=2, path=("Musik",), own=True) for n in range(MAX_OWN_IN_PROMPT + 5)]
+    index = LibraryIndex([*library, *own])
+    ids = {int(line.split(":")[0]) for line in library_listing(index).splitlines()}
+    assert {1, 2} <= ids
+    assert len(ids) == 2 + MAX_OWN_IN_PROMPT
+    assert 100 not in ids and 104 not in ids  # de fem äldsta (lägst id) är utelämnade
+    assert 105 in ids and 100 + MAX_OWN_IN_PROMPT + 4 in ids
+    # Exakt träff i kod använder fortfarande hela indexet.
+    assert exact_match(Tag("t1", "Eget 0"), index)
 
 
 def test_the_index_from_the_database_has_each_interests_own_activity_list(db):
@@ -528,7 +533,8 @@ def test_a_new_interest_under_a_level_two_interest_cannot_hold_a_sub_it_becomes_
 
 def test_the_activity_follows_a_sub_nested_under_a_new_interest(index):
     llm_says([decision("t1", "new", parent_id=7, new_name="x"), decision("t2", "new")])
-    tags = tags_from_tree([{"name": "x", "aliases": [], "activity": "spela", "subtags": [{"name": "y", "aliases": []}]}])
+    tags = [tag("x", "t1", activity="spela"), tag("y", "t2", context="x", activity="spela")]
+    tags[1] = replace(tags[1], parent_key="t1")
     top, sub = match_tags(tags, index)
     assert top.activity == "spela"  # Kortspel tillåter spela
 
