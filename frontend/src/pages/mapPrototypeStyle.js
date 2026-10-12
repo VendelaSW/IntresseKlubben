@@ -11,7 +11,75 @@
 // Ortnamnen ritas inte här (MapLibre kan inte använda Caveat direkt). Lagret
 // "place-anchors" är osynligt och används bara för att ta reda på var
 // namnen får plats; själva texten läggs ovanpå i HTML, se MapPrototype.jsx.
+//
+// Utanför Sverige är pappret tomt: blocket läggs över kartan där, med Sverige
+// urklippt (se attachOutsidePaper i MapPrototype.jsx). Här ritas bara gränsen.
+
+import lan from './mapPrototypeLan.json'
+import sweden from './mapPrototypeSweden.json'
+
+// Sveriges kontur (fastlandet och de stora öarna) ur mapPrototypeSweden.json,
+// byggd från perliedman/svenska-landskap (CC0, Lantmäteriets Distriktskarta).
+// Konturen går en bit ut i havet, så kusten ritas av kartan som vanligt.
+export const SWEDEN_OUTLINE = sweden.features.find((f) => f.properties.kind === 'outline').geometry
+
+// Sveriges kontur som ringar av [longitud, latitud] (fastlandet och öarna).
+export const SWEDEN_RINGS = SWEDEN_OUTLINE.coordinates.map((polygon) => polygon[0])
+
+// Ligger punkten innanför Sveriges gräns? (Strålmetoden.)
+export function inSweden(lng, lat) {
+  let inside = false
+  for (const ring of SWEDEN_RINGS) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i]
+      const [xj, yj] = ring[j]
+      if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside
+    }
+  }
+  return inside
+}
+
+// Sveriges gräns, som en linje ovanpå kartan.
+const SWEDEN_BORDER = { type: 'Feature', properties: {}, geometry: SWEDEN_OUTLINE }
+
+// Landskapens namn: en punkt mitt i varje landskap, med namn och yta (km²).
+// Ritas i HTML ovanpå kartan, som ortnamnen (se MapPrototype.jsx).
+export const LANDSKAP_LABELS = sweden.features
+  .filter((f) => f.properties.kind === 'label')
+  .map((f) => ({ id: f.properties.kod, name: f.properties.namn, lngLat: f.geometry.coordinates, km2: f.properties.km2 }))
+
+// Landskapens ytor, för färgfyllning. `farg` (0-3) är vald så att grannar
+// aldrig får samma färg.
+export const LANDSKAP_AREAS = {
+  type: 'FeatureCollection',
+  features: sweden.features.filter((f) => f.properties.kind === 'area'),
+}
+// Bleka färgpennor, som på en gammal skolkarta. Ingen gul, den försvinner
+// mot det gula pappret.
+const LANDSKAP_COLOURS = ['#e8a99a', '#a9c98a', '#9fbfdc', '#c7a8d6']
+
+// Länen (från SCB:s Digitala gränser, CC0), för landskapsvyn: där syns
+// landskapet uppdelat i de län det ligger i, som Sverige i landskap.
+export const LAN_AREAS = { type: 'FeatureCollection', features: lan.features.filter((f) => f.properties.kind === 'lan') }
+// Namnpunkter: en per del av ett län som ligger i ett landskap.
+export const LAN_LABELS = lan.features
+  .filter((f) => f.properties.kind === 'lanlabel')
+  .map((f) => ({
+    landskap: f.properties.landskap,
+    id: f.properties.kod,
+    name: f.properties.namn,
+    km2: f.properties.km2,
+    lngLat: f.geometry.coordinates,
+  }))
+const colourByFarg = (colours) => ['match', ['get', 'farg'], 0, colours[0], 1, colours[1], 2, colours[2], colours[3]]
+
+// Gränserna mellan landskapen, som linjer.
+const LANDSKAP_BORDERS = {
+  type: 'FeatureCollection',
+  features: sweden.features.filter((f) => f.properties.kind === 'border'),
+}
 const PENCIL = '#4a3f35'
+const BORDER_INK = '#9c4a2f' // rödbrun färgpenna för landskapsgränser
 const PENCIL_LIGHT = 'rgba(74, 63, 53, 0.55)'
 const WATER_INK = '#2f5f9e'
 const FOREST = '#8fb36b' // grön färgpenna
@@ -72,12 +140,59 @@ function widthByZoom(...stops) {
 const mapStyle = {
   version: 8,
   sources: {
-    openmaptiles: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' },
+    // Bara kartrutor inom Sverige hämtas (Strömstad till Haparanda, Smygehuk
+    // till Treriksröset). Utanför är det tomt papper, och inget laddas därifrån.
+    openmaptiles: {
+      type: 'vector',
+      url: 'https://tiles.openfreemap.org/planet',
+      bounds: [10.9, 55.3, 24.2, 69.1],
+    },
+    sweden: { type: 'geojson', data: SWEDEN_BORDER },
+    landskap: { type: 'geojson', data: LANDSKAP_BORDERS },
+    // promoteId: landskapskoden blir id, så att hovring kan markeras (feature-state).
+    'landskap-areas': { type: 'geojson', data: LANDSKAP_AREAS, promoteId: 'kod' },
+    'lan-areas': { type: 'geojson', data: LAN_AREAS, promoteId: 'kod' },
   },
   glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
   layers: [
     // Genomskinlig bakgrund, så att blocket i CSS syns igenom.
     { id: 'paper', type: 'background', paint: { 'background-opacity': 0 } },
+
+    // --- Landskapen ifyllda med färgpenna ---
+    // Underst, så att vatten och skog ritas ovanpå. Tydligast utzoomat och
+    // borta när man har zoomat in, så att den detaljerade kartan inte färgas.
+    // Länen i landskapsvyn (dolda annars, se setMode i MapPrototype.jsx).
+    {
+      id: 'lan-fill',
+      type: 'fill',
+      source: 'lan-areas',
+      layout: { visibility: 'none' },
+      paint: {
+        'fill-color': colourByFarg(LANDSKAP_COLOURS),
+        'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.7, 0.42],
+      },
+    },
+    {
+      id: 'landskap-fill',
+      type: 'fill',
+      source: 'landskap-areas',
+      paint: {
+        'fill-color': ['match', ['get', 'farg'], 0, LANDSKAP_COLOURS[0], 1, LANDSKAP_COLOURS[1], 2, LANDSKAP_COLOURS[2], LANDSKAP_COLOURS[3]],
+        // Landskapet under musen blir lite starkare (går att klicka på, se
+        // MapPrototype.jsx).
+        'fill-opacity': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          5,
+          ['case', ['boolean', ['feature-state', 'hover'], false], 0.75, 0.45],
+          8,
+          ['case', ['boolean', ['feature-state', 'hover'], false], 0.6, 0.35],
+          10,
+          0,
+        ],
+      },
+    },
 
     // --- Skog ---
     // Utzoomat: ifylld med färgpenna och en tydlig kant. Inzoomat: färgen
@@ -210,6 +325,48 @@ const mapStyle = {
       paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], 13.5, 0, 14, 1] },
     },
 
+    // --- Landskapsgränser ---
+    // Rödbrun färgpenna, streck-prick som gränser på gamla kartor, så att de
+    // inte förväxlas med vägarna (grafit). Tydligast utzoomat; de bleknar
+    // inzoomat, där de annars skär rakt genom gator och hus.
+    {
+      id: 'landskap-borders',
+      type: 'line',
+      source: 'landskap',
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: {
+        'line-color': BORDER_INK,
+        'line-width': ['interpolate', ['linear'], ['zoom'], 4, 1.4, 8, 2.2, 12, 2.6],
+        'line-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0.8, 10, 0.75, 12, 0.45, 14, 0],
+        'line-dasharray': [4, 1.6, 0.4, 1.6],
+      },
+    },
+
+    // Gränserna mellan länen i landskapsvyn, i samma stil som landskapens.
+    {
+      id: 'lan-borders',
+      type: 'line',
+      source: 'lan-areas',
+      layout: { visibility: 'none', 'line-join': 'round', 'line-cap': 'round' },
+      paint: {
+        'line-color': BORDER_INK,
+        'line-width': 2,
+        'line-opacity': 0.75,
+        'line-dasharray': [4, 1.6, 0.4, 1.6],
+      },
+    },
+
+    // --- Sveriges gräns ---
+    // Utanför gränsen läggs blocket över kartan (se attachOutsidePaper i
+    // MapPrototype.jsx). Platser och ortnamn utanför Sverige filtreras bort i
+    // sina egna lager nedan.
+    {
+      id: 'sweden-edge',
+      type: 'line',
+      source: 'sweden',
+      paint: { 'line-color': PENCIL_LIGHT, 'line-width': 1.2, 'line-dasharray': [3, 2] },
+    },
+
     // --- Platser där en klubb kan träffas: pop-up-figurer ---
     // Bara inzoomat. En figur per grupp (se PLACE_GROUP överst). Ikonerna här
     // är osynliga: kartan använder dem för att bestämma vilka platser som får
@@ -221,7 +378,7 @@ const mapStyle = {
       source: 'openmaptiles',
       'source-layer': 'poi',
       minzoom: 14,
-      filter: ['!=', PLACE_GROUP, ''],
+      filter: ['all', ['!=', PLACE_GROUP, ''], ['within', SWEDEN_OUTLINE]],
       layout: {
         'icon-image': ['concat', 'place-', PLACE_GROUP],
         'icon-size': ['interpolate', ['linear'], ['zoom'], 14, 0.75, 17, 1],
@@ -238,7 +395,11 @@ const mapStyle = {
       type: 'symbol',
       source: 'openmaptiles',
       'source-layer': 'place',
-      filter: ['in', ['get', 'class'], ['literal', ['city', 'town', 'village', 'suburb']]],
+      filter: [
+        'all',
+        ['in', ['get', 'class'], ['literal', ['city', 'town', 'village', 'suburb']]],
+        ['within', SWEDEN_OUTLINE],
+      ],
       layout: {
         'text-field': ['get', 'name'],
         'text-font': ['Noto Sans Regular'],

@@ -1803,6 +1803,19 @@ label.person-list-item {
   inset: 0;
 }
 
+/* Blocket utanför Sverige, ovanpå kartan: samma papper och linjer (och samma
+   perspektiv) som under kartan, med Sverige urklippt (clip-path sätts från
+   attachOutsidePaper i MapPrototype.jsx). Klick går igenom till kartan. */
+.map-sketch-outside {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: #fbf0a9;
+  perspective: 150vh;
+  perspective: 150dvh;
+  pointer-events: none;
+}
+
 
 .map-sketch-labels {
   position: absolute;
@@ -1868,6 +1881,95 @@ label.person-list-item {
 
 .map-sketch-label-big {
   font-size: 2.1rem;
+}
+
+/* Landskapslistan bredvid Sverige: namnen går att klicka på (zoomar till
+   landskapet). */
+.map-sketch-landskap.is-listed,
+.map-sketch-landskap.is-lan {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.map-sketch-landskap.is-listed:hover,
+.map-sketch-landskap.is-lan:hover {
+  text-decoration: underline;
+}
+
+/* TILLFÄLLIGT: redigeringsläget för landskapslistan (?redigera i adressen). */
+.map-sketch-labels.is-editing .is-listed {
+  cursor: grab;
+  touch-action: none;
+  outline: 1px dashed rgba(110, 44, 24, 0.5);
+}
+
+.map-edit-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 48px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: min(22rem, calc(100% - 2rem));
+  transform: translateX(-50%);
+}
+
+.map-edit-help {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+}
+
+.map-edit-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.map-edit-output {
+  width: 100%;
+  height: 8rem;
+  font-family: monospace;
+  font-size: 0.7rem;
+}
+
+/* Linjer från landskapsnamn som fått stå utanför sitt landskap (små landskap
+   på smala skärmar) till landskapet, i samma rödbruna penna som gränserna. */
+.map-sketch-landskap-pointers {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  stroke: #9c4a2f;
+  stroke-width: 1;
+  fill: #9c4a2f;
+}
+
+/* Landskapens namn utzoomat: spärrade versaler i samma rödbruna färgpenna
+   som landskapsgränserna, som regionnamn på gamla kartor. Storleken sätts
+   per namn (se landskapFontSize i MapPrototype.jsx). */
+.map-sketch-landskap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  /* Mörkare än gränserna och med en tydlig papperskant, så att namnen syns
+     ovanpå landskapens färger. */
+  color: #6e2c18;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* En mjuk bakgrund i pappersfärg med suddiga kanter, så att namnet lyfter
+     från landskapens färger och gränser. Luften på sidorna räknas med när
+     namnen placeras (se landskapNameWidth i MapPrototype.jsx). */
+  padding: 0 0.35em;
+  line-height: 1.1;
+  border-radius: 999px;
+  background: rgba(251, 240, 169, 0.85);
+  box-shadow: 0 0 6px 3px rgba(251, 240, 169, 0.85);
 }
 
 
@@ -2170,14 +2272,71 @@ label.person-list-item {
    kontroller sitter 10px från kanten och är 29px breda + kant). Namnet till
    vänster med handstil, profilbilden till höger. Samma bläckkant och skugga
    som zoomknapparna. Ett klick fäller ut menyn under lappen. */
-.map-profile-wrap {
+/* Raden uppe till höger: sidornas lappar och profillappen, till vänster om
+   zoomknapparna. Ovanför ett öppet block (z-index 5), så att man kan byta
+   sida direkt. */
+.map-top-widgets {
   position: absolute;
   top: 10px;
   right: 54px;
-  z-index: 4;
+  z-index: 6;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.map-profile-wrap {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+}
+
+/* Sidornas lappar (Brev, Personer, Klubbar, Events): som profillappen, med
+   appens ikoner. Den öppna sidans lapp är nedtryckt. */
+.map-page-widgets {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.map-page-widget {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 52px;
+  padding: 0 0.7rem 0 0.45rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  box-shadow: 3px 3px 0 #3a2f25;
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  cursor: pointer;
+}
+
+.map-page-widget:hover,
+.map-page-widget.is-open {
+  box-shadow: none;
+  transform: translate(3px, 3px);
+}
+
+.map-page-widget-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+/* Smalare fönster: bara ikonerna, så att raden inte krockar med nålarnas
+   knappar uppe till vänster (namnet finns i title). */
+@media (max-width: 1100px) {
+  .map-page-widget {
+    padding: 0 0.45rem;
+  }
+
+  .map-page-widget-label {
+    display: none;
+  }
 }
 
 .map-profile {
@@ -2347,6 +2506,24 @@ label.person-list-item {
 }
 
 /* Spiralen överst: ringar som går genom hål i kartongen. */
+/* Bredare block för appens sidor med kort i rutnät (Brev, Personer,
+   Klubbar, Events), och lite mindre lutning så att mycket text går att läsa. */
+.map-pad.is-wide {
+  --pad-rest: rotateX(10deg) rotateZ(-0.8deg);
+  width: min(64rem, 100%);
+}
+
+/* Sidan inuti blocket: appens egna sidrubriker behövs inte (blocket har sin
+   rubrik), och sidan ska inte ha egen bakgrund eller luft runt sig. */
+.map-pad-app-page .app-section {
+  padding: 0;
+  background: none;
+}
+
+.map-pad-app-page .app-title {
+  display: none;
+}
+
 .map-pad-rings {
   position: relative;
   z-index: 1;
@@ -2455,6 +2632,47 @@ label.person-list-item {
   text-decoration: none;
 }
 
+/* Nålarna och deras verktyg är dolda utzoomat (se PIN_ZOOM i MapPrototype.jsx).
+   Behövs eftersom display: flex annars vinner över hidden-attributet. */
+.map-sketch-tools[hidden],
+.map-sketch-thread[hidden] {
+  display: none;
+}
+
+/* Låst nivå (Sverige eller landskap): ett klick på kartan tar en till nästa
+   nivå, så hela kartan är klickbar. */
+.map-sketch.is-level-locked .maplibregl-canvas-container.maplibregl-interactive {
+  cursor: pointer;
+}
+
+/* Snabbzoom: en kolumn under zoomknapparna uppe till höger (MapLibres
+   kontroller sitter 10px in och är två knappar höga). Namnet på området
+   man zoomade till står under knapparna som en liten lapp. */
+.map-levels {
+  position: absolute;
+  top: 84px;
+  right: 10px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+
+.map-level-name {
+  max-width: 12rem;
+  margin: 0.3rem 0 0;
+  padding: 0.15rem 0.6rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #3a2f25;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  line-height: 1.1;
+  text-align: right;
+}
+
 /* ---------- Kartprototyp på mobil ---------- */
 
 @media (max-width: 600px) {
@@ -2469,8 +2687,87 @@ label.person-list-item {
   }
 
   /* Bara profilbilden på smala skärmar; namnet finns för skärmläsare i aria-label. */
+  /* Raden uppe till höger upplöses: profillappen stannar där, och sidornas
+     lappar blir en rad längst ned, som en flikrad. */
+  .map-top-widgets {
+    display: contents;
+  }
+
   .map-profile-wrap {
+    position: absolute;
     top: calc(10px + env(safe-area-inset-top));
+    right: 54px;
+    z-index: 6;
+  }
+
+  .map-page-widgets {
+    position: absolute;
+    left: 50%;
+    bottom: calc(2.8rem + env(safe-area-inset-bottom));
+    z-index: 6;
+    gap: 0.4rem;
+    transform: translateX(-50%);
+  }
+
+  .map-page-widget {
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    height: 50px;
+    padding: 0 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+
+  .map-page-widget-label {
+    display: block;
+  }
+
+  .map-page-widget-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* Ett öppet block på mobil: ett rakt ark mellan profilraden upptill och
+     sidornas lappar nedtill (ingen lutning, som är svår att läsa på liten
+     skärm), och kartans övriga knappar och tips göms så länge. */
+  .map-sketch.has-pad .map-sketch-tools,
+  .map-sketch.has-pad .map-levels,
+  .map-sketch.has-pad .map-sketch-hint,
+  .map-sketch.has-pad .map-sketch-compass {
+    display: none;
+  }
+
+  .map-pad-stage {
+    align-items: stretch;
+    padding: calc(70px + env(safe-area-inset-top)) 8px calc(7.4rem + env(safe-area-inset-bottom));
+  }
+
+  .map-pad,
+  .map-pad.is-wide {
+    --pad-rest: none;
+    width: 100%;
+    max-height: none;
+    height: 100%;
+  }
+
+  .map-pad-page {
+    flex: 1;
+    min-height: 0;
+    padding: 1.3rem 0.9rem 1rem;
+  }
+
+  .map-pad-title {
+    font-size: 2rem;
+  }
+
+  .map-levels {
+    top: calc(84px + env(safe-area-inset-top));
+    gap: 0.3rem;
+  }
+
+  .map-level-name {
+    font-size: 1.1rem;
   }
 
   .map-profile {
@@ -2492,8 +2789,8 @@ label.person-list-item {
     top: auto;
     left: 4.2rem;
     right: 0.75rem;
-    /* Ovanför källhänvisningen, som blir två rader på smala skärmar. */
-    bottom: calc(3.1rem + env(safe-area-inset-bottom));
+    /* Ovanför sidornas lappar och källhänvisningen. */
+    bottom: calc(6.8rem + env(safe-area-inset-bottom));
     max-width: none;
     font-size: 1.1rem;
   }
