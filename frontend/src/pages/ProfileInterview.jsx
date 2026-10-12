@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import FormField from '../components/FormField'
-import InterestTree from '../components/InterestTree'
+import InterestTree, { descendantKeys } from '../components/InterestTree'
 import TextareaWithCount from '../components/TextareaWithCount'
-import { extractInterests } from '../services/interview'
+import { ApiError } from '../services/api'
+import { analyzeInterests, completeInterview } from '../services/interview'
 import { GENDER_OPTIONS, genderLabel, getMunicipalities } from '../services/profile'
 
 // Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions`
@@ -94,7 +96,8 @@ const EMPTY_ANSWERS = { name: '', birthDate: '', gender: '', municipality: '', d
 // frågan. Webbläsare kan stoppa uppspelning med ljud innan man har klickat någonstans (t.ex.
 // när sidan öppnas direkt från adressen). Då visas en knapp "Spela upp" under videon.
 //
-// Än så länge sparas ingenting: intressena läses ut ur texten och visas, men profilen skapas inte.
+// När intervjun är klar skapas profilen och intressena i ett anrop (POST /profile/interview/complete): bara de
+// intressen man behållit sparas, och inget skickas förrän man trycker på "Skapa min profil".
 function ProfileInterview() {
   // Videoelementen, med filen som nyckel.
   const videoEls = useRef({})
@@ -123,17 +126,31 @@ function ProfileInterview() {
   const [finished, setFinished] = useState(false)
   // Mätaren efter sista svaret: null = ingen analys pågår, annars 0-100.
   const [analysis, setAnalysis] = useState(null)
-  // Intressena en AI har läst ut ur intressetexten, som ett träd [{ name, aliases, subtags: [{ name, aliases, details }] }]
-  // (huvudkategorier, underkategorier och detaljer, med alias), eller null om ingen har gjort det.
-  const [foundInterests, setFoundInterests] = useState(null)
-  // Hur det går med utläsningen: 'idle' (inte startad), 'pending' (pågår i bakgrunden), 'done' eller
-  // 'failed'. Den startar redan när man går vidare från intressefrågan, så att den hinner bli klar
-  // medan man skriver den sista frågan.
-  const [extractionStatus, setExtractionStatus] = useState('idle')
-  // Numret på senaste utläsningen och texten den gjordes på. Ett svar på en äldre utläsning (man
-  // gick tillbaka och ändrade texten) kastas.
-  const extractionId = useRef(0)
-  const extractedText = useRef(null)
+  // Analysen av intressetexten, som omgångar: [{ id, text, token, proposals }]. Den första görs i bakgrunden när man
+  // går vidare från intressefrågan, så att den hinner bli klar medan man skriver den sista frågan, och fler läggs till
+  // med "Lägg till intresse". Varje omgång har sitt eget sigill (token), som frontend bara skickar tillbaka
+  // oförändrat när profilen sparas.
+  const [batches, setBatches] = useState([])
+  // Förslag användaren tagit bort, som `${omgångens id}:${förslagets nyckel}`. De skickas inte med när man sparar.
+  const [removed, setRemoved] = useState(() => new Set())
+  // Hur det går med analysen: 'idle' (ingen text), 'pending', 'done' eller 'failed'.
+  const [analysisStatus, setAnalysisStatus] = useState('idle')
+  const [analysisError, setAnalysisError] = useState('')
+  // Numret på senaste analysen och texten den gjordes på. Ett svar på en äldre analys (man gick tillbaka och
+  // ändrade texten) kastas.
+  const analysisId = useRef(0)
+  const analyzedText = useRef(null)
+  const nextBatchId = useRef(1)
+  // "Lägg till intresse"
+  const [addText, setAddText] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState('')
+  // Att spara profilen
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  // Har sigillen gått ut (400 vid sparande)? Då får man tolka texterna på nytt.
+  const [expired, setExpired] = useState(false)
+  const navigate = useNavigate()
 
   const step = STEPS[index]
   const isLast = index === STEPS.length - 1
@@ -319,31 +336,136 @@ function ProfileInterview() {
     return () => clearTimeout(tick)
   }, [analysis, analysisMs, shownVideo])
 
-  // AI:n läser intressetexten i bakgrunden. Samma text läses bara ut en gång (så att det går bra att
-  // anropa den flera gånger), och ändras texten börjar den om. Misslyckas den (t.ex. utan nyckel) visas inga intressen alls, och
-  // ingen varning.
+  // Felet som ska visas för användaren: backendens svenska meddelande när det finns, annars ett allmänt.
+  const messageOf = (error) =>
+    error instanceof ApiError ? error.message : 'Något gick fel. Kontrollera anslutningen och försök igen.'
+
+  // AI:n läser intressetexten i bakgrunden. Samma text läses bara ut en gång (så att det går bra att anropa den
+  // flera gånger), och ändras texten börjar den om. Misslyckas den (503 när AI:n inte svarar) visas meddelandet
+  // på sista sidan, tillsammans med en länk till att välja intressen i listan i stället.
   function startExtraction(text) {
     const trimmed = text.trim()
-    if (extractedText.current === trimmed) return
-    extractedText.current = trimmed
-    const id = ++extractionId.current
-    setFoundInterests(null)
+    if (analyzedText.current === trimmed) return
+    analyzedText.current = trimmed
+    const id = ++analysisId.current
+    setBatches([])
+    setRemoved(new Set())
+    setAnalysisError('')
+    setExpired(false)
     if (!trimmed) {
-      setExtractionStatus('idle')
+      setAnalysisStatus('idle')
       return
     }
-    setExtractionStatus('pending')
-    extractInterests(trimmed)
-      .then((interests) => {
-        if (extractionId.current !== id) return
-        setFoundInterests(interests)
-        setExtractionStatus('done')
+    setAnalysisStatus('pending')
+    analyzeInterests(trimmed)
+      .then((data) => {
+        if (analysisId.current !== id) return
+        setBatches([{ id: 0, text: trimmed, token: data.token, proposals: data.proposals }])
+        setAnalysisStatus('done')
       })
-      .catch(() => {
-        if (extractionId.current !== id) return
-        extractedText.current = null // så att den kan försöka igen
-        setExtractionStatus('failed')
+      .catch((error) => {
+        if (analysisId.current !== id) return
+        analyzedText.current = null // så att den kan försöka igen
+        setAnalysisError(messageOf(error))
+        setAnalysisStatus('failed')
       })
+  }
+
+  // Förslagen som visas: de som inte är borttagna. Nycklarna får omgångens id framför sig, så att de är unika över
+  // alla omgångar.
+  const qualify = (batch, key) => `${batch.id}:${key}`
+  const everyProposal = batches.flatMap((batch) =>
+    batch.proposals.map((p) => ({
+      ...p,
+      key: qualify(batch, p.key),
+      interest: { ...p.interest, parent_key: p.interest.parent_key ? qualify(batch, p.interest.parent_key) : null },
+    })),
+  )
+  const visibleProposals = everyProposal.filter((p) => !removed.has(p.key))
+
+  // Tar bort ett intresse, och det som ligger under det.
+  function removeProposal(key) {
+    setRemoved((current) => new Set([...current, ...descendantKeys(everyProposal, key)]))
+    setSaveError('')
+  }
+
+  // Tolkar en text till ett eget tillägg: ännu en omgång med eget sigill.
+  async function handleAdd(event) {
+    event.preventDefault()
+    const text = addText.trim()
+    if (!text || adding) return
+    setAdding(true)
+    setAddError('')
+    try {
+      const data = await analyzeInterests(text)
+      if (data.proposals.length === 0) {
+        setAddError('Jag hittade inget intresse i det du skrev.')
+      } else {
+        setBatches((current) => [...current, { id: nextBatchId.current++, text, token: data.token, proposals: data.proposals }])
+        setAddText('')
+      }
+    } catch (error) {
+      setAddError(messageOf(error))
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  // Sigillen gäller i 30 minuter. Har de gått ut tolkas texterna om, och man får välja bort det man ville ta bort igen.
+  async function reanalyze() {
+    setSaving(true)
+    setSaveError('')
+    try {
+      const fresh = await Promise.all(
+        batches.map(async (batch) => {
+          const data = await analyzeInterests(batch.text)
+          return { ...batch, token: data.token, proposals: data.proposals }
+        }),
+      )
+      setBatches(fresh)
+      setRemoved(new Set())
+      setExpired(false)
+    } catch (error) {
+      setSaveError(messageOf(error))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Skapar profilen och intressena i ett anrop. Bara omgångar med något kvar skickas, och bara de förslag som inte
+  // är borttagna: det som inte skickas med räknas som bortvalt.
+  async function handleSave() {
+    const approved = batches
+      .map((batch) => ({
+        token: batch.token,
+        items: batch.proposals
+          .filter((p) => !removed.has(qualify(batch, p.key)))
+          .map((p) => (p.activity ? { key: p.key, activity: p.activity } : { key: p.key })),
+      }))
+      .filter((batch) => batch.items.length > 0)
+    if (approved.length === 0) {
+      setSaveError('Välj minst ett intresse.')
+      return
+    }
+    setSaving(true)
+    setSaveError('')
+    try {
+      await completeInterview({
+        name: answers.name.trim(),
+        birth_date: answers.birthDate,
+        gender: answers.gender,
+        municipality_code: answers.municipality,
+        profile_text: answers.about.trim(),
+        district: answers.district.trim() || null,
+        batches: approved,
+      })
+      navigate('/profil')
+    } catch (error) {
+      setExpired(error instanceof ApiError && error.status === 400)
+      setSaveError(messageOf(error))
+    } finally {
+      setSaving(false)
+    }
   }
 
   function handleSubmit(event) {
@@ -368,10 +490,16 @@ function ProfileInterview() {
 
   function restart() {
     setAnswers(EMPTY_ANSWERS)
-    extractionId.current += 1
-    extractedText.current = null
-    setFoundInterests(null)
-    setExtractionStatus('idle')
+    analysisId.current += 1
+    analyzedText.current = null
+    setBatches([])
+    setRemoved(new Set())
+    setAnalysisStatus('idle')
+    setAnalysisError('')
+    setAddText('')
+    setAddError('')
+    setSaveError('')
+    setExpired(false)
     setIndex(0)
     setFinished(false)
     setAnalysis(null)
@@ -489,27 +617,53 @@ function ProfileInterview() {
                     ))}
                   </dl>
                 )}
-                {/* Det AI:n hittade i det man skrev. Är utläsningen inte klar än står det så, och hittade
-                    AI:n inget (en tom lista) står det också. Misslyckas den, t.ex. för att backend
-                    körs utan nyckel, visas ingenting: varken intressen eller en varning. */}
-                {(extractionStatus === 'pending' || extractionStatus === 'done') && (
-                  <div>
-                    <p className="card-subheading" style={{ textAlign: 'center' }}>
-                      Dina intressen:
+                {/* Förslagen från analysen. Man kan ta bort ett intresse (och det som ligger under det) med krysset och
+                    lägga till ett genom att skriva det: texten tolkas på samma sätt. Det som är kvar när man sparar är
+                    det som godkänns. */}
+                <div>
+                  <p className="card-subheading" style={{ textAlign: 'center' }}>
+                    Dina intressen:
+                  </p>
+                  {analysisStatus === 'pending' ? (
+                    <p className="hint-text" style={{ marginTop: '0.75rem' }}>
+                      Läser ut dina intressen...
                     </p>
-                    {extractionStatus === 'pending' ? (
-                      <p className="hint-text" style={{ marginTop: '0.75rem' }}>
-                        Läser ut dina intressen...
-                      </p>
-                    ) : foundInterests.length === 0 ? (
-                      <p className="hint-text" style={{ marginTop: '0.75rem' }}>
-                        Jag hittade inga tydliga intressen i det du skrev.
-                      </p>
-                    ) : (
-                      <InterestTree interests={foundInterests} />
-                    )}
-                  </div>
-                )}
+                  ) : analysisStatus === 'failed' ? (
+                    <p className="form-error" style={{ marginTop: '0.75rem' }}>
+                      {analysisError} <Link to="/profil">Välj dina intressen i listan i stället</Link>
+                    </p>
+                  ) : visibleProposals.length === 0 ? (
+                    <p className="hint-text" style={{ marginTop: '0.75rem' }}>
+                      {batches.length > 0
+                        ? 'Du har tagit bort alla intressen. Lägg till något nedan.'
+                        : 'Jag hittade inga tydliga intressen i det du skrev. Lägg till något nedan.'}
+                    </p>
+                  ) : (
+                    <InterestTree proposals={visibleProposals} onRemove={removeProposal} />
+                  )}
+                  {analysisStatus !== 'pending' && analysisStatus !== 'failed' && (
+                    <form onSubmit={handleAdd} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                      <input
+                        type="text"
+                        className="field-large"
+                        aria-label="Lägg till ett intresse"
+                        placeholder="Lägg till ett intresse"
+                        value={addText}
+                        onChange={(event) => setAddText(event.target.value)}
+                        maxLength={200}
+                        style={{ flex: 1, minWidth: 0 }}
+                      />
+                      <button type="submit" className="secondary-button" disabled={adding || !addText.trim()}>
+                        {adding ? 'Tolkar...' : 'Lägg till'}
+                      </button>
+                    </form>
+                  )}
+                  {addError && (
+                    <p className="form-error" style={{ marginTop: '0.5rem' }}>
+                      {addError}
+                    </p>
+                  )}
+                </div>
                 {answers.about.trim() && (
                   <div style={{ width: '100%' }}>
                     <p className="card-subheading" style={{ textAlign: 'center' }}>
@@ -524,7 +678,22 @@ function ProfileInterview() {
                   </div>
                 )}
                 <p className="hint-text">Du kan ändra din profil och dina intressen senare om vi missat något!</p>
-                <button type="button" className="secondary-button" onClick={restart}>
+                {saveError && <p className="form-error">{saveError}</p>}
+                {expired ? (
+                  <button type="button" className="primary-button" disabled={saving} onClick={reanalyze}>
+                    {saving ? 'Tolkar...' : 'Tolka om'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="primary-button"
+                    disabled={saving || analysisStatus === 'pending' || visibleProposals.length === 0}
+                    onClick={handleSave}
+                  >
+                    {saving ? 'Sparar...' : 'Skapa min profil'}
+                  </button>
+                )}
+                <button type="button" className="secondary-button" disabled={saving} onClick={restart}>
                   Börja om
                 </button>
               </div>
