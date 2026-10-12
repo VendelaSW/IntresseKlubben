@@ -93,7 +93,7 @@ function nearestOnRings(rings, lng, lat) {
 // man pricken utanför stannar den vid gränsen.
 function constrainToSweden(fit, lngLat, zoom, lan) {
   if (!fit) return { center: lngLat, zoom }
-  const z = Math.max(zoom, fit.zoom)
+  const z = Math.min(MAX_ZOOM, Math.max(zoom, fit.zoom))
   const inside = lan ? lanCodeAt([lngLat.lng, lngLat.lat]) === lan : inSweden(lngLat.lng, lngLat.lat)
   if (inside) return { center: lngLat, zoom: z }
   const [lng, lat] = nearestOnRings(lan ? lanRings(lan) : SWEDEN_RINGS, lngLat.lng, lngLat.lat)
@@ -110,6 +110,9 @@ const TILT = 45
 const DISTRICT_CLASSES = ['city', 'town', 'village', 'suburb', 'quarter', 'neighbourhood', 'hamlet', 'island']
 // Zoomen för en kommun eller stadsdel: där de skissade husen har vuxit upp.
 const DISTRICT_ZOOM = 15
+// Längst in man kan zooma: kvarter med husen tydliga. Kartdatan har ingen
+// mer detalj längre in (den förstoras bara), och husen blir bara större.
+const MAX_ZOOM = 17
 // Kommunens centralort hittas bland de här platserna i kartans data.
 const TOWN_CLASSES = ['city', 'town']
 
@@ -995,6 +998,7 @@ function MapPrototype() {
       style: mapStyle,
       center: GUSTAVSBERG,
       zoom: 13.5,
+      maxZoom: MAX_ZOOM,
       transformConstrain: (lngLat, zoom) => constrainToSweden(fit, lngLat, zoom, selectedLanRef.current),
       pitch: TILT,
       minPitch: TILT,
