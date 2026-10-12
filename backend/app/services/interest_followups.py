@@ -1,19 +1,26 @@
 """
-Följdfrågor om hur man håller på med ett intresse, och vilka förslag som blir kvar när ett mer specifikt
-förslag täcker ett bredare.
+Följdfrågor när AI:n är osäker på vad användaren menar, och vilka förslag som blir kvar när ett mer
+specifikt förslag täcker ett bredare.
 
-Poängen med följdfrågan är aktiviteten: "Jag gillar musik" säger inte om man lyssnar, spelar eller
-skapar, och det avgör vem man passar ihop med. Reglerna:
-- En fråga ställs för ett förslag bara när texten inte redan sagt hur man håller på med det (förslaget
-  har ingen aktivitet) och intresset kan utövas på minst två sätt. Kan det bara utövas på ett sätt, eller
-  inte alls, finns inget att fråga om.
-- Alternativen är intressets aktiviteter ur biblioteket (spelar, lyssnar på...), plus "Allmänt". Man kan
-  välja flera, och varje val blir en aktivitet på intresset. Därför behövs inget modellanrop för
-  frågorna, och svaret är alltid en aktivitet som är tillåten för intresset.
-- Högst MAX_FOLLOWUPS frågor, i den ordning användaren nämnde intressena.
-- Ett förslag som ligger över ett annat förslag i trädet tas bort: skriver någon "musik och hårdrock" är
-  det Metal som sparas, inte Musik också. Aktiviteten som sades om det bredare ("jag lyssnar på musik,
-  särskilt hårdrock") följer med till det specifika.
+Två sorters frågor, och de kommer i den här ordningen för ett intresse:
+1. NARROW: användaren nämnde bara ett huvudområde ("Jag gillar musik") som har underintressen. Frågan är
+   "Något särskilt inom musik?", med områdets underintressen som alternativ plus "Bara allmänt". Svarar
+   man allmänt är det området självt som sparas och visas på profilen, och väljer man något är det det
+   som sparas, utan området ovanför.
+2. ACTIVITY: texten har inte sagt hur man håller på med intresset, och intresset kan utövas på minst två
+   sätt. Frågan är "Hur håller du på med Metal?", med intressets aktiviteter (spelar, lyssnar på...) plus
+   "Allmänt". Man kan välja flera, och varje val blir en aktivitet.
+
+För ett huvudområde med underintressen ställs bara den första frågan. Aktivitetsfrågan om det man valde
+kommer efter den, och för att den ska gå att ställa utan ett nytt anrop bär varje alternativ i den första
+frågan sina aktiviteter (Option.activities), eftersom ett underintresse kan ha en annan lista än området.
+
+Alternativen kommer ur biblioteket, så inget modellanrop behövs och svaret är alltid något som är tillåtet.
+Högst MAX_FOLLOWUPS frågor, i den ordning användaren nämnde intressena.
+
+Ett förslag som ligger över ett annat förslag i trädet tas bort: skriver någon "musik och hårdrock" är det
+Metal som sparas, inte Musik också, och då ställs ingen fråga om musik. Aktiviteten som sades om det
+bredare ("jag lyssnar på musik, särskilt hårdrock") följer med till det specifika.
 """
 
 from dataclasses import dataclass, replace
@@ -21,13 +28,17 @@ from dataclasses import dataclass, replace
 from app.services.interest_matching import LibraryIndex, Match
 
 MAX_FOLLOWUPS = 3
+NARROW = "narrow"
 ACTIVITY = "activity"
 
 
 @dataclass(frozen=True)
 class Option:
-    value: str  # aktivitetens slug, eller "" för "Allmänt"
+    value: str  # intressets id som text (narrow) eller aktivitetens slug (activity), eller "" för allmänt
     label: str
+    # Bara för narrow: aktiviteterna som gäller om man väljer alternativet, så att nästa fråga går att
+    # ställa direkt. För "Bara allmänt" är det områdets egna.
+    activities: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -36,10 +47,11 @@ class FollowUp:
     type: str
     question: str
     options: tuple[Option, ...]
-    multiple: bool = True  # man kan välja flera aktiviteter, och varje blir en egen rad på profilen
+    multiple: bool = True  # man kan välja flera, och varje val blir ett eget intresse (narrow) eller en aktivitet
 
 
 GENERAL = Option("", "Allmänt")
+GENERAL_AREA = "Bara allmänt"
 
 
 def _ancestor_ids(match: Match, index: LibraryIndex) -> set[int]:
@@ -90,11 +102,30 @@ def followups(matches: list[Match], index: LibraryIndex, labels: dict[str, str] 
     """Följdfrågorna för förslagen (efter drop_covered). `labels` är aktiviteternas namn ("spela" ->
     "Spelar"), ur bibliotekets aktivitetslista. Saknas en etikett används sluggen."""
     labels = labels or {}
+    children: dict[int, list] = {}
+    for item in index.items:
+        if item.parent_id is not None:
+            children.setdefault(item.parent_id, []).append(item)
+
     questions: list[FollowUp] = []
     for match in matches:
         if len(questions) >= MAX_FOLLOWUPS:
             break
-        if match.kind == "none" or match.activity:
+        if match.kind == "none":
+            continue
+
+        # 1. Bara ett huvudområde med underintressen: fråga om något särskilt inom det.
+        if match.kind == "same" and match.interest_id in index.by_id:
+            area = index.by_id[match.interest_id]
+            kids = sorted(children.get(area.id, []), key=lambda kid: kid.name)
+            if area.level == 1 and kids:
+                options = tuple(Option(str(kid.id), kid.name, tuple(index.effective_activities(kid.id))) for kid in kids)
+                general = Option("", GENERAL_AREA, tuple(index.effective_activities(area.id)))
+                questions.append(FollowUp(match.tag.key, NARROW, f"Något särskilt inom {area.name.lower()}?", (*options, general)))
+                continue
+
+        # 2. Texten sa inte hur man håller på med det, och det finns flera sätt: fråga om aktiviteten.
+        if match.activity:
             continue
         interest_id = match.interest_id if match.kind == "same" else match.parent_id
         activities = index.effective_activities(interest_id)

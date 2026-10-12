@@ -2,7 +2,18 @@
 
 import pytest
 
-from app.services.interest_followups import ACTIVITY, GENERAL, MAX_FOLLOWUPS, FollowUp, Option, drop_covered, followups, settle
+from app.services.interest_followups import (
+    ACTIVITY,
+    GENERAL,
+    GENERAL_AREA,
+    MAX_FOLLOWUPS,
+    NARROW,
+    FollowUp,
+    Option,
+    drop_covered,
+    followups,
+    settle,
+)
 from app.services.interest_matching import LibraryIndex, LibraryItem, Match, Tag
 
 LABELS = {"lyssna": "Lyssnar på", "spela": "Spelar", "skapa": "Skapar", "besoka": "Besöker", "titta": "Tittar på", "samla": "Samlar"}
@@ -27,6 +38,7 @@ def index():
             item(9, "Pokémon TCG", 8, 3, ["Spel och pussel", "Kortspel"]),  # ärver Kortspels lista
             item(10, "Ensamt område"),  # inga aktiviteter alls
             item(11, "Stilla", 1, 2, ["Musik"], activities=[]),  # uttryckligen inga
+            item(12, "Fritid", activities=["spela", "samla"]),  # ett område utan underintressen
         ]
     )
 
@@ -47,15 +59,80 @@ def kinds(matches):
     return [m.kind for m in matches]
 
 
-# ---------- Aktivitetsfrågor ----------
+# ---------- Narrow: bara ett huvudområde ----------
 
 
-def test_an_area_with_several_activities_gets_a_question_about_how_you_do_it(index):
+def test_an_area_alone_gets_a_question_about_something_in_particular(index):
     (question,) = followups([same(1, "t1")], index, LABELS)
+    assert (question.key, question.type, question.question) == ("t1", NARROW, "Något särskilt inom musik?")
+    assert question.multiple is True
+
+
+def test_the_options_are_the_areas_children_by_name_then_stay_general(index):
+    (question,) = followups([same(1)], index, LABELS)
+    assert [(o.value, o.label) for o in question.options] == [
+        ("3", "Jazz"),
+        ("2", "Metal"),
+        ("11", "Stilla"),
+        ("", GENERAL_AREA),
+    ]
+    assert GENERAL_AREA == "Bara allmänt"
+    assert all(isinstance(o.value, str) for o in question.options)
+
+
+def test_each_option_carries_the_activities_that_apply_if_it_is_chosen(index):
+    (question,) = followups([same(1)], index, LABELS)
+    by_label = {o.label: o for o in question.options}
+    assert by_label["Metal"].activities == ("lyssna", "spela", "skapa", "besoka")  # ärvt från Musik
+    assert by_label["Stilla"].activities == ()  # uttryckligen inga
+    assert by_label[GENERAL_AREA].activities == ("lyssna", "spela", "skapa", "besoka")  # området självt
+
+
+def test_an_area_whose_children_have_their_own_lists_gets_them_per_option():
+    items = [
+        item(1, "Sport", activities=["utova", "titta"]),
+        item(2, "Löpning", 1, 2, ["Sport"]),
+        item(3, "Schack", 1, 2, ["Sport"], activities=["spela"]),
+    ]
+    (question,) = followups([same(1)], LibraryIndex(items))
+    assert {o.label: o.activities for o in question.options} == {
+        "Löpning": ("utova", "titta"),
+        "Schack": ("spela",),
+        GENERAL_AREA: ("utova", "titta"),
+    }
+
+
+def test_an_area_gets_the_question_even_if_it_has_only_one_way_to_do_it(index):
+    (question,) = followups([same(5)], index)
+    assert question.type == NARROW and question.question == "Något särskilt inom film och tv?"
+    assert [o.label for o in question.options] == ["Skräck", GENERAL_AREA]
+
+
+def test_an_area_gets_the_question_even_if_the_text_said_how(index):
+    # "Jag lyssnar på musik" säger hur, men inte vilken sorts musik.
+    (question,) = followups([same(1, activity="lyssna")], index)
+    assert question.type == NARROW
+
+
+def test_an_area_gets_only_the_narrowing_question_not_the_activity_question_too(index):
+    assert [q.type for q in followups([same(1)], index)] == [NARROW]
+
+
+def test_an_area_without_children_is_asked_about_activity_instead(index):
+    (question,) = followups([same(12)], index, LABELS)
+    assert (question.type, question.question) == (ACTIVITY, "Hur håller du på med fritid?")
+    assert [(o.value, o.label) for o in question.options] == [("spela", "Spelar"), ("samla", "Samlar"), ("", "Allmänt")]
+
+
+# ---------- Activity: hur man håller på med ett intresse ----------
+
+
+def test_a_specific_interest_gets_a_question_about_how_you_do_it(index):
+    (question,) = followups([same(2)], index, LABELS)
     assert question == FollowUp(
         "t1",
         ACTIVITY,
-        "Hur håller du på med musik?",
+        "Hur håller du på med Metal?",
         (Option("lyssna", "Lyssnar på"), Option("spela", "Spelar"), Option("skapa", "Skapar"), Option("besoka", "Besöker"), GENERAL),
     )
     assert question.multiple is True
@@ -63,24 +140,17 @@ def test_an_area_with_several_activities_gets_a_question_about_how_you_do_it(ind
 
 
 def test_a_specific_interest_inherits_the_activities_of_what_is_above_it(index):
-    (metal,) = followups([same(2)], index, LABELS)
-    assert [o.value for o in metal.options] == ["lyssna", "spela", "skapa", "besoka", ""]
-    assert metal.question == "Hur håller du på med Metal?"
     (pokemon,) = followups([same(9)], index, LABELS)
     assert [o.value for o in pokemon.options] == ["spela", "samla", ""]  # Kortspels egen lista, inte områdets
     assert pokemon.question == "Hur håller du på med Pokémon TCG?"
 
 
-def test_there_is_no_question_when_the_text_already_said_how(index):
-    assert followups([same(1, activity="spela")], index, LABELS) == []
+def test_there_is_no_activity_question_when_the_text_already_said_how(index):
+    assert followups([same(2, activity="spela")], index, LABELS) == []
 
 
-def test_there_is_no_question_for_an_interest_with_only_one_way_to_do_it(index):
-    assert followups([same(5), same(6)], index) == []  # bara "titta"
-
-
-@pytest.mark.parametrize("interest_id", [10, 11])
-def test_there_is_no_question_for_an_interest_with_no_activities(index, interest_id):
+@pytest.mark.parametrize("interest_id", [6, 10, 11])
+def test_there_is_no_question_for_an_interest_with_one_or_no_way_to_do_it(index, interest_id):
     assert followups([same(interest_id)], index) == []
 
 
@@ -100,8 +170,11 @@ def test_an_unknown_id_gets_no_question(index):
 
 
 def test_a_missing_label_falls_back_to_the_slug(index):
-    (question,) = followups([same(1)], index, {"spela": "Spelar"})
+    (question,) = followups([same(2)], index, {"spela": "Spelar"})
     assert [o.label for o in question.options] == ["lyssna", "Spelar", "skapa", "besoka", "Allmänt"]
+
+
+# ---------- Tillsammans ----------
 
 
 def test_at_most_three_questions_in_the_order_the_interests_were_mentioned():
@@ -117,12 +190,9 @@ def test_the_question_carries_the_key_of_the_tag(index):
     assert question.key == "t2"
 
 
-def test_no_question_is_about_narrowing_down(index):
-    # Frågan gäller hur man håller på med intresset, aldrig "något speciellt inom musik?".
-    (question,) = followups([same(1)], index, LABELS)
-    assert question.type == ACTIVITY
-    assert "speciellt" not in question.question.lower()
-    assert all(o.value in {"lyssna", "spela", "skapa", "besoka", ""} for o in question.options)
+def test_both_kinds_of_questions_are_asked_in_the_order_the_interests_were_mentioned(index):
+    questions = followups([same(1, "t1"), same(9, "t2"), same(12, "t3")], index)
+    assert [(q.key, q.type) for q in questions] == [("t1", NARROW), ("t2", ACTIVITY), ("t3", ACTIVITY)]
 
 
 # ---------- Förslag som täcks ----------
@@ -191,7 +261,7 @@ def test_the_activity_follows_to_a_new_interest_under_the_area(index):
     assert kept[1].activity == "spela"
 
 
-# ---------- Tillsammans ----------
+# ---------- Förslag och frågor tillsammans ----------
 
 
 def test_the_activity_the_text_gave_follows_and_no_question_is_asked(index):
@@ -200,12 +270,12 @@ def test_the_activity_the_text_gave_follows_and_no_question_is_asked(index):
     assert questions == []
 
 
-def test_a_question_for_the_specific_proposal_when_nothing_was_said_about_how(index):
+def test_no_question_about_the_area_when_a_specific_proposal_already_covers_it(index):
     kept, questions = settle([same(1, "t1"), same(2, "t2")], index, LABELS)
     assert kinds(kept) == ["none", "same"]
-    assert [q.key for q in questions] == ["t2"]
+    assert [(q.key, q.type) for q in questions] == [("t2", ACTIVITY)]  # bara hur man håller på med Metal
 
 
-def test_questions_for_every_proposal_that_can_be_done_in_several_ways(index):
+def test_a_question_for_each_proposal_that_needs_one(index):
     _, questions = settle([same(1, "t1"), same(5, "t2"), same(9, "t3")], index, LABELS)
-    assert [q.key for q in questions] == ["t1", "t3"]  # film och tv har bara ett sätt
+    assert [(q.key, q.type) for q in questions] == [("t1", NARROW), ("t2", NARROW), ("t3", ACTIVITY)]
