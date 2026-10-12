@@ -21,14 +21,21 @@ biblioteket, så svaret är alltid något som är tillåtet. Högst MAX_FOLLOWUP
 användaren nämnde intressena.
 
 Aktiviteterna som är tillåtna för ett förslag är bibliotekets lista (egen eller ärvd). Saknas en lista,
-varken egen eller ärvd, väljer modellen ur den fasta aktivitetslistan (interest_activities.py).
+varken egen eller ärvd, väljer modellen ur den fasta aktivitetslistan.
+
+Ges texten (plan(text=...)) läser modellen den och avgör vad som är oklart och hur frågan ska formuleras
+(interest_clarify.py), så att frågor inte ställs om sådant texten redan säger och frågetexten passar
+intresset. Koden kontrollerar allt modellen svarar: alternativen kommer bara ur biblioteket, ett ensamt
+huvudområde får alltid sin fråga, och frågetexten kontrolleras och modereras, annars används mallen. Går
+modellens anrop fel, eller ges ingen text, används reglerna ovan i stället.
 """
 
 from dataclasses import dataclass, replace
 
-from app.services.ai_clients import Deadline
+from app.services.ai_clients import AIFailed, AINotConfigured, Deadline, get_moderator
 from app.services.interest_activities import Subject, suggest_activities
-from app.services.interest_matching import LibraryIndex, Match
+from app.services.interest_clarify import Decision, ask_clarify, safe_question
+from app.services.interest_matching import LibraryIndex, Match, normalize
 
 MAX_FOLLOWUPS = 3
 SPECIFY = "specify"  # både underintresse och aktivitet i samma fråga
@@ -163,7 +170,7 @@ def followups(
     return questions
 
 
-def plan(
+def _plan_with_rules(
     matches: list[Match], index: LibraryIndex, catalog: dict[str, str], deadline: Deadline | None = None
 ) -> Plan:
     """Förslagen och frågorna till dem, med aktiviteter även för intressen där biblioteket saknar en lista: för
@@ -209,3 +216,184 @@ def plan(
                 result[positions[m.tag.key]] = replace(m, activity=said)
 
     return Plan(result, followups(result, index, catalog, allowed), allowed)
+
+
+# ---------- Modellstyrda frågor ----------
+
+
+def _children_of(index: LibraryIndex) -> dict[int, list]:
+    children: dict[int, list] = {}
+    for item in index.items:
+        if item.parent_id is not None:
+            children.setdefault(item.parent_id, []).append(item)
+    return children
+
+
+def _area_kids(group: list[Match], index: LibraryIndex, children: dict[int, list]) -> list:
+    """Underintressena om gruppen bara är ett huvudområde som har några, annars ingenting."""
+    top, subs = group[0], group[1:]
+    if subs or top.kind != "same" or top.interest_id not in index.by_id:
+        return []
+    area = index.by_id[top.interest_id]
+    return sorted(children.get(area.id, []), key=lambda kid: kid.name) if area.level == 1 else []
+
+
+def _member_payload(match: Match, index: LibraryIndex) -> dict:
+    if match.kind == "same" and match.interest_id in index.by_id:
+        item = index.by_id[match.interest_id]
+        name, path = item.name, list(item.path)
+    elif match.kind == "new" and match.parent_id in index.by_id:
+        parent = index.by_id[match.parent_id]
+        name, path = match.name or match.tag.name, [*parent.path, parent.name]
+    else:
+        name, path = match.name or match.tag.name, []
+    defined = index.activities_defined(_target_id(match))
+    return {
+        "key": match.tag.key,
+        "name": name,
+        "path": path,
+        "activities": index.effective_activities(_target_id(match)) if defined else None,
+    }
+
+
+def _pick_kids(kids: list, chosen: tuple[int, ...]) -> list:
+    """Underintressena att erbjuda: de modellen valde (i bibliotekets ordning) om det är minst två, annars alla."""
+    picked = [kid for kid in kids if kid.id in chosen]
+    return picked if len(picked) >= 2 else kids
+
+
+def _pick_activities(activities: list[str], chosen: tuple[str, ...]) -> list[str]:
+    """Aktiviteterna att erbjuda: de modellen valde (i bibliotekets ordning) om det är minst två, annars de första."""
+    picked = [slug for slug in activities if slug in chosen]
+    return picked if len(picked) >= 2 else activities[:MAX_OPTIONS]
+
+
+MAX_OPTIONS = 6  # högst så här många aktiviteter i en fråga när modellen inte valt
+
+
+def _plan_with_decisions(
+    matches: list[Match],
+    index: LibraryIndex,
+    catalog: dict[str, str],
+    decisions: dict[str, Decision],
+    deadline: Deadline | None,
+) -> Plan:
+    live = [m for m in matches if m.kind != "none"]
+    positions = {m.tag.key: number for number, m in enumerate(matches)}
+    result = list(matches)
+    allowed: dict[str, list[str]] = {}
+
+    for m in live:
+        decision = decisions.get(m.tag.key)
+        if index.activities_defined(_target_id(m)):
+            options = index.effective_activities(_target_id(m))
+            said = next((a for a in (m.tag.activity, decision.activity if decision else "") if a in options), "")
+        else:
+            options = list(decision.suggested_activities) if decision else []
+            said = next((a for a in (m.tag.activity, decision.activity if decision else "") if a and a in catalog), "")
+            if said and said not in options:
+                options.append(said)
+        allowed[m.tag.key] = options
+        result[positions[m.tag.key]] = replace(m, activity=said or m.activity)
+
+    # Aktiviteten som sades om något i gruppen gäller hela gruppen, där den är tillåten.
+    for group in _groups(result):
+        said = next((m.activity for m in group if m.activity), "")
+        if not said:
+            continue
+        for m in group:
+            if not m.activity and said in allowed.get(m.tag.key, []):
+                result[positions[m.tag.key]] = replace(m, activity=said)
+
+    children = _children_of(index)
+    drafts = []  # (grupp, typ, alternativ, mall, modellens fråga eller None)
+    for group in _groups(result):
+        if len(drafts) >= MAX_FOLLOWUPS:
+            break
+        top = group[0]
+        decision = decisions.get(top.tag.key)
+        activities = allowed.get(top.tag.key, [])
+        kids = _area_kids(group, index, children)
+        # Aktivitetsfrågan kräver att texten inte sagt hur, att det finns minst två sätt, och att modellen anser att
+        # den behövs. Ett ensamt huvudområde med underintressen får alltid sin fråga om dem, vad modellen än säger.
+        wants_activity = not any(m.activity for m in group) and len(activities) >= 2 and (decision is None or decision.ask in ("activity", "both"))
+        if not kids and not wants_activity:
+            continue
+        kid_options = _pick_kids(kids, decision.interest_options if decision else ()) if kids else []
+        activity_slugs = _pick_activities(activities, decision.activity_options if decision else ()) if wants_activity else []
+        qtype = SPECIFY if kid_options and activity_slugs else NARROW if kid_options else ACTIVITY
+        options = (
+            *(Option(str(kid.id), kid.name, INTEREST) for kid in kid_options),
+            *(Option(slug, catalog.get(slug, slug), ACTIVITY_KIND) for slug in activity_slugs),
+            Option("", GENERAL_AREA, GENERAL_KIND) if kid_options else GENERAL,
+        )
+        if qtype == SPECIFY:
+            template = SPECIFY_QUESTION.format(name=index.by_id[top.interest_id].name.lower())
+        elif qtype == NARROW:
+            template = f"Något särskilt inom {index.by_id[top.interest_id].name.lower()}?"
+        else:
+            template = f"Hur håller du på med {_name_in_sentence(top, index)}?"
+        # Modellens fråga används bara om den hör till den sorts fråga vi faktiskt ställer, och är säker.
+        fits = decision is not None and {"narrow": NARROW, "activity": ACTIVITY, "both": SPECIFY}.get(decision.ask) == qtype
+        drafts.append((group, qtype, options, template, safe_question(decision.question) if fits else None))
+
+    # Modereringen av frågetexterna, i ett anrop. Går den inte att köra används mallarna.
+    model_questions = [draft[4] for draft in drafts if draft[4] is not None]
+    flagged: dict[str, bool] = {}
+    if model_questions:
+        try:
+            flags = get_moderator().flagged(model_questions, deadline)
+            flagged = dict(zip(model_questions, flags))
+        except (AIFailed, AINotConfigured):
+            flagged = {question: True for question in model_questions}
+
+    questions = []
+    for group, qtype, options, template, model_question in drafts:
+        text = model_question if model_question is not None and not flagged.get(model_question, True) else template
+        questions.append(FollowUp(group[0].tag.key, qtype, text, options, applies_to=tuple(m.tag.key for m in group)))
+    return Plan(result, questions, allowed)
+
+
+def drop_unsaid_areas(matches: list[Match], index: LibraryIndex, text: str) -> list[Match]:
+    """Ett huvudområde som är förälder till något i utläsningen sparas bara om användaren skrev det själv.
+    Utläsningen hittar gärna på området som förälder ("jag spelar padel" ger Sport och träning > Padel), och
+    ett område som ingen sa ska inte hamna på profilen. Ett område som står ensamt behålls alltid, och det
+    gör ett område vars namn (eller alias) står i texten. Intressen längre ner i trädet påverkas inte."""
+    spoken = normalize(text)
+    has_subs = {m.tag.parent_key for m in matches if m.kind != "none" and m.tag.parent_key is not None}
+    kept = []
+    for m in matches:
+        is_area = m.kind == "same" and m.interest_id in index.by_id and index.by_id[m.interest_id].level == 1
+        said = any(normalize(name) in spoken for name in m.tag.all_names() if normalize(name))
+        kept.append(Match(m.tag, "none") if is_area and m.tag.key in has_subs and not said else m)
+    return kept
+
+
+def plan(
+    matches: list[Match],
+    index: LibraryIndex,
+    catalog: dict[str, str],
+    deadline: Deadline | None = None,
+    text: str = "",
+) -> Plan:
+    """Förslagen och frågorna till dem. Ges `text` (det användaren skrev) läser modellen den och avgör vad som är
+    oklart, läser ut aktiviteter och formulerar frågorna, med allt kontrollerat i kod. Går anropet fel, eller
+    ges ingen text, gäller reglerna (se _plan_with_rules)."""
+    if text.strip():
+        matches = drop_unsaid_areas(matches, index, text)
+    live = [m for m in matches if m.kind != "none"]
+    if text.strip() and live:
+        groups = [
+            {
+                "members": [_member_payload(m, index) for m in group],
+                "interest_options": [{"id": kid.id, "name": kid.name} for kid in _area_kids(group, index, _children_of(index))],
+            }
+            for group in _groups(matches)
+        ]
+        try:
+            decisions = ask_clarify(text, groups, catalog, deadline)
+        except (AIFailed, AINotConfigured):
+            decisions = None
+        if decisions is not None:
+            return _plan_with_decisions(matches, index, catalog, decisions, deadline)
+    return _plan_with_rules(matches, index, catalog, deadline)

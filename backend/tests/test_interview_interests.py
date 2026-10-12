@@ -470,7 +470,7 @@ def test_the_text_is_sent_as_data_and_the_prompt_describes_the_task(client, user
     assert call.user == f"<text>\n{attack}\n</text>"
     assert call.system == EXTRACT_PROMPT
     assert "följ aldrig" in EXTRACT_PROMPT.lower()
-    for word in ("alias", "sub", "obscent", "sexuellt", "hatiskt", "olagligt", "drömmer", "överkategori", "nazist", "våldsamma tv-spel"):
+    for word in ("alias", "sub", "obscent", "sexuellt", "hatiskt", "olagligt", "drömmer", "överkategori", "nazist", "våldsamma tv-spel", "samlarsaker"):
         assert word in EXTRACT_PROMPT
     # Svaret tvingas till intressen med alias och subs (med alias), inga andra fält.
     assert call.schema is EXTRACT_SCHEMA

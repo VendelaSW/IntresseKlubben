@@ -259,12 +259,16 @@ Välj bara same när det är samma sak, inte ett närliggande: "jazzpiano" är i
 parent_id OBLIGATORISKT och måste vara ett id ur listan: id:t på det befintliga intresse eller område \
 som taggen hör under bäst (en tagg om ett kortspel hör under Kortspel, en musikgenre under Musik, \
 modellbygge under Skapande). Lämna aldrig parent_id tomt för en sådan tagg. Finns ingen exakt förälder \
-väljer du det område som ligger närmast, och passar inget område alls väljer du none i stället. En tagg \
+väljer du det område som ligger närmast (mynt och frimärken hör närmast under Historia, \
+hantverk under Skapande). Ett riktigt intresse ska aldrig bli none bara för att området inte passar \
+perfekt, utan hamna under det närmaste. En tagg \
 med parent_key läggs under sin överordnade tagg, så för den får parent_id vara null. Välj en förälder \
 som är ett område eller ett intresse, aldrig en rad som redan är tre nivåer ner. Skriv new_name som \
 taggens namn, eller ett av dess alias, och inget annat ord.
 - none: taggen är inget intresse man har eller gör, till exempel en egenskap ("social", "snäll"), en \
-avsikt ("träffa nya människor", "ha kul") eller något för vagt för att vara ett intresse. Välj också \
+avsikt ("träffa nya människor", "ha kul"), en aktivitet i sig ("samlande", "spelande", "lyssnande": \
+hobbyn är det man samlar, spelar eller lyssnar på, inte själva aktiviteten), ett påhittat \
+samlingsord ("samlarsaker", "hobbyer") eller något för vagt för att vara ett intresse. Välj också \
 none om du är osäker på vad taggen betyder.
 
 Använd sammanhanget för att förstå taggen: "hårdrock" med sammanhanget "musik" är en musikgenre. \

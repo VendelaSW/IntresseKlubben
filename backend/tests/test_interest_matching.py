@@ -195,6 +195,15 @@ def test_the_prompt_demands_a_parent_for_every_new_interest():
     assert "parent_key" in MATCH_PROMPT  # en sub får vara tom: den läggs under sin överordnade tagg
 
 
+def test_the_prompt_says_that_an_activity_or_a_made_up_collective_word_is_not_an_interest():
+    assert "samlande" in MATCH_PROMPT and "samlarsaker" in MATCH_PROMPT
+
+
+def test_the_prompt_never_lets_a_real_interest_become_none_for_lack_of_a_perfect_area():
+    # "mynt" blev none i 3 av 3 körningar när prompten sa none om inget område passade.
+    assert "aldrig bli none bara för att området inte passar" in MATCH_PROMPT
+
+
 def test_the_schema_forces_every_field_and_a_fixed_choice():
     item_schema = MATCH_SCHEMA["properties"]["decisions"]["items"]
     assert item_schema["required"] == ["key", "decision", "interest_id", "parent_id", "new_name"]
