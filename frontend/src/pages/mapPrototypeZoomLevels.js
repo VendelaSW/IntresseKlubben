@@ -177,10 +177,12 @@ export async function regionAt(level, [lng, lat]) {
   }
 }
 
-// Alla kommuner: Map från kommunkod till { name, label } (namnpunkten).
+// Alla kommuner: Map från kommunkod till { kod, name, label } (namnpunkten).
 export async function allKommuner() {
   const { kommuner } = await loadRegions()
-  return new Map(kommuner.map((f) => [f.properties.kod, { name: f.properties.namn, label: f.properties.label }]))
+  return new Map(
+    kommuner.map((f) => [f.properties.kod, { kod: f.properties.kod, name: f.properties.namn, label: f.properties.label }]),
+  )
 }
 
 // Ett län efter kod: { name, bounds, kod, lan }, eller null.

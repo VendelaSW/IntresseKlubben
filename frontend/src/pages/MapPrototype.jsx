@@ -795,6 +795,9 @@ function MapPrototype() {
   // Det valda länet på länsnivån (länskod), annars null. Gäller tills man
   // byter nivå (Kommun, Landskap, Sverige, eller zoomar ut till landskapet).
   const selectedLanRef = useRef(null)
+  // Den valda kommunen på kommunnivå (kommunkod), annars null. Där, och bara
+  // där, syns klubbarna och eventen.
+  const selectedKommunRef = useRef(null)
   // Länsvyns data: { lan, bounds, kommuner } (se showLanFocus).
   const lanFocusRef = useRef(null)
   // Räknas upp för varje ny flygning till en ort, så att en gammal inte tar
@@ -840,7 +843,7 @@ function MapPrototype() {
       const map = mapRef.current
       if (!item || !map) return
       setOpenPage(null)
-      setMode('free', null, item.lan)
+      setMode('free', null, item.lan, item.kommun)
       map.easeTo({ center: item.lngLat, zoom: ACTIVITY_ZOOM, duration: 1400 })
       setLevelName(item.name)
       map.once('moveend', () => activitiesRef.current?.highlight(`${type}:${id}`))
@@ -879,11 +882,12 @@ function MapPrototype() {
 
   // Byt nivå: lås eller släpp zoomen med mus, fingrar och tangentbord.
   // `lan`: länskoden på fri nivå (länsvyn och kommuner i den), annars null.
-  function setMode(next, landskap = null, lan = null) {
+  function setMode(next, landskap = null, lan = null, kommun = null) {
     modeRef.current = next
     setModeState(next)
     selectedLandskapRef.current = next === 'landskap' ? landskap : null
     selectedLanRef.current = next === 'free' ? lan : null
+    selectedKommunRef.current = next === 'free' ? kommun : null
     showLanFocus(selectedLanRef.current)
     // En väntande flygning till en ort gäller inte längre.
     flyTokenRef.current += 1
@@ -964,7 +968,7 @@ function MapPrototype() {
     }
     // Länsnivån och kommuner i den: bara länet syns (resten blir tomt papper),
     // och man kan röra sig fritt inom det.
-    setMode('free', null, region.lan)
+    setMode('free', null, region.lan, level === 'kommun' ? region.kod : null)
     zoomToRegion(region)
     if (level === 'kommun') flyToPlaceIn(map, region)
   }
@@ -1037,7 +1041,7 @@ function MapPrototype() {
     }
     const kommun = profile?.municipality_code && (await kommunByCode(profile.municipality_code))
     if (!kommun || mapRef.current !== map) return
-    setMode('free', null, kommun.lan)
+    setMode('free', null, kommun.lan, kommun.kod)
     const camera = map.cameraForBounds(kommun.bounds, { padding: LEVEL_PADDING, pitch: TILT })
     if (camera) map.jumpTo({ center: camera.center, zoom: camera.zoom })
     setLevelName(kommun.name)
@@ -1210,8 +1214,7 @@ function MapPrototype() {
     if (editing) map.once('load', () => zoomToLevelRef.current('sverige'))
     else startAtHome(map)
     activitiesRef.current = attachActivityMarkers(map, activitiesLayerRef.current, {
-      isShown: () => modeRef.current === 'free',
-      getLan: () => selectedLanRef.current,
+      getKommun: () => selectedKommunRef.current,
       onPick: (item) => openActivityRef.current(item),
     })
     loadActivities()

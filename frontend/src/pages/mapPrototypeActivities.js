@@ -4,8 +4,7 @@
 //   - en klubb står mitt i sin kommun (kommunens namnpunkt),
 //   - ett event står i sin klubbs kommun, annars i en kommun vars namn finns
 //     i adressen eller platsens namn, annars visas det inte,
-// Lapparna syns på fri nivå (län, kommun och närmare), i länsvyn bara de inom
-// länet. Utzoomat är de bara ikonen (namnet syns när man hovrar), inzoomat
+// Lapparna syns bara på kommunnivå, och bara den valda kommunens. Utzoomat är de bara ikonen (namnet syns när man hovrar), inzoomat
 // hela lappen. Lappar som skulle krocka knuffas isär i höjdled, så att de på
 // samma ställe hamnar i en kolumn.
 
@@ -38,7 +37,7 @@ export function activitiesFrom({ groups, events, kommuner }) {
     const kommun = kommuner.get(group.municipality_code)
     if (!kommun?.label) continue
     groupKommun.set(group.id, kommun)
-    items.push({ type: 'klubb', id: group.id, name: group.name, sub: kommun.name, lngLat: kommun.label })
+    items.push({ type: 'klubb', id: group.id, name: group.name, sub: kommun.name, lngLat: kommun.label, kommun: kommun.kod })
   }
   // Kommunnamnen, längst först, så att t.ex. "Upplands Väsby" vinner över "Väsby".
   const byName = [...kommuner.values()].sort((a, b) => b.name.length - a.name.length)
@@ -55,30 +54,32 @@ export function activitiesFrom({ groups, events, kommuner }) {
       name: event.title,
       sub: shortDate.format(new Date(event.starts_at)),
       lngLat: kommun.label,
+      kommun: kommun.kod,
     })
   }
   for (const item of items) item.lan = lanCodeAt(item.lngLat)
   return items
 }
 
-// Kopplar lapparna till kartan. `isShown()` säger om de ska synas alls (fri
-// nivå), `getLan()` ger länet i länsvyn (annars null), och `onPick(item)`
-// anropas vid klick. Returnerar { setItems, render }.
-export function attachActivityMarkers(map, layer, { isShown, getLan, onPick }) {
+// Kopplar lapparna till kartan. `getKommun()` ger den valda kommunen
+// (kommunkod) på kommunnivå, annars null: lapparna syns bara då, och bara den
+// kommunens klubbar och events. `onPick(item)` anropas vid klick. Returnerar
+// { setItems, getItem, highlight, render }.
+export function attachActivityMarkers(map, layer, { getKommun, onPick }) {
   let items = []
 
   function render() {
-    if (!isShown() || map.getZoom() < MIN_ZOOM) {
+    const kommun = getKommun()
+    if (!kommun || map.getZoom() < MIN_ZOOM) {
       layer.replaceChildren()
       return
     }
-    const lan = getLan()
     const compact = map.getZoom() < FULL_ZOOM
     const width = layer.clientWidth
     const height = layer.clientHeight
     const placed = []
     for (const item of items) {
-      if (lan && item.lan !== lan) continue
+      if (item.kommun !== kommun) continue
       const { x, y } = map.project(item.lngLat)
       if (x < -200 || x > width + 200 || y < -200 || y > height + 200) continue
       placed.push({ item, x, y, el: markerEl(item, compact) })
