@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Saknas nyckeln eller modellen är funktionen avstängd. Nyckeln hör hemma i .env och i Vercel, aldrig i Git.
     openai_api_key: str = ""
     openai_model: str = ""
+    # Ska analysen av intressen skicka följdfrågor (POST /interests/analyze)? Av som standard: frågorna är byggda
+    # men inte aktiverade, så analysen sätter bara en aktivitet när texten säger den och gissar aldrig.
+    interest_followups: bool = False
 
     @property
     def cors_origins_list(self) -> list[str]:

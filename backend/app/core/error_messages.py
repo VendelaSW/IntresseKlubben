@@ -71,6 +71,7 @@ INTERVIEW_TEXT_EMPTY = "Skriv något om dina intressen"
 INTERVIEW_AI_NOT_CONFIGURED = "AI-tjänsten är inte inställd"
 INTERVIEW_AI_FAILED = "AI-tjänsten svarade inte. Försök igen om en stund"
 INTERVIEW_TOO_MANY_REQUESTS = "För många försök. Vänta en stund"
+ANALYZE_UNAVAILABLE = "Vi kunde inte tolka texten just nu. Välj dina intressen i listan i stället."
 
 # ---------- Texter för standardfel (används längst ner) ----------
 FIELD_REQUIRED = "Fältet är obligatoriskt"
