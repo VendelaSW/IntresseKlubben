@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import ServiceInfo from './pages/ServiceInfo'
 import StyleGuide from './pages/StyleGuide'
 import ProfilePage from './pages/ProfilePage'
+import ProfileInterview from './pages/ProfileInterview'
 import GroupsPage from './pages/GroupsPage'
 import EventsPage from './pages/EventsPage'
 import HubPage from './pages/HubPage'
@@ -34,6 +35,8 @@ function App() {
         <Route path="/stilguide" element={<StyleGuide />} />
 
         <Route element={<ProtectedRoute />}>
+          {/* Intervjun har en egen helskärmsvy, utan menyn. */}
+          <Route path="/profil/intervju" element={<ProfileInterview />} />
           <Route element={<AppShell />}>
             <Route path="/hem" element={<HubPage />} />
             <Route path="/profil" element={<ProfilePage />} />

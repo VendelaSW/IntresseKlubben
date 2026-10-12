@@ -26,6 +26,8 @@ DISTRICT_EMPTY = "Stadsdel får inte vara tom"
 DISTRICT_TOO_LONG = "Stadsdel får max vara 100 tecken"
 PROFILE_TEXT_EMPTY = "Om mig-texten får inte vara tom"
 PROFILE_TEXT_TOO_LONG = "Om mig-texten får max vara 800 tecken"
+PROFILE_TEXT_NOT_ALLOWED = "Texten verkar innehålla något som inte får finnas här. Skriv om den"
+TEXT_CHECK_UNAVAILABLE = "Vi kunde inte kontrollera texten just nu. Försök igen om en stund"
 INTERESTS_REQUIRED = "Välj minst ett intresse"
 
 # ---------- Profil och intressen (routes/profile.py, routes/interests.py) ----------
@@ -63,6 +65,12 @@ CAN_ONLY_INVITE_CONTACTS = "Du kan bara bjuda in dina kontakter"
 PERSON_NOT_INVITED = "Personen är inte inbjuden"
 GROUP_INVITE_NOBODY = "Välj minst en person att bjuda in"
 GROUP_CANNOT_INVITE = "Du kan inte bjuda in till den här klubben"
+
+# Intervju: intressen ur fri text
+INTERVIEW_TEXT_EMPTY = "Skriv något om dina intressen"
+INTERVIEW_AI_NOT_CONFIGURED = "AI-tjänsten är inte inställd"
+INTERVIEW_AI_FAILED = "AI-tjänsten svarade inte. Försök igen om en stund"
+INTERVIEW_TOO_MANY_REQUESTS = "För många försök. Vänta en stund"
 
 # ---------- Texter för standardfel (används längst ner) ----------
 FIELD_REQUIRED = "Fältet är obligatoriskt"

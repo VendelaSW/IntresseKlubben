@@ -20,6 +20,11 @@ os.environ["DATABASE_URL"] = "sqlite://"
 for _name in ("S3_BUCKET", "AWS_ENDPOINT_URL_S3", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"):
     os.environ[_name] = ""
 
+# Tomma värden gör att den riktiga OpenAI-nyckeln i .env aldrig läses in, så att inget test kan
+# råka anropa OpenAI på riktigt.
+os.environ["OPENAI_API_KEY"] = ""
+os.environ["OPENAI_MODEL"] = ""
+
 # Egen nyckel för inloggningstoken i tester, aldrig den riktiga från .env.
 os.environ["JWT_SECRET"] = "test-secret-only-for-tests-0123456789"
 
