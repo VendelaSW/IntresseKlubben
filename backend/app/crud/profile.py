@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.interest import Interest, InterestStatus
 from app.models.profile import GenderEnum, Profile
 from app.models.user import User
+from app.models.user_interest import UserInterest
 from app.schemas.profile import ProfileCreate, ProfileUpdate
 
 
@@ -119,7 +120,10 @@ def list_people(
     query = (
         db.query(Profile)
         .join(User, User.id == Profile.user_id)
-        .options(selectinload(Profile.municipality), selectinload(Profile.user).selectinload(User.interests))
+        .options(
+            selectinload(Profile.municipality),
+            selectinload(Profile.user).selectinload(User.interest_links).selectinload(UserInterest.interest),
+        )
         .filter(Profile.name.isnot(None), Profile.user_id != exclude_user_id)
     )
     if exclude_user_ids:

@@ -88,7 +88,10 @@ def get_user(db: Session, user_id: int) -> User | None:
 
 
 def sorted_interests(user: User) -> list[Interest]:
-    return sorted(user.interests, key=lambda i: i.name)
+    """Användarens intressen i namnordning. Ett intresse som sparats med flera
+    aktiviteter kommer med en gång."""
+    unique = {interest.id: interest for interest in user.interests}
+    return sorted(unique.values(), key=lambda i: i.name)
 
 
 def add_user_interest(db: Session, user: User, interest: Interest) -> list[Interest]:
@@ -100,7 +103,10 @@ def add_user_interest(db: Session, user: User, interest: Interest) -> list[Inter
 
 
 def remove_user_interest(db: Session, user: User, interest: Interest) -> list[Interest]:
-    if interest in user.interests:
-        user.interests.remove(interest)
+    """Tar bort intresset från profilen, med alla aktiviteter det sparats med."""
+    links = [link for link in user.interest_links if link.interest_id == interest.id]
+    for link in links:
+        user.interest_links.remove(link)
+    if links:
         db.commit()
     return sorted_interests(user)
