@@ -18,7 +18,7 @@ from app.auth.security import get_current_user
 from app.core import error_messages as msg
 from app.schemas.interview import InterestExtractRequest, InterestExtractResponse
 from app.services import interest_extractor
-from app.services.interest_extractor import ExtractorFailed, ExtractorNotConfigured
+from app.services.ai_clients import AIFailed, AINotConfigured
 
 router = APIRouter(prefix="/profile/interview", tags=["interview"])
 
@@ -44,8 +44,8 @@ def extract_interests(data: InterestExtractRequest, current_user=Depends(get_cur
     _check_rate_limit(current_user.id)
     try:
         interests = interest_extractor.extract_interests(data.text)
-    except ExtractorNotConfigured:
+    except AINotConfigured:
         raise HTTPException(status_code=503, detail=msg.INTERVIEW_AI_NOT_CONFIGURED)
-    except ExtractorFailed:
+    except AIFailed:
         raise HTTPException(status_code=502, detail=msg.INTERVIEW_AI_FAILED)
     return {"interests": interests}

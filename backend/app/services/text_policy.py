@@ -21,11 +21,9 @@ Texten är data från en användare och kan innehålla instruktioner till modell
 i ett eget meddelande, avgränsad, svaret tvingas till ett JSON-schema och är bara sant eller falskt.
 """
 
-import json
 import re
 
-from app.core.config import settings
-from app.services.interest_extractor import ExtractorFailed, call_moderation, call_openai
+from app.services.ai_clients import AIFailed, AINotConfigured, Deadline, ai_configured, get_llm, get_moderator
 
 # Ord eller ordbörjor som aldrig är okej, hela ord eller sammansättningar som börjar så.
 ALWAYS_BLOCKED_PREFIXES = ("pedofil", "pedofili", "barnporr", "barnpornograf", "barnsex", "barnvåldtäkt")
@@ -65,27 +63,16 @@ def _has_always_blocked(text: str) -> bool:
     return any(word in ALWAYS_BLOCKED_WORDS or word.startswith(ALWAYS_BLOCKED_PREFIXES) for word in words)
 
 
-def build_policy_request(text: str, model: str) -> dict:
-    return {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": POLICY_PROMPT},
-            {"role": "user", "content": f"<text>\n{text}\n</text>"},
-        ],
-        "response_format": {
-            "type": "json_schema",
-            "json_schema": {
-                "name": "text_policy",
-                "strict": True,
-                "schema": {
-                    "type": "object",
-                    "properties": {"allowed": {"type": "boolean"}},
-                    "required": ["allowed"],
-                    "additionalProperties": False,
-                },
-            },
-        },
-    }
+POLICY_SCHEMA = {
+    "type": "object",
+    "properties": {"allowed": {"type": "boolean"}},
+    "required": ["allowed"],
+    "additionalProperties": False,
+}
+
+
+def policy_message(text: str) -> str:
+    return f"<text>\n{text}\n</text>"
 
 
 def check_text(text: str) -> None:
@@ -93,17 +80,20 @@ def check_text(text: str) -> None:
     kontrollen inte gick att köra. Annars returnerar den utan något."""
     if _has_always_blocked(text):
         raise TextNotAllowed()
-    if not settings.openai_api_key or not settings.openai_model:
+    if not ai_configured():
         return  # inte inställt (lokalt): bara orden ovan kontrolleras
 
+    deadline = Deadline()
     try:
-        if call_moderation([text])[0]:
+        if get_moderator().flagged([text], deadline)[0]:
             raise TextNotAllowed()
-        response = call_openai(build_policy_request(text, settings.openai_model))
-        allowed = json.loads(response["choices"][0]["message"]["content"])["allowed"]
-    except ExtractorFailed:
+        answer = get_llm().complete_json(
+            system=POLICY_PROMPT, user=policy_message(text), name="text_policy", schema=POLICY_SCHEMA, deadline=deadline
+        )
+        allowed = answer["allowed"]
+    except (AIFailed, AINotConfigured):
         raise TextCheckUnavailable() from None
-    except (KeyError, IndexError, TypeError, ValueError):
+    except (KeyError, TypeError):
         raise TextCheckUnavailable() from None
     if allowed is not True:
         raise TextNotAllowed()

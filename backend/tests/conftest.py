@@ -35,10 +35,19 @@ from sqlalchemy.orm import sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
 from app.auth.security import get_current_user  # noqa: E402
+from app.services.ai_clients import set_clients  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Municipality, User  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def reset_ai_clients():
+    """Inget test ska råka behålla en fejkad AI-klient från ett annat test, eller anropa OpenAI."""
+    set_clients()
+    yield
+    set_clients()
 
 
 @pytest.fixture
