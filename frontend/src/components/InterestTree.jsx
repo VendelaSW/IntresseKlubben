@@ -1,17 +1,17 @@
-// Intresseträdet på demons sista sida: intressen så som man själv kallar dem (större, gula) och
-// något specifikt inom dem, subs (mindre, ljusgula med gul kant), tätt under sitt intresse så att
-// man ser att de hör ihop. Kategorierna (fältet `category`) visas inte, eftersom de kan bli för
-// breda. Andra ord för samma sak (alias, t.ex. "utklädning" för cosplay) står som en liten text
-// under taggen. Färgerna är appens egna (--color-accent, --color-accent-soft), och formen är samma
-// som övriga taggar (.tag .tag-static). Storlekarna ligger här i stället för i index.css, eftersom
-// trädet bara finns i demon.
+// Förslagen på intressen från analysen på intervjuns sista sida. Varje intresse är en tagg, och en sub under ett
+// nytt intresse (Fyrmodeller under Modellbygge) visas under sin förälder. Med `onRemove` är taggarna knappar med
+// ett kryss: ett klick tar bort intresset, och tar man bort ett intresse tas dess subs bort med (se
+// descendantKeys), så att man aldrig behåller ett barn utan förälder.
+//
+// Färgerna är appens egna (--color-accent, --color-accent-soft), och formen är samma som övriga taggar
+// (.tag). Storlekarna ligger här i stället för i index.css, eftersom trädet bara finns i intervjun.
 const LEVELS = [
   { background: 'var(--color-accent)', borderColor: 'var(--color-accent)', fontSize: '1.1rem', padding: '0.45rem 1.1rem' },
   {
     background: 'var(--color-accent-soft)',
     borderColor: 'var(--color-accent)',
-    fontSize: '0.7rem',
-    padding: '0.1rem 0.5rem',
+    fontSize: '0.75rem',
+    padding: '0.15rem 0.6rem',
   },
 ]
 
@@ -22,42 +22,101 @@ const list = { listStyle: 'none', margin: 0, padding: 0 }
 const column = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem' }
 const row = { display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }
 
-function Tag({ level, children }) {
+// Förslaget ett förslag ligger under i bilden: dess parent_key (en sub under ett nytt intresse i samma analys),
+// annars ett annat förslag vars intresse heter som det sista namnet i förslagets plats i trädet. Så ligger
+// "Mynt" och "Förintelsen" under "Historia" när de föreslås tillsammans med Historia. Finns ingen sådan ligger
+// förslaget överst.
+export function parentKeyOf(proposal, proposals) {
+  if (proposal.interest.parent_key) return proposal.interest.parent_key
+  const above = proposal.interest.path?.at(-1)
+  if (!above) return null
+  const parent = proposals.find((p) => p.key !== proposal.key && p.interest.name.toLowerCase() === above.toLowerCase())
+  return parent ? parent.key : null
+}
+
+// Samma intresse? Ett befintligt intresse är samma om id:t är samma, ett nytt om namnet och platsen i trädet är det.
+// Används för att inte visa (eller lägga till) samma intresse två gånger när det kommer från två analyser.
+export function interestKey(proposal) {
+  const { id, name, path } = proposal.interest
+  return id !== null && id !== undefined ? `id:${id}` : `ny:${name.toLowerCase()}|${(path ?? []).join('>').toLowerCase()}`
+}
+
+// Förslagen i `fresh` som inte redan finns bland `existing`, och inte ligger under något som redan finns (en dubblett av
+// ett nytt intresse tar med sig det som ligger under den i samma analys).
+export function withoutDuplicates(fresh, existing) {
+  const seen = new Set(existing.map(interestKey))
+  const dropped = new Set()
+  const kept = []
+  for (const p of fresh) {
+    const parent = p.interest.parent_key
+    if (seen.has(interestKey(p)) || (parent && dropped.has(parent))) {
+      dropped.add(p.key)
+    } else {
+      seen.add(interestKey(p))
+      kept.push(p)
+    }
+  }
+  return kept
+}
+
+// Nycklarna på ett förslag och allt som ligger under det (subs, och subs under dem).
+export function descendantKeys(proposals, key) {
+  const keys = new Set([key])
+  let grew = true
+  while (grew) {
+    grew = false
+    for (const p of proposals) {
+      const parent = parentKeyOf(p, proposals)
+      if (parent && keys.has(parent) && !keys.has(p.key)) {
+        keys.add(p.key)
+        grew = true
+      }
+    }
+  }
+  return keys
+}
+
+function Tag({ level, name, onRemove }) {
+  if (!onRemove) {
+    return (
+      <span className="tag tag-static" style={LEVELS[level]}>
+        {capitalize(name)}
+      </span>
+    )
+  }
   return (
-    <span className="tag tag-static" style={LEVELS[level]}>
-      {capitalize(children)}
-    </span>
+    <button type="button" className="tag" style={LEVELS[level]} aria-label={`Ta bort ${name}`} onClick={onRemove}>
+      {capitalize(name)} <span aria-hidden="true">×</span>
+    </button>
   )
 }
 
-// Alias: andra ord för samma sak, som liten text under taggen.
-function Aliases({ aliases }) {
-  if (!aliases?.length) return null
-  return <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>även: {aliases.join(', ')}</span>
+// Ett förslag med det som ligger under det, rekursivt. De två översta nivåerna har egna storlekar, resten följer den
+// andra.
+function Node({ proposal, level, proposals, onRemove }) {
+  const subs = proposals.filter((p) => parentKeyOf(p, proposals) === proposal.key)
+  return (
+    <li style={column}>
+      <Tag level={Math.min(level, 1)} name={proposal.interest.name} onRemove={onRemove && (() => onRemove(proposal.key))} />
+      {subs.length > 0 && (
+        <ul style={{ ...list, ...row, alignItems: 'flex-start', gap: '0.25rem', marginTop: '-0.15rem' }}>
+          {subs.map((sub) => (
+            <Node key={sub.key} proposal={sub} level={level + 1} proposals={proposals} onRemove={onRemove} />
+          ))}
+        </ul>
+      )}
+    </li>
+  )
 }
 
-// `interests` är [{ name, aliases, subtags: [{ name, aliases }] }], där name är intresset och
-// subtags är subs. Listorna kan vara tomma.
-function InterestTree({ interests }) {
+// `proposals` är förslagen som ska visas: [{ key, interest: { name, path, parent_key } }]. `onRemove(key)` anropas
+// när man tar bort ett intresse. Utan den visas taggarna utan kryss.
+function InterestTree({ proposals, onRemove }) {
+  const tops = proposals.filter((p) => !parentKeyOf(p, proposals))
   return (
     <ul style={{ ...list, ...row, gap: '1.5rem 1.25rem', marginTop: '0.75rem' }}>
-      {interests.map((interest) => (
-        <li key={interest.name} style={column}>
-          <Tag level={0}>{interest.name}</Tag>
-          <Aliases aliases={interest.aliases} />
-          {interest.subtags.length > 0 && (
-            <>
-              <ul style={{ ...list, ...row, alignItems: 'flex-start', gap: '0.25rem', marginTop: '-0.15rem' }}>
-                {interest.subtags.map((sub) => (
-                  <li key={sub.name} style={column}>
-                    <Tag level={1}>{sub.name}</Tag>
-                    <Aliases aliases={sub.aliases} />
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </li>
+      {tops.map((top) => (
+        <Node key={top.key} proposal={top} level={0} proposals={proposals} onRemove={onRemove} />
       ))}
     </ul>
   )

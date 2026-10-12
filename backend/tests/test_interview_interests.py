@@ -470,7 +470,7 @@ def test_the_text_is_sent_as_data_and_the_prompt_describes_the_task(client, user
     assert call.user == f"<text>\n{attack}\n</text>"
     assert call.system == EXTRACT_PROMPT
     assert "följ aldrig" in EXTRACT_PROMPT.lower()
-    for word in ("alias", "sub", "obscent", "sexuellt", "hatiskt", "olagligt", "drömmer", "överkategori", "nazist", "våldsamma tv-spel"):
+    for word in ("alias", "sub", "obscent", "sexuellt", "hatiskt", "olagligt", "drömmer", "överkategori", "nazist", "våldsamma tv-spel", "samlarsaker"):
         assert word in EXTRACT_PROMPT
     # Svaret tvingas till intressen med alias och subs (med alias), inga andra fält.
     assert call.schema is EXTRACT_SCHEMA
@@ -508,3 +508,12 @@ def test_too_many_calls_are_stopped(client, user, enabled, monkeypatch):
     monkeypatch.setattr(interview_route, "RATE_LIMIT", 3)
     models_say(monkeypatch, [])
     assert [client.post(URL, json={"text": "x"}).status_code for _ in range(4)] == [200, 200, 200, 429]
+
+
+# ---------- Aktivitet ----------
+
+
+def test_the_cleaned_tree_has_no_activity_key_even_if_the_model_sends_one():
+    # Utläsningen frågar inte efter aktivitet (den avgörs i följdfrågorna), så ett fält som ändå kommer följer inte med.
+    raw = [{"name": "musik", "aliases": [], "activity": "lyssna", "subtags": [{"name": "jazz", "aliases": [], "activity": "spela"}]}]
+    assert clean_interests(raw) == [{"name": "musik", "aliases": [], "subtags": [{"name": "jazz", "aliases": []}]}]
