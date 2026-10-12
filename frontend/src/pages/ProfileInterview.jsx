@@ -5,7 +5,7 @@ import InterestTree, { descendantKeys } from '../components/InterestTree'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
-import { GENDER_OPTIONS, genderLabel, getMunicipalities } from '../services/profile'
+import { GENDER_OPTIONS, genderLabel, getMunicipalities, getProfile } from '../services/profile'
 
 // Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions`
 // är undertexterna som visas under videon medan klippet spelas (för den som har ljudet
@@ -152,6 +152,17 @@ function ProfileInterview() {
   // Har sigillen gått ut (400 vid sparande)? Då får man tolka texterna på nytt.
   const [expired, setExpired] = useState(false)
   const navigate = useNavigate()
+  // Intervjun är till för den som inte har en profil än. Har man en skickas man till startsidan, så att man inte
+  // skapar en till. Tills det är kollat visas ingenting.
+  const [checkingProfile, setCheckingProfile] = useState(true)
+  useEffect(() => {
+    getProfile()
+      .then((profile) => {
+        if (profile) navigate('/hem', { replace: true })
+        else setCheckingProfile(false)
+      })
+      .catch(() => setCheckingProfile(false)) // går det inte att kolla får man ändå fortsätta
+  }, [navigate])
 
   const step = STEPS[index]
   const isLast = index === STEPS.length - 1
@@ -522,6 +533,8 @@ function ProfileInterview() {
     setShownVideo(INTRO.video)
   }
 
+  if (checkingProfile) return null
+
   // Raderna på profilen på sista sidan: bara det man fyllde i.
   const age = ageFrom(answers.birthDate)
   const municipalityName = municipalities.find((m) => m.code === answers.municipality)?.name
@@ -643,7 +656,7 @@ function ProfileInterview() {
                     </p>
                   ) : analysisStatus === 'failed' ? (
                     <p className="form-error" style={{ marginTop: '0.75rem' }}>
-                      {analysisError} <Link to="/profil">Välj dina intressen i listan i stället</Link>
+                      {analysisError} <Link to="/profil?lista=1">Välj dina intressen i listan i stället</Link>
                     </p>
                   ) : visibleProposals.length === 0 ? (
                     <p className="hint-text" style={{ marginTop: '0.75rem' }}>
