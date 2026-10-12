@@ -471,20 +471,88 @@
     },
     {
       "slug": "tv-spel",
-      "name": "Tv-spel",
+      "name": "Gaming",
       "parent": null,
-      "description": "Tv-spel: spela datorspel och konsolspel.",
+      "description": "Gaming: spela spel på dator och konsol, alla genrer.",
       "aliases": [
-        "gaming",
-        "datorspel",
-        "konsolspel",
-        "spela spel",
         "gejming",
         "gejma",
-        "tvspel"
+        "spela spel"
       ],
       "activities": [
         "spela"
+      ]
+    },
+    {
+      "slug": "datorspel",
+      "name": "Datorspel",
+      "parent": "tv-spel",
+      "description": "Datorspel: spela spel på dator.",
+      "aliases": [
+        "datorspelande",
+        "dator-spel"
+      ]
+    },
+    {
+      "slug": "pc",
+      "name": "PC",
+      "parent": "datorspel",
+      "description": "PC: spel på PC.",
+      "aliases": [
+        "pc-spel",
+        "pc gaming",
+        "pc-gaming"
+      ]
+    },
+    {
+      "slug": "tv-spel-konsol",
+      "name": "Tv-spel",
+      "parent": "tv-spel",
+      "description": "Tv-spel: spela spel på tv och konsol.",
+      "aliases": [
+        "tvspel",
+        "tv spel"
+      ]
+    },
+    {
+      "slug": "konsol",
+      "name": "Konsol",
+      "parent": "tv-spel-konsol",
+      "description": "Konsol: spel på spelkonsol.",
+      "aliases": [
+        "konsolspel",
+        "spelkonsol"
+      ]
+    },
+    {
+      "slug": "playstation",
+      "name": "PlayStation",
+      "parent": "tv-spel-konsol",
+      "description": "PlayStation: spel på Sonys konsoler.",
+      "aliases": [
+        "ps5",
+        "ps4",
+        "playstation 5",
+        "playstation 4"
+      ]
+    },
+    {
+      "slug": "xbox",
+      "name": "Xbox",
+      "parent": "tv-spel-konsol",
+      "description": "Xbox: spel på Microsofts konsoler.",
+      "aliases": [
+        "xbox one",
+        "xbox series x"
+      ]
+    },
+    {
+      "slug": "nintendo-switch",
+      "name": "Switch",
+      "parent": "tv-spel-konsol",
+      "description": "Switch: spel på Nintendo Switch.",
+      "aliases": [
+        "nintendo switch"
       ]
     },
     {
