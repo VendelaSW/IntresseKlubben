@@ -34,6 +34,31 @@ export function parentKeyOf(proposal, proposals) {
   return parent ? parent.key : null
 }
 
+// Samma intresse? Ett befintligt intresse är samma om id:t är samma, ett nytt om namnet och platsen i trädet är det.
+// Används för att inte visa (eller lägga till) samma intresse två gånger när det kommer från två analyser.
+export function interestKey(proposal) {
+  const { id, name, path } = proposal.interest
+  return id !== null && id !== undefined ? `id:${id}` : `ny:${name.toLowerCase()}|${(path ?? []).join('>').toLowerCase()}`
+}
+
+// Förslagen i `fresh` som inte redan finns bland `existing`, och inte ligger under något som redan finns (en dubblett av
+// ett nytt intresse tar med sig det som ligger under den i samma analys).
+export function withoutDuplicates(fresh, existing) {
+  const seen = new Set(existing.map(interestKey))
+  const dropped = new Set()
+  const kept = []
+  for (const p of fresh) {
+    const parent = p.interest.parent_key
+    if (seen.has(interestKey(p)) || (parent && dropped.has(parent))) {
+      dropped.add(p.key)
+    } else {
+      seen.add(interestKey(p))
+      kept.push(p)
+    }
+  }
+  return kept
+}
+
 // Nycklarna på ett förslag och allt som ligger under det (subs, och subs under dem).
 export function descendantKeys(proposals, key) {
   const keys = new Set([key])

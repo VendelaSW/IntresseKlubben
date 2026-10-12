@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import FormField from '../components/FormField'
-import InterestTree, { descendantKeys } from '../components/InterestTree'
+import InterestTree, { descendantKeys, withoutDuplicates } from '../components/InterestTree'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
@@ -412,10 +412,14 @@ function ProfileInterview() {
     setAddError('')
     try {
       const data = await analyzeInterests(text)
+      // Det som redan finns bland intressena läggs inte till igen (de som tagits bort räknas inte).
+      const fresh = withoutDuplicates(data.proposals, visibleProposals)
       if (data.proposals.length === 0) {
         setAddError('Jag hittade inget intresse i det du skrev.')
+      } else if (fresh.length === 0) {
+        setAddError('Det intresset finns redan bland dina intressen.')
       } else {
-        setBatches((current) => [...current, { id: nextBatchId.current++, text, token: data.token, proposals: data.proposals }])
+        setBatches((current) => [...current, { id: nextBatchId.current++, text, token: data.token, proposals: fresh }])
         setAddText('')
       }
     } catch (error) {
