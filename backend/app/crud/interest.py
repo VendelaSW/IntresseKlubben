@@ -124,10 +124,9 @@ def allowed_activities(interest: Interest) -> list[str]:
 
     Ett intresse utan egen lista ärver förälderns, så att Pokémon TCG får
     Kortspels "spela" och "samla" men aldrig "odla". En tom lista betyder
-    uttryckligen inga. Ett huvudområde har aldrig någon aktivitet: listan där
-    är bara ett standardvärde för det som ligger under."""
-    if interest.parent_id is None:
-        return []
+    uttryckligen inga. Också ett huvudområdes egen lista räknas: den som skriver
+    "jag gillar att lyssna på musik" får Musik med "lyssna". Skriver man inget om
+    hur, sätts ingen aktivitet (det avgörs av analysen, inte av den här listan)."""
     node = interest
     while node is not None:
         if node.activities is not None:

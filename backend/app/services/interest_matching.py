@@ -88,8 +88,7 @@ class LibraryIndex:
     def effective_activities(self, interest_id: int | None) -> list[str]:
         """Hur intresset kan utövas: dess egen lista, annars den närmaste överliggande. Också ett
         huvudområdes egen lista räknas, eftersom "Gillar du att spela eller lyssna på musik?" gäller
-        området själv. (Det skiljer sig från crud.interest.allowed_activities, som ger tomt för ett
-        huvudområde.)"""
+        området själv. (Samma regel som crud.interest.allowed_activities.)"""
         node = self.by_id.get(interest_id) if interest_id is not None else None
         seen: set[int] = set()
         while node is not None and node.id not in seen:

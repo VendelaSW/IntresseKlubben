@@ -48,7 +48,7 @@ def test_a_specific_interest_in_the_file_inherits_its_activities(db):
         return allowed_activities(db.query(Interest).filter_by(slug=slug).one())
 
     assert activities("pokemon-tcg") == activities("kortspel") == ["spela", "samla", "tavla"]
-    assert activities("spel-och-pussel") == []
+    assert activities("spel-och-pussel") == ["spela"]  # ett huvudområdes egen lista gäller också området självt
 
 
 def test_every_interest_people_already_have_is_in_the_library():
@@ -266,7 +266,13 @@ def test_an_empty_list_means_no_activities_even_when_the_parent_has_some(db):
     assert allowed_activities(interests["pussel"]) == []
 
 
-def test_a_main_area_never_has_an_activity_of_its_own(db):
-    # Listan på ett huvudområde gäller bara det som ligger under.
-    interests = _synced(db, {"slug": "spel", "name": "Spel", "activities": ["spela"]})
-    assert allowed_activities(interests["spel"]) == []
+def test_a_main_area_may_have_the_activities_of_its_own_list(db):
+    # "Jag gillar att lyssna på musik" ger Musik med "lyssna". Utan en sådan mening sätts ingen aktivitet,
+    # men det avgör analysen, inte den här listan.
+    interests = _synced(
+        db,
+        {"slug": "spel", "name": "Spel", "activities": ["spela"]},
+        {"slug": "tomt", "name": "Tomt"},
+    )
+    assert allowed_activities(interests["spel"]) == ["spela"]
+    assert allowed_activities(interests["tomt"]) == []
