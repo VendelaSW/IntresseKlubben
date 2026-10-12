@@ -48,7 +48,15 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
+  // Efter att man ändrat sitt användarnamn eller sin e-post (PATCH /users/me),
+  // så att t.ex. namnet i menyn stämmer direkt. Token är oförändrad.
+  function updateUser(user) {
+    setUser(user)
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>{children}</AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

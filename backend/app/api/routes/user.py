@@ -14,9 +14,16 @@ e-posten eller lösenordet som var fel (standard säkerhetspraxis).
 GET /users/me - den inloggade användaren (kräver token), med sin egen e-post
 (None för konton som skapades innan e-post krävdes).
 
-PUT /users/me/email - lägger till e-post för ett konto som saknar det. Samma
-regler som vid registrering. 409 om adressen redan används eller om kontot
-redan har en e-post (den går inte att ändra här).
+GET /users/me/availability?username=&email= - om ett användarnamn och/eller en
+e-post redan används av någon annan, för att formuläret ska kunna säga till
+direkt medan man skriver. Svarar med samma meddelanden som PATCH nedan ger
+(None = ledigt). Den egna användaren räknas inte. Kräver inloggning.
+
+PATCH /users/me - ändrar användarnamn och/eller e-post (AccountUpdate), även
+för att lägga till e-post på ett konto som saknar det. Samma regler som vid
+registrering. Kräver lösenordet; fel lösenord ger 403, som DELETE nedan. 409
+om användarnamnet eller e-posten redan används av någon annan. Man förblir
+inloggad, eftersom token bygger på användarens id.
 
 DELETE /users/me - raderar kontot och allt som hör till det (se
 crud.user.delete_user). Kräver lösenordet i AccountDelete. Fel lösenord ger
@@ -61,13 +68,14 @@ from app.crud.dismissed_suggestion import (
 from app.crud.interest import sorted_interests
 from app.crud.profile import calculate_age, get_profile, list_people
 from app.crud.user import (
-    EmailAlreadySetError,
     EmailTakenError,
     UsernameTakenError,
     create_user,
     delete_user,
+    get_user_by_email,
+    get_user_by_username,
     get_user_by_username_or_email,
-    set_email,
+    update_account,
 )
 from app.db.session import get_db
 from app.models.profile import GenderEnum
@@ -77,7 +85,8 @@ from app.schemas.profile import PersonResponse, PublicProfileResponse
 from app.schemas.user import (
     AccountDelete,
     CurrentUserOut,
-    EmailUpdate,
+    AccountUpdate,
+    AvailabilityOut,
     LoginResponse,
     UserCreate,
     UserLogin,
@@ -85,6 +94,24 @@ from app.schemas.user import (
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+def _require_password(user: User, password: str) -> None:
+    """Lösenordet krävs för att ändra eller radera kontot. Fel ger 403, inte
+    401: frontend loggar ut vid 401, och ett felskrivet lösenord ska bara ge ett
+    felmeddelande."""
+    if not verify_password(password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Fel lösenord.")
+
+
+USERNAME_TAKEN = "Användarnamnet är upptaget."
+EMAIL_TAKEN = "E-postadressen används redan."
+
+
+def _taken(exc: UsernameTakenError | EmailTakenError) -> HTTPException:
+    """Samma 409-fel vid registrering och vid ändring av kontouppgifter."""
+    detail = USERNAME_TAKEN if isinstance(exc, UsernameTakenError) else EMAIL_TAKEN
+    return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
 
 
 @router.post(
@@ -95,16 +122,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 def register_user(user_in: UserCreate, db: Session = Depends(get_db)) -> UserOut:
     try:
         return create_user(db, user_in)
-    except UsernameTakenError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Användarnamnet är upptaget.",
-        )
-    except EmailTakenError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="E-postadressen används redan.",
-        )
+    except (UsernameTakenError, EmailTakenError) as exc:
+        raise _taken(exc) from exc
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -123,24 +142,33 @@ def read_current_user(current_user: User = Depends(get_current_user)) -> Current
     return current_user
 
 
-@router.put("/me/email", response_model=CurrentUserOut)
-def add_email(
-    email_in: EmailUpdate,
+@router.get("/me/availability", response_model=AvailabilityOut)
+def check_availability(
+    username: str | None = Query(None, max_length=100),
+    email: str | None = Query(None, max_length=320),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AvailabilityOut:
+    def taken_by_other(found: User | None) -> bool:
+        return found is not None and found.id != current_user.id
+
+    return AvailabilityOut(
+        username=USERNAME_TAKEN if username and taken_by_other(get_user_by_username(db, username.strip())) else None,
+        email=EMAIL_TAKEN if email and taken_by_other(get_user_by_email(db, email.strip())) else None,
+    )
+
+
+@router.patch("/me", response_model=CurrentUserOut)
+def update_my_account(
+    data: AccountUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> CurrentUserOut:
+    _require_password(current_user, data.password)
     try:
-        return set_email(db, current_user, email_in.email)
-    except EmailAlreadySetError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Du har redan en e-postadress.",
-        )
-    except EmailTakenError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="E-postadressen används redan.",
-        )
+        return update_account(db, current_user, username=data.username, email=data.email)
+    except (UsernameTakenError, EmailTakenError) as exc:
+        raise _taken(exc) from exc
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
@@ -149,8 +177,7 @@ def delete_account(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
-    if not verify_password(data.password, current_user.password_hash):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Fel lösenord.")
+    _require_password(current_user, data.password)
     image_key = delete_user(db, current_user)
     # Efter att raderingen sparats: misslyckas bilden är kontot ändå borta, och
     # delete_object ger aldrig fel för en bild som inte går att ta bort.
