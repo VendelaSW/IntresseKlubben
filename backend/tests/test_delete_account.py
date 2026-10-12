@@ -35,7 +35,7 @@ def _register(client, db, username):
         "/users/register",
         json={"username": username, "email": f"{username}@example.com", "password": PASSWORD},
     )
-    token = client.post("/users/login", json={"username": username, "password": PASSWORD}).json()["access_token"]
+    token = client.post("/users/login", json={"username_or_email": username, "password": PASSWORD}).json()["access_token"]
     user = db.query(User).filter(User.username == username).one()
     return user, {"Authorization": f"Bearer {token}"}
 
@@ -86,7 +86,7 @@ def test_deleting_removes_the_account_and_logs_out(client, db, me):
     assert db.query(Profile).count() == 0
     # Samma token fungerar inte längre, och det går inte att logga in igen.
     assert client.get("/users/me", headers=headers).status_code == 401
-    assert client.post("/users/login", json={"username": "anna", "password": PASSWORD}).status_code == 401
+    assert client.post("/users/login", json={"username_or_email": "anna", "password": PASSWORD}).status_code == 401
 
 
 def test_everything_that_points_at_the_account_is_removed(client, db, me, other):

@@ -6,9 +6,10 @@ e-postadress och rått lösenord i klartext (hashas i
 crud.user.create_user, aldrig här). E-posten krävs för att man senare ska
 kunna återställa lösenordet, och sparas alltid med små bokstäver.
 
-UserLogin är det som kommer in via POST /users/login - samma form
-som UserCreate, men utan valideringskrav (vi bara kollar mot
-befintliga uppgifter, skapar inget nytt).
+UserLogin är det som kommer in via POST /users/login - användarnamn ELLER
+e-post i samma fält, och lösenordet. Utan valideringskrav (vi bara kollar mot
+befintliga uppgifter, skapar inget nytt). Ett användarnamn får därför inte
+innehålla @, så att det aldrig kan förväxlas med en e-postadress.
 
 UserOut är det som går ut i svaret - innehåller ALDRIG password,
 password_hash eller email (e-post är privat, se AGENTS.md).
@@ -50,6 +51,9 @@ class UserCreate(BaseModel):
     @classmethod
     def username_is_clean(cls, value: str) -> str:
         validate_clean_text(value, "Användarnamnet")
+        # Inloggningen tolkar allt med @ som en e-postadress (se UserLogin).
+        if "@" in value:
+            raise ValueError("Användarnamnet får inte innehålla @")
         return value
 
     @field_validator("email")
@@ -68,7 +72,7 @@ class EmailUpdate(BaseModel):
 
 
 class UserLogin(BaseModel):
-    username: str
+    username_or_email: str
     password: str
 
 

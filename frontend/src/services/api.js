@@ -94,8 +94,9 @@ export function registerUser(username, email, password) {
   return apiPost('/users/register', { username, email, password })
 }
 
-export function loginUser(username, password) {
-  return apiPost('/users/login', { username, password })
+// Man loggar in med användarnamn eller e-post i samma fält.
+export function loginUser(usernameOrEmail, password) {
+  return apiPost('/users/login', { username_or_email: usernameOrEmail, password })
 }
 
 export function getCurrentUser() {

@@ -4,11 +4,12 @@ Registrerings- och inloggningsendpoints för User.
 POST /users/register - tar emot UserCreate (username, email, password),
 skapar en ny User via crud.user.create_user, returnerar UserOut.
 
-POST /users/login - tar emot UserLogin (username, password),
-verifierar mot get_user_by_username + verify_password, returnerar
-en inloggningstoken och UserOut vid korrekta uppgifter. Ger ett
-generiskt 401-fel annars - avslöjar medvetet inte om det var
-användarnamnet eller lösenordet som var fel (standard säkerhetspraxis).
+POST /users/login - tar emot UserLogin (username_or_email, password):
+användarnamn eller e-post i samma fält. Verifierar mot
+get_user_by_username_or_email + verify_password, returnerar en
+inloggningstoken och UserOut vid korrekta uppgifter. Ger ett generiskt
+401-fel annars - avslöjar medvetet inte om det var användarnamnet,
+e-posten eller lösenordet som var fel (standard säkerhetspraxis).
 
 GET /users/me - den inloggade användaren (kräver token), med sin egen e-post
 (None för konton som skapades innan e-post krävdes).
@@ -65,7 +66,7 @@ from app.crud.user import (
     UsernameTakenError,
     create_user,
     delete_user,
-    get_user_by_username,
+    get_user_by_username_or_email,
     set_email,
 )
 from app.db.session import get_db
@@ -108,11 +109,11 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)) -> UserOut
 
 @router.post("/login", response_model=LoginResponse)
 def login_user(credentials: UserLogin, db: Session = Depends(get_db)) -> LoginResponse:
-    user = get_user_by_username(db, credentials.username)
+    user = get_user_by_username_or_email(db, credentials.username_or_email)
     if user is None or not verify_password(credentials.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Fel användarnamn eller lösenord.",
+            detail="Fel användarnamn, e-post eller lösenord.",
         )
     return LoginResponse(access_token=create_access_token(user.id), user=user)
 

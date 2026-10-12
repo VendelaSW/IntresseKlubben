@@ -70,9 +70,65 @@ def test_database_rejects_usernames_differing_only_in_case(db):
 
 def test_login_is_not_case_sensitive(client):
     _register(client, username="Vendela")
-    response = client.post("/users/login", json={"username": "VENDELA", "password": "hemligt123"})
+    response = client.post("/users/login", json={"username_or_email": "VENDELA", "password": "hemligt123"})
     assert response.status_code == 200
     assert response.json()["user"]["username"] == "Vendela"  # ursprungligt skiftläge bevaras
+
+
+def _login(client, username_or_email, password="hemligt123"):
+    return client.post("/users/login", json={"username_or_email": username_or_email, "password": password})
+
+
+@pytest.mark.parametrize("typed", ["vendela@example.com", "  Vendela@Example.COM  ", "vendela", " VENDELA "])
+def test_login_with_username_or_email_in_the_same_field(client, typed):
+    # Samma fält tar emot användarnamn eller e-post, oavsett skiftläge och
+    # mellanslag runt texten.
+    _register(client)
+    response = _login(client, typed)
+    assert response.status_code == 200
+    assert response.json()["user"]["username"] == "vendela"
+
+
+def test_login_with_email_needs_the_right_password(client):
+    _register(client)
+    response = _login(client, "vendela@example.com", password="fel-lösenord")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Fel användarnamn, e-post eller lösenord."
+
+
+def test_unknown_email_gives_the_same_error_as_a_wrong_password(client):
+    _register(client)
+    unknown = _login(client, "finnsinte@example.com")
+    wrong_password = _login(client, "vendela@example.com", password="fel-lösenord")
+    assert unknown.status_code == wrong_password.status_code == 401
+    assert unknown.json() == wrong_password.json()
+
+
+def test_login_finds_older_account_with_at_sign_in_username(client, db):
+    # Konton från innan @ förbjöds i användarnamn kan fortfarande logga in med
+    # användarnamnet, när ingen har det som e-post.
+    db.add(User(username="gamla@kontot", email="gamla@example.com", password_hash=hash_password("hemligt123")))
+    db.commit()
+    response = _login(client, "gamla@kontot")
+    assert response.status_code == 200
+    assert response.json()["user"]["username"] == "gamla@kontot"
+
+
+def test_email_wins_over_an_older_username_with_the_same_text(client, db):
+    # Har någon ett gammalt användarnamn som är någon annans e-post, är det
+    # e-posten som gäller. Den andra loggar in med sin egen e-post.
+    db.add(User(username="bob@example.com", email="bob-gammal@example.com", password_hash=hash_password("annat-losen")))
+    db.commit()
+    _register(client, username="bob", email="bob@example.com")
+    response = _login(client, "bob@example.com")
+    assert response.status_code == 200
+    assert response.json()["user"]["username"] == "bob"
+
+
+def test_register_rejects_at_sign_in_username(client):
+    response = _register(client, username="vendela@hem")
+    assert response.status_code == 422
+    assert "Användarnamnet får inte innehålla @" in response.json()["detail"][0]["msg"]
 
 
 @pytest.mark.parametrize(

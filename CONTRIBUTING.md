@@ -117,6 +117,7 @@ En ticket ger en liten PR. Ju längre en branch lever, desto mer av `dev` missar
 - Alla routes som rör en användare kräver inloggning: `current_user = Depends(get_current_user)` från `app.auth.security`.
 - **Inga fejkade användare** (`FakeUser`, `id = 1` och liknande) i koden som mergas.
 - I frontend sköts inloggning av `services/auth.js` och `services/api.js`. Skapa inga egna varianter.
+- Man loggar in med **användarnamn eller e-post** i samma fält (`username_or_email`). Med @ är det en e-postadress, därför får användarnamn inte innehålla @.
 
 ### Data om andra användare
 - Den inloggade användaren får se allt om sig själv. Andra ser bara det ticketen säger, t.ex. användarnamn, namn, ålder, kommun och bild, aldrig e-post, födelsedatum (visa ålder i stället), kön eller lösenord.
