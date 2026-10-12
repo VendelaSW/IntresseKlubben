@@ -46,6 +46,9 @@ def index():
             item(13, "Film och tv", aliases=["film"]),
             item(14, "Fantasy", parent=13, level=2, path=["Film och tv"]),
             item(15, "Fantasy", parent=9, level=2, path=["Böcker"]),
+            item(20, "Skapande"),
+            item(21, "Sömnad", parent=20, level=2, path=["Skapande"]),
+            item(22, "Cosplay", parent=21, level=3, path=["Skapande", "Sömnad"]),
         ]
     )
 
@@ -163,8 +166,8 @@ def test_the_model_gets_all_unresolved_tags_in_one_call_with_the_library(index):
     assert "8: Spel och pussel > Kortspel > Pokémon TCG (även: pokémon-kort)" in library
     # Jazz hittades exakt och skickas inte till modellen.
     assert json.loads(tags) == [
-        {"key": "t2", "name": "fyrmodeller", "aliases": [], "context": "skapande"},
-        {"key": "t3", "name": "social", "aliases": [], "context": None},
+        {"key": "t2", "name": "fyrmodeller", "aliases": [], "context": "skapande", "parent_key": None, "parent_interest_id": None},
+        {"key": "t3", "name": "social", "aliases": [], "context": None, "parent_key": None, "parent_interest_id": None},
     ]
 
 
@@ -187,8 +190,9 @@ def test_a_tags_text_is_only_in_the_user_message(index):
 
 def test_the_prompt_demands_a_parent_for_every_new_interest():
     # Utan det kravet svarade modellen "new" utan förälder i 7 av 8 körningar, och taggen blev none.
-    assert "parent_id är OBLIGATORISKT för new" in MATCH_PROMPT
+    assert "parent_id OBLIGATORISKT" in MATCH_PROMPT
     assert "Lämna aldrig parent_id tomt" in MATCH_PROMPT
+    assert "parent_key" in MATCH_PROMPT  # en sub får vara tom: den läggs under sin överordnade tagg
 
 
 def test_the_schema_forces_every_field_and_a_fixed_choice():
@@ -330,16 +334,17 @@ def test_exact_hits_survive_without_a_working_model(index):
 # ---------- Trädet från utläsningen ----------
 
 
-def test_subs_become_the_tags_and_an_interest_without_subs_is_a_tag_itself():
+def test_the_whole_tree_becomes_tags_the_interest_first_then_its_subs():
     tree = [
         {"name": "musik", "aliases": ["låtar"], "subtags": [{"name": "hårdrock", "aliases": []}, {"name": "jazz", "aliases": ["swing"]}]},
         {"name": "katter", "aliases": [], "subtags": []},
     ]
     tags = tags_from_tree(tree)
-    assert [(t.key, t.name, t.aliases, t.context, t.context_aliases) for t in tags] == [
-        ("t1", "hårdrock", (), "musik", ("låtar",)),
-        ("t2", "jazz", ("swing",), "musik", ("låtar",)),
-        ("t3", "katter", (), None, ()),
+    assert [(t.key, t.name, t.aliases, t.context, t.context_aliases, t.parent_key) for t in tags] == [
+        ("t1", "musik", ("låtar",), None, (), None),
+        ("t2", "hårdrock", (), "musik", ("låtar",), "t1"),
+        ("t3", "jazz", ("swing",), "musik", ("låtar",), "t1"),
+        ("t4", "katter", (), None, (), None),
     ]
 
 
@@ -440,7 +445,13 @@ def test_a_sub_gets_its_interests_activity_when_it_has_none_of_its_own():
         {"name": "katter", "aliases": [], "activity": "ha", "subtags": []},
         {"name": "yoga", "aliases": [], "subtags": []},
     ]
-    assert [(t.name, t.activity) for t in tags_from_tree(tree)] == [("hårdrock", "lyssna"), ("jazz", "spela"), ("katter", "ha"), ("yoga", "")]
+    assert [(t.name, t.activity) for t in tags_from_tree(tree)] == [
+        ("musik", "lyssna"),
+        ("hårdrock", "lyssna"),
+        ("jazz", "spela"),
+        ("katter", "ha"),
+        ("yoga", ""),
+    ]
 
 
 def test_the_index_from_the_database_has_each_interests_own_activity_list(db):
@@ -456,3 +467,99 @@ def test_the_index_from_the_database_has_each_interests_own_activity_list(db):
     assert by_name["Stilla"].activities == ()
     assert index.effective_activities(by_name["Metal"].id) == ["lyssna", "spela"]  # ärvt
     assert index.effective_activities(by_name["Stilla"].id) == []  # uttryckligen inga
+
+
+# ---------- Hela trädet: intresset och dess subs ----------
+
+
+def tree(top, *subs, top_aliases=()):
+    """Utläsningens träd för ett intresse med subs, som taggar."""
+    return tags_from_tree([{"name": top, "aliases": list(top_aliases), "subtags": [{"name": s, "aliases": []} for s in subs]}])
+
+
+def test_the_interest_and_its_sub_are_both_matched_when_both_exist(index):
+    matches = match_tags(tree("musik", "hårdrock"), index)
+    assert [(m.tag.name, m.kind, m.interest_id) for m in matches] == [("musik", "same", 1), ("hårdrock", "same", 2)]
+
+
+def test_a_missing_interest_and_its_missing_sub_are_both_created_with_the_sub_under_the_interest(index):
+    llm = llm_says([decision("t1", "new", parent_id=20, new_name="modellbygge"), decision("t2", "new")])
+    top, sub = match_tags(tree("modellbygge", "fyrmodeller"), index)
+    assert (top.kind, top.name, top.parent_id, top.parent_key) == ("new", "modellbygge", 20, None)
+    assert (sub.kind, sub.name, sub.parent_id, sub.parent_key) == ("new", "fyrmodeller", None, "t1")
+    assert len(llm.calls_named("match")) == 1  # allt i ett anrop
+
+
+def test_a_new_sub_under_an_existing_interest_goes_under_that_interest(index):
+    llm_says([decision("t2", "new")])
+    top, sub = match_tags(tree("kortspel", "Yu-Gi-Oh!"), index)
+    assert (top.kind, top.interest_id) == ("same", 7)
+    assert (sub.kind, sub.name, sub.parent_id, sub.parent_key) == ("new", "Yu-Gi-Oh!", 7, None)
+
+
+def test_the_models_own_choice_of_parent_for_a_sub_is_ignored_when_its_interest_is_known(index):
+    llm_says([decision("t2", "new", parent_id=4)])  # modellen försöker lägga den under Tv-spel
+    _, sub = match_tags(tree("musik", "synthwave"), index)
+    assert sub.parent_id == 1
+
+
+def test_a_new_sub_under_a_level_three_interest_becomes_its_sibling(index):
+    llm_says([decision("t2", "new")])
+    top, sub = match_tags(tree("cosplay", "peruker"), index)  # Cosplay är nivå 3
+    assert (top.interest_id, sub.parent_id) == (22, 21)
+
+
+def test_a_new_interest_under_a_level_two_interest_cannot_hold_a_sub_it_becomes_a_sibling(index):
+    # Ny nivå 3 direkt under Kortspel: en sub under den skulle bli nivå 4, så den läggs bredvid.
+    llm_says([decision("t1", "new", parent_id=7, new_name="samlarkort"), decision("t2", "new")])
+    top, sub = match_tags(tree("samlarkort", "baseballkort"), index)
+    assert (top.parent_id, top.parent_key) == (7, None)
+    assert (sub.parent_id, sub.parent_key) == (7, None)
+
+
+def test_the_activity_follows_a_sub_nested_under_a_new_interest(index):
+    llm_says([decision("t1", "new", parent_id=7, new_name="x"), decision("t2", "new")])
+    tags = tags_from_tree([{"name": "x", "aliases": [], "activity": "spela", "subtags": [{"name": "y", "aliases": []}]}])
+    top, sub = match_tags(tags, index)
+    assert top.activity == "spela"  # Kortspel tillåter spela
+
+
+def test_a_sub_is_searched_for_under_its_interest_first(index):
+    # "Fantasy" finns under både Film och Böcker. Under "böcker" är det Böcker > Fantasy.
+    matches = match_tags(tree("böcker", "fantasy"), index)
+    assert [(m.tag.name, m.interest_id, m.via) for m in matches] == [("böcker", 9, "exact"), ("fantasy", 15, "exact")]
+    assert [m.interest_id for m in match_tags(tree("film", "fantasy"), index)] == [13, 14]
+
+
+def test_a_sub_whose_interest_is_none_is_matched_on_its_own(index):
+    llm_says([decision("t1", "none"), decision("t2", "new", parent_id=20, new_name="fyrmodeller")])
+    top, sub = match_tags(tree("hobbyer", "fyrmodeller"), index)
+    assert top.kind == "none"
+    assert (sub.kind, sub.parent_id, sub.parent_key) == ("new", 20, None)
+
+
+def test_a_sub_whose_interest_is_none_needs_a_parent_of_its_own(index):
+    llm_says([decision("t1", "none"), decision("t2", "new")])
+    assert match_tags(tree("hobbyer", "fyrmodeller"), index)[1].kind == "none"
+
+
+def test_a_sub_nested_under_a_new_interest_that_became_none_becomes_none(index):
+    llm_says([decision("t1", "new", parent_id=20, new_name="x"), decision("t2", "new")])
+    # Två intressen med samma namn: den andra blir none, och dess sub kan inte ligga under den.
+    tags = tags_from_tree(
+        [
+            {"name": "x", "aliases": [], "subtags": []},
+            {"name": "x", "aliases": [], "subtags": [{"name": "y", "aliases": []}]},
+        ]
+    )
+    llm_says([decision("t1", "new", parent_id=20, new_name="x"), decision("t2", "new", parent_id=20, new_name="x"), decision("t3", "new")])
+    kinds = [m.kind for m in match_tags(tags, index)]
+    assert kinds == ["new", "none", "none"]
+
+
+def test_the_model_is_told_which_interests_the_parents_already_became(index):
+    llm = llm_says([decision("t2", "new")])
+    match_tags(tree("musik", "synthwave"), index)
+    (call,) = llm.calls_named("match")
+    payload = json.loads(call.user.split("\n\nTaggar:\n")[1])
+    assert payload == [{"key": "t2", "name": "synthwave", "aliases": [], "context": "musik", "parent_key": "t1", "parent_interest_id": 1}]

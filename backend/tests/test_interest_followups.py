@@ -14,10 +14,8 @@ from app.services.interest_followups import (
     SPECIFY,
     FollowUp,
     Option,
-    drop_covered,
     followups,
     plan,
-    settle,
 )
 from app.services.ai_clients import AIFailed, set_clients
 from app.services.interest_matching import LibraryIndex, LibraryItem, Match, Tag
@@ -54,16 +52,16 @@ def index():
     )
 
 
-def same(interest_id, key="t1", name="x", activity=""):
-    return Match(Tag(key, name), "same", interest_id=interest_id, activity=activity)
+def same(interest_id, key="t1", name="x", activity="", parent_key=None):
+    return Match(Tag(key, name, parent_key=parent_key), "same", interest_id=interest_id, activity=activity)
 
 
-def new(parent_id, key="t1", name="nytt", activity=""):
-    return Match(Tag(key, name), "new", name=name, parent_id=parent_id, activity=activity)
+def new(parent_id, key="t1", name="nytt", activity="", parent_key=None):
+    return Match(Tag(key, name, parent_key=parent_key), "new", name=name, parent_id=parent_id, activity=activity)
 
 
-def none(key="t1"):
-    return Match(Tag(key, "x"), "none")
+def none(key="t1", parent_key=None):
+    return Match(Tag(key, "x", parent_key=parent_key), "none")
 
 
 def kinds(matches):
@@ -150,6 +148,7 @@ def test_a_specific_interest_gets_a_question_about_how_you_do_it(index):
             Option("besoka", "Besöker", ACTIVITY_KIND),
             GENERAL,
         ),
+        applies_to=("t1",),
     )
     assert question.multiple is True
     assert GENERAL == Option("", "Allmänt", GENERAL_KIND)
@@ -211,90 +210,57 @@ def test_the_questions_come_in_the_order_the_interests_were_mentioned(index):
     assert [(q.key, q.type) for q in questions] == [("t1", SPECIFY), ("t2", ACTIVITY), ("t3", ACTIVITY)]
 
 
-# ---------- Förslag som täcks ----------
+# ---------- Grupper: ett intresse och dess subs ----------
 
 
-def test_an_area_is_dropped_when_a_more_specific_proposal_is_in_the_same_area(index):
-    assert kinds(drop_covered([same(1, "t1"), same(2, "t2")], index)) == ["none", "same"]
+def test_an_interest_with_a_sub_is_one_group_with_one_activity_question_for_all(index):
+    # "Jag gillar musik, särskilt hårdrock": Musik och Metal sparas, och det frågas bara en gång hur.
+    (question,) = followups([same(1, "t1"), same(2, "t2", parent_key="t1")], index, LABELS)
+    assert (question.key, question.type, question.question) == ("t1", ACTIVITY, "Hur håller du på med musik?")
+    assert question.applies_to == ("t1", "t2")
+    assert [o.value for o in question.options] == ["lyssna", "spela", "skapa", "besoka", ""]
 
 
-def test_an_interest_is_dropped_when_a_specific_interest_below_it_is_proposed(index):
-    assert kinds(drop_covered([same(8, "t1"), same(9, "t2")], index)) == ["none", "same"]
+def test_a_group_never_gets_the_question_about_something_in_particular(index):
+    # Användaren var redan specifik, så "Något särskilt inom musik?" ställs inte.
+    questions = followups([same(1, "t1"), same(2, "t2", parent_key="t1")], index, LABELS)
+    assert [q.type for q in questions] == [ACTIVITY]
 
 
-def test_an_area_is_dropped_when_something_two_levels_down_is_proposed(index):
-    assert kinds(drop_covered([same(1, "t1"), same(4, "t2")], index)) == ["none", "same"]
+def test_no_question_when_something_in_the_group_already_says_how(index):
+    assert followups([same(1, "t1"), same(2, "t2", activity="spela", parent_key="t1")], index, LABELS) == []
+    assert followups([same(1, "t1", activity="lyssna"), same(2, "t2", parent_key="t1")], index, LABELS) == []
 
 
-def test_an_area_is_dropped_when_a_new_interest_is_proposed_under_it(index):
-    assert kinds(drop_covered([same(1, "t1"), new(1, "t2")], index)) == ["none", "new"]
-    assert kinds(drop_covered([same(1, "t1"), new(2, "t2")], index)) == ["none", "new"]
+def test_several_subs_under_one_interest_get_one_question(index):
+    matches = [same(1, "t1"), same(2, "t2", parent_key="t1"), same(3, "t3", parent_key="t1")]
+    (question,) = followups(matches, index, LABELS)
+    assert question.applies_to == ("t1", "t2", "t3")
 
 
-def test_the_order_does_not_matter_for_what_is_dropped(index):
-    assert kinds(drop_covered([same(2, "t1"), same(1, "t2")], index)) == ["same", "none"]
+def test_a_group_of_an_interest_with_one_way_to_do_it_gets_no_question(index):
+    assert followups([same(5, "t1"), same(6, "t2", parent_key="t1")], index) == []  # Film och tv: bara titta
 
 
-def test_unrelated_proposals_are_all_kept(index):
-    assert kinds(drop_covered([same(1, "t1"), same(5, "t2"), same(9, "t3")], index)) == ["same", "same", "same"]
+def test_a_new_interest_with_a_new_sub_under_it_is_one_group(index):
+    matches = [new(13, "t1", "Modellbygge"), new(None, "t2", "Fyrmodeller", parent_key="t1")]  # 13: ingen lista
+    llm = model_says([suggestion("t1", "skapa", "samla")])
+    result = plan(matches, index, CATALOG)
+    (question,) = result.followups
+    assert (question.key, question.question, question.applies_to) == ("t1", "Hur håller du på med Modellbygge?", ("t1", "t2"))
+    assert [o.value for o in question.options] == ["skapa", "samla", ""]
+    assert llm is not None
 
 
-def test_siblings_do_not_cover_each_other(index):
-    assert kinds(drop_covered([same(2, "t1"), same(3, "t2")], index)) == ["same", "same"]
+def test_a_sub_whose_interest_is_none_is_its_own_group(index):
+    questions = followups([none("t1"), same(2, "t2", parent_key="t1"), same(9, "t3")], index, LABELS)
+    assert [(q.key, q.applies_to) for q in questions] == [("t2", ("t2",)), ("t3", ("t3",))]
 
 
-def test_dropping_keeps_the_tag_and_the_order(index):
-    kept = drop_covered([same(1, "t1", "musik"), same(2, "t2", "hårdrock")], index)
-    assert [m.tag.key for m in kept] == ["t1", "t2"]
-    assert kept[0].tag.name == "musik"
-
-
-def test_nothing_to_drop_in_an_empty_list(index):
-    assert drop_covered([], index) == []
-
-
-def test_the_activity_said_about_the_broader_one_follows_to_the_specific_one(index):
-    # "Jag lyssnar på musik, särskilt hårdrock": Musik (lyssna) täcks av Metal, som får lyssna.
-    kept = drop_covered([same(1, "t1", activity="lyssna"), same(2, "t2")], index)
-    assert kinds(kept) == ["none", "same"]
-    assert kept[1].activity == "lyssna"
-
-
-def test_the_specific_ones_own_activity_is_not_overwritten(index):
-    kept = drop_covered([same(1, "t1", activity="lyssna"), same(2, "t2", activity="spela")], index)
-    assert kept[1].activity == "spela"
-
-
-def test_an_activity_that_is_not_allowed_for_the_specific_one_does_not_follow(index):
-    # Film och tv tillåter bara "titta", så "lyssna" följer inte med till Skräck.
-    kept = drop_covered([same(5, "t1", activity="lyssna"), same(6, "t2")], index)
-    assert kept[1].activity == ""
-
-
-def test_the_activity_follows_to_a_new_interest_under_the_area(index):
-    kept = drop_covered([same(1, "t1", activity="spela"), new(1, "t2", "Synthwave")], index)
-    assert kinds(kept) == ["none", "new"]
-    assert kept[1].activity == "spela"
-
-
-# ---------- Förslag och frågor tillsammans ----------
-
-
-def test_the_activity_the_text_gave_follows_and_no_question_is_asked(index):
-    kept, questions = settle([same(1, "t1", activity="lyssna"), same(2, "t2")], index, LABELS)
-    assert [m.activity for m in kept] == ["", "lyssna"]
-    assert questions == []
-
-
-def test_no_question_about_the_area_when_a_specific_proposal_already_covers_it(index):
-    kept, questions = settle([same(1, "t1"), same(2, "t2")], index, LABELS)
-    assert kinds(kept) == ["none", "same"]
-    assert [(q.key, q.type) for q in questions] == [("t2", ACTIVITY)]  # bara hur man håller på med Metal
-
-
-def test_a_question_for_each_proposal_that_needs_one(index):
-    _, questions = settle([same(1, "t1"), same(5, "t2"), same(9, "t3")], index, LABELS)
-    assert [(q.key, q.type) for q in questions] == [("t1", SPECIFY), ("t2", NARROW), ("t3", ACTIVITY)]
+def test_each_group_gets_its_own_question_in_the_order_mentioned(index):
+    matches = [same(1, "t1"), same(2, "t2", parent_key="t1"), same(9, "t3"), same(12, "t4")]
+    questions = followups(matches, index, LABELS)
+    assert [(q.key, q.type) for q in questions] == [("t1", ACTIVITY), ("t3", ACTIVITY), ("t4", ACTIVITY)]
 
 
 # ---------- Intressen där biblioteket saknar en lista: modellen väljer ----------
@@ -410,9 +376,9 @@ def test_a_new_interest_under_a_listed_area_uses_the_library_list(index):
     assert llm.calls == [] and result.allowed["t1"] == ["lyssna", "spela", "skapa", "besoka"]
 
 
-def test_proposals_that_are_dropped_or_none_get_no_entry_and_no_call(index):
+def test_proposals_that_are_none_get_no_entry_and_no_call(index):
     llm = model_says([])
-    result = plan([none("t1"), same(1, "t2"), same(2, "t3")], index, CATALOG)  # Musik täcks av Metal
+    result = plan([none("t1"), same(2, "t3")], index, CATALOG)
     assert llm.calls == []
     assert set(result.allowed) == {"t3"}
 
@@ -421,3 +387,26 @@ def test_nothing_is_asked_when_there_are_no_proposals(index):
     llm = model_says([])
     result = plan([], index, CATALOG)
     assert llm.calls == [] and result.matches == [] and result.followups == [] and result.allowed == {}
+
+
+def test_the_activity_said_about_one_in_a_group_is_set_on_all_where_it_is_allowed(index):
+    # "Jag spelar musik, särskilt hårdrock": aktiviteten som sades om Musik gäller Metal också.
+    result = plan([same(1, "t1", activity="spela"), same(2, "t2", parent_key="t1")], index, CATALOG)
+    assert [m.activity for m in result.matches] == ["spela", "spela"]
+    assert result.followups == []
+
+
+def test_the_activity_said_about_the_sub_is_set_on_the_interest_too(index):
+    result = plan([same(1, "t1"), same(2, "t2", activity="lyssna", parent_key="t1")], index, CATALOG)
+    assert [m.activity for m in result.matches] == ["lyssna", "lyssna"]
+
+
+def test_an_activity_is_not_set_where_it_is_not_allowed(index):
+    # Film och tv tillåter bara "titta", så "lyssna" följer inte med dit.
+    result = plan([same(1, "t1", activity="lyssna"), same(5, "t2")], index, CATALOG)
+    assert [m.activity for m in result.matches] == ["lyssna", ""]
+
+
+def test_the_activity_does_not_spread_between_different_groups(index):
+    result = plan([same(1, "t1", activity="lyssna"), same(2, "t2")], index, CATALOG)  # inte samma grupp
+    assert [m.activity for m in result.matches] == ["lyssna", ""]
