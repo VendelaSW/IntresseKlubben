@@ -26,6 +26,8 @@ DISTRICT_EMPTY = "Stadsdel får inte vara tom"
 DISTRICT_TOO_LONG = "Stadsdel får max vara 100 tecken"
 PROFILE_TEXT_EMPTY = "Om mig-texten får inte vara tom"
 PROFILE_TEXT_TOO_LONG = "Om mig-texten får max vara 800 tecken"
+PROFILE_TEXT_NOT_ALLOWED = "Texten verkar innehålla något som inte får finnas här. Skriv om den"
+TEXT_CHECK_UNAVAILABLE = "Vi kunde inte kontrollera texten just nu. Försök igen om en stund"
 INTERESTS_REQUIRED = "Välj minst ett intresse"
 
 # ---------- Profil och intressen (routes/profile.py, routes/interests.py) ----------

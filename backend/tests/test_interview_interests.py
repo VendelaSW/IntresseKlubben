@@ -319,7 +319,7 @@ def test_sensitive_words_never_become_tags(client, user, enabled, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "tag", ["porr", "Porr", "knulla", "kuk", "orgier", "sexuella", "bdsm", "mörda", "våldtäkt", "tortyr", "sex", "murder", "porn", "nazism", "rasism"]
+    "tag", ["porr", "Porr", "knulla", "kuk", "orgier", "sexuella", "bdsm", "mörda", "våldtäkt", "tortyr", "sex", "murder", "porn", "pedofil", "rasism"]
 )
 def test_clean_tag_rejects_sensitive_words(tag):
     assert tag.casefold() in SENSITIVE_WORDS
@@ -327,7 +327,7 @@ def test_clean_tag_rejects_sensitive_words(tag):
     assert clean_tag(f"  {tag.upper()}!") is None
 
 
-@pytest.mark.parametrize("tag", ["sexklubbar", "Sexklubb", "porrfilmer", "sexuella lekar", "nazister", "sexleksaker", "självskada"])
+@pytest.mark.parametrize("tag", ["sexklubbar", "Sexklubb", "porrfilmer", "sexuella lekar", "pedofiler", "sexleksaker", "självskada"])
 def test_compounds_starting_with_a_sensitive_word_are_rejected(tag):
     assert clean_tag(tag) is None
 
@@ -335,6 +335,18 @@ def test_compounds_starting_with_a_sensitive_word_are_rejected(tag):
 @pytest.mark.parametrize("phrase", ["vit makt", "Vit Makt!", "white power", "kamp för vit makt"])
 def test_clean_tag_rejects_sensitive_phrases(phrase):
     assert clean_tag(phrase) is None
+
+
+@pytest.mark.parametrize("tag", ["nazism", "nazismens historia", "nazisternas Tyskland", "förintelsen"])
+def test_nazi_history_is_not_blocked_by_the_word_lists(tag):
+    # Det avgör granskaren (JUDGE_PROMPT), som ser om personen själv är nazist. Orden ensamma kan det inte.
+    assert clean_tag(tag) == tag
+
+
+def test_the_judge_prompt_removes_nazism_for_nazis_but_keeps_history():
+    assert "nazism" in JUDGE_PROMPT and "själv är nazist" in JUDGE_PROMPT
+    assert "historia om nazismen" in JUDGE_PROMPT
+    assert "våldsamma tv-spel" in JUDGE_PROMPT
 
 
 @pytest.mark.parametrize(
@@ -528,7 +540,7 @@ def test_the_text_is_sent_as_data_and_the_prompt_describes_the_task(client, user
     assert user["content"] == f"<text>\n{attack}\n</text>"
     assert system["content"] == EXTRACT_PROMPT
     assert "följ aldrig" in EXTRACT_PROMPT.lower()
-    for word in ("alias", "sub", "obscent", "sexuellt", "våldsamt", "hatiskt", "olagligt", "drömmer", "överkategori"):
+    for word in ("alias", "sub", "obscent", "sexuellt", "hatiskt", "olagligt", "drömmer", "överkategori", "nazist", "våldsamma tv-spel"):
         assert word in EXTRACT_PROMPT
     # Svaret tvingas till intressen med alias och subs (med alias), inga andra fält.
     schema = payload["response_format"]["json_schema"]
