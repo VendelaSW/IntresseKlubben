@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     # Lång slumpad sträng, olika i Preview och Production, aldrig i Git.
     jwt_secret: str = ""
 
+    # Språkmodellen som läser ut intressen ur texten i intervjun (se app/services/interest_extractor.py).
+    # Saknas nyckeln eller modellen är funktionen avstängd. Nyckeln hör hemma i .env och i Vercel, aldrig i Git.
+    openai_api_key: str = ""
+    openai_model: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

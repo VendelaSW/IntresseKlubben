@@ -8,6 +8,7 @@ from app.api.routes.events import router as events_router
 from app.api.routes.groups import router as groups_router
 from app.api.routes.health import router as health_router
 from app.api.routes.interests import router as interests_router
+from app.api.routes.interview import router as interview_router
 from app.api.routes.messages import router as messages_router
 from app.api.routes.municipalities import router as municipalities_router
 from app.api.routes.profile import router as profile_router
@@ -30,6 +31,7 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(profile_router)
+app.include_router(interview_router)
 app.include_router(interests_router)
 app.include_router(user_router)
 app.include_router(municipalities_router)
