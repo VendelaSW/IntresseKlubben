@@ -669,6 +669,89 @@
   object-fit: contain;
 }
 
+/* Märket på en lapp (se MapPageWidgets): en röd prick med siffran, som ett
+   klistermärke uppe i hörnet. */
+.map-page-widget {
+  position: relative;
+}
+
+.map-widget-badge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  background: #d0352f;
+  border: 1.5px solid #3a2f25;
+  border-radius: 999px;
+  color: var(--color-white);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* När en siffra går upp studsar lappen till och märket pulsar, en gång. */
+.map-page-widget.is-pinged {
+  animation: map-widget-ping 1.2s ease-out;
+}
+
+.map-page-widget.is-pinged .map-widget-badge {
+  animation: map-widget-badge-ping 1.2s ease-out;
+}
+
+@keyframes map-widget-ping {
+  0%,
+  100% {
+    rotate: 0deg;
+    translate: 0 0;
+  }
+  15% {
+    rotate: -6deg;
+    translate: 0 -6px;
+  }
+  30% {
+    rotate: 5deg;
+    translate: 0 0;
+  }
+  45% {
+    rotate: -3deg;
+    translate: 0 -2px;
+  }
+  60% {
+    rotate: 1deg;
+    translate: 0 0;
+  }
+}
+
+@keyframes map-widget-badge-ping {
+  0% {
+    scale: 1;
+  }
+  20% {
+    scale: 1.45;
+  }
+  40% {
+    scale: 0.95;
+  }
+  60%,
+  100% {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-page-widget.is-pinged,
+  .map-page-widget.is-pinged .map-widget-badge {
+    animation: none;
+  }
+}
+
 /* Smalare fönster: bara ikonerna, så att raden inte krockar med nålarnas
    knappar uppe till vänster (namnet finns i title). */
 @media (max-width: 1100px) {
