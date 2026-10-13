@@ -30,6 +30,7 @@ function ConversationPage() {
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
 
   // Mobil: pappret ligger längst ner, så skrolla dit när brev tillkommer (även
   // när sidan öppnas), så att de senaste breven och svarsraden syns.
@@ -38,7 +39,6 @@ function ConversationPage() {
       window.scrollTo({ top: document.documentElement.scrollHeight })
     }
   }, [messages.length])
-  const [error, setError] = useState('')
 
   // Hämtar konversationen när sidan öppnas och sedan var POLL_MS. Pausar när
   // fliken inte syns (ingen idé att fråga servern då) och hämtar direkt när
