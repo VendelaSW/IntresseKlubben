@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { deleteAccount } from '../services/api'
 
-// Längst ner på den egna profilen. Först en knapp, sedan en bekräftelse där
+// Längst ner under Redigera profil. Först en knapp, sedan en bekräftelse där
 // lösenordet krävs, så att ingen raderar kontot av misstag. Efteråt loggas man
 // ut och hamnar på startsidan.
 function DeleteAccount() {
@@ -62,8 +62,9 @@ function DeleteAccount() {
       <button type="submit" disabled={busy || password === ''}>
         {busy ? 'Raderar...' : 'Radera kontot för gott'}
       </button>
+      {/* Heter inte "Avbryt": under Redigera profil finns redan en Avbryt för redigeringen, och de två ligger nära varandra. */}
       <button type="button" className="button-secondary" onClick={close} disabled={busy}>
-        Avbryt
+        Behåll kontot
       </button>
     </form>
   )

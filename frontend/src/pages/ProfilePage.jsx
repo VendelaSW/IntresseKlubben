@@ -7,8 +7,8 @@ import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { useAuth } from '../hooks/useAuth'
 import { checkAvailability, getCurrentUser, updateAccount } from '../services/api'
-import { imageToWebp } from '../services/imageToWebp'
 import { clearProfileDraft, loadProfileDraft, saveProfileDraft } from '../services/profileDraft'
+import { resizeProfileImage } from '../services/resizeProfileImage'
 import { addInterest, getMyInterests, removeInterest } from '../services/interests'
 import {
   GENDER_OPTIONS,
@@ -18,7 +18,7 @@ import {
   getProfile,
   updateProfile,
   uploadProfileImage,
-  uploadProfileWebp,
+  uploadResizedImage,
 } from '../services/profile'
 
 // Så länge kontrollen av användarnamn/e-post väntar efter senaste
@@ -88,8 +88,8 @@ function ProfileImage({ profile, onUploaded, editable = false }) {
   )
 }
 
-// Bildväljare för "Skapa din profil". Profilen finns inte än, så bilden görs
-// om till WebP direkt men laddas upp först när formuläret sparas.
+// Bildväljare för "Skapa din profil". Profilen finns inte än, så bilden skalas
+// om direkt men laddas upp först när formuläret sparas.
 function NewProfileImage({ name, image, onChange }) {
   const [preview, setPreview] = useState(null)
   const [error, setError] = useState('')
@@ -107,7 +107,7 @@ function NewProfileImage({ name, image, onChange }) {
     if (!file) return
     setError('')
     try {
-      onChange(await imageToWebp(file))
+      onChange(await resizeProfileImage(file))
     } catch (err) {
       setError(err.message)
     }
@@ -355,7 +355,7 @@ function ProfilePage() {
     setImageNotice('')
     if (pendingImage) {
       try {
-        saved = await uploadProfileWebp(pendingImage)
+        saved = await uploadResizedImage(pendingImage)
       } catch (err) {
         setImageNotice(`Profilen sparades, men bilden kunde inte laddas upp: ${err.message}`)
       }
@@ -560,6 +560,9 @@ function ProfilePage() {
             </button>
           )}
         </form>
+        {/* Utanför formuläret ovan: Radera konto har ett eget formulär, och formulär går inte att lägga i varandra.
+            Bara för en befintlig profil, en ny har inget att radera än. */}
+        {!isNew && <DeleteAccount />}
       </div>
     )
   }
@@ -596,7 +599,6 @@ function ProfilePage() {
       <button type="button" className="primary-button" onClick={() => startEditing()}>
         Redigera profil
       </button>
-      <DeleteAccount />
     </div>
     {/* Intressena som ett eget vitt kort bredvid profilen (under på mobil).
         Ändringar sparas direkt. */}

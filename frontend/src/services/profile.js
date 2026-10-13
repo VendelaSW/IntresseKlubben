@@ -1,5 +1,5 @@
 import { ApiError, apiGet, apiPatch, apiPost, apiPut } from './api'
-import { imageToWebp } from './imageToWebp'
+import { resizeProfileImage } from './resizeProfileImage'
 
 // Värdena måste matcha GenderEnum i backend/app/models/profile.py.
 export const GENDER_OPTIONS = [
@@ -62,20 +62,22 @@ export async function getUserProfile(userId) {
   }
 }
 
-// Profilbild: gör om till WebP, be backend om en uppladdningslänk, ladda upp
-// direkt till bucketen och bekräfta. Returnerar den uppdaterade profilen.
+// Profilbild: skala om (WebP, eller JPEG på iPhone), be backend om en
+// uppladdningslänk, ladda upp direkt till bucketen och bekräfta. Returnerar
+// den uppdaterade profilen.
 export async function uploadProfileImage(file) {
-  return uploadProfileWebp(await imageToWebp(file))
+  return uploadResizedImage(await resizeProfileImage(file))
 }
 
-// Samma sak för en bild som redan är gjord till WebP (används när bilden
-// väljs i "Skapa din profil" och laddas upp först när profilen har sparats).
-export async function uploadProfileWebp(webp) {
-  const { upload_url, key } = await apiPost('/profile/image/upload-url', {})
+// Samma sak för en bild som redan är omskalad (används när bilden väljs i
+// "Skapa din profil" och laddas upp först när profilen har sparats). Länken
+// gäller bara för bildens filtyp, så den skickas med.
+export async function uploadResizedImage(image) {
+  const { upload_url, key } = await apiPost('/profile/image/upload-url', { content_type: image.type })
   const res = await fetch(upload_url, {
     method: 'PUT',
-    headers: { 'Content-Type': 'image/webp' },
-    body: webp,
+    headers: { 'Content-Type': image.type },
+    body: image,
   })
   if (!res.ok) throw new Error('Uppladdningen misslyckades. Försök igen.')
   return apiPut('/profile/image', { key })
