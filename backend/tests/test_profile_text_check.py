@@ -17,8 +17,10 @@ def configured(monkeypatch):
     monkeypatch.setattr(settings, "openai_api_key", "test-nyckel")
     monkeypatch.setattr(settings, "openai_model", "test-modell")
     profile_routes._recent_text_checks.clear()
+    profile_routes._checked_texts.clear()
     yield
     profile_routes._recent_text_checks.clear()
+    profile_routes._checked_texts.clear()
 
 
 def fakes(flagged=False, allowed=True, policy_answer=None):
@@ -100,3 +102,75 @@ def test_the_limit_is_per_user(client, db, user):
     db.add(other)
     db.commit()
     profile_routes._check_text_rate_limit(other.id)  # en annan användare har sin egen gräns
+
+
+# ---------- En text som redan är kontrollerad kontrolleras inte igen när den sparas ----------
+
+
+@pytest.fixture
+def yoga(db):
+    from app.models.interest import Interest
+
+    interest = Interest(name="Yoga")
+    db.add(interest)
+    db.commit()
+    return interest
+
+
+def create(client, yoga, text):
+    from tests.helpers import profile_payload
+
+    return client.post("/profile/", json=profile_payload([yoga.id], profile_text=text))
+
+
+def test_a_text_that_passed_the_early_check_is_not_checked_again_when_saved(client, user, municipalities, yoga):
+    llm, moderator = fakes()
+    assert client.post(URL, json={"profile_text": "Jag gillar katter."}).status_code == 204
+    assert len(llm.calls_named("text_policy")) == 1
+    assert create(client, yoga, "Jag gillar katter.").status_code == 201
+    assert len(llm.calls_named("text_policy")) == 1  # inget nytt anrop
+    assert len(moderator.batches) == 1
+
+
+def test_surrounding_spaces_do_not_make_it_a_different_text(client, user, municipalities, yoga):
+    llm, _ = fakes()
+    client.post(URL, json={"profile_text": "Jag gillar katter."})
+    assert create(client, yoga, "  Jag gillar katter.  ").status_code == 201
+    assert len(llm.calls_named("text_policy")) == 1
+
+
+def test_a_different_text_is_checked_when_saved(client, user, municipalities, yoga):
+    llm, _ = fakes()
+    client.post(URL, json={"profile_text": "Jag gillar katter."})
+    llm.answers["text_policy"] = {"allowed": False}  # modellen nekar det som kommer nu
+    assert create(client, yoga, "Jag är nazist.").status_code == 422
+    assert len(llm.calls_named("text_policy")) == 2
+
+
+def test_saving_without_an_early_check_is_checked_as_usual(client, user, municipalities, yoga):
+    llm, _ = fakes(allowed=False)
+    assert create(client, yoga, "Jag är nazist.").status_code == 422
+    assert len(llm.calls_named("text_policy")) == 1
+
+
+def test_another_users_early_check_does_not_cover_me(client, db, user, municipalities, yoga):
+    llm, _ = fakes()
+    profile_routes._remember_checked(user.id + 1000, "Jag gillar katter.")
+    assert create(client, yoga, "Jag gillar katter.").status_code == 201
+    assert len(llm.calls_named("text_policy")) == 1  # kontrollerades som vanligt
+
+
+def test_the_memory_runs_out_so_an_old_check_does_not_count(client, user, municipalities, yoga, monkeypatch):
+    llm, _ = fakes()
+    client.post(URL, json={"profile_text": "Jag gillar katter."})
+    later = profile_routes.time.monotonic() + profile_routes.CHECKED_TEXT_SECONDS + 5
+    monkeypatch.setattr(profile_routes.time, "monotonic", lambda: later)
+    assert create(client, yoga, "Jag gillar katter.").status_code == 201
+    assert len(llm.calls_named("text_policy")) == 2
+
+
+def test_a_rejected_early_check_is_not_remembered(client, user, municipalities, yoga):
+    llm, _ = fakes(allowed=False)
+    assert client.post(URL, json={"profile_text": "Jag är nazist."}).status_code == 422
+    assert create(client, yoga, "Jag är nazist.").status_code == 422
+    assert len(llm.calls_named("text_policy")) == 2
