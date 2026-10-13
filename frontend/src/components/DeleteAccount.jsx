@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { deleteAccount } from '../services/api'
 
-// Längst ner på den egna profilen. Först en knapp, sedan en bekräftelse där
+// Längst ner under Redigera profil. Först en knapp, sedan en bekräftelse där
 // lösenordet krävs, så att ingen raderar kontot av misstag. Efteråt loggas man
 // ut och hamnar på startsidan.
 function DeleteAccount() {
