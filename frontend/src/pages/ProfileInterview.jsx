@@ -6,7 +6,7 @@ import TextareaWithCount from '../components/TextareaWithCount'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
-import { GENDER_OPTIONS, genderLabel, getMunicipalities, getProfile } from '../services/profile'
+import { GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
 
 // Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions`
 // är undertexterna som visas under videon medan klippet spelas (för den som har ljudet
@@ -122,6 +122,9 @@ function ProfileInterview() {
   // Undertexten som visas just nu (tom = ingen).
   const [caption, setCaption] = useState('')
   const [started, setStarted] = useState(false)
+  // Förhandskontrollen av Om mig-texten när man går vidare från sista frågan: pågår den, och vad den sa om texten nekades.
+  const [checkingAbout, setCheckingAbout] = useState(false)
+  const [aboutError, setAboutError] = useState('')
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState(EMPTY_ANSWERS)
   const [finished, setFinished] = useState(false)
@@ -436,6 +439,10 @@ function ProfileInterview() {
   function editAnswers() {
     setFinished(false)
     setAnalysis(null)
+    // Avslutningsklippet är stoppat och spelar inte klart igen, så klippet för sista frågan sätts direkt. Annars väntar
+    // det på att avslutningen ska ta slut och startar aldrig.
+    setIdle(false)
+    setShownVideo(STEPS[STEPS.length - 1].video)
     setIndex(STEPS.length - 1)
     setSaveError('')
     setSaveStatus(null)
@@ -502,11 +509,24 @@ function ProfileInterview() {
     }
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
+    if (checkingAbout) return
     // Går man vidare från intressefrågan startar utläsningen direkt, medan man skriver nästa fråga.
     if (step.id === 'intressen') startExtraction(answers.likes)
     if (isLast) {
+      // Om mig-texten kontrolleras innan avslutningen och analysen börjar, så att man får veta att den nekas medan
+      // man fortfarande står kvar vid fältet. Kontrollen vid sparandet ligger kvar som skydd.
+      setCheckingAbout(true)
+      setAboutError('')
+      try {
+        await checkProfileText(answers.about.trim())
+      } catch (error) {
+        setAboutError(messageOf(error))
+        return
+      } finally {
+        setCheckingAbout(false)
+      }
       setAnalysis(0)
       startExtraction(answers.likes) // gör inget om den redan är igång eller klar för samma text
     } else {
@@ -840,11 +860,15 @@ function ProfileInterview() {
                       <TextareaWithCount
                         id="interview-about"
                         value={answers.about}
-                        onChange={setAnswer('about')}
+                        onChange={(event) => {
+                          setAnswer('about')(event)
+                          setAboutError('')
+                        }}
                         maxLength={800}
                         rows={6}
                         required
                       />
+                      {aboutError && <p className="form-error">{aboutError}</p>}
                     </FormField>
                   )}
 
@@ -852,7 +876,9 @@ function ProfileInterview() {
                     <button type="button" className="button-secondary" disabled={index === 0} onClick={goBack}>
                       Tillbaka
                     </button>
-                    <button type="submit">{isLast ? 'Klar' : 'Nästa'}</button>
+                    <button type="submit" disabled={checkingAbout}>
+                      {checkingAbout ? 'Kontrollerar...' : isLast ? 'Klar' : 'Nästa'}
+                    </button>
                   </div>
                 </form>
               </div>
