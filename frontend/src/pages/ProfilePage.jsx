@@ -552,6 +552,9 @@ function ProfilePage() {
             </button>
           )}
         </form>
+        {/* Utanför formuläret ovan: Radera konto har ett eget formulär, och formulär går inte att lägga i varandra.
+            Bara för en befintlig profil, en ny har inget att radera än. */}
+        {!isNew && <DeleteAccount />}
       </div>
     )
   }
@@ -588,7 +591,6 @@ function ProfilePage() {
       <button type="button" className="primary-button" onClick={startEditing}>
         Redigera profil
       </button>
-      <DeleteAccount />
     </div>
     {/* Intressena som ett eget vitt kort bredvid profilen (under på mobil).
         Ändringar sparas direkt. */}
