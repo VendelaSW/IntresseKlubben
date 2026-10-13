@@ -2195,6 +2195,12 @@ label.person-list-item {
   border-radius: 4px;
 }
 
+/* Det öppna området ligger i listan med kategorier, direkt under raden med den
+   man tryckte på, och tar hela bredden (kategorierna efter hamnar under). */
+.explorer .explorer-panel {
+  flex-basis: 100%;
+}
+
 .explorer .explorer-rows {
   margin: 0;
   padding: 0;
