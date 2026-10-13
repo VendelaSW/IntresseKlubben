@@ -13,6 +13,7 @@ import InboxPage from './pages/InboxPage'
 import ConversationPage from './pages/ConversationPage'
 import UserProfilePage from './pages/UserProfilePage'
 import AppShell from './components/AppShell'
+import HomeSwitch from './components/HomeSwitch'
 import ProtectedRoute from './components/ProtectedRoute'
 import RequireProfile from './components/RequireProfile'
 import DemoLayout from './pages/demo/DemoLayout'
@@ -40,9 +41,13 @@ function App() {
         <Route path="/stilguide" element={<StyleGuide />} />
 
         <Route element={<ProtectedRoute />}>
-          {/* PROTOTYP: inte länkad från menyn än. Bara för inloggade med klar
-              profil, och utanför AppShell eftersom kartan tar hela skärmen. */}
+          {/* Bara för inloggade med klar profil, och utanför AppShell eftersom
+              kartan tar hela skärmen. /hem visar kartan eller appens vanliga
+              startsida (se HomeSwitch); /karta-prototyp visar alltid kartan. */}
           <Route element={<RequireProfile />}>
+            <Route path="/hem" element={<HomeSwitch />}>
+              <Route index element={<HubPage />} />
+            </Route>
             <Route
               path="/karta-prototyp"
               element={
@@ -59,7 +64,6 @@ function App() {
                 listläget (/profil?lista=1) att nå. Resten ligger i RequireProfile. */}
             <Route path="/profil" element={<ProfilePage />} />
             <Route element={<RequireProfile />}>
-              <Route path="/hem" element={<HubPage />} />
               <Route path="/klubbar" element={<GroupsPage />} />
               <Route path="/personer" element={<PeoplePage />} />
               <Route path="/events" element={<EventsPage />} />

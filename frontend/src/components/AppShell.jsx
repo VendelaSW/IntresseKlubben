@@ -7,6 +7,7 @@ import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import { useAuth } from '../hooks/useAuth'
 import { EMPTY_COUNTS, useBadgeCounts } from '../hooks/useBadgeCounts'
+import { setStartView } from '../hooks/useStartView'
 
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
@@ -38,6 +39,12 @@ function AppShell() {
   function handleLogout() {
     logout()
     navigate('/')
+  }
+
+  // Tillbaka till kartan som startsida (se useStartView och HomeSwitch).
+  function showMap() {
+    setStartView('karta')
+    navigate('/hem')
   }
 
   return (
@@ -95,6 +102,11 @@ function AppShell() {
           )}
         </nav>
         <div className="app-user">
+          {profileDone && (
+            <button type="button" className="secondary-button button-small" onClick={showMap}>
+              Visa kartan
+            </button>
+          )}
           <Link to="/profil" className="info-link highlight" style={{ borderBottom: 'none' }}>
             {user?.username}
           </Link>

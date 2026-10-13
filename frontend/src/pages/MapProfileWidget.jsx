@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { setStartView } from '../hooks/useStartView'
 import { getProfile } from '../services/profile'
 
 // Menyn: profilsidan, som läggs på kartan som ett block (via `onOpen`), lugnt
-// läge av/på (via `onToggleCalm`) och sist Logga ut. Appens övriga sidor har
-// egna lappar (se MapPageWidgets).
+// läge av/på (via `onToggleCalm`), Avsluta kartan (tillbaka till appens
+// vanliga startsida) och sist Logga ut. Appens övriga sidor har egna lappar
+// (se MapPageWidgets).
 const MENU = [{ id: 'profil', label: 'Profilsida' }]
 
 // Profillappen uppe till höger på kartan, bredvid zoomknapparna: namnet till
@@ -49,6 +51,13 @@ function MapProfileWidget({ onOpen, calm, onToggleCalm }) {
   function handleLogout() {
     logout()
     navigate('/')
+  }
+
+  // Appens vanliga startsida i stället för kartan, även nästa gång (se
+  // useStartView och HomeSwitch).
+  function exitMap() {
+    setStartView('klassisk')
+    navigate('/hem')
   }
 
   const name = profile?.name ?? user.username
@@ -97,6 +106,11 @@ function MapProfileWidget({ onOpen, calm, onToggleCalm }) {
               }}
             >
               {calm ? 'Visa kartan' : 'Lugnt läge'}
+            </button>
+          </li>
+          <li>
+            <button type="button" className="map-profile-menu-item" onClick={exitMap}>
+              Avsluta kartan
             </button>
           </li>
           <li>
