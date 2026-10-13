@@ -66,6 +66,14 @@ export function getGroupMembers(id) {
   return apiGet(`/groups/${id}/members`)
 }
 
+export function getGroupMessages(id) {
+  return apiGet(`/groups/${id}/messages`)
+}
+
+export function sendGroupMessage(id, content) {
+  return apiPost(`/groups/${id}/messages`, { content })
+}
+
 export function createGroup(data) {
   return apiPost('/groups/', data)
 }
