@@ -72,15 +72,27 @@
       "name": "Musik",
       "parent": null,
       "description": "Musik: lyssna på, spela eller prata om musik.",
-      "aliases": [
-        "musiker",
-        "låtar"
-      ],
       "activities": [
         "lyssna",
         "spela",
         "skapa",
         "besoka"
+      ]
+    },
+    {
+      "slug": "sang",
+      "name": "Sång",
+      "parent": "musik",
+      "description": "Sång: sjunga för sig själv, på scen eller i band.",
+      "aliases": [
+        "sjunga",
+        "sångare",
+        "solosång",
+        "sångundervisning"
+      ],
+      "activities": [
+        "utova",
+        "lara-sig"
       ]
     },
     {
@@ -172,7 +184,8 @@
       "description": "Metal: hård och tung rockmusik med distade gitarrer.",
       "aliases": [
         "hårdrock",
-        "heavy metal"
+        "heavy metal",
+        "hard rock"
       ]
     },
     {
@@ -203,9 +216,7 @@
       "parent": "musik",
       "description": "Klassisk musik: orkestrar, symfonier, opera och kompositörer som Mozart.",
       "aliases": [
-        "klassiskt",
-        "symfoni",
-        "orkester"
+        "klassiskt"
       ]
     },
     {
@@ -216,6 +227,15 @@
       "aliases": [
         "edm",
         "elektroniskt"
+      ]
+    },
+    {
+      "slug": "jungle",
+      "name": "Jungle",
+      "parent": "elektronisk-musik",
+      "description": "Jungle: lyssna på eller göra jungle, släkt med drum and bass.",
+      "aliases": [
+        "jungle-musik"
       ]
     },
     {
@@ -236,8 +256,7 @@
       "parent": "elektronisk-musik",
       "description": "Drum and bass: snabb elektronisk musik med brutna trumrytmer och tung bas.",
       "aliases": [
-        "dnb",
-        "jungle"
+        "dnb"
       ]
     },
     {
@@ -298,8 +317,7 @@
       "description": "Sjunga i kör: sjunga tillsammans med andra i en kör.",
       "aliases": [
         "kör",
-        "körsång",
-        "sjunga"
+        "körsång"
       ],
       "activities": [
         "utova",
@@ -385,8 +403,7 @@
       "parent": "film-och-tv",
       "description": "Komedi: roliga filmer och tv-serier som får en att skratta.",
       "aliases": [
-        "komedier",
-        "humor"
+        "komedier"
       ]
     },
     {
@@ -413,8 +430,7 @@
       "parent": "film-och-tv-fantasy",
       "description": "Sagan om ringen: Tolkiens värld i film och tv, från Hobbit till Maktens ringar.",
       "aliases": [
-        "lord of the rings",
-        "tolkien"
+        "lord of the rings"
       ]
     },
     {
@@ -448,8 +464,7 @@
       "parent": "anime",
       "description": "Studio Ghibli: de japanska animerade filmerna från Hayao Miyazakis studio.",
       "aliases": [
-        "ghibli",
-        "miyazaki"
+        "ghibli"
       ]
     },
     {
@@ -766,14 +781,29 @@
       ]
     },
     {
+      "slug": "dark-souls",
+      "name": "Dark Souls",
+      "parent": "rollspel-rpg",
+      "description": "Dark Souls: spelserien från FromSoftware.",
+      "aliases": [
+        "darksouls"
+      ]
+    },
+    {
+      "slug": "soulslike",
+      "name": "Soulslike",
+      "parent": "rollspel-rpg",
+      "description": "Soulslike: svåra actionrollspel i stil med Dark Souls.",
+      "aliases": [
+        "souls-spel",
+        "souls-like"
+      ]
+    },
+    {
       "slug": "elden-ring",
       "name": "Elden Ring",
       "parent": "rollspel-rpg",
-      "description": "Elden Ring: det öppna och svåra actionrollspelet från FromSoftware.",
-      "aliases": [
-        "dark souls",
-        "souls-spel"
-      ]
+      "description": "Elden Ring: det öppna och svåra actionrollspelet från FromSoftware."
     },
     {
       "slug": "pokemon-spelen",
@@ -940,9 +970,6 @@
       "name": "Retrospel",
       "parent": "tv-spel",
       "description": "Retrospel: gamla tv-spel och konsoler från 80- och 90-talet.",
-      "aliases": [
-        "retro"
-      ],
       "activities": [
         "spela",
         "samla"
@@ -963,8 +990,7 @@
       "parent": "spel-och-pussel",
       "description": "Brädspel: sällskapsspel med spelplan, kort och tärningar runt ett bord.",
       "aliases": [
-        "sällskapsspel",
-        "spelkväll"
+        "sällskapsspel"
       ],
       "activities": [
         "spela",
@@ -1245,14 +1271,24 @@
       ]
     },
     {
-      "slug": "traillopning",
-      "name": "Traillöpning",
+      "slug": "halvmaraton",
+      "name": "Halvmaraton",
       "parent": "lopning",
-      "description": "Traillöpning: löpning på stigar i skog och berg.",
+      "description": "Halvmaraton: springa eller träna för halvmaraton.",
+      "aliases": [
+        "halvmara",
+        "halvmarathon"
+      ]
+    },
+    {
+      "slug": "traillopning",
+      "name": "Terränglöpning",
+      "parent": "lopning",
+      "description": "Terränglöpning: springa i skog, på stigar och i terräng.",
       "aliases": [
         "trail",
-        "terränglöpning",
-        "trail running"
+        "trail running",
+        "traillöpning"
       ]
     },
     {
@@ -1261,8 +1297,7 @@
       "parent": "lopning",
       "description": "Maraton: långlopp på 42 kilometer, och halvmaran på vägen dit.",
       "aliases": [
-        "marathon",
-        "halvmaraton"
+        "marathon"
       ]
     },
     {
@@ -1299,12 +1334,20 @@
       "parent": "sport-och-traning",
       "description": "Yoga: rörlighet, andning och avslappning på en matta.",
       "aliases": [
-        "yin yoga",
         "yogapass"
       ],
       "activities": [
         "utova",
         "leda"
+      ]
+    },
+    {
+      "slug": "yin-yoga",
+      "name": "Yin yoga",
+      "parent": "yoga",
+      "description": "Yin yoga: lugn och djup yoga med långa positioner.",
+      "aliases": [
+        "yinyoga"
       ]
     },
     {
@@ -1371,10 +1414,24 @@
       "slug": "kampsport",
       "name": "Kampsport",
       "parent": "sport-och-traning",
-      "description": "Kampsport: boxning, judo, karate och andra kampsporter.",
+      "description": "Kampsport: boxning, judo, karate och andra kampsporter."
+    },
+    {
+      "slug": "mma",
+      "name": "MMA",
+      "parent": "kampsport",
+      "description": "MMA: blandad kampsport.",
       "aliases": [
-        "mma",
-        "självförsvar"
+        "mixed martial arts"
+      ]
+    },
+    {
+      "slug": "sjalvforsvar",
+      "name": "Självförsvar",
+      "parent": "kampsport",
+      "description": "Självförsvar: lära sig försvara sig.",
+      "aliases": [
+        "självförsvarskurs"
       ]
     },
     {
@@ -1418,8 +1475,16 @@
       "description": "Friluftsliv: vara ute i naturen.",
       "aliases": [
         "naturen",
-        "utomhus",
-        "uteliv"
+        "utomhus"
+      ]
+    },
+    {
+      "slug": "snorkling",
+      "name": "Snorkling",
+      "parent": "friluftsliv",
+      "description": "Snorkling: simma med snorkel och mask.",
+      "aliases": [
+        "snorkla"
       ]
     },
     {
@@ -1508,8 +1573,7 @@
       "parent": "vandring",
       "description": "Fjällvandring: vandring i fjällen, ofta flera dagar med tält eller stugor.",
       "aliases": [
-        "kungsleden",
-        "fjällen"
+        "kungsleden"
       ]
     },
     {
@@ -1566,8 +1630,7 @@
       "parent": "friluftsliv",
       "description": "Fiske: fiska med spö i sjöar, älvar och havet.",
       "aliases": [
-        "fiska",
-        "metspö"
+        "fiska"
       ]
     },
     {
@@ -1603,8 +1666,7 @@
       "parent": "friluftsliv",
       "description": "Dykning: dyka under vattnet med dykutrustning.",
       "aliases": [
-        "dyka",
-        "snorkling"
+        "dyka"
       ]
     },
     {
@@ -1679,8 +1741,7 @@
       "parent": "mat-och-dryck",
       "description": "Matlagning: laga mat och testa nya recept.",
       "aliases": [
-        "laga mat",
-        "recept"
+        "laga mat"
       ],
       "activities": [
         "laga"
@@ -1918,7 +1979,6 @@
       "parent": "djur-och-natur",
       "description": "Fågelskådning: titta på och känna igen fåglar i naturen.",
       "aliases": [
-        "fåglar",
         "skåda fågel"
       ]
     },
@@ -1949,7 +2009,6 @@
       "parent": "tradgard",
       "description": "Krukväxter: gröna växter inomhus, sticklingar och omplantering.",
       "aliases": [
-        "växter",
         "sticklingar"
       ]
     },
@@ -2091,13 +2150,21 @@
       "description": "Programmering: skriva kod och bygga program och appar.",
       "aliases": [
         "koda",
-        "kodning",
-        "python"
+        "kodning"
       ],
       "activities": [
         "utova",
         "lara-sig",
         "leda"
+      ]
+    },
+    {
+      "slug": "python",
+      "name": "Python",
+      "parent": "programmering",
+      "description": "Python: programmera i Python.",
+      "aliases": [
+        "python-programmering"
       ]
     },
     {
@@ -2107,8 +2174,7 @@
       "description": "Webbutveckling: att bygga webbplatser och webbappar.",
       "aliases": [
         "webbprogrammering",
-        "frontend",
-        "html"
+        "frontend"
       ]
     },
     {
@@ -2126,8 +2192,7 @@
       "parent": "teknik",
       "description": "Elektronik: bygga kretsar och prylar med lödkolv.",
       "aliases": [
-        "löda",
-        "kretskort"
+        "löda"
       ],
       "activities": [
         "bygga",
@@ -2150,12 +2215,32 @@
       "parent": "teknik",
       "description": "AI: artificiell intelligens och maskininlärning.",
       "aliases": [
-        "artificiell intelligens",
-        "maskininlärning"
+        "artificiell intelligens"
       ],
       "activities": [
         "bygga",
         "lasa"
+      ]
+    },
+    {
+      "slug": "maskininlarning",
+      "name": "Maskininlärning",
+      "parent": "ai",
+      "description": "Maskininlärning: träna modeller på data.",
+      "aliases": [
+        "ml",
+        "machine learning"
+      ]
+    },
+    {
+      "slug": "sprakmodeller",
+      "name": "Språkmodeller",
+      "parent": "ai",
+      "description": "Språkmodeller: stora språkmodeller och hur de funkar.",
+      "aliases": [
+        "llm",
+        "språkmodell",
+        "llm-modeller"
       ]
     },
     {
@@ -2165,8 +2250,7 @@
       "description": "Generativ AI: verktyg som skapar text, bild och ljud, som ChatGPT och bildgeneratorer.",
       "aliases": [
         "chatgpt",
-        "ai-verktyg",
-        "språkmodeller"
+        "ai-verktyg"
       ]
     },
     {
@@ -2185,9 +2269,31 @@
       "parent": null,
       "description": "Skapande: göra saker med händerna och vara kreativ.",
       "aliases": [
-        "kreativt",
+        "kreativt"
+      ]
+    },
+    {
+      "slug": "hantverk-och-pyssel",
+      "name": "Hantverk och pyssel",
+      "parent": "skapande",
+      "description": "Hantverk och pyssel: göra saker för hand.",
+      "aliases": [
         "hantverk",
-        "pyssel"
+        "pyssel",
+        "pyssla",
+        "handarbete"
+      ],
+      "activities": [
+        "skapa"
+      ]
+    },
+    {
+      "slug": "illustration",
+      "name": "Illustration",
+      "parent": "skapande",
+      "description": "Illustration: teckna och rita bilder, analogt eller digitalt.",
+      "aliases": [
+        "illustrera"
       ]
     },
     {
@@ -2247,7 +2353,6 @@
       "description": "Digital konst: att teckna och måla på platta eller dator.",
       "aliases": [
         "digital illustration",
-        "illustration",
         "procreate"
       ]
     },
@@ -2255,10 +2360,7 @@
       "slug": "keramik",
       "name": "Keramik",
       "parent": "skapande",
-      "description": "Keramik: forma och dreja saker i lera.",
-      "aliases": [
-        "lera"
-      ]
+      "description": "Keramik: forma och dreja saker i lera."
     },
     {
       "slug": "drejning",
@@ -2272,13 +2374,21 @@
     },
     {
       "slug": "stickning",
-      "name": "Stickning och virkning",
+      "name": "Stickning",
       "parent": "skapande",
-      "description": "Stickning och virkning: sticka och virka med garn.",
+      "description": "Stickning: sticka plagg och mönster.",
       "aliases": [
-        "sticka",
+        "sticka"
+      ]
+    },
+    {
+      "slug": "virkning",
+      "name": "Virkning",
+      "parent": "skapande",
+      "description": "Virkning: virka plagg, amigurumi och mönster.",
+      "aliases": [
         "virka",
-        "garn"
+        "virkade"
       ]
     },
     {
@@ -2287,18 +2397,14 @@
       "parent": "skapande",
       "description": "Sömnad: sy kläder och annat med symaskin.",
       "aliases": [
-        "sy",
-        "symaskin"
+        "sy"
       ]
     },
     {
       "slug": "cosplay",
       "name": "Cosplay",
       "parent": "somnad",
-      "description": "Cosplay: att sy och bära dräkter från spel, film och anime.",
-      "aliases": [
-        "utklädning"
-      ]
+      "description": "Cosplay: att sy och bära dräkter från spel, film och anime."
     },
     {
       "slug": "fotografering",
@@ -2307,9 +2413,7 @@
       "description": "Fotografering: ta bilder med kamera.",
       "aliases": [
         "fotografera",
-        "foto",
-        "kamera",
-        "bilder"
+        "foto"
       ]
     },
     {
@@ -2376,13 +2480,22 @@
       "description": "Bilar: personbilar, sportbilar och bilkultur.",
       "aliases": [
         "bil",
-        "bilintresse",
-        "sportbilar"
+        "bilintresse"
       ],
       "activities": [
         "kora",
         "bygga",
         "samla"
+      ]
+    },
+    {
+      "slug": "sportbilar",
+      "name": "Sportbilar",
+      "parent": "bilar",
+      "description": "Sportbilar: snabba bilar att köra, bygga eller titta på.",
+      "aliases": [
+        "sportbil",
+        "supersportbil"
       ]
     },
     {
@@ -2407,13 +2520,23 @@
       "description": "Veteranfordon: äldre bilar och motorcyklar som vårdas, renoveras och visas upp.",
       "aliases": [
         "veteranbilar",
-        "entusiastfordon",
-        "raggarbilar"
+        "entusiastfordon"
       ],
       "activities": [
         "kora",
         "bygga",
         "besoka"
+      ]
+    },
+    {
+      "slug": "raggarbilar",
+      "name": "Raggarbilar",
+      "parent": "veteranfordon",
+      "description": "Raggarbilar: amerikanska bilar och raggarkultur.",
+      "aliases": [
+        "raggare",
+        "raggarbil",
+        "raggarkultur"
       ]
     },
     {
@@ -2437,13 +2560,30 @@
       "description": "Rally och racing: tävlingar på bana, grus och is, som rally, rallycross och folkrace.",
       "aliases": [
         "rally",
-        "racing",
-        "folkrace",
-        "gokart"
+        "racing"
       ],
       "activities": [
         "titta",
         "tavla"
+      ]
+    },
+    {
+      "slug": "folkrace",
+      "name": "Folkrace",
+      "parent": "rally-och-racing",
+      "description": "Folkrace: tävla eller titta på folkrace.",
+      "aliases": [
+        "folkracing"
+      ]
+    },
+    {
+      "slug": "gokart",
+      "name": "Gokart",
+      "parent": "rally-och-racing",
+      "description": "Gokart: köra eller tävla i gokart.",
+      "aliases": [
+        "gokartkörning",
+        "karting"
       ]
     },
     {
@@ -2466,13 +2606,31 @@
       "description": "Båtliv: livet med motorbåt eller segelbåt, från dagsturer till semester på sjön.",
       "aliases": [
         "båt",
-        "båtar",
-        "motorbåt",
-        "segling"
+        "båtar"
       ],
       "activities": [
         "ha",
         "kora"
+      ]
+    },
+    {
+      "slug": "segling",
+      "name": "Segling",
+      "parent": "batliv",
+      "description": "Segling: segla båt, för nöjes skull eller tävling.",
+      "aliases": [
+        "segla",
+        "seglingstävling"
+      ]
+    },
+    {
+      "slug": "motorbatar",
+      "name": "Motorbåtar",
+      "parent": "batliv",
+      "description": "Motorbåtar: åka eller äga motorbåt.",
+      "aliases": [
+        "motorbåt",
+        "motorbåtsliv"
       ]
     },
     {
@@ -2482,10 +2640,19 @@
       "description": "Tåg och järnväg: lok, järnvägshistoria och modelljärnvägar.",
       "aliases": [
         "tåg",
-        "järnväg",
-        "modelljärnväg"
+        "järnväg"
       ],
       "activities": []
+    },
+    {
+      "slug": "modelljarnvag",
+      "name": "Modelljärnväg",
+      "parent": "tag-och-jarnvag",
+      "description": "Modelljärnväg: bygga och köra modelltåg.",
+      "aliases": [
+        "modelltåg",
+        "modellbana"
+      ]
     },
     {
       "slug": "flyg",
@@ -2493,11 +2660,18 @@
       "parent": "fordon-och-motorsport",
       "description": "Flyg: flygplan, flygspotting och att själv flyga.",
       "aliases": [
-        "flygplan",
-        "flygspotting",
-        "pilot"
+        "flygplan"
       ],
       "activities": []
+    },
+    {
+      "slug": "flygspotting",
+      "name": "Flygspotting",
+      "parent": "flyg",
+      "description": "Flygspotting: fotografera och logga flygplan.",
+      "aliases": [
+        "planespotting"
+      ]
     },
     {
       "slug": "vetenskap",
@@ -2517,8 +2691,7 @@
       "aliases": [
         "astronomi",
         "rymden",
-        "stjärnskådning",
-        "teleskop"
+        "stjärnskådning"
       ]
     },
     {
@@ -2626,10 +2799,7 @@
       "slug": "andlig-utveckling",
       "name": "Andlig utveckling",
       "parent": "mystik-och-andlighet",
-      "description": "Andlig utveckling: att utforska livsfrågor och sin egen inre väg.",
-      "aliases": [
-        "personlig utveckling"
-      ]
+      "description": "Andlig utveckling: att utforska livsfrågor och sin egen inre väg."
     },
     {
       "slug": "paranormalt",
@@ -2638,18 +2808,43 @@
       "description": "Paranormalt: spöken, ufon och annat oförklarligt.",
       "aliases": [
         "spöken",
-        "övernaturligt",
-        "ufo"
+        "övernaturligt"
+      ]
+    },
+    {
+      "slug": "ufo",
+      "name": "UFO",
+      "parent": "paranormalt",
+      "description": "UFO: observationer och teorier om ufon.",
+      "aliases": [
+        "ufon",
+        "uap"
       ]
     },
     {
       "slug": "mytologi",
       "name": "Mytologi",
       "parent": "mystik-och-andlighet",
-      "description": "Mytologi: gudar, hjältar och sagor från olika kulturer, som nordisk och grekisk mytologi.",
+      "description": "Mytologi: gudar, hjältar och sagor från olika kulturer, som nordisk och grekisk mytologi."
+    },
+    {
+      "slug": "nordisk-mytologi",
+      "name": "Nordisk mytologi",
+      "parent": "mytologi",
+      "description": "Nordisk mytologi: asatro, gudar och sagor från Norden.",
       "aliases": [
-        "nordisk mytologi",
-        "grekisk mytologi"
+        "asatro",
+        "fornnordisk mytologi"
+      ]
+    },
+    {
+      "slug": "grekisk-mytologi",
+      "name": "Grekisk mytologi",
+      "parent": "mytologi",
+      "description": "Grekisk mytologi: de grekiska gudarna och myterna.",
+      "aliases": [
+        "antik mytologi",
+        "olympen"
       ]
     },
     {
@@ -2701,10 +2896,7 @@
       "slug": "sneakers",
       "name": "Sneakers",
       "parent": "mode-och-stil",
-      "description": "Sneakers: skor att samla, byta och bära.",
-      "aliases": [
-        "skor"
-      ]
+      "description": "Sneakers: skor att samla, byta och bära."
     },
     {
       "slug": "smink-och-hudvard",
@@ -2786,8 +2978,7 @@
       "description": "Stand-up: komiker på scen, på klubb eller i stora shower.",
       "aliases": [
         "ståupp",
-        "standup",
-        "komiker"
+        "standup"
       ]
     },
     {
@@ -2816,8 +3007,16 @@
       "description": "Cirkus och varieté: akrobatik, jonglering, nycirkus och burlesk.",
       "aliases": [
         "cirkus",
-        "nycirkus",
-        "jonglering"
+        "nycirkus"
+      ]
+    },
+    {
+      "slug": "jonglering",
+      "name": "Jonglering",
+      "parent": "cirkus-och-variete",
+      "description": "Jonglering: jonglera med bollar, käglor och annat.",
+      "aliases": [
+        "jonglera"
       ]
     },
     {
@@ -2826,7 +3025,6 @@
       "parent": "scen-och-teater",
       "description": "Trolleri: trick, illusioner och magi på scen eller vid bordet.",
       "aliases": [
-        "magi",
         "trollkonster",
         "illusioner"
       ]
@@ -2879,7 +3077,6 @@
       "parent": "museer-och-konst",
       "description": "Gatukonst: graffiti, muralmålningar och konst i stadsrummet.",
       "aliases": [
-        "graffiti",
         "street art",
         "muralmålningar"
       ],
@@ -2889,13 +3086,20 @@
       ]
     },
     {
+      "slug": "graffiti",
+      "name": "Graffiti",
+      "parent": "gatukonst",
+      "description": "Graffiti: måla eller se graffiti.",
+      "aliases": [
+        "graffitimålning",
+        "tags"
+      ]
+    },
+    {
       "slug": "arkitektur",
       "name": "Arkitektur",
       "parent": "museer-och-konst",
-      "description": "Arkitektur: byggnader, stadsmiljöer och hur de är formade.",
-      "aliases": [
-        "byggnader"
-      ]
+      "description": "Arkitektur: byggnader, stadsmiljöer och hur de är formade."
     },
     {
       "slug": "design-och-form",
@@ -2949,7 +3153,6 @@
       "parent": "kultur-och-samhalle-historia",
       "description": "Medeltiden: riddare, borgar och livet mellan vikingatid och renässans.",
       "aliases": [
-        "riddare",
         "medeltidsveckan"
       ]
     },
@@ -2957,11 +3160,35 @@
       "slug": "antiken",
       "name": "Antiken",
       "parent": "kultur-och-samhalle-historia",
-      "description": "Antiken: det gamla Grekland, Rom och Egypten.",
+      "description": "Antiken: det gamla Grekland, Rom och Egypten."
+    },
+    {
+      "slug": "romarriket",
+      "name": "Romarriket",
+      "parent": "antiken",
+      "description": "Romarriket: det romerska rikets historia.",
       "aliases": [
-        "romarriket",
-        "antikens grekland",
-        "forntida egypten"
+        "romartiden",
+        "antikens rom"
+      ]
+    },
+    {
+      "slug": "antikens-grekland",
+      "name": "Antikens Grekland",
+      "parent": "antiken",
+      "description": "Antikens Grekland: de grekiska stadsstaterna och deras kultur.",
+      "aliases": [
+        "antika grekland"
+      ]
+    },
+    {
+      "slug": "forntida-egypten",
+      "name": "Forntida Egypten",
+      "parent": "antiken",
+      "description": "Forntida Egypten: faraoner, pyramider och egyptisk kultur.",
+      "aliases": [
+        "gamla egypten",
+        "faraoner"
       ]
     },
     {
@@ -2970,9 +3197,19 @@
       "parent": "kultur-och-samhalle-historia",
       "description": "Krigshistoria: världskrigen och andra krig, deras orsaker och följder.",
       "aliases": [
-        "andra världskriget",
         "världskrigen",
         "militärhistoria"
+      ]
+    },
+    {
+      "slug": "andra-varldskriget",
+      "name": "Andra världskriget",
+      "parent": "krigshistoria",
+      "description": "Andra världskriget: kriget 1939–1945.",
+      "aliases": [
+        "andra världskrigets historia",
+        "ww2",
+        "wwii"
       ]
     },
     {
@@ -3133,8 +3370,7 @@
       "description": "Tågluffning: att resa genom Europa eller världen med tåg.",
       "aliases": [
         "interrail",
-        "tågluffa",
-        "tågresor"
+        "tågluffa"
       ]
     },
     {
@@ -3163,7 +3399,6 @@
       "parent": "resor",
       "description": "Sol och bad: semester vid stranden och i värmen.",
       "aliases": [
-        "charter",
         "strandsemester"
       ]
     },
@@ -3246,20 +3481,33 @@
       "parent": "samhalle-och-engagemang",
       "description": "Djurskydd: att hjälpa djur, till exempel genom djurhem och jourhem.",
       "aliases": [
-        "djurrätt",
         "djurhem",
         "jourhem"
+      ]
+    },
+    {
+      "slug": "djurratt",
+      "name": "Djurrätt",
+      "parent": "djurskydd",
+      "description": "Djurrätt: arbeta för djurs rättigheter.",
+      "aliases": [
+        "djurrättsfrågor",
+        "djurrättsaktivism"
       ]
     },
     {
       "slug": "manskliga-rattigheter",
       "name": "Mänskliga rättigheter",
       "parent": "samhalle-och-engagemang",
-      "description": "Mänskliga rättigheter: jämlikhet, rättvisa och alla människors lika värde.",
+      "description": "Mänskliga rättigheter: jämlikhet, rättvisa och alla människors lika värde."
+    },
+    {
+      "slug": "jamstalldhet",
+      "name": "Jämställdhet",
+      "parent": "manskliga-rattigheter",
+      "description": "Jämställdhet: arbeta för lika villkor oavsett kön.",
       "aliases": [
-        "jämlikhet",
-        "jämställdhet",
-        "rättvisa"
+        "jämställdhetsfrågor"
       ]
     },
     {
@@ -3268,10 +3516,37 @@
       "parent": "samhalle-och-engagemang",
       "description": "Ekonomi och sparande: privatekonomi, aktier, fonder och investeringar.",
       "aliases": [
-        "aktier",
-        "investeringar",
-        "privatekonomi",
-        "fonder"
+        "privatekonomi"
+      ]
+    },
+    {
+      "slug": "aktier",
+      "name": "Aktier",
+      "parent": "ekonomi-och-sparande",
+      "description": "Aktier: köpa, följa och prata aktier.",
+      "aliases": [
+        "aktiehandel",
+        "börsen"
+      ]
+    },
+    {
+      "slug": "fonder",
+      "name": "Fonder",
+      "parent": "ekonomi-och-sparande",
+      "description": "Fonder: spara i fonder.",
+      "aliases": [
+        "fondsparande",
+        "indexfonder"
+      ]
+    },
+    {
+      "slug": "investeringar",
+      "name": "Investeringar",
+      "parent": "ekonomi-och-sparande",
+      "description": "Investeringar: placera pengar för långsiktigt sparande.",
+      "aliases": [
+        "investera",
+        "placeringar"
       ]
     },
     {
