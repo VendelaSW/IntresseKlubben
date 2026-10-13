@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import ServiceInfo from './pages/ServiceInfo'
@@ -22,6 +23,9 @@ import DemoApp, { DemoComingSoon, DemoOverview } from './pages/demo/DemoApp'
 import DemoPeople from './pages/demo/DemoPeople'
 import DemoClubs from './pages/demo/DemoClubs'
 
+// Kartbiblioteket är stort, så prototypsidan laddas bara när någon öppnar den.
+const MapPrototype = lazy(() => import('./pages/MapPrototype'))
+
 function App() {
   return (
     <>
@@ -36,6 +40,18 @@ function App() {
         <Route path="/stilguide" element={<StyleGuide />} />
 
         <Route element={<ProtectedRoute />}>
+          {/* PROTOTYP: inte länkad från menyn än. Bara för inloggade med klar
+              profil, och utanför AppShell eftersom kartan tar hela skärmen. */}
+          <Route element={<RequireProfile />}>
+            <Route
+              path="/karta-prototyp"
+              element={
+                <Suspense fallback={<p className="hint-text">Laddar karta...</p>}>
+                  <MapPrototype />
+                </Suspense>
+              }
+            />
+          </Route>
           {/* Intervjun har en egen helskärmsvy, utan menyn. */}
           <Route path="/profil/intervju" element={<ProfileInterview />} />
           <Route element={<AppShell />}>
