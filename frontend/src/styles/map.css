@@ -1304,6 +1304,24 @@
   gap: 1rem;
 }
 
+/* Mobil: rubriken i blocken med appens sidor (Brev, Personer, Klubbar och
+   Events) centreras, som sidornas rubriker och flikar (se index.css). Krysset
+   ligger kvar i högerkanten, och lika mycket luft på båda sidor håller
+   rubriken i mitten. */
+@media (max-width: 767px) {
+  .map-pad.is-wide .map-pad-head {
+    position: relative;
+    justify-content: center;
+    padding: 0 2.2rem;
+  }
+
+  .map-pad.is-wide .map-pad-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+}
+
 .map-pad-title {
   margin: 0;
   font-family: var(--font-heading);
