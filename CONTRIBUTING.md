@@ -67,8 +67,8 @@ Intressen är byggd hela vägen och följer alla konventioner. Öppna filerna i 
 | Endpoints | `backend/app/api/routes/interests.py` |
 | Tester | `backend/tests/test_interests.py` |
 | Frontend-anrop | `frontend/src/services/interests.js` |
-| Komponenter | `frontend/src/components/InterestPicker.jsx`, `InterestTags.jsx` |
-| Används i | `frontend/src/pages/ProfilePage.jsx` |
+| Komponenter | `frontend/src/components/InterestExplorer.jsx`, `InterestTree.jsx` (profilens intressen som träd), `InterestTags.jsx` (platta taggar) |
+| Används i | `frontend/src/pages/ProfilePage.jsx`, `UserProfilePage.jsx` |
 
 ---
 

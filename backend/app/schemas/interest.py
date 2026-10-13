@@ -8,6 +8,16 @@ class InterestResponse(BaseModel):
     name: str
 
 
+class ProfileInterest(InterestResponse):
+    """Ett intresse på en profil (den egna, andras och personkorten).
+
+    parent_id är intresset ovanför i trädet, så att frontend kan rita ett
+    intresse under sin förälder när personen har valt båda (Mynt under
+    Historia). Bara för visning: hur intressen sparas och filtreras ändras inte."""
+
+    parent_id: int | None
+
+
 class InterestBrowseItem(BaseModel):
     """Ett intresse när man söker eller utforskar biblioteket.
 

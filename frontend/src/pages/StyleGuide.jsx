@@ -10,6 +10,7 @@ import BackButton from '../components/BackButton'
 import ConversationCard from '../components/ConversationCard'
 import Modal from '../components/Modal'
 import FormField from '../components/FormField'
+import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 
@@ -160,6 +161,26 @@ function StyleGuide() {
           <li><button type="button" className="tag">Ej vald</button></li>
           <li><button type="button" className="tag tag-selected">Vald</button></li>
         </ul>
+
+        <h3>Intressen som träd (components/InterestTree.jsx)</h3>
+        <p className="hint-text">
+          Profilens intressen. Ett intresse vars förälder också är vald ligger under den, i mindre format. Högst{' '}
+          {PROFILE_MAX_SUBS} syns, resten fälls ut med ⋯. På någon annans profil är bara gemensamma intressen gula.
+        </p>
+        <InterestTree
+          proposals={profileTree([
+            { id: 1, name: 'Historia', parent_id: null },
+            { id: 2, name: 'Mynt', parent_id: 1 },
+            { id: 3, name: 'Vikingatiden', parent_id: 1 },
+            { id: 4, name: 'Medeltiden', parent_id: 1 },
+            { id: 5, name: 'Antiken', parent_id: 1 },
+            { id: 6, name: 'Metal', parent_id: 7 },
+            { id: 8, name: 'Löpning', parent_id: null },
+          ])}
+          align="start"
+          maxSubs={PROFILE_MAX_SUBS}
+          highlight={new Set(['id:1', 'id:2', 'id:3', 'id:4', 'id:5', 'id:6'])}
+        />
       </section>
 
       <section className="style-section">

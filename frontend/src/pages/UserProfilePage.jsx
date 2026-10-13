@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
-import InterestTags from '../components/InterestTags'
+import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import { useAuth } from '../hooks/useAuth'
 import {
@@ -291,11 +291,13 @@ function UserProfilePage() {
           <ProfileAbout text={profile.profile_text} />
           <section className="profile-interests">
             <h2>Intressen</h2>
-            {/* Gemensamma intressen gula. Den egna profilen: alla gula, som på Min profil. */}
+            {/* Som ett träd, som på Min profil. Gemensamma intressen gula; den egna profilen: alla gula. */}
             {profile.interests.length > 0 ? (
-              <InterestTags
-                interests={profile.interests}
-                highlight={isMe ? undefined : (myInterestIds ?? new Set())}
+              <InterestTree
+                proposals={profileTree(profile.interests)}
+                align="start"
+                maxSubs={PROFILE_MAX_SUBS}
+                highlight={isMe ? undefined : new Set([...(myInterestIds ?? [])].map((id) => `id:${id}`))}
               />
             ) : (
               <p className="hint-text">Inga intressen valda än.</p>
