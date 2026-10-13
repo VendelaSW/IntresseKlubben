@@ -8341,6 +8341,12 @@
         "radioprogram",
         "p3"
       ]
+    },
+    {
+      "slug": "ovrigt-och-nischat",
+      "name": "Övrigt och nischat",
+      "parent": null,
+      "description": "Övrigt och nischat: intressen som inte passar något annat område. Sista utväg, välj ett riktigt område först."
     }
   ]
 }
