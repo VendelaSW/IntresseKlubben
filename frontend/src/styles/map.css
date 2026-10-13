@@ -120,6 +120,12 @@
   pointer-events: auto;
 }
 
+/* Bokade events ovanpå de andra (se nedan). En egen, enkel regel före
+   :hover och .is-highlighted, så att de fortfarande vinner. */
+.map-activity.is-booked {
+  z-index: 1;
+}
+
 .map-activity:hover {
   z-index: 2;
   box-shadow: none;
@@ -131,10 +137,15 @@
   background: #ffd6e7;
 }
 
+/* Det grå datumet är för ljust på rosa (4,07:1); samma bläck som på de
+   bokade ger god kontrast. */
+.map-activity.is-event .map-activity-sub {
+  color: #3a2f25;
+}
+
 /* Ens bokade events (se mapPrototypeActivities.js): starkt rosa, lite större
-   och ovanpå de andra, så att de syns direkt. */
+   och ovanpå de andra (z-index ovan), så att de syns direkt. */
 .map-activity.is-event.is-booked {
-  z-index: 1;
   padding: 0.3rem 0.65rem 0.3rem 0.35rem;
   background: #ff6fae;
   border-width: 2px;
