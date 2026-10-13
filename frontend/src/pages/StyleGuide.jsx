@@ -5,6 +5,7 @@ import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
+import Avatar from '../components/Avatar'
 import BackButton from '../components/BackButton'
 import ConversationCard from '../components/ConversationCard'
 import Modal from '../components/Modal'
@@ -193,6 +194,19 @@ function StyleGuide() {
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Avatar (components/Avatar.jsx)
+        </p>
+        <p className="hint-text">
+          En persons bild, eller initialen i en blå cirkel om bild saknas. Använd komponenten i stället
+          för att skriva egen markering. Storleken ges med en klass: .person-list-avatar (liten, i
+          listor) eller .card-avatar (på kort).
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
+          <Avatar name="Emmy" className="person-list-avatar" />
+          <Avatar name="Emmy Lund" className="card-avatar" maxLetters={2} />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Klickbart kort (.card .card-interactive), t.ex. en tumnagel i personlistan
         </p>
         <p className="hint-text">
@@ -228,7 +242,8 @@ function StyleGuide() {
           Fyra per rad på dator, tre på mobil. Klickbara som andra kort (.card-interactive): lyfts och
           får gul kant vid hover. Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret; ett
           nytt (.envelope-new) förblir stängt och har ett gult sigill. Avståndet mellan raderna följer
-          kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför.
+          kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför. Personens bild står
+          bredvid namnet och växer med kuvertet.
         </p>
         <ul className="envelopes" style={{ marginTop: '1rem' }}>
           {EXAMPLE_CONVERSATIONS.map(({ isNew, ...conversation }) => (
@@ -243,21 +258,26 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Linjerat papper med röd marginal. Allt på pappret har radhöjden --line-gap, så att texten
-          står på linjerna. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
+          står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
           ner på skärmen.
         </p>
         <article className="notepad lined-paper" style={{ marginTop: '1rem' }}>
-          <h3 className="notepad-title">Bob</h3>
+          <h3 className="notepad-title">
+            <Avatar name="Bob" className="person-list-avatar notepad-title-avatar" />
+            <span className="notepad-title-name">Bob</span>
+          </h3>
           <ol className="notepad-messages">
             <li className="notepad-message">
               <p>
+                <Avatar name="Bob" className="person-list-avatar notepad-message-avatar" />
                 <strong>Bob</strong> <time className="hint-text">igår 12:05</time>
               </p>
               <p>Ska vi klättra på lördag?</p>
             </li>
-            <li className="notepad-message notepad-message-mine">
+            <li className="notepad-message">
               <p>
-                <strong>Du</strong> <time className="hint-text">11:35</time>
+                <Avatar name="Emmy" className="person-list-avatar notepad-message-avatar" />
+                <strong className="highlight">Du</strong> <time className="hint-text">11:35</time>
               </p>
               <p>Ja gärna!</p>
             </li>
@@ -387,14 +407,14 @@ function StyleGuide() {
             <ul>
               <li>
                 <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
-                  <span className="person-list-avatar card-avatar-initials" aria-hidden="true">E</span>
+                  <Avatar name="E" className="person-list-avatar" />
                   <span>Emmy</span>
                   <span className="hint-text">Ägare</span>
                 </a>
               </li>
               <li>
                 <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
-                  <span className="person-list-avatar card-avatar-initials" aria-hidden="true">L</span>
+                  <Avatar name="L" className="person-list-avatar" />
                   <span>Leonard</span>
                 </a>
               </li>
@@ -416,13 +436,13 @@ function StyleGuide() {
               <ul>
                 <li>
                   <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
-                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">E</span>
+                    <Avatar name="E" className="person-list-avatar" />
                     <span>Emmy</span>
                   </a>
                 </li>
                 <li>
                   <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
-                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">F</span>
+                    <Avatar name="F" className="person-list-avatar" />
                     <span>Filip</span>
                     <span className="status-pill">Blockerad</span>
                   </a>
@@ -434,7 +454,7 @@ function StyleGuide() {
               <ul>
                 <li>
                   <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
-                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">L</span>
+                    <Avatar name="L" className="person-list-avatar" />
                     <span>Leonard</span>
                   </a>
                 </li>
@@ -491,14 +511,14 @@ function StyleGuide() {
                   <li>
                     <label className="person-list-item">
                       <input type="checkbox" />
-                      <span className="person-list-avatar card-avatar-initials" aria-hidden="true">E</span>
+                      <Avatar name="E" className="person-list-avatar" />
                       <span>Emmy</span>
                     </label>
                   </li>
                   <li>
                     <label className="person-list-item">
                       <input type="checkbox" defaultChecked />
-                      <span className="person-list-avatar card-avatar-initials" aria-hidden="true">L</span>
+                      <Avatar name="L" className="person-list-avatar" />
                       <span>Leonard</span>
                     </label>
                   </li>

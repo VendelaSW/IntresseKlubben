@@ -1125,23 +1125,13 @@ span.tag-selected:hover {
   transition: transform 0.3s ease;
 }
 
-/* Framsidan, med ett V-format hack upptill (där fliken ligger) och vikkanter. */
+/* Framsidan, med ett V-format hack upptill där fliken ligger. */
 .envelope-front {
   inset: 0;
   z-index: 3;
   border-radius: 4px;
   background: var(--color-white);
   clip-path: polygon(0 0, 50% 40%, 100% 0, 100% 100%, 0 100%);
-}
-
-.envelope-front svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  fill: none;
-  stroke: var(--color-line);
-  stroke-width: 1.4;
 }
 
 /* Namnet och datumet staplade nertill, så att de aldrig överlappar. Storlekarna
@@ -1158,7 +1148,24 @@ span.tag-selected:hover {
   line-height: 1;
 }
 
+/* Bild och namn på samma rad. Bilden följer kuvertets bredd, som namnet.
+   (.envelope före klassen så att den vinner över .person-list-avatar.) */
+.envelope-addressee {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5cqi;
+  max-width: 100%;
+}
+
+.envelope .envelope-avatar {
+  width: clamp(1.15rem, 12cqi, 2rem);
+  height: clamp(1.15rem, 12cqi, 2rem);
+  font-size: clamp(0.55rem, 6cqi, 1rem);
+}
+
 .envelope-name {
+  min-width: 0;
   max-width: 100%;
   font-family: var(--font-heading);
   font-weight: 700;
@@ -1225,6 +1232,21 @@ span.tag-selected:hover {
   transition: transform 0.2s ease;
 }
 
+/* Små kuvert (på mobil): datumet döljs och sigillet blir mindre, annars rör
+   sigillet namnraden. Kuvertet är en container, så det gäller kuvertets egen
+   bredd, inte skärmens. */
+@container (max-width: 130px) {
+  .envelope-when {
+    display: none;
+  }
+
+  .envelope-seal {
+    width: 1.1rem;
+    height: 1.1rem;
+    font-size: 0.32rem;
+  }
+}
+
 /* Dator med mus: ett öppnat kuvert öppnar fliken och brevet kommer upp en bit.
    Ett nytt kuvert förblir stängt; bara sigillet växer lite. */
 @media (hover: hover) and (min-width: 768px) {
@@ -1263,7 +1285,8 @@ span.tag-selected:hover {
 }
 
 .notepad {
-  --notepad-top: 3.6rem;
+  /* Rubriken plus en tom rad (--line-gap) innan första brevet, så att det blir luft. */
+  --notepad-top: calc(3.6rem + var(--line-gap));
   --line-offset: calc(var(--notepad-top) - 0.28rem);
   position: relative;
   padding: var(--notepad-top) 1.2rem var(--line-gap) calc(var(--paper-margin) + 0.8rem);
@@ -1288,13 +1311,50 @@ span.tag-selected:hover {
   left: calc(var(--paper-margin) + 0.8rem);
   right: 1.2rem;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 2.6rem;
   line-height: 1;
+}
+
+.notepad-title-name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Bilden överst och vid varje brev. Vid breven ryms den inom raden, så att
+   texten fortfarande står på linjen. */
+.notepad .notepad-title-avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+}
+
+/* Raden med bild, namn och tid är exakt en linje hög, så att bilden inte gör
+   raden högre och texten glider av linjerna längre ner. */
+.notepad-message p:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: var(--line-gap);
+}
+
+.notepad .notepad-message-avatar {
+  width: 1.3rem;
+  height: 1.3rem;
+  font-size: 0.65rem;
+}
+
+/* Överstrykningen följer namnets höjd i stället för hela radens, så att den
+   går genom texten som på startsidan. */
+.notepad-message .highlight {
+  line-height: 1.05;
 }
 
 .notepad-messages {
@@ -1309,14 +1369,6 @@ span.tag-selected:hover {
 /* Långa ord och länkar bryts, så att de inte sticker ut ur pappret. */
 .notepad-message {
   overflow-wrap: anywhere;
-}
-
-.notepad-message time {
-  margin-left: 0.2rem;
-}
-
-.notepad-message-mine strong {
-  box-shadow: inset 0 -5px 0 var(--color-accent);
 }
 
 /* Svarsraden är exakt en rad hög, så att texten i fältet står på linjen. */

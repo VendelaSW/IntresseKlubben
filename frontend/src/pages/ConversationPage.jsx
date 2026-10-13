@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import Avatar from '../components/Avatar'
 import BackButton from '../components/BackButton'
 import { useAuth } from '../hooks/useAuth'
 import { getConversation, markConversationSeen, sendMessage } from '../services/messages'
+import { getProfile } from '../services/profile'
 import { formatSentAt } from '../utils/formatSentAt'
 
 // Hur ofta konversationen hämtas igen medan den är öppen, så att nya brev
@@ -26,11 +28,20 @@ function ConversationPage() {
   const navigate = useNavigate()
   // Vem konversationen är med (från servern), för namnet överst och vid breven.
   const [other, setOther] = useState(null)
+  // Den egna profilen, för ens egen bild vid ens egna brev.
+  const [myProfile, setMyProfile] = useState(null)
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    getProfile()
+      .then(setMyProfile)
+      // Bilden är bara en extra: utan den visas initialen.
+      .catch(() => {})
+  }, [])
 
   // Mobil: pappret ligger längst ner, så skrolla dit när brev tillkommer (även
   // när sidan öppnas), så att de senaste breven och svarsraden syns.
@@ -121,7 +132,12 @@ function ConversationPage() {
       {/* Konversationen på ett linjerat anteckningspapper: varje rad text står på
           en linje. På mobil ligger pappret längst ner, där man skriver. */}
       <article className="notepad lined-paper">
-        <h1 className="notepad-title">{otherName}</h1>
+        <h1 className="notepad-title">
+          {other && (
+            <Avatar name={otherName} imageUrl={other.image_url} className="person-list-avatar notepad-title-avatar" />
+          )}
+          <span className="notepad-title-name">{otherName}</span>
+        </h1>
 
         {status === 'loading' && <p className="hint-text">Laddar...</p>}
         {status === 'error' && (
@@ -132,9 +148,17 @@ function ConversationPage() {
           <ol className="notepad-messages">
             {/* Namn och tid som en rad överst, meddelandet under (som i de flesta chattar). */}
             {messages.map((m) => (
-              <li key={m.id} className={`notepad-message${m.sender_id === user.id ? ' notepad-message-mine' : ''}`}>
+              <li key={m.id} className="notepad-message">
                 <p>
-                  <strong>{m.sender_id === user.id ? 'Du' : otherName}</strong>{' '}
+                  <Avatar
+                    name={m.sender_id === user.id ? myProfile?.name : otherName}
+                    imageUrl={m.sender_id === user.id ? myProfile?.image_url : other?.image_url}
+                    className="person-list-avatar notepad-message-avatar"
+                  />
+                  {/* Ditt namn med den gula överstrykningspennan, som namnet på startsidan. */}
+                  <strong className={m.sender_id === user.id ? 'highlight' : undefined}>
+                    {m.sender_id === user.id ? 'Du' : otherName}
+                  </strong>{' '}
                   <time className="hint-text" dateTime={m.created_at}>
                     {formatSentAt(m.created_at)}
                   </time>
