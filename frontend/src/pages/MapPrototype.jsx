@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import '../styles/map.css'
 import { useSearchParams } from 'react-router-dom'
 import { LngLat, Map as MapLibreMap, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -561,7 +562,9 @@ function syncPlaceLabels(
     const els = []
     let lines = ''
     for (const { id, name, anchor, nameWidth, cx, cy } of items) {
-      const el = document.createElement('span')
+      // Knappar, så att namnen går att nå med tangentbordet.
+      const el = document.createElement('button')
+      el.type = 'button'
       el.className = 'map-sketch-landskap is-listed'
       el.textContent = name
       el.dataset.name = name
@@ -632,7 +635,8 @@ function syncPlaceLabels(
     return items.map(({ id, name, size, nameWidth, cx, cy, lngLat }) => {
       const x = Math.min(width - nameWidth / 2 - 4, Math.max(nameWidth / 2 + 4, cx))
       const y = Math.min(height - size, Math.max(size, cy))
-      const el = document.createElement('span')
+      const el = document.createElement('button')
+      el.type = 'button'
       el.className = `map-sketch-landskap ${className}`
       el.textContent = name
       el.dataset.id = id
@@ -644,7 +648,18 @@ function syncPlaceLabels(
     })
   }
 
+  // Namnen ritas om när kartan rör sig eller blir klar, så ett namn som har
+  // tangentbordsfokus får tillbaka det efter omritningen.
   function render() {
+    const focused = layer.contains(document.activeElement) ? document.activeElement : null
+    const key = focused && `${focused.className}|${focused.textContent}`
+    draw()
+    if (!key) return
+    const again = [...layer.children].find((el) => `${el.className}|${el.textContent}` === key)
+    again?.focus({ preventScroll: true })
+  }
+
+  function draw() {
     const zoom = map.getZoom()
     if (getMode() === 'landskap' && getLandskap()) {
       layer.replaceChildren(...lanEls(zoom))
@@ -672,10 +687,13 @@ function syncPlaceLabels(
     if (item.classList.contains('is-kommun')) onPickKommun(lngLat)
     else onPickLan(lngLat)
   })
-  layer.addEventListener('mouseover', (event) => {
-    const item = event.target.closest('.is-lan')
-    onHoverLan(item ? item.dataset.id : null)
-  })
+  // Fokus med tangentbordet markerar också, som hovring.
+  for (const type of ['mouseover', 'focusin']) {
+    layer.addEventListener(type, (event) => {
+      const item = event.target.closest('.is-lan')
+      onHoverLan(item ? item.dataset.id : null)
+    })
+  }
 
   // Namnen i listan: klick zoomar till landskapet, hovring markerar det.
   layer.addEventListener('click', (event) => {
@@ -683,10 +701,12 @@ function syncPlaceLabels(
     if (item) onPick(item.dataset.name)
   })
 
-  layer.addEventListener('mouseover', (event) => {
-    const item = event.target.closest('.is-listed')
-    onHover(item ? Number(item.dataset.id) : null)
-  })
+  for (const type of ['mouseover', 'focusin']) {
+    layer.addEventListener(type, (event) => {
+      const item = event.target.closest('.is-listed')
+      onHover(item ? Number(item.dataset.id) : null)
+    })
+  }
 
   function refresh() {
     const seen = new Set()

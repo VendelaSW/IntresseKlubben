@@ -68,7 +68,15 @@ export function activitiesFrom({ groups, events, kommuner }) {
 export function attachActivityMarkers(map, layer, { getKommun, onPick }) {
   let items = []
 
+  // Lapparna ritas om när kartan rör sig, så en lapp som har
+  // tangentbordsfokus får tillbaka det efter omritningen.
   function render() {
+    const focused = layer.contains(document.activeElement) ? document.activeElement.dataset.key : null
+    draw()
+    if (focused) layer.querySelector(`[data-key="${focused}"]`)?.focus({ preventScroll: true })
+  }
+
+  function draw() {
     const kommun = getKommun()
     if (!kommun || map.getZoom() < MIN_ZOOM) {
       layer.replaceChildren()
