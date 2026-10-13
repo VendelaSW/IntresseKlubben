@@ -24,6 +24,11 @@ os.environ["DATABASE_URL"] = "sqlite://"
 for _name in ("S3_BUCKET", "AWS_ENDPOINT_URL_S3", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"):
     os.environ[_name] = ""
 
+# Tomma värden gör att den riktiga OpenAI-nyckeln i .env aldrig läses in, så att inget test kan
+# råka anropa OpenAI på riktigt.
+os.environ["OPENAI_API_KEY"] = ""
+os.environ["OPENAI_MODEL"] = ""
+
 # Egen nyckel för inloggningstoken i tester, aldrig den riktiga från .env.
 os.environ["JWT_SECRET"] = "test-secret-only-for-tests-0123456789"
 
@@ -34,10 +39,19 @@ from sqlalchemy.orm import sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
 from app.auth.security import get_current_user, require_profile  # noqa: E402
+from app.services.ai_clients import set_clients  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Municipality, User  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def reset_ai_clients():
+    """Inget test ska råka behålla en fejkad AI-klient från ett annat test, eller anropa OpenAI."""
+    set_clients()
+    yield
+    set_clients()
 
 
 @pytest.fixture

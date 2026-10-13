@@ -125,6 +125,7 @@ def remove_my_interest(
     interest = _interest_or_404(db, interest_id)
     # Ett intresse krävs alltid, så det sista går inte att ta bort. Att byta
     # ut det görs genom att först lägga till det nya, sen ta bort det gamla.
-    if interest in user.interests and len(user.interests) == 1:
+    # Räknat i olika intressen: samma intresse med två aktiviteter är ett.
+    if {i.id for i in user.interests} == {interest.id}:
         raise HTTPException(status_code=409, detail=msg.LAST_INTEREST_CANNOT_BE_REMOVED)
     return remove_user_interest(db, user, interest)

@@ -2,29 +2,24 @@ import { useState } from 'react'
 import { registerUser } from '../services/api'
 
 // Registreringsfälten, tänkta att visas inline på Home (se LoginFields/
-// RegisterFields-paret) istället för på en egen sida.
-function RegisterFields({ onSwitchToLogin }) {
+// RegisterFields-paret) istället för på en egen sida. När kontot är skapat
+// anropas onRegistered, och Home byter direkt till inloggningen.
+function RegisterFields({ onSwitchToLogin, onRegistered }) {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
-    setSuccess(false)
     setSubmitting(true)
     try {
       await registerUser(username, email, password)
-      setSuccess(true)
-      setUsername('')
-      setEmail('')
-      setPassword('')
+      onRegistered()
     } catch (err) {
       setError(err.message)
-    } finally {
       setSubmitting(false)
     }
   }
@@ -62,7 +57,6 @@ function RegisterFields({ onSwitchToLogin }) {
         />
 
         {error && <p className="form-error">{error}</p>}
-        {success && <p className="form-success">Kontot är skapat! Du kan nu logga in.</p>}
 
         <button type="submit" disabled={submitting}>
           {submitting ? 'Registrerar…' : 'Registrera dig'}

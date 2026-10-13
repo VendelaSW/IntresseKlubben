@@ -6,9 +6,11 @@ from pathlib import Path
 
 import pytest
 
+from app.crud.interest import allowed_activities
 from app.crud.interest_library import (
     LibraryEntry,
     LibraryError,
+    load_activities,
     load_library,
     parse_library,
     slugify,
@@ -31,8 +33,22 @@ def _migration(filename):
 
 def test_the_library_file_is_valid():
     # Fäller PR:en om någon har skrivit in en dubblett, en förälder som inte
-    # finns eller en cirkel.
+    # finns, en cirkel, en fjärde nivå, en aktivitet som inte finns i listan
+    # eller ett alias som pekar på två intressen.
     assert len(load_library()) > 0
+    assert len(load_activities()) > 0
+
+
+def test_a_specific_interest_in_the_file_inherits_its_activities(db):
+    # Hela filen, så att arvet prövas mot det riktiga trädet: Pokémon TCG har
+    # ingen egen lista och får Kortspels.
+    sync_library(db, load_library())
+
+    def activities(slug):
+        return allowed_activities(db.query(Interest).filter_by(slug=slug).one())
+
+    assert activities("pokemon-tcg") == activities("kortspel") == ["spela", "samla", "tavla"]
+    assert activities("spel-och-pussel") == ["spela"]  # ett huvudområdes egen lista gäller också området självt
 
 
 def test_every_interest_people_already_have_is_in_the_library():
@@ -55,8 +71,9 @@ def test_slugify_is_the_same_in_the_app_and_the_migration():
 # --- Kontrollen av filen ------------------------------------------------------------
 
 
-def _parse(*interests):
-    return parse_library({"interests": list(interests)})
+def _parse(*interests, activities=()):
+    listed = [{"slug": slug, "label": slug.capitalize()} for slug in activities]
+    return parse_library({"activities": listed, "interests": list(interests)})
 
 
 def test_parse_puts_parents_before_children():
@@ -77,11 +94,38 @@ def test_parse_puts_parents_before_children():
         ([{"slug": "a", "name": "A", "parent": "b"}, {"slug": "b", "name": "B", "parent": "a"}], "cirkel"),
         ([{"slug": "Stora Bokstäver", "name": "A"}], "Ogiltig slug"),
         ([{"name": "Utan slug"}], "saknar slug"),
+        ([{"slug": "a", "name": "A", "activities": ["odla"]}], "inte finns i aktivitetslistan"),
+        ([{"slug": "a", "name": "A", "activities": ["spela", "spela"]}], "samma aktivitet flera gånger"),
+        (
+            [{"slug": "a", "name": "A", "aliases": ["springa"]}, {"slug": "b", "name": "B", "aliases": ["Springa"]}],
+            "finns på både",
+        ),
+        ([{"slug": "a", "name": "Löpning"}, {"slug": "b", "name": "B", "aliases": ["löpning"]}], "är namnet på"),
+        (
+            [
+                {"slug": "a", "name": "A"},
+                {"slug": "b", "name": "B", "parent": "a"},
+                {"slug": "c", "name": "C", "parent": "b"},
+                {"slug": "d", "name": "D", "parent": "c"},
+            ],
+            "högst 3 nivåer",
+        ),
     ],
 )
 def test_parse_rejects_a_broken_library(interests, problem):
     with pytest.raises(LibraryError, match=problem):
-        _parse(*interests)
+        _parse(*interests, activities=["spela"])
+
+
+def test_parse_keeps_the_difference_between_no_list_and_an_empty_list():
+    # Ingen lista = ärver förälderns. Tom lista = uttryckligen inga aktiviteter.
+    entries = _parse(
+        {"slug": "spel", "name": "Spel", "activities": ["spela"]},
+        {"slug": "kortspel", "name": "Kortspel", "parent": "spel"},
+        {"slug": "pussel", "name": "Pussel", "parent": "spel", "activities": []},
+        activities=["spela"],
+    )
+    assert {e.slug: e.activities for e in entries} == {"spel": ["spela"], "kortspel": None, "pussel": []}
 
 
 # --- Synken ----------------------------------------------------------------------
@@ -162,3 +206,73 @@ def test_sync_does_not_touch_interests_from_suggestions(db):
     assert result.deactivated == 0
     db.refresh(suggestion)
     assert (suggestion.status, suggestion.source) == ("pending", "user_suggestion")
+
+
+def test_sync_leaves_an_own_interest_active(db, user):
+    # Ett eget intresse finns bara i databasen, aldrig i filen, och har ingen slug.
+    sync_library(db, _entries({"slug": "skapande", "name": "Skapande"}))
+    parent = db.query(Interest).filter_by(slug="skapande").one()
+    own = Interest(name="Fyrmodeller", parent_id=parent.id, source="user_suggestion", created_by_user_id=user.id)
+    db.add(own)
+    db.commit()
+
+    result = sync_library(db, _entries({"slug": "skapande", "name": "Skapande"}))
+
+    assert (result.added, result.updated, result.deactivated) == (0, 0, 0)
+    db.refresh(own)
+    assert (own.status, own.parent_id, own.created_by_user_id) == ("active", parent.id, user.id)
+
+
+# --- Aktiviteter -----------------------------------------------------------------
+
+
+def _synced(db, *items):
+    sync_library(db, _entries(*items))
+    return {i.slug: i for i in db.query(Interest).all()}
+
+
+def test_sync_saves_and_updates_activities(db):
+    interests = _synced(db, {"slug": "spel", "name": "Spel"}, {"slug": "kortspel", "name": "Kortspel", "parent": "spel", "activities": ["spela"]})
+    assert interests["kortspel"].activities == ["spela"]
+
+    result = sync_library(db, _entries(
+        {"slug": "spel", "name": "Spel"},
+        {"slug": "kortspel", "name": "Kortspel", "parent": "spel", "activities": ["spela", "samla"]},
+    ))
+    assert (result.added, result.updated, result.deactivated) == (0, 1, 0)
+    db.expire_all()
+    assert db.query(Interest).filter_by(slug="kortspel").one().activities == ["spela", "samla"]
+
+
+def test_an_interest_without_its_own_activities_gets_its_parents(db):
+    interests = _synced(
+        db,
+        {"slug": "spel", "name": "Spel", "activities": ["spela"]},
+        {"slug": "kortspel", "name": "Kortspel", "parent": "spel", "activities": ["spela", "samla"]},
+        {"slug": "pokemon-tcg", "name": "Pokémon TCG", "parent": "kortspel"},
+        {"slug": "schack", "name": "Schack", "parent": "spel"},
+    )
+    assert allowed_activities(interests["pokemon-tcg"]) == ["spela", "samla"]
+    # Inget eget och inget på föräldern: huvudområdets lista är standardvärdet.
+    assert allowed_activities(interests["schack"]) == ["spela"]
+
+
+def test_an_empty_list_means_no_activities_even_when_the_parent_has_some(db):
+    interests = _synced(
+        db,
+        {"slug": "spel", "name": "Spel", "activities": ["spela"]},
+        {"slug": "pussel", "name": "Pussel", "parent": "spel", "activities": []},
+    )
+    assert allowed_activities(interests["pussel"]) == []
+
+
+def test_a_main_area_may_have_the_activities_of_its_own_list(db):
+    # "Jag gillar att lyssna på musik" ger Musik med "lyssna". Utan en sådan mening sätts ingen aktivitet,
+    # men det avgör analysen, inte den här listan.
+    interests = _synced(
+        db,
+        {"slug": "spel", "name": "Spel", "activities": ["spela"]},
+        {"slug": "tomt", "name": "Tomt"},
+    )
+    assert allowed_activities(interests["spel"]) == ["spela"]
+    assert allowed_activities(interests["tomt"]) == []
