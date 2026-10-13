@@ -38,6 +38,13 @@ export function createProfile(data) {
   return apiPost('/profile/', data)
 }
 
+// Kontrollerar Om mig-texten utan att spara något, så att man får veta att den nekas redan när man har skrivit den.
+// Samma kontroll som när profilen sparas. Går texten bra svarar det tomt; annars kastas ett ApiError med backendens
+// svenska meddelande (422 om texten inte får finnas, 503 om kontrollen inte gick att köra, 429 vid för många försök).
+export function checkProfileText(text) {
+  return apiPost('/profile/text-check', { profile_text: text })
+}
+
 // Ändrar en befintlig profil, bara fälten som skickas med.
 export function updateProfile(data) {
   return apiPatch('/profile/', data)
