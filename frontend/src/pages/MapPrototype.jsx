@@ -7,6 +7,7 @@ import { attachPlaceNotes } from './mapPrototypeNotes'
 import { attachSketchedBuildings } from './mapPrototypeBuildings'
 import { attachPinsAndThread } from './mapPrototypeRoute'
 import { attachPlaceSigns } from './mapPrototypeSigns'
+import MapCalmPage from './MapCalmPage'
 import MapPagePad, { MAP_PAGES } from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
 import MapProfilePad from './MapProfilePad'
@@ -727,6 +728,27 @@ function syncPlaceLabels(
   return { render }
 }
 
+// Lugnt läge sparas i webbläsaren. Går det inte (t.ex. privat läge) visas
+// kartan som vanligt.
+const CALM_KEY = 'karta-lugnt-lage'
+
+function readCalm() {
+  try {
+    return window.localStorage.getItem(CALM_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function saveCalm(calm) {
+  try {
+    if (calm) window.localStorage.setItem(CALM_KEY, '1')
+    else window.localStorage.removeItem(CALM_KEY)
+  } catch {
+    // Valet gäller då bara tills sidan laddas om.
+  }
+}
+
 function MapPrototype() {
   const rootRef = useRef(null)
   const containerRef = useRef(null)
@@ -742,6 +764,12 @@ function MapPrototype() {
   // Sidan som ligger som block på kartan: 'profil', 'brev', 'personer',
   // 'klubbar', 'events', 'redigera' (profilformuläret) eller null.
   const [openPage, setOpenPage] = useState(null)
+  // Lugnt läge: kartan göms och bara pappret, widgetarna och blocken syns
+  // (för den som vill ha en lugnare bakgrund, eller en långsam dator). Valet
+  // sparas i webbläsaren.
+  const [calm, setCalm] = useState(readCalm)
+  const toggleCalm = () => setCalm((was) => !was)
+  useEffect(() => saveCalm(calm), [calm])
   // Adressen blocket öppnas på (se MapPagePad), t.ex. '/klubbar?klubb=3'.
   const [padStart, setPadStart] = useState(null)
 
@@ -1214,7 +1242,7 @@ function MapPrototype() {
   return (
     <div
       ref={rootRef}
-      className={`map-sketch${mode !== 'free' ? ' is-level-locked' : ''}${openPage ? ' has-pad' : ''}`}
+      className={`map-sketch${mode !== 'free' ? ' is-level-locked' : ''}${openPage ? ' has-pad' : ''}${calm ? ' is-calm' : ''}`}
       style={{ '--map-tilt': `${TILT}deg` }}
     >
       {/* Blockets linjer, lutade på samma sätt som kartan. */}
@@ -1282,8 +1310,15 @@ function MapPrototype() {
       </div>
       <div className="map-top-widgets">
         <MapPageWidgets openPage={openPage} onOpen={(page) => (page ? openPad(page) : setOpenPage(null))} />
-        <MapProfileWidget onOpen={openPad} />
+        <MapProfileWidget onOpen={openPad} calm={calm} onToggleCalm={toggleCalm} />
       </div>
+      {calm && (
+        <MapCalmPage
+          onOpen={openPad}
+          onOpenEvent={(id) => openActivityRef.current({ type: 'event', id })}
+          onShowMap={toggleCalm}
+        />
+      )}
       {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}
       <div className="map-sketch-table" aria-hidden="true" />
       {openPage === 'profil' && (

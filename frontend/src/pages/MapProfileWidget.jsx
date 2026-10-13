@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getProfile } from '../services/profile'
 
-// Menyn: profilsidan, som läggs på kartan som ett block (via `onOpen`), och
-// sist Logga ut. Appens övriga sidor har egna lappar (se MapPageWidgets).
+// Menyn: profilsidan, som läggs på kartan som ett block (via `onOpen`), lugnt
+// läge av/på (via `onToggleCalm`) och sist Logga ut. Appens övriga sidor har
+// egna lappar (se MapPageWidgets).
 const MENU = [{ id: 'profil', label: 'Profilsida' }]
 
 // Profillappen uppe till höger på kartan, bredvid zoomknapparna: namnet till
 // vänster och profilbilden till höger. Ett klick fäller ut menyn (MENU).
 // Kartan ligger bakom inloggningen, så användaren finns alltid här.
-function MapProfileWidget({ onOpen }) {
+function MapProfileWidget({ onOpen, calm, onToggleCalm }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
@@ -86,6 +87,18 @@ function MapProfileWidget({ onOpen }) {
               </button>
             </li>
           ))}
+          <li>
+            <button
+              type="button"
+              className="map-profile-menu-item"
+              onClick={() => {
+                setOpen(false)
+                onToggleCalm()
+              }}
+            >
+              {calm ? 'Visa kartan' : 'Lugnt läge'}
+            </button>
+          </li>
           <li>
             <button type="button" className="map-profile-menu-item" onClick={handleLogout}>
               Logga ut
