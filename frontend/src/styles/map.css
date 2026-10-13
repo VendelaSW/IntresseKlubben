@@ -120,15 +120,46 @@
   pointer-events: auto;
 }
 
-.map-activity:hover {
+/* Bokade events ovanpå de andra (se nedan). En egen, enkel regel före
+   :hover och .is-highlighted, så att de fortfarande vinner. */
+.map-activity.is-booked {
   z-index: 1;
+}
+
+.map-activity:hover {
+  z-index: 2;
   box-shadow: none;
   translate: 2px 2px;
 }
 
-/* Events på gult papper, klubbar på vitt, så att de går att skilja åt. */
+/* Events på rosa papper, klubbar på vitt, så att de går att skilja åt. */
 .map-activity.is-event {
-  background: #fff4b8;
+  background: #ffd6e7;
+}
+
+/* Det grå datumet är för ljust på rosa (4,07:1); samma bläck som på de
+   bokade ger god kontrast. */
+.map-activity.is-event .map-activity-sub {
+  color: #3a2f25;
+}
+
+/* Ens bokade events (se mapPrototypeActivities.js): starkt rosa, lite större
+   och ovanpå de andra (z-index ovan), så att de syns direkt. */
+.map-activity.is-event.is-booked {
+  padding: 0.3rem 0.65rem 0.3rem 0.35rem;
+  background: #ff6fae;
+  border-width: 2px;
+  box-shadow: 3px 3px 0 #3a2f25;
+}
+
+.map-activity.is-booked img {
+  width: 26px;
+  height: 26px;
+}
+
+.map-activity.is-booked .map-activity-sub {
+  color: #3a2f25;
+  font-weight: 700;
 }
 
 .map-activity img {
@@ -161,7 +192,7 @@
 
 /* Lappen man nyss visade på kartan (från Klubbar eller Events). */
 .map-activity.is-highlighted {
-  z-index: 1;
+  z-index: 3;
   outline: 3px solid var(--color-accent);
   outline-offset: 2px;
 }

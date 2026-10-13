@@ -7,6 +7,10 @@
 // Lapparna syns bara på kommunnivå, och bara den valda kommunens. Utzoomat är de bara ikonen (namnet syns när man hovrar), inzoomat
 // hela lappen. Lappar som skulle krocka knuffas isär i höjdled, så att de på
 // samma ställe hamnar i en kolumn.
+//
+// Klubbar är vita och events rosa. Ens bokade events (samma som "Mina events"
+// i appen: de man skapat eller svarat Ja eller Kanske på) är det viktigaste
+// kartan visar, så de är starkt rosa, visar alltid namnet och ligger överst.
 
 import eventIcon from '../assets/event.png'
 import klubbarIcon from '../assets/klubbar.png'
@@ -55,6 +59,7 @@ export function activitiesFrom({ groups, events, kommuner }) {
       sub: shortDate.format(new Date(event.starts_at)),
       lngLat: kommun.label,
       kommun: kommun.kod,
+      booked: event.is_owner || event.my_answer === 'yes' || event.my_answer === 'maybe',
     })
   }
   for (const item of items) item.lan = lanCodeAt(item.lngLat)
@@ -90,7 +95,8 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick }) {
       if (item.kommun !== kommun) continue
       const { x, y } = map.project(item.lngLat)
       if (x < -200 || x > width + 200 || y < -200 || y > height + 200) continue
-      placed.push({ item, x, y, el: markerEl(item, compact) })
+      // Bokade events visar alltid namnet, även utzoomat.
+      placed.push({ item, x, y, el: markerEl(item, compact && !item.booked) })
     }
     // Lägg ut lapparna för att kunna mäta dem, och knuffa sedan isär dem som
     // överlappar (uppifrån och ner, några varv).
@@ -126,9 +132,9 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick }) {
   function markerEl(item, compact) {
     const el = document.createElement('button')
     el.type = 'button'
-    el.className = `map-activity is-${item.type}${compact ? ' is-compact' : ''}`
+    el.className = `map-activity is-${item.type}${item.booked ? ' is-booked' : ''}${compact ? ' is-compact' : ''}`
     el.dataset.key = `${item.type}:${item.id}`
-    el.title = `${item.name} (${item.sub})`
+    el.title = `${item.name} (${item.sub}${item.booked ? ', du är anmäld' : ''})`
     const icon = document.createElement('img')
     icon.src = item.type === 'klubb' ? klubbarIcon : eventIcon
     icon.alt = ''
