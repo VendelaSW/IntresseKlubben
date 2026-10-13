@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+import time
+from collections import defaultdict, deque
+
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
@@ -21,11 +24,28 @@ from app.schemas.profile import (
     ProfileImageConfirm,
     ProfileImageUploadUrl,
     ProfileResponse,
+    ProfileTextCheck,
     ProfileUpdate,
 )
 from app.services.text_policy import TextCheckUnavailable, TextNotAllowed, check_text
 
 router = APIRouter(prefix="/profile", tags=["profile"])
+
+# Förhandskontrollen av Om mig-texten kostar AI-anrop, så en användare får bara göra ett fåtal per minut. Gränsen
+# räknas i minnet per serverinstans, som den på /interests/analyze: en spärr och inget mer.
+TEXT_CHECK_LIMIT = 10
+TEXT_CHECK_WINDOW_SECONDS = 60
+_recent_text_checks: dict[int, deque[float]] = defaultdict(deque)
+
+
+def _check_text_rate_limit(user_id: int) -> None:
+    now = time.monotonic()
+    calls = _recent_text_checks[user_id]
+    while calls and now - calls[0] > TEXT_CHECK_WINDOW_SECONDS:
+        calls.popleft()
+    if len(calls) >= TEXT_CHECK_LIMIT:
+        raise HTTPException(status_code=429, detail=msg.INTERVIEW_TOO_MANY_REQUESTS)
+    calls.append(now)
 
 
 def _check_profile_text(text: str) -> None:
@@ -83,6 +103,16 @@ def add_profile(
     except UnknownInterestError:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
     return _to_response(profile)
+
+
+@router.post("/text-check", status_code=204)
+def check_profile_text_early(data: ProfileTextCheck, current_user=Depends(get_current_user)) -> Response:
+    """Kontrollerar Om mig-texten utan att spara något, så att man får veta att den nekas redan när man skrivit
+    den och inte först när profilen sparas. Samma kontroll som vid sparandet: 422 om texten inte får finnas,
+    503 om kontrollen inte gick att köra, 204 om den är okej."""
+    _check_text_rate_limit(current_user.id)
+    _check_profile_text(data.profile_text)
+    return Response(status_code=204)
 
 
 @router.patch("/", response_model=ProfileResponse)
