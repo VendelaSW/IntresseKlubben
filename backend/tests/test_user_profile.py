@@ -81,11 +81,25 @@ def test_other_users_interests_are_visible_sorted_by_name(client, db, user):
 
     body = client.get(f"/users/{other.id}/profile").json()
 
-    # Bara id och namn, samma som på personkorten, sorterade på namn.
+    # Id, namn och förälder, samma som på personkorten, sorterade på namn.
     assert body["interests"] == [
-        {"id": board_games.id, "name": "Brädspel"},
-        {"id": chess.id, "name": "Schack"},
+        {"id": board_games.id, "name": "Brädspel", "parent_id": None},
+        {"id": chess.id, "name": "Schack", "parent_id": None},
     ]
+
+
+def test_other_users_interests_have_parent_id(client, db, user):
+    other = _create_user_with_profile(db, "bob")
+    history = Interest(name="Historia")
+    db.add(history)
+    db.flush()
+    coins = Interest(name="Mynt", parent_id=history.id)
+    other.interests = [history, coins]
+    db.commit()
+
+    body = client.get(f"/users/{other.id}/profile").json()
+
+    assert {i["name"]: i["parent_id"] for i in body["interests"]} == {"Historia": None, "Mynt": history.id}
 
 
 def test_other_user_without_interests_gives_empty_list(client, db, user):

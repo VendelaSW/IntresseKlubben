@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import ServiceInfo from './pages/ServiceInfo'
@@ -13,6 +14,7 @@ import ConversationPage from './pages/ConversationPage'
 import UserProfilePage from './pages/UserProfilePage'
 import AppShell from './components/AppShell'
 import ProtectedRoute from './components/ProtectedRoute'
+import RequireProfile from './components/RequireProfile'
 import DemoLayout from './pages/demo/DemoLayout'
 import DemoStart from './pages/demo/DemoStart'
 import DemoAuth from './pages/demo/DemoAuth'
@@ -20,6 +22,9 @@ import DemoProfile from './pages/demo/DemoProfile'
 import DemoApp, { DemoComingSoon, DemoOverview } from './pages/demo/DemoApp'
 import DemoPeople from './pages/demo/DemoPeople'
 import DemoClubs from './pages/demo/DemoClubs'
+
+// Kartbiblioteket är stort, så prototypsidan laddas bara när någon öppnar den.
+const MapPrototype = lazy(() => import('./pages/MapPrototype'))
 
 function App() {
   return (
@@ -35,17 +40,33 @@ function App() {
         <Route path="/stilguide" element={<StyleGuide />} />
 
         <Route element={<ProtectedRoute />}>
+          {/* PROTOTYP: inte länkad från menyn än. Bara för inloggade med klar
+              profil, och utanför AppShell eftersom kartan tar hela skärmen. */}
+          <Route element={<RequireProfile />}>
+            <Route
+              path="/karta-prototyp"
+              element={
+                <Suspense fallback={<p className="hint-text">Laddar karta...</p>}>
+                  <MapPrototype />
+                </Suspense>
+              }
+            />
+          </Route>
           {/* Intervjun har en egen helskärmsvy, utan menyn. */}
           <Route path="/profil/intervju" element={<ProfileInterview />} />
           <Route element={<AppShell />}>
-            <Route path="/hem" element={<HubPage />} />
+            {/* Innan profilen är klar går bara intervjun (ovan) och formuläret i
+                listläget (/profil?lista=1) att nå. Resten ligger i RequireProfile. */}
             <Route path="/profil" element={<ProfilePage />} />
-            <Route path="/klubbar" element={<GroupsPage />} />
-            <Route path="/personer" element={<PeoplePage />} />
-            <Route path="/events" element={<EventsPage />} />
-            <Route path="/meddelanden" element={<InboxPage />} />
-            <Route path="/meddelanden/:userId" element={<ConversationPage />} />
-            <Route path="/anvandare/:userId" element={<UserProfilePage />} />
+            <Route element={<RequireProfile />}>
+              <Route path="/hem" element={<HubPage />} />
+              <Route path="/klubbar" element={<GroupsPage />} />
+              <Route path="/personer" element={<PeoplePage />} />
+              <Route path="/events" element={<EventsPage />} />
+              <Route path="/meddelanden" element={<InboxPage />} />
+              <Route path="/meddelanden/:userId" element={<ConversationPage />} />
+              <Route path="/anvandare/:userId" element={<UserProfilePage />} />
+            </Route>
           </Route>
         </Route>
 

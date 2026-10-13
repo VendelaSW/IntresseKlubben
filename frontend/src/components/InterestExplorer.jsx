@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import InterestTree, { PROFILE_MAX_SUBS, profileTree } from './InterestTree'
 import { getChildInterests, getTopInterests, searchInterests } from '../services/interests'
 
 // Så länge sökningen väntar efter senaste tangenttrycket, så att inte varje
@@ -12,8 +13,11 @@ const SEARCH_DELAY_MS = 300
 // Komponenten sparar inget själv: `onAdd(interest)` och `onRemove(interest)`
 // gör det (direkt på profilen, eller i formuläret när profilen skapas). De får
 // returnera ett promise; misslyckas det visas felet här. `selected` är de valda
-// intressena ({ id, name }). `card` = eget vitt kort (profilen); utan ligger den
-// direkt i ett formulär (när profilen skapas).
+// intressena ({ id, name, parent_id }), som visas som ett träd (InterestTree):
+// ett intresse vars förälder också är vald ligger under den. När profilen skapas
+// kommer de valda från sökningen och utforska, som saknar parent_id, så där
+// ligger alla överst. `card` = eget vitt kort (profilen); utan ligger den direkt
+// i ett formulär (när profilen skapas).
 //
 // På profilen syns bara de valda intressena tills man trycker "Lägg till
 // intressen", då fälls sök och Utforska ut. I formuläret är allt öppet direkt,
@@ -30,12 +34,41 @@ function InterestExplorer({ selected, onAdd, onRemove, card = true }) {
   const [error, setError] = useState('')
   const [open, setOpen] = useState(!card)
   const searchRequest = useRef(0)
+  // Kategorierna under Utforska (li per id), och den sista kategorin på samma
+  // rad som den öppna. Rutan med underintressena läggs efter den, så att den
+  // öppnas direkt under kategorin man tryckte på och inte under alla.
+  const areaRefs = useRef(new Map())
+  const panelRef = useRef(null)
+  const [rowEndId, setRowEndId] = useState(null)
+  const openAreaId = path[0]?.id
 
   useEffect(() => {
     getTopInterests()
       .then(setTop)
       .catch(() => setLoadError('Kunde inte hämta intressena. Försök igen senare.'))
   }, [])
+
+  // Raden räknas om när man öppnar ett område och när fönstret ändrar storlek.
+  // Före utritningen (useLayoutEffect), så att rutan aldrig blinkar på fel ställe.
+  // Rutan döljs medan raden mäts, så att den inte trycker ner kategorierna efter
+  // sig och får raden att se kortare ut än den är.
+  useLayoutEffect(() => {
+    if (openAreaId === undefined) return undefined
+    function findRowEnd() {
+      const panel = panelRef.current
+      if (panel) panel.style.display = 'none'
+      const rowTop = areaRefs.current.get(openAreaId)?.offsetTop
+      let end = openAreaId
+      for (const area of top) {
+        if (areaRefs.current.get(area.id)?.offsetTop === rowTop) end = area.id
+      }
+      if (panel) panel.style.display = ''
+      setRowEndId(end)
+    }
+    findRowEnd()
+    window.addEventListener('resize', findRowEnd)
+    return () => window.removeEventListener('resize', findRowEnd)
+  }, [openAreaId, top])
 
   // Underintressena till det man öppnat.
   useEffect(() => {
@@ -110,6 +143,46 @@ function InterestExplorer({ selected, onAdd, onRemove, card = true }) {
   }
 
   const current = path.at(-1)
+  const areaBox = current && (
+    <div className="explorer-box">
+      <nav aria-label="Var du är" className="explorer-crumbs">
+        {path.map((step, i) =>
+          i === path.length - 1 ? (
+            <span key={step.id} className="explorer-crumb-current">
+              {step.name}
+            </span>
+          ) : (
+            <span key={step.id} className="explorer-crumb">
+              <button type="button" onClick={() => setPath(path.slice(0, i + 1))}>
+                {step.name}
+              </button>
+              <span aria-hidden="true">›</span>
+            </span>
+          ),
+        )}
+      </nav>
+      <ul className="explorer-rows">
+        {/* Hela området/intresset, för den som inte vill välja något mer specifikt. */}
+        <li className="explorer-row">
+          <span className="explorer-name">{current.name} (allmänt)</span>
+          {addButton(current, `${current.name} (allmänt)`)}
+        </li>
+        {level.map((item) => (
+          <li key={item.id} className="explorer-row">
+            {item.has_children ? (
+              <button type="button" className="explorer-drill" onClick={() => setPath([...path, item])}>
+                <span>{item.name}</span>
+                <span aria-hidden="true">›</span>
+              </button>
+            ) : (
+              <span className="explorer-name">{item.name}</span>
+            )}
+            {addButton(item)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 
   return (
     <section className={card ? 'card card-wide explorer' : 'explorer'}>
@@ -120,21 +193,13 @@ function InterestExplorer({ selected, onAdd, onRemove, card = true }) {
         {selected.length === 0 ? (
           <p className="hint-text">Inga intressen än.</p>
         ) : (
-          <ul className="tags">
-            {selected.map((interest) => (
-              <li key={interest.id}>
-                <button
-                  type="button"
-                  className="tag tag-selected"
-                  aria-label={`Ta bort ${interest.name}`}
-                  disabled={busyId === interest.id}
-                  onClick={() => toggle(interest)}
-                >
-                  {interest.name} <span aria-hidden="true">×</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <InterestTree
+            proposals={profileTree(selected)}
+            align="start"
+            maxSubs={PROFILE_MAX_SUBS}
+            busyKey={busyId === null ? null : `id:${busyId}`}
+            onRemove={(key) => toggle(selected.find((i) => `id:${i.id}` === key))}
+          />
         )}
       </div>
 
@@ -193,64 +258,31 @@ function InterestExplorer({ selected, onAdd, onRemove, card = true }) {
             ) : (
               <ul className="tags">
                 {top.map((area) => {
-                  const isOpen = path[0]?.id === area.id
+                  const isOpen = openAreaId === area.id
                   return (
-                    <li key={area.id}>
-                      <button
-                        type="button"
-                        className={`tag explorer-area${isOpen ? ' explorer-area-open' : ''}`}
-                        aria-expanded={isOpen}
-                        onClick={() => setPath(isOpen ? [] : [area])}
-                      >
-                        {area.name}
-                        {/* Nedåt: går att öppna. Vänds uppåt när området är öppet. */}
-                        <span className="explorer-arrow" aria-hidden="true" />
-                      </button>
-                    </li>
+                    <Fragment key={area.id}>
+                      <li ref={(el) => (el ? areaRefs.current.set(area.id, el) : areaRefs.current.delete(area.id))}>
+                        <button
+                          type="button"
+                          className={`tag explorer-area${isOpen ? ' explorer-area-open' : ''}`}
+                          aria-expanded={isOpen}
+                          onClick={() => setPath(isOpen ? [] : [area])}
+                        >
+                          {area.name}
+                          {/* Nedåt: går att öppna. Vänds uppåt när området är öppet. */}
+                          <span className="explorer-arrow" aria-hidden="true" />
+                        </button>
+                      </li>
+                      {/* Rutan efter sista kategorin på den öppnas rad (före mätningen: direkt efter den). */}
+                      {areaBox && area.id === (rowEndId ?? openAreaId) && (
+                        <li ref={panelRef} className="explorer-panel">
+                          {areaBox}
+                        </li>
+                      )}
+                    </Fragment>
                   )
                 })}
               </ul>
-            )}
-
-            {current && (
-              <div className="explorer-box">
-                <nav aria-label="Var du är" className="explorer-crumbs">
-                  {path.map((step, i) =>
-                    i === path.length - 1 ? (
-                      <span key={step.id} className="explorer-crumb-current">
-                        {step.name}
-                      </span>
-                    ) : (
-                      <span key={step.id} className="explorer-crumb">
-                        <button type="button" onClick={() => setPath(path.slice(0, i + 1))}>
-                          {step.name}
-                        </button>
-                        <span aria-hidden="true">›</span>
-                      </span>
-                    ),
-                  )}
-                </nav>
-                <ul className="explorer-rows">
-                  {/* Hela området/intresset, för den som inte vill välja något mer specifikt. */}
-                  <li className="explorer-row">
-                    <span className="explorer-name">{current.name} (allmänt)</span>
-                    {addButton(current, `${current.name} (allmänt)`)}
-                  </li>
-                  {level.map((item) => (
-                    <li key={item.id} className="explorer-row">
-                      {item.has_children ? (
-                        <button type="button" className="explorer-drill" onClick={() => setPath([...path, item])}>
-                          <span>{item.name}</span>
-                          <span aria-hidden="true">›</span>
-                        </button>
-                      ) : (
-                        <span className="explorer-name">{item.name}</span>
-                      )}
-                      {addButton(item)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
             )}
           </div>
         </>

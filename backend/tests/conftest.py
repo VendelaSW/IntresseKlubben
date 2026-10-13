@@ -7,6 +7,10 @@ kommuner ber det om fixturerna `user` eller `municipalities`.
 `user` betyder också "inloggad som den användaren": get_current_user byts ut
 så att testet slipper logga in. Själva inloggningen (token) testas utan den
 genvägen i test_auth.py.
+
+Låset "resten av appen kräver en klar profil" (require_profile) är avstängt som
+standard, så att varje test slipper skapa en profil först. Testerna som gäller
+själva låset slår på det igen med fixturen `profile_lock` (se test_require_profile.py).
 """
 
 import os
@@ -34,7 +38,7 @@ from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
-from app.auth.security import get_current_user  # noqa: E402
+from app.auth.security import get_current_user, require_profile  # noqa: E402
 from app.services.ai_clients import set_clients  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
@@ -72,6 +76,20 @@ def client(db):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _profile_lock_off():
+    """Låset av som standard (se modulens beskrivning)."""
+    app.dependency_overrides[require_profile] = lambda: None
+    yield
+    app.dependency_overrides.pop(require_profile, None)
+
+
+@pytest.fixture
+def profile_lock():
+    """Slår på låset igen, för testerna som gäller själva låset."""
+    app.dependency_overrides.pop(require_profile, None)
 
 
 @pytest.fixture

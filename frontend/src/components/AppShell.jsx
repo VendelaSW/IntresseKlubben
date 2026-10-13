@@ -9,11 +9,7 @@ import personerIcon from '../assets/personer.png'
 import { useAuth } from '../hooks/useAuth'
 import { getContacts } from '../services/contacts'
 import { INVITATIONS_CHANGED, getGroupInvitationCount } from '../services/groups'
-import {
-  countUnseenConversations,
-  getConversations,
-  markConversationsSeen,
-} from '../services/messages'
+import { countUnseenConversations, getConversations } from '../services/messages'
 
 // Hur ofta siffran på brev-loggan räknas om medan man står kvar på en sida.
 const MESSAGES_POLL_MS = 30000
@@ -37,19 +33,24 @@ function AppShell() {
   const [incomingCount, setIncomingCount] = useState(0)
   const [unseenMessages, setUnseenMessages] = useState(0)
   const [clubInvitations, setClubInvitations] = useState(0)
+  // Siffrorna i menyn bygger på anrop som är låsta tills profilen är klar
+  // (require_profile i backend), så de hämtas inte innan dess.
+  const profileDone = Boolean(user?.profile_completed)
 
   // Antal obesvarade kontaktförfrågningar, för badgen vid Personer. Hämtas
   // om vid varje sidbyte - enkel och "nog bra" uppdatering utan att bygga
   // en delad kontakter-context bara för en badge.
   useEffect(() => {
+    if (!profileDone) return undefined
     getContacts()
       .then((data) => setIncomingCount(data.incoming_requests.length))
       .catch(() => {})
-  }, [location.pathname])
+  }, [location.pathname, profileDone])
 
   // Antal klubbar man är inbjuden till, för märket vid Klubbar. Räknas om vid
   // sidbyte och när man har gått med i eller avböjt en klubb.
   useEffect(() => {
+    if (!profileDone) return undefined
     let cancelled = false
     function refresh() {
       getGroupInvitationCount()
@@ -62,21 +63,21 @@ function AppShell() {
       cancelled = true
       window.removeEventListener(INVITATIONS_CHANGED, refresh)
     }
-  }, [location.pathname])
+  }, [location.pathname, profileDone])
 
-  // Konversationer med nya brev, för siffran på brev-loggan. När man kommer
-  // till Brev (/meddelanden) räknas allt som sett och siffran försvinner.
-  // Räknas om vid sidbyte och var MESSAGES_POLL_MS, så att nya brev syns utan
-  // att man byter sida. Pausar när fliken inte syns och räknar om direkt när
-  // man kommer tillbaka.
+  // Konversationer med nya brev, för siffran på brev-loggan: samma antal som
+  // fliken Nya på Brev. En konversation räknas som sedd först när man öppnar
+  // den, och den man har öppen (/meddelanden/:id) räknas inte, eftersom chatten
+  // själv markerar den som sedd. Brev från någon annan medan man chattar räknas
+  // som vanligt. Räknas om vid sidbyte och var MESSAGES_POLL_MS, så att nya brev
+  // syns utan att man byter sida. Pausar när fliken inte syns och räknar om
+  // direkt när man kommer tillbaka.
   useEffect(() => {
-    const onMessages = location.pathname.startsWith('/meddelanden')
+    if (!profileDone) return undefined
+    const openMatch = location.pathname.match(/^\/meddelanden\/(\d+)/)
+    const openConversationId = openMatch ? Number(openMatch[1]) : null
     let cancelled = false
     let fetching = false
-    // Allt markeras som sett bara vid första hämtningen efter sidbytet. Brev
-    // som kommer medan man står kvar (t.ex. från B medan man chattar med A)
-    // har man inte sett, och ska räknas som nya när man går därifrån.
-    let firstFetch = true
 
     async function refresh() {
       if (fetching || document.hidden) return
@@ -84,9 +85,7 @@ function AppShell() {
       try {
         const conversations = await getConversations()
         if (cancelled) return
-        if (onMessages && firstFetch) markConversationsSeen(conversations)
-        firstFetch = false
-        setUnseenMessages(onMessages ? 0 : countUnseenConversations(conversations))
+        setUnseenMessages(countUnseenConversations(conversations.filter((c) => c.id !== openConversationId)))
       } catch {
         // Siffran är inte viktig nog för ett felmeddelande; nästa försök kommer snart.
       } finally {
@@ -106,7 +105,7 @@ function AppShell() {
       clearInterval(timer)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [location.pathname])
+  }, [location.pathname, profileDone])
 
   function handleLogout() {
     logout()
@@ -120,8 +119,10 @@ function AppShell() {
           <img src={logo} alt="Intresseklubben" className="app-brand-logo" />
         </Link>
         <nav className="app-nav" aria-label="Huvudmeny">
+          {/* Innan profilen är klar är ikonerna inte länkar, så att man inte
+              lämnar "Skapa din profil" av misstag (allt annat är ändå låst). */}
           {NAV_ITEMS.map(({ label, to, icon }) =>
-            to ? (
+            to && profileDone ? (
               <NavLink
                 key={label}
                 to={to}
@@ -148,7 +149,12 @@ function AppShell() {
                 <span className="app-nav-label">{label}</span>
               </NavLink>
             ) : (
-              <span key={label} className="app-nav-link">
+              <span
+                key={label}
+                className={`app-nav-link${to ? ' app-nav-link-locked' : ''}`}
+                title={to ? 'Skapa din profil först' : undefined}
+                aria-disabled={to ? true : undefined}
+              >
                 <img src={icon} alt="" className="nav-icon" />
                 <span className="app-nav-label">{label}</span>
               </span>

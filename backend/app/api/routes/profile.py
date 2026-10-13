@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+import hashlib
+import time
+from collections import defaultdict, deque
+
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
@@ -21,16 +25,61 @@ from app.schemas.profile import (
     ProfileImageConfirm,
     ProfileImageUploadUrl,
     ProfileResponse,
+    ProfileTextCheck,
     ProfileUpdate,
 )
 from app.services.text_policy import TextCheckUnavailable, TextNotAllowed, check_text
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
+# Förhandskontrollen av Om mig-texten kostar AI-anrop, så en användare får bara göra ett fåtal per minut. Gränsen
+# räknas i minnet per serverinstans, som den på /interests/analyze: en spärr och inget mer.
+TEXT_CHECK_LIMIT = 10
+TEXT_CHECK_WINDOW_SECONDS = 60
+_recent_text_checks: dict[int, deque[float]] = defaultdict(deque)
 
-def _check_profile_text(text: str) -> None:
+
+def _check_text_rate_limit(user_id: int) -> None:
+    now = time.monotonic()
+    calls = _recent_text_checks[user_id]
+    while calls and now - calls[0] > TEXT_CHECK_WINDOW_SECONDS:
+        calls.popleft()
+    if len(calls) >= TEXT_CHECK_LIMIT:
+        raise HTTPException(status_code=429, detail=msg.INTERVIEW_TOO_MANY_REQUESTS)
+    calls.append(now)
+
+
+# Texter som redan har klarat förhandskontrollen, så att samma text inte kontrolleras en gång till när profilen sparas.
+# Minnet är per serverinstans och gäller en stund. Hamnar sparandet på en annan instans, eller har det gått för lång
+# tid, kontrolleras texten som vanligt. Det här sparar alltså bara anrop och kan aldrig släppa igenom en text som inte
+# har kontrollerats.
+CHECKED_TEXT_SECONDS = 30 * 60
+_checked_texts: dict[int, tuple[str, float]] = {}
+
+
+def _fingerprint(text: str) -> str:
+    return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()
+
+
+def _remember_checked(user_id: int, text: str) -> None:
+    now = time.monotonic()
+    for other, (_, at) in list(_checked_texts.items()):
+        if now - at > CHECKED_TEXT_SECONDS:
+            del _checked_texts[other]
+    _checked_texts[user_id] = (_fingerprint(text), now)
+
+
+def _already_checked(user_id: int, text: str) -> bool:
+    found = _checked_texts.get(user_id)
+    return found is not None and time.monotonic() - found[1] <= CHECKED_TEXT_SECONDS and found[0] == _fingerprint(text)
+
+
+def _check_profile_text(text: str, user_id: int | None = None) -> None:
     """Om mig-texten får inte vara nazistisk, pedofil eller hatisk eller våldsam (se
-    app/services/text_policy.py). Kontrollen är fail-closed: går den inte att köra sparas inget."""
+    app/services/text_policy.py). Kontrollen är fail-closed: går den inte att köra sparas inget. Är det
+    samma text som användaren nyss har fått godkänd av förhandskontrollen (user_id) görs den inte om."""
+    if user_id is not None and _already_checked(user_id, text):
+        return
     try:
         check_text(text)
     except TextNotAllowed:
@@ -75,7 +124,7 @@ def add_profile(
     # ett databasfel (500) från främmande nyckeln.
     if db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
-    _check_profile_text(data.profile_text)
+    _check_profile_text(data.profile_text, current_user.id)
     try:
         profile = create_profile(db, current_user.id, data)
     except ProfileExistsError:
@@ -83,6 +132,18 @@ def add_profile(
     except UnknownInterestError:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
     return _to_response(profile)
+
+
+@router.post("/text-check", status_code=204)
+def check_profile_text_early(data: ProfileTextCheck, current_user=Depends(get_current_user)) -> Response:
+    """Kontrollerar Om mig-texten utan att spara något, så att man får veta att den nekas redan när man skrivit
+    den och inte först när profilen sparas. Samma kontroll som vid sparandet: 422 om texten inte får finnas,
+    503 om kontrollen inte gick att köra, 204 om den är okej. En text som klarat den kontrolleras inte igen när
+    samma text sparas strax efteråt."""
+    _check_text_rate_limit(current_user.id)
+    _check_profile_text(data.profile_text)
+    _remember_checked(current_user.id, data.profile_text)
+    return Response(status_code=204)
 
 
 @router.patch("/", response_model=ProfileResponse)
@@ -96,7 +157,7 @@ def edit_profile(
     if data.municipality_code is not None and db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
     if data.profile_text is not None:
-        _check_profile_text(data.profile_text)
+        _check_profile_text(data.profile_text, current_user.id)
     try:
         profile = update_profile(db, current_user.id, data)
     except ProfileNotFoundError:

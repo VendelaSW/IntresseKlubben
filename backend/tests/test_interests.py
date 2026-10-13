@@ -203,3 +203,52 @@ def test_profile_cannot_be_created_with_inactive_interest(client, user, municipa
     response = client.post("/profile/", json=profile_payload([library["Gaming"].id]))
     assert response.status_code == 422
     assert response.json()["detail"] == "Okänt intresse"
+
+
+# --- Profilens intressen som träd (parent_id) -----------------------------------
+
+
+def _parents(response):
+    return {i["name"]: i["parent_id"] for i in response.json()}
+
+
+def test_profile_interests_have_parent_id(client, user, library):
+    for name in ["Sport och träning", "Löpning", "Traillöpning"]:
+        client.put(f"/profile/interests/{library[name].id}")
+
+    # Traillöpning ligger under Löpning, som ligger under Sport och träning.
+    assert _parents(client.get("/profile/interests")) == {
+        "Löpning": library["Sport och träning"].id,
+        "Sport och träning": None,
+        "Traillöpning": library["Löpning"].id,
+    }
+
+
+def test_parent_id_is_set_even_when_the_parent_is_not_on_the_profile(client, user, library):
+    # Frontend avgör vad som ritas under vad; svaret säger alltid var intresset hör hemma.
+    response = client.put(f"/profile/interests/{library['Gym'].id}")
+    assert _parents(response) == {"Gym": library["Sport och träning"].id}
+
+
+def test_adding_and_removing_returns_parent_id(client, user, library):
+    client.put(f"/profile/interests/{library['Musik'].id}")
+    response = client.put(f"/profile/interests/{library['Löpning'].id}")
+    assert _parents(response) == {"Löpning": library["Sport och träning"].id, "Musik": None}
+
+    response = client.delete(f"/profile/interests/{library['Musik'].id}")
+    assert _parents(response) == {"Löpning": library["Sport och träning"].id}
+
+
+def test_removing_a_parent_keeps_its_sub_interests(client, user, library):
+    client.put(f"/profile/interests/{library['Löpning'].id}")
+    client.put(f"/profile/interests/{library['Traillöpning'].id}")
+
+    response = client.delete(f"/profile/interests/{library['Löpning'].id}")
+
+    # Traillöpning ligger kvar; frontend ritar det överst när Löpning är borta.
+    assert _parents(response) == {"Traillöpning": library["Löpning"].id}
+
+
+def test_the_interest_list_is_unchanged_without_parent_id(client, user, library):
+    # Övriga ställen som använder InterestResponse (listor, filter, klubbar) påverkas inte.
+    assert all(set(i) == {"id", "name"} for i in client.get("/interests/").json())

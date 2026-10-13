@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import InvitePicker from '../events/InvitePicker'
 import Modal from '../Modal'
+import ShowOnMapButton from '../ShowOnMapButton'
 import GroupEvents from './GroupEvents'
 import GroupChat from './GroupChat'
 import GroupMembers from './GroupMembers'
@@ -45,6 +46,7 @@ function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecl
       <p className="card-subheading">
         {group.municipality_name} · {memberCountText(group.member_count)}
       </p>
+      <ShowOnMapButton type="klubb" id={group.id} />
       {group.is_member && group.has_blocked_member && (
         <p className="soft-box soft-box-wide soft-box-text">Någon du har blockerat är med i den här klubben.</p>
       )}

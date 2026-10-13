@@ -22,8 +22,10 @@ på nya hex-koder eller pixelvärden.
 | Textstorlekar | `--text-hero`, `--text-h1`, `--text-card-title`, `--text-h2`, `--text-subheading`, `--text-body`, `--text-small` | `font-size: var(--text-body);` |
 | Knappar | `.primary-button`, `.account-choice-link`, `.button-small` (kombineras med de andra två) | `<button className="primary-button button-small">` |
 | Boxar | `.card`, `.card-avatar`, `.card-title`, `.card-subheading`, `.card-text` | Se Boxar-exemplet i stilguiden |
+| Profilbild | `Avatar` (bild, annars initial) med `.person-list-avatar` (liten) eller `.card-avatar` (stor) | `<Avatar name={user.name} imageUrl={user.image_url} className="person-list-avatar" />` |
 | Formulär | `.auth-form`, dess `input`/`label`/`button` | Se Formulärfält-exemplet i stilguiden |
 | Länkar | `.info-link` | `<a className="info-link">` |
+| Brev | `.envelopes` + `ConversationCard` (kuvert), `.lined-paper` (linjerat papper), `.notepad` (konversationen) | Se Brev-exemplet i stilguiden |
 | Rubriker | Vanliga `<h1>`/`<h2>`-taggar, redan stylade automatiskt | `<h2>Min rubrik</h2>` |
 
 Behöver ni något nytt (en ny färg, en ny komponenttyp), lägg till den i

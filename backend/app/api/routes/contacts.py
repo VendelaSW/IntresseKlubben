@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from app.auth.security import get_current_user
+from app.auth.security import get_current_user, require_profile
 from app.core import storage
 from app.crud import contact as contact_crud
 from app.db.session import get_db
@@ -10,7 +10,8 @@ from app.schemas.contact import (BlockResponse, ContactAnswer, ContactListItem,
                                  ContactListResponse, ContactRequest, ContactResponse,
                                  ContactUser)
 
-router = APIRouter(tags=["contacts"])
+# Låst tills profilen är klar (se require_profile).
+router = APIRouter(tags=["contacts"], dependencies=[Depends(require_profile)])
 
 
 def _user_id_or_404(db: Session, user_id: int) -> int:

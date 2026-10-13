@@ -29,6 +29,8 @@ PROFILE_TEXT_TOO_LONG = "Om mig-texten får max vara 800 tecken"
 PROFILE_TEXT_NOT_ALLOWED = "Texten verkar innehålla något som inte får finnas här. Skriv om den"
 TEXT_CHECK_UNAVAILABLE = "Vi kunde inte kontrollera texten just nu. Försök igen om en stund"
 INTERESTS_REQUIRED = "Välj minst ett intresse"
+# Resten av appen är låst tills profilen är klar (se require_profile).
+PROFILE_REQUIRED = "Skapa din profil först."
 
 # ---------- Profil och intressen (routes/profile.py, routes/interests.py) ----------
 PROFILE_NOT_FOUND = "Ingen profil hittad"

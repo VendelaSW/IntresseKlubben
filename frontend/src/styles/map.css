@@ -1,0 +1,1217 @@
+/* Kartprototypen (pages/MapPrototype.jsx och dess block och lappar). Laddas
+   bara med kartan, som själv laddas först när man öppnar den. */
+
+/* ---------- Kartprototyp: skattkarta på ett gult block ---------- */
+
+.map-sketch {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  /* På mobil är 100vh högre än det som syns (adressfältet). dvh är den
+     verkliga höjden; vh står kvar för äldre webbläsare. */
+  height: 100dvh;
+  overflow: hidden;
+  background-color: #fbf0a9;
+  /* Samma perspektiv som MapLibres kamera (synfält ca 37 grader): höjden
+     delat med 2 * tan(18,4°) ≈ 1,5 * höjden. Då hamnar de lutade linjerna i
+     samma plan som den lutade kartan. */
+  perspective: 150vh;
+  perspective: 150dvh;
+}
+
+/* Blocket: blå linjer och en röd marginallinje, lutade bakåt som ett papper
+   på ett bord. Ytan är större än skärmen så att den täcker även när den
+   lutar bort och krymper upptill. */
+.map-sketch-paper {
+  position: absolute;
+  top: -150%;
+  bottom: -20%;
+  left: -60%;
+  right: -60%;
+  transform: rotateX(var(--map-tilt));
+  /* Ytan är 270 % hög (150 % ovanför, 20 % under) och 220 % bred (60 % på
+     var sida). Den ska luta runt skärmens mittlinje, precis som kartan:
+     (150 + 50) / 270 ≈ 74 % ned, och mitt i sidled. */
+  transform-origin: 50% 74.07%;
+  /* Marginallinjen 64 px in från skärmens vänsterkant, som ligger
+     60 / 220 ≈ 27,3 % in på ytan. */
+  background-image:
+    linear-gradient(to right, transparent calc(27.27% + 64px), rgba(214, 69, 65, 0.55) calc(27.27% + 64px), rgba(214, 69, 65, 0.55) calc(27.27% + 66px), transparent calc(27.27% + 66px)),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 31px, rgba(80, 140, 200, 0.35) 31px, rgba(80, 140, 200, 0.35) 32px);
+  pointer-events: none;
+}
+
+/* Bordet: lite mörkare kanter runt pappret, som under en lampa. Svagt, så
+   att det inte tar över från det ritade. */
+.map-sketch-table {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 120px 20px rgba(70, 45, 20, 0.25);
+  background: linear-gradient(to bottom, rgba(70, 45, 20, 0.1), transparent 35%);
+}
+
+
+/* Dubbel klass, annars vinner MapLibres egen .maplibregl-map
+   (position: relative) och kartan får höjden 0. */
+.map-sketch .map-sketch-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* Blocket utanför Sverige, ovanpå kartan: samma papper och linjer (och samma
+   perspektiv) som under kartan, med Sverige urklippt (clip-path sätts från
+   attachOutsidePaper i MapPrototype.jsx). Klick går igenom till kartan. */
+.map-sketch-outside {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: #fbf0a9;
+  perspective: 150vh;
+  perspective: 150dvh;
+  pointer-events: none;
+}
+
+
+.map-sketch-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Lagret med post-it-lappar, ovanpå ortnamnen. Varje lapp sträcks ut med en
+   transform från övre vänstra hörnet (se mapPrototypeNotes.js); z-index
+   sätts per lapp så att närmare lappar hamnar överst. */
+.map-sketch-notes {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Klubbar och events på kartan (se mapPrototypeActivities.js): små
+   papperslappar med appens ikon, namnet och kommunen/datumet. */
+.map-sketch-activities {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.map-activity {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 11rem;
+  padding: 0.2rem 0.55rem 0.2rem 0.3rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #3a2f25;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.map-activity:hover {
+  z-index: 1;
+  box-shadow: none;
+  translate: 2px 2px;
+}
+
+/* Events på gult papper, klubbar på vitt, så att de går att skilja åt. */
+.map-activity.is-event {
+  background: #fff4b8;
+}
+
+.map-activity img {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.map-activity-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.05;
+}
+
+.map-activity-name {
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.map-activity-sub {
+  color: var(--color-muted);
+  font-size: 0.68rem;
+}
+
+/* Lappen man nyss visade på kartan (från Klubbar eller Events). */
+.map-activity.is-highlighted {
+  z-index: 1;
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Utzoomat bara ikonen; namnet finns i title och syns när man hovrar. */
+.map-activity.is-compact {
+  padding: 0.2rem;
+}
+
+.map-activity.is-compact .map-activity-text {
+  display: none;
+}
+
+.map-activity.is-compact:hover .map-activity-text {
+  display: flex;
+}
+
+.map-note-stuck {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: auto;
+  /* Nyp med två fingrar på en lapp ska inte zooma hela sidan. */
+  touch-action: none;
+}
+
+/* Hela lappen med lite luft runt, så att tejpen upptill och skuggan nere
+   till höger kommer med i rutorna. */
+.map-note-sheet {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 10px 12px 12px 4px;
+}
+
+/* En bit av lappen: klipper ut sin del av kopian och sträcks ut mellan sina
+   fyra hörn (se mapPrototypeNotes.js). */
+.map-note-cell {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  transform-origin: 0 0;
+}
+
+.map-note-stuck:hover {
+  z-index: 100000 !important;
+}
+
+.map-sketch-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #3a2f25;
+  white-space: nowrap;
+  text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
+}
+
+.map-sketch-label-big {
+  font-size: 2.1rem;
+}
+
+/* Landskapslistan bredvid Sverige: namnen går att klicka på (zoomar till
+   landskapet). De är knappar, så att de går att nå med tangentbordet, men
+   ser ut som de andra namnen. */
+.map-sketch-landskap.is-listed,
+.map-sketch-landskap.is-lan,
+.map-sketch-landskap.is-kommun {
+  margin: 0;
+  border: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.map-sketch-landskap.is-listed:hover,
+.map-sketch-landskap.is-lan:hover,
+.map-sketch-landskap.is-kommun:hover,
+.map-sketch-landskap.is-listed:focus-visible,
+.map-sketch-landskap.is-lan:focus-visible,
+.map-sketch-landskap.is-kommun:focus-visible {
+  text-decoration: underline;
+}
+
+/* Tangentbordsfokus på kartans knappar: namnen, lapparna, widgetarna och
+   profilen. */
+.map-sketch-landskap:focus-visible,
+.map-activity:focus-visible,
+.map-note-close:focus-visible,
+.map-page-widget:focus-visible,
+.map-profile:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Ikonlappen visar namnet vid fokus också, inte bara vid hovring. */
+.map-activity.is-compact:focus-visible .map-activity-text {
+  display: flex;
+}
+
+/* En lapp med fokus i hamnar överst, som vid hovring. */
+.map-note-stuck:focus-within {
+  z-index: 100000 !important;
+}
+
+/* Kommunernas namn i länsvyn: blyerts i stället för rödbrunt, som deras
+   gränser. */
+.map-sketch-landskap.is-kommun {
+  color: #3a2f25;
+  letter-spacing: 0.06em;
+}
+
+/* Linjer från landskapsnamn som fått stå utanför sitt landskap (små landskap
+   på smala skärmar) till landskapet, i samma rödbruna penna som gränserna. */
+.map-sketch-landskap-pointers {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  stroke: #9c4a2f;
+  stroke-width: 1;
+  fill: #9c4a2f;
+}
+
+/* Landskapens namn utzoomat: spärrade versaler i samma rödbruna färgpenna
+   som landskapsgränserna, som regionnamn på gamla kartor. Storleken sätts
+   per namn (se landskapFontSize i MapPrototype.jsx). */
+.map-sketch-landskap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  /* Mörkare än gränserna och med en tydlig papperskant, så att namnen syns
+     ovanpå landskapens färger. */
+  color: #6e2c18;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* En mjuk bakgrund i pappersfärg med suddiga kanter, så att namnet lyfter
+     från landskapens färger och gränser. Luften på sidorna räknas med när
+     namnen placeras (se landskapNameWidth i MapPrototype.jsx). */
+  padding: 0 0.35em;
+  line-height: 1.1;
+  border-radius: 999px;
+  background: rgba(251, 240, 169, 0.85);
+  box-shadow: 0 0 6px 3px rgba(251, 240, 169, 0.85);
+}
+
+
+.map-sketch-compass {
+  position: absolute;
+  /* Ovanför husen och skyltarna. */
+  z-index: 3;
+  left: 84px;
+  bottom: 28px;
+  width: 84px;
+  height: 84px;
+  fill: none;
+  stroke: #3a2f25;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.map-sketch-compass-north {
+  fill: #d0352f;
+}
+
+.map-sketch-compass text {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  fill: #3a2f25;
+  stroke: none;
+  text-anchor: middle;
+}
+
+
+/* Lapp för en plats, stående på den lutade kartan. Vit (stilguidens färg för
+   kort och boxar) med ojämna hörn, bläckkant och en hård bläckskugga, så att
+   den ser ritad ut och inte fotograferad. */
+.map-note {
+  position: relative;
+  width: 240px;
+  padding: 1.1rem 0.9rem 0.7rem;
+  background: var(--color-white);
+  color: #3a2f25;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  border: 1.5px solid #3a2f25;
+  border-radius: 255px 12px 225px 12px / 12px 225px 12px 255px;
+  box-shadow: 3px 3px 0 #3a2f25;
+}
+
+/* Förhandslappen när man bara hovrar: lite genomskinlig. */
+.map-note-preview .map-note {
+  opacity: 0.92;
+}
+
+.map-note-close {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.35rem;
+  padding: 0 0.2rem;
+  border: none;
+  background: none;
+  color: #3a2f25;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-note-close:hover,
+.map-note-close:focus-visible {
+  color: #d0352f;
+}
+
+/* Tejpbit överst. */
+.map-note::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 70px;
+  height: 18px;
+  transform: translateX(-50%) rotate(3deg);
+  background: rgba(244, 196, 48, 0.55);
+}
+
+.map-note p {
+  margin: 0;
+}
+
+.map-note-title {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.map-note-type {
+  font-weight: 700;
+  margin-bottom: 0.4rem !important;
+}
+
+.map-note-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.5rem;
+  margin: 0.4rem 0 0;
+}
+
+.map-note-rows dt {
+  font-weight: 700;
+}
+
+.map-note-rows dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.map-note-hours {
+  white-space: nowrap;
+}
+
+.map-note-rows a {
+  color: inherit;
+}
+
+.map-note-hint,
+.map-note-source {
+  color: rgba(58, 47, 37, 0.7);
+  font-style: italic;
+}
+
+.map-note-source {
+  margin-top: 0.5rem !important;
+  font-size: 0.68rem;
+}
+
+/* Lagret med kartnålar och tråd, ovanför kartan, ortnamnen och
+   post-it-lapparna (men under knapparna, som ligger senare). */
+.map-sketch-thread {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.map-thread-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Start- och målnålen går att ta tag i och dra; nålarna vid svängarna inte. */
+.map-pin[data-kind] {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+
+.map-pin[data-kind]:active {
+  cursor: grabbing;
+}
+
+/* Papperslapp vid målnålen med tid och avstånd. */
+.map-pin-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 0.15rem 0.6rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 255px 12px 225px 12px / 12px 225px 12px 255px;
+  box-shadow: 3px 3px 0 #3a2f25;
+  color: #3a2f25;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transform-origin: left center;
+  rotate: -3deg;
+  pointer-events: none;
+}
+
+/* Tips om vad man kan göra med nålarna, handskrivet under knapparna. */
+.map-sketch-hint {
+  position: absolute;
+  top: 3.4rem;
+  left: 84px;
+  z-index: 3;
+  max-width: 320px;
+  margin: 0;
+  color: #3a2f25;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  line-height: 1.1;
+  text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
+  pointer-events: none;
+}
+
+/* Knappar för nålar och trådens stil uppe till vänster. Som stilguidens
+   knappar (Inter, versaler, gul när vald), men med bläckkant och hård skugga
+   så att de syns på kartan. */
+.map-sketch-tools {
+  position: absolute;
+  top: 0.9rem;
+  left: 84px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.map-tool-group {
+  display: flex;
+}
+
+.map-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  background: var(--color-white);
+  box-shadow: 2px 2px 0 #3a2f25;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+/* Den lilla ritade nålen i "Sätt ut nålar". */
+.map-tool-pin {
+  width: 10px;
+  height: 16px;
+  flex: none;
+}
+
+/* Knapparna i en grupp (Längs vägen | Nålar i svängar) sitter ihop. Den
+   valda trycks ned (se .map-tool.is-on) och hamnar under grannen; den som
+   inte är vald ligger ovanpå med sin skugga, så att den ser upphöjd ut. */
+.map-tool-group .map-tool {
+  position: relative;
+  z-index: 1;
+}
+
+.map-tool-group .map-tool.is-on {
+  z-index: 0;
+}
+
+.map-tool-group .map-tool + .map-tool {
+  margin-left: -1.5px;
+}
+
+.map-tool-group .map-tool:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.map-tool-group .map-tool:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.map-tool:hover,
+.map-tool:focus-visible {
+  background: #fff3c4;
+}
+
+/* Vald: gul som stilguidens primära knapp, och intryckt (skuggan borta). */
+.map-tool.is-on {
+  background: var(--color-accent);
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+/* Zoomknapparna: MapLibres egna, med samma bläckkant och skugga som
+   lapparna. (:not(:empty) behövs, annars vinner MapLibres egen skugga, som
+   har samma specificitet men laddas efter den här filen.) */
+.map-sketch .maplibregl-ctrl-group:not(:empty) {
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  box-shadow: 3px 3px 0 #3a2f25;
+  overflow: hidden;
+}
+
+.map-sketch .maplibregl-ctrl-group button + button {
+  border-top: 1.5px solid #3a2f25;
+}
+
+/* Profillappen uppe till höger, till vänster om zoomknapparna (MapLibres
+   kontroller sitter 10px från kanten och är 29px breda + kant). Namnet till
+   vänster med handstil, profilbilden till höger. Samma bläckkant och skugga
+   som zoomknapparna. Ett klick fäller ut menyn under lappen. */
+/* Raden uppe till höger: sidornas lappar och profillappen, till vänster om
+   zoomknapparna. Ovanför ett öppet block (z-index 5), så att man kan byta
+   sida direkt. */
+.map-top-widgets {
+  position: absolute;
+  top: 10px;
+  right: 54px;
+  z-index: 6;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.map-profile-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Sidornas lappar (Brev, Personer, Klubbar, Events): som profillappen, med
+   appens ikoner. Den öppna sidans lapp är nedtryckt. */
+.map-page-widgets {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.map-page-widget {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 52px;
+  padding: 0 0.7rem 0 0.45rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  box-shadow: 3px 3px 0 #3a2f25;
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  cursor: pointer;
+}
+
+.map-page-widget:hover,
+.map-page-widget.is-open {
+  box-shadow: none;
+  transform: translate(3px, 3px);
+}
+
+.map-page-widget-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+/* Smalare fönster: bara ikonerna, så att raden inte krockar med nålarnas
+   knappar uppe till vänster (namnet finns i title). */
+@media (max-width: 1100px) {
+  .map-page-widget {
+    padding: 0 0.45rem;
+  }
+
+  .map-page-widget-label {
+    display: none;
+  }
+}
+
+.map-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 16rem;
+  padding: 0.3rem 0.35rem 0.3rem 0.9rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 225px 12px 255px 12px / 12px 255px 12px 225px;
+  box-shadow: 3px 3px 0 #3a2f25;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Nedtryckt när man hovrar och medan menyn är öppen, som verktygsknapparna. */
+.map-profile:hover,
+.map-profile.is-open {
+  box-shadow: none;
+  transform: translate(3px, 3px);
+}
+
+/* Menyn: en liten lapp under profillappen, högerställd. */
+.map-profile-menu {
+  min-width: 10rem;
+  margin: 0.6rem 0 0;
+  padding: 0.3rem 0;
+  list-style: none;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  box-shadow: 3px 3px 0 #3a2f25;
+}
+
+.map-profile-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 1rem;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  line-height: 1.1;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.map-profile-menu-item:hover,
+.map-profile-menu-item:focus-visible {
+  background: var(--color-accent-soft);
+}
+
+.map-profile-menu li + li {
+  border-top: 1.5px dashed #3a2f25;
+}
+
+.map-profile-name {
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.map-profile-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid #3a2f25;
+  border-radius: 50%;
+  background: var(--color-line);
+  object-fit: cover;
+}
+
+.map-profile-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* ---------- Profilblocket: ett anteckningsblock som läggs på kartan ---------- */
+
+/* Scenen täcker kartan och har samma perspektiv som kartans kamera, så att
+   blocket ser ut att ligga på samma bord. Ett klick på scenen (bredvid
+   blocket) stänger. */
+.map-pad-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4.5rem 1rem 2rem;
+  perspective: 150vh;
+  perspective: 150dvh;
+}
+
+/* Blocket ligger lite på snedden och lutar en aning bakåt, som bordet, men
+   mindre än kartan så att texten går att läsa. Skuggan är tät, för att
+   blocket ligger direkt på pappret. */
+.map-pad {
+  --pad-rest: rotateX(14deg) rotateZ(-1.5deg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(30rem, 100%);
+  max-height: 100%;
+  transform: var(--pad-rest);
+  transform-origin: 50% 60%;
+  filter: drop-shadow(2px 4px 0 rgba(58, 47, 37, 0.85)) drop-shadow(0 10px 14px rgba(40, 30, 20, 0.25));
+  animation: map-pad-land 620ms cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+
+/* Faller in uppifrån (närmare kameran, större, mer snett och med en mjuk,
+   förskjuten skugga), landar och studsar till. */
+@keyframes map-pad-land {
+  0% {
+    opacity: 0;
+    transform: translate3d(-3rem, -45vh, 260px) rotateX(-8deg) rotateZ(-11deg);
+    filter: drop-shadow(30px 60px 18px rgba(40, 30, 20, 0.18));
+  }
+  12% {
+    opacity: 1;
+  }
+  72% {
+    transform: translate3d(0, 0, 0) rotateX(16deg) rotateZ(-1deg);
+    filter: drop-shadow(2px 4px 0 rgba(58, 47, 37, 0.85)) drop-shadow(0 10px 14px rgba(40, 30, 20, 0.25));
+  }
+  86% {
+    transform: translate3d(0, -6px, 12px) rotateX(13deg) rotateZ(-1.7deg);
+  }
+  100% {
+    transform: var(--pad-rest);
+  }
+}
+
+/* Lyfts upp och bort när det stängs. */
+.map-pad.is-leaving {
+  animation: map-pad-lift 260ms ease-in both;
+}
+
+@keyframes map-pad-lift {
+  from {
+    opacity: 1;
+    transform: var(--pad-rest);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(2rem, -30vh, 200px) rotateX(-4deg) rotateZ(6deg);
+    filter: drop-shadow(24px 48px 16px rgba(40, 30, 20, 0.15));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-pad,
+  .map-pad.is-leaving {
+    animation: none;
+  }
+}
+
+/* Spiralen överst: ringar som går genom hål i kartongen. */
+/* Bredare block för appens sidor med kort i rutnät (Brev, Personer,
+   Klubbar, Events), och lite mindre lutning så att mycket text går att läsa. */
+.map-pad.is-wide {
+  --pad-rest: rotateX(10deg) rotateZ(-0.8deg);
+  width: min(64rem, 100%);
+}
+
+/* Sidan inuti blocket: appens egna sidrubriker behövs inte (blocket har sin
+   rubrik), och sidan ska inte ha egen bakgrund eller luft runt sig. */
+.map-pad-app-page .app-section {
+  padding: 0;
+  background: none;
+}
+
+.map-pad-app-page .app-title {
+  display: none;
+}
+
+.map-pad-rings {
+  position: relative;
+  z-index: 1;
+  height: 22px;
+  margin: 0 1.25rem -11px;
+  background: radial-gradient(circle at 50% 70%, #3a2f25 0 3.5px, transparent 4px) 0 0 / 22px 22px repeat-x,
+    linear-gradient(to right, #6d655c, #c9c2b8 45%, #6d655c) 0 0 / 22px 14px repeat-x;
+  -webkit-mask: radial-gradient(ellipse 4px 11px at 11px 11px, #000 98%, transparent) 0 0 / 22px 22px repeat-x;
+  mask: radial-gradient(ellipse 4px 11px at 11px 11px, #000 98%, transparent) 0 0 / 22px 22px repeat-x;
+}
+
+/* Sidan: vitt rutat papper med bläckkant, som lapparna på kartan. */
+.map-pad-page {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.6rem 1.5rem 1.4rem;
+  background-color: #fffdf6;
+  background-image:
+    linear-gradient(rgba(80, 140, 200, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 140, 200, 0.18) 1px, transparent 1px);
+  background-size: 18px 18px;
+  border: 1.5px solid #3a2f25;
+  border-radius: 6px 6px 12px 225px / 6px 6px 225px 12px;
+  color: var(--color-text);
+  font-size: var(--text-small);
+}
+
+.map-pad-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.map-pad-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.map-pad-close {
+  padding: 0 0.3rem;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-pad-who {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.map-pad-avatar {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border: 1.5px solid #3a2f25;
+  border-radius: 50%;
+  background: var(--color-line);
+  object-fit: cover;
+  font-size: 2.4rem;
+}
+
+.map-pad-name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.9rem;
+  line-height: 1.1;
+}
+
+.map-pad-where {
+  margin: 0.15rem 0 0;
+  color: var(--color-muted);
+}
+
+.map-pad-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.map-pad-details dt {
+  font-weight: 700;
+}
+
+.map-pad-details dd {
+  margin: 0;
+}
+
+.map-pad-subheading {
+  margin: 1rem 0 0.4rem;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+}
+
+.map-pad-edit {
+  margin-top: 1.25rem;
+  text-decoration: none;
+}
+
+/* Nålarna och deras verktyg är dolda utzoomat (se PIN_ZOOM i MapPrototype.jsx).
+   Behövs eftersom display: flex annars vinner över hidden-attributet. */
+.map-sketch-tools[hidden],
+.map-sketch-thread[hidden] {
+  display: none;
+}
+
+/* Låst nivå (Sverige eller landskap): ett klick på kartan tar en till nästa
+   nivå, så hela kartan är klickbar. */
+.map-sketch.is-level-locked .maplibregl-canvas-container.maplibregl-interactive {
+  cursor: pointer;
+}
+
+/* Snabbzoom: en kolumn under zoomknapparna uppe till höger (MapLibres
+   kontroller sitter 10px in och är två knappar höga). Namnet på området
+   man zoomade till står under knapparna som en liten lapp. */
+.map-levels {
+  position: absolute;
+  top: 84px;
+  right: 10px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+
+.map-level-name {
+  max-width: 12rem;
+  margin: 0.3rem 0 0;
+  padding: 0.15rem 0.6rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #3a2f25;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  line-height: 1.1;
+  text-align: right;
+}
+
+/* ---------- Kartprototyp på mobil ---------- */
+
+@media (max-width: 600px) {
+  /* Knapparna från kanten (inte efter marginallinjen), mindre, och utan att
+     krocka med zoomknapparna uppe till höger. Tar hänsyn till skärmens hack. */
+  .map-sketch-tools {
+    top: calc(0.6rem + env(safe-area-inset-top));
+    left: calc(0.6rem + env(safe-area-inset-left));
+    /* Plats för zoomknapparna och profilbilden uppe till höger. */
+    right: calc(3.4rem + 54px);
+    gap: 0.35rem;
+  }
+
+  /* Bara profilbilden på smala skärmar; namnet finns för skärmläsare i aria-label. */
+  /* Raden uppe till höger upplöses: profillappen stannar där, och sidornas
+     lappar blir en rad längst ned, som en flikrad. */
+  .map-top-widgets {
+    display: contents;
+  }
+
+  .map-profile-wrap {
+    position: absolute;
+    top: calc(10px + env(safe-area-inset-top));
+    right: 54px;
+    z-index: 6;
+  }
+
+  .map-page-widgets {
+    position: absolute;
+    left: 50%;
+    bottom: calc(2.8rem + env(safe-area-inset-bottom));
+    z-index: 6;
+    gap: 0.4rem;
+    transform: translateX(-50%);
+  }
+
+  .map-page-widget {
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    height: 50px;
+    padding: 0 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+
+  .map-page-widget-label {
+    display: block;
+  }
+
+  .map-page-widget-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* Ett öppet block på mobil: ett rakt ark mellan profilraden upptill och
+     sidornas lappar nedtill (ingen lutning, som är svår att läsa på liten
+     skärm), och kartans övriga knappar och tips göms så länge. */
+  .map-sketch.has-pad .map-sketch-tools,
+  .map-sketch.has-pad .map-levels,
+  .map-sketch.has-pad .map-sketch-hint,
+  .map-sketch.has-pad .map-sketch-compass {
+    display: none;
+  }
+
+  .map-pad-stage {
+    align-items: stretch;
+    padding: calc(70px + env(safe-area-inset-top)) 8px calc(7.4rem + env(safe-area-inset-bottom));
+  }
+
+  .map-pad,
+  .map-pad.is-wide {
+    --pad-rest: none;
+    width: 100%;
+    max-height: none;
+    height: 100%;
+  }
+
+  .map-pad-page {
+    flex: 1;
+    min-height: 0;
+    padding: 1.3rem 0.9rem 1rem;
+  }
+
+  .map-pad-title {
+    font-size: 2rem;
+  }
+
+  .map-levels {
+    top: calc(84px + env(safe-area-inset-top));
+    gap: 0.3rem;
+  }
+
+  .map-level-name {
+    font-size: 1.1rem;
+  }
+
+  .map-profile {
+    padding: 0.2rem;
+    border-radius: 50%;
+  }
+
+  .map-profile-name {
+    display: none;
+  }
+
+  .map-tool {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.72rem;
+  }
+
+  /* Tipset längst ned, bredvid kompassen, i stället för över kartan. */
+  .map-sketch-hint {
+    top: auto;
+    left: 4.2rem;
+    right: 0.75rem;
+    /* Ovanför sidornas lappar och källhänvisningen. */
+    bottom: calc(6.8rem + env(safe-area-inset-bottom));
+    max-width: none;
+    font-size: 1.1rem;
+  }
+
+  .map-sketch-compass {
+    left: 0.6rem;
+    bottom: calc(1.6rem + env(safe-area-inset-bottom));
+    width: 56px;
+    height: 56px;
+  }
+
+  /* Smalare bordskant, annars tar den halva skärmen. */
+  .map-sketch-table {
+    box-shadow: inset 0 0 60px 12px rgba(70, 45, 20, 0.22);
+  }
+
+  .map-sketch-label {
+    font-size: 1.1rem;
+  }
+
+  .map-sketch-label-big {
+    font-size: 1.6rem;
+  }
+
+  /* Smalare lappar så att de får plats på skärmen. */
+  .map-note {
+    width: 200px;
+    font-size: 0.72rem;
+  }
+
+  .map-note-title {
+    font-size: 1.35rem;
+  }
+
+  .map-pin-tag {
+    font-size: 1rem;
+  }
+
+  /* Källhänvisningen till OpenStreetMap måste synas, men kan vara mindre. */
+  .map-sketch .maplibregl-ctrl-attrib {
+    font-size: 9px;
+  }
+}
+
+/* Platsernas pop-up-figurer, stående i samma perspektiv som kartans kamera
+   (1,5 * höjden, mitt på skärmen; se mapPrototypeSigns.js). Under ortnamnen,
+   som ligger senare i samma lager-nivå. */
+.map-sketch-signs {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  perspective: 150vh;
+  perspective: 150dvh;
+}
+
+.map-sign {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 50% 100%;
+}
+
+.map-sign-shadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(58, 47, 37, 0.32), rgba(58, 47, 37, 0));
+}
+
+/* De skissade 3D-husen (se mapPrototypeBuildings.js): ovanpå kartan, under
+   skyltarna och ortnamnen, som ligger senare i samma lager-nivå. */
+.map-sketch-buildings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
