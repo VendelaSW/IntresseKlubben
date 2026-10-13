@@ -121,14 +121,34 @@
 }
 
 .map-activity:hover {
-  z-index: 1;
+  z-index: 2;
   box-shadow: none;
   translate: 2px 2px;
 }
 
-/* Events på gult papper, klubbar på vitt, så att de går att skilja åt. */
+/* Events på rosa papper, klubbar på vitt, så att de går att skilja åt. */
 .map-activity.is-event {
-  background: #fff4b8;
+  background: #ffd6e7;
+}
+
+/* Ens bokade events (se mapPrototypeActivities.js): starkt rosa, lite större
+   och ovanpå de andra, så att de syns direkt. */
+.map-activity.is-event.is-booked {
+  z-index: 1;
+  padding: 0.3rem 0.65rem 0.3rem 0.35rem;
+  background: #ff6fae;
+  border-width: 2px;
+  box-shadow: 3px 3px 0 #3a2f25;
+}
+
+.map-activity.is-booked img {
+  width: 26px;
+  height: 26px;
+}
+
+.map-activity.is-booked .map-activity-sub {
+  color: #3a2f25;
+  font-weight: 700;
 }
 
 .map-activity img {
@@ -161,7 +181,7 @@
 
 /* Lappen man nyss visade på kartan (från Klubbar eller Events). */
 .map-activity.is-highlighted {
-  z-index: 1;
+  z-index: 3;
   outline: 3px solid var(--color-accent);
   outline-offset: 2px;
 }
