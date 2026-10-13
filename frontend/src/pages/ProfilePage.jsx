@@ -142,7 +142,6 @@ function ProfilePage() {
   const listMode = searchParams.has('lista')
   // ?redigera=1: öppnas direkt i "Redigera profil" (kartans profilblock länkar hit).
   const editRequested = searchParams.has('redigera')
-  const editStarted = useRef(false)
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   // Kontouppgifterna (användarnamn och e-post) från /users/me. Visas i
@@ -204,7 +203,10 @@ function ProfilePage() {
             setDraftInterests(draft.interests ?? [])
           }
         }
-        setEditing(data === null)
+        // Här och inte i en egen effekt, så att det fungerar även när
+        // laddningen körs två gånger (StrictMode i utvecklingsläget).
+        if (data !== null && editRequested) startEditing(data, me)
+        else setEditing(data === null)
         setStatus('ready')
       })
       .catch((err) => {
@@ -233,27 +235,24 @@ function ProfilePage() {
     })
   }, [creating, account, name, birthDate, gender, genderSearchable, municipalityCode, district, aboutText, draftInterests])
 
-  function startEditing() {
-    setName(profile?.name ?? '')
-    setBirthDate(profile?.birth_date ?? '')
-    setGender(profile?.gender ?? '')
-    setGenderSearchable(profile?.gender_searchable ?? false)
-    setMunicipalityCode(profile?.municipality_code ?? '')
-    setDistrict(profile?.district ?? '')
-    setAboutText(profile?.profile_text ?? '')
-    setUsername(account?.username ?? '')
-    setEmail(account?.email ?? '')
+  // Fyller formuläret från profilen och kontot. Utan argument de sparade;
+  // direkt efter laddningen skickas de nyss hämtade med, eftersom state inte
+  // hunnit uppdateras än.
+  function startEditing(fromProfile = profile, fromAccount = account) {
+    setName(fromProfile?.name ?? '')
+    setBirthDate(fromProfile?.birth_date ?? '')
+    setGender(fromProfile?.gender ?? '')
+    setGenderSearchable(fromProfile?.gender_searchable ?? false)
+    setMunicipalityCode(fromProfile?.municipality_code ?? '')
+    setDistrict(fromProfile?.district ?? '')
+    setAboutText(fromProfile?.profile_text ?? '')
+    setUsername(fromAccount?.username ?? '')
+    setEmail(fromAccount?.email ?? '')
     setAccountPassword('')
     setAvailability({ username: null, email: null })
     setFormError('')
     setEditing(true)
   }
-
-  useEffect(() => {
-    if (!editRequested || editStarted.current || status !== 'ready' || !profile) return
-    editStarted.current = true
-    startEditing()
-  }, [editRequested, status, profile])
 
   // Ändrade kontouppgifter (bara för en befintlig profil). Bara det som
   // ändrats skickas och kontrolleras.
@@ -594,7 +593,7 @@ function ProfilePage() {
       <p className="hint-text">E-posten syns bara för dig.</p>
       <ProfileAbout text={profile.profile_text} />
       <BlockedUsers />
-      <button type="button" className="primary-button" onClick={startEditing}>
+      <button type="button" className="primary-button" onClick={() => startEditing()}>
         Redigera profil
       </button>
       <DeleteAccount />
