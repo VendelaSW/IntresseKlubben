@@ -118,6 +118,7 @@ En ticket ger en liten PR. Ju längre en branch lever, desto mer av `dev` missar
 - **Inga fejkade användare** (`FakeUser`, `id = 1` och liknande) i koden som mergas.
 - I frontend sköts inloggning av `services/auth.js` och `services/api.js`. Skapa inga egna varianter.
 - Man loggar in med **användarnamn eller e-post** i samma fält (`username_or_email`). Med @ är det en e-postadress, därför får användarnamn inte innehålla @.
+- **Resten av appen är låst tills profilen är klar.** I backend lägger `require_profile` (från `app.auth.security`) på 403 "Skapa din profil först."; lägg `dependencies=[Depends(require_profile)]` på nya routrar. Öppet utan profil är bara inloggning, `/users/me`, `/profile/...`, `/interests/...` och `/municipalities/`. Vakttestet i `test_require_profile.py` fäller en ny endpoint som glömt låset. I frontend sköts samma sak av `RequireProfile` runt alla sidor utom `/profil`.
 
 ### Data om andra användare
 - Den inloggade användaren får se allt om sig själv. Andra ser bara det ticketen säger, t.ex. användarnamn, namn, ålder, kommun och bild, aldrig e-post, födelsedatum (visa ålder i stället), kön eller lösenord.

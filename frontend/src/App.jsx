@@ -14,6 +14,7 @@ import ConversationPage from './pages/ConversationPage'
 import UserProfilePage from './pages/UserProfilePage'
 import AppShell from './components/AppShell'
 import ProtectedRoute from './components/ProtectedRoute'
+import RequireProfile from './components/RequireProfile'
 import DemoLayout from './pages/demo/DemoLayout'
 import DemoStart from './pages/demo/DemoStart'
 import DemoAuth from './pages/demo/DemoAuth'
@@ -52,14 +53,18 @@ function App() {
           {/* Intervjun har en egen helskärmsvy, utan menyn. */}
           <Route path="/profil/intervju" element={<ProfileInterview />} />
           <Route element={<AppShell />}>
-            <Route path="/hem" element={<HubPage />} />
+            {/* Innan profilen är klar går bara intervjun (ovan) och formuläret i
+                listläget (/profil?lista=1) att nå. Resten ligger i RequireProfile. */}
             <Route path="/profil" element={<ProfilePage />} />
-            <Route path="/klubbar" element={<GroupsPage />} />
-            <Route path="/personer" element={<PeoplePage />} />
-            <Route path="/events" element={<EventsPage />} />
-            <Route path="/meddelanden" element={<InboxPage />} />
-            <Route path="/meddelanden/:userId" element={<ConversationPage />} />
-            <Route path="/anvandare/:userId" element={<UserProfilePage />} />
+            <Route element={<RequireProfile />}>
+              <Route path="/hem" element={<HubPage />} />
+              <Route path="/klubbar" element={<GroupsPage />} />
+              <Route path="/personer" element={<PeoplePage />} />
+              <Route path="/events" element={<EventsPage />} />
+              <Route path="/meddelanden" element={<InboxPage />} />
+              <Route path="/meddelanden/:userId" element={<ConversationPage />} />
+              <Route path="/anvandare/:userId" element={<UserProfilePage />} />
+            </Route>
           </Route>
         </Route>
 

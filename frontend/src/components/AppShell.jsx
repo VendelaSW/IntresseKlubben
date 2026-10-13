@@ -33,19 +33,24 @@ function AppShell() {
   const [incomingCount, setIncomingCount] = useState(0)
   const [unseenMessages, setUnseenMessages] = useState(0)
   const [clubInvitations, setClubInvitations] = useState(0)
+  // Siffrorna i menyn bygger på anrop som är låsta tills profilen är klar
+  // (require_profile i backend), så de hämtas inte innan dess.
+  const profileDone = Boolean(user?.profile_completed)
 
   // Antal obesvarade kontaktförfrågningar, för badgen vid Personer. Hämtas
   // om vid varje sidbyte - enkel och "nog bra" uppdatering utan att bygga
   // en delad kontakter-context bara för en badge.
   useEffect(() => {
+    if (!profileDone) return undefined
     getContacts()
       .then((data) => setIncomingCount(data.incoming_requests.length))
       .catch(() => {})
-  }, [location.pathname])
+  }, [location.pathname, profileDone])
 
   // Antal klubbar man är inbjuden till, för märket vid Klubbar. Räknas om vid
   // sidbyte och när man har gått med i eller avböjt en klubb.
   useEffect(() => {
+    if (!profileDone) return undefined
     let cancelled = false
     function refresh() {
       getGroupInvitationCount()
@@ -58,7 +63,7 @@ function AppShell() {
       cancelled = true
       window.removeEventListener(INVITATIONS_CHANGED, refresh)
     }
-  }, [location.pathname])
+  }, [location.pathname, profileDone])
 
   // Konversationer med nya brev, för siffran på brev-loggan: samma antal som
   // fliken Nya på Brev. En konversation räknas som sedd först när man öppnar
@@ -68,6 +73,7 @@ function AppShell() {
   // syns utan att man byter sida. Pausar när fliken inte syns och räknar om
   // direkt när man kommer tillbaka.
   useEffect(() => {
+    if (!profileDone) return undefined
     const openMatch = location.pathname.match(/^\/meddelanden\/(\d+)/)
     const openConversationId = openMatch ? Number(openMatch[1]) : null
     let cancelled = false
@@ -99,7 +105,7 @@ function AppShell() {
       clearInterval(timer)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [location.pathname])
+  }, [location.pathname, profileDone])
 
   function handleLogout() {
     logout()
@@ -113,8 +119,10 @@ function AppShell() {
           <img src={logo} alt="Intresseklubben" className="app-brand-logo" />
         </Link>
         <nav className="app-nav" aria-label="Huvudmeny">
+          {/* Innan profilen är klar är ikonerna inte länkar, så att man inte
+              lämnar "Skapa din profil" av misstag (allt annat är ändå låst). */}
           {NAV_ITEMS.map(({ label, to, icon }) =>
-            to ? (
+            to && profileDone ? (
               <NavLink
                 key={label}
                 to={to}
@@ -141,7 +149,12 @@ function AppShell() {
                 <span className="app-nav-label">{label}</span>
               </NavLink>
             ) : (
-              <span key={label} className="app-nav-link">
+              <span
+                key={label}
+                className={`app-nav-link${to ? ' app-nav-link-locked' : ''}`}
+                title={to ? 'Skapa din profil först' : undefined}
+                aria-disabled={to ? true : undefined}
+              >
                 <img src={icon} alt="" className="nav-icon" />
                 <span className="app-nav-label">{label}</span>
               </span>

@@ -19,6 +19,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.core import error_messages as msg
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.user import User
@@ -105,3 +106,17 @@ def get_current_user(
     if user is None:
         raise _not_logged_in()
     return user
+
+
+def require_profile(current_user: User = Depends(get_current_user)) -> None:
+    """
+    FastAPI-dependency som låser en route tills användaren har gjort klart sin
+    profil: 403 PROFILE_REQUIRED annars. Läggs på hela routrar (kontakter, brev,
+    klubbar, events) och på personendpoints i /users, med
+    `dependencies=[Depends(require_profile)]`. Öppet utan profil är bara det som
+    behövs för att bli klar: inloggning, det egna kontot (/users/me), den egna
+    profilen (/profile) och biblioteken (/interests, /municipalities). Ett
+    vakttest i test_app_structure.py kontrollerar att alla andra endpoints är låsta.
+    """
+    if not current_user.profile_completed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg.PROFILE_REQUIRED)
