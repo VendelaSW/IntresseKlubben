@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { LngLat, Map as MapLibreMap, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -386,10 +386,6 @@ function listColumnWidth(screenWidth) {
 // som en lista bredvid landet (se listEls). Namnen i listan går att klicka på
 // (onPick) och markerar sitt landskap när man hovrar (onHover).
 //
-// TILLFÄLLIGT redigeringsläge (`editing`, adressen slutar på ?redigera): namnen
-// i listan går att dra dit man vill ha dem, och getPositions() ger allas
-// platser relativt Sveriges ruta på skärmen (0-1), för att kopiera och skicka.
-//
 // På landskapsnivån (getLandskap() ger det valda landskapets namn) visas bara
 // det landskapets namn och ortnamnen inom det.
 //
@@ -403,14 +399,9 @@ function listColumnWidth(screenWidth) {
 function syncPlaceLabels(
   map,
   layer,
-  { getMode, getLandskap, getLan, getKommuner, onPick, onHover, onPickLan, onHoverLan, onPickKommun, editing },
+  { getMode, getLandskap, getLan, getKommuner, onPick, onHover, onPickLan, onHoverLan, onPickKommun },
 ) {
   let placed = []
-  // Namn som har dragits: namn -> { u, v } (mitten, relativt Sveriges ruta).
-  const moved = new Map()
-  // Senast ritade listan: Sveriges ruta och varje namns mitt.
-  let lastBox = null
-  const lastCenters = new Map()
   // Största landskapen först, så att de vinner när namnen krockar.
   const landskap = [...LANDSKAP_LABELS].sort((a, b) => b.km2 - a.km2)
 
@@ -534,9 +525,7 @@ function syncPlaceLabels(
     const uiBox = ui && [ui.left - origin.left - 6, 0, width, ui.bottom - origin.top + 6]
 
     const items = LANDSKAP_LABELS.map((label) => {
-      const [u, v] = moved.has(label.name)
-        ? [moved.get(label.name).u, moved.get(label.name).v]
-        : (LANDSKAP_LIST_LAYOUT[label.name] ?? [0.5, 0.5])
+      const [u, v] = LANDSKAP_LIST_LAYOUT[label.name] ?? [0.5, 0.5]
       const nameWidth = landskapNameWidth(label.name, size)
       const anchor = map.project(label.lngLat)
       let cx = minX + u * (maxX - minX)
@@ -545,7 +534,7 @@ function syncPlaceLabels(
       cx = Math.min(width - nameWidth / 2 - 4, Math.max(nameWidth / 2 + 4, cx))
       cy = Math.min(height - LIST_BOTTOM, Math.max(rowHeight / 2 + 4, cy))
       if (uiBox && cx + nameWidth / 2 > uiBox[0] && cy - rowHeight / 2 < uiBox[3]) cy = uiBox[3] + rowHeight / 2
-      return { ...label, anchor, nameWidth, cx, cy, fixed: moved.has(label.name) }
+      return { ...label, anchor, nameWidth, cx, cy }
     })
 
     // Knuffa isär namn som överlappar (uppifrån och ner, några varv).
@@ -560,8 +549,8 @@ function syncPlaceLabels(
           const gap = b.cy - a.cy
           if (overlapX && gap < rowHeight) {
             const push = (rowHeight - gap) / 2
-            if (!a.fixed) a.cy -= push
-            if (!b.fixed) b.cy += push
+            a.cy -= push
+            b.cy += push
             changed = true
           }
         }
@@ -572,7 +561,6 @@ function syncPlaceLabels(
     const els = []
     let lines = ''
     for (const { id, name, anchor, nameWidth, cx, cy } of items) {
-      lastCenters.set(name, { x: cx, y: cy })
       const el = document.createElement('span')
       el.className = 'map-sketch-landskap is-listed'
       el.textContent = name
@@ -587,7 +575,6 @@ function syncPlaceLabels(
       const ey = Math.max(cy - rowHeight / 2, Math.min(anchor.y, cy + rowHeight / 2))
       lines += `<line x1="${anchor.x}" y1="${anchor.y}" x2="${ex}" y2="${ey}"/><circle cx="${anchor.x}" cy="${anchor.y}" r="1.8"/>`
     }
-    lastBox = { minX, minY, maxX, maxY }
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     svg.setAttribute('class', 'map-sketch-landskap-pointers')
     svg.innerHTML = lines
@@ -693,60 +680,9 @@ function syncPlaceLabels(
   // Namnen i listan: klick zoomar till landskapet, hovring markerar det.
   layer.addEventListener('click', (event) => {
     const item = event.target.closest('.is-listed')
-    if (item && !editing) onPick(item.dataset.name)
+    if (item) onPick(item.dataset.name)
   })
 
-  // Redigeringsläget: dra ett namn med mus eller finger.
-  if (editing) {
-    layer.classList.add('is-editing')
-    let drag = null
-    layer.addEventListener('pointerdown', (event) => {
-      const item = event.target.closest('.is-listed')
-      if (!item || !lastBox) return
-      event.preventDefault()
-      const start = lastCenters.get(item.dataset.name)
-      drag = { name: item.dataset.name, x0: event.clientX, y0: event.clientY, start }
-    })
-    window.addEventListener('pointermove', (event) => {
-      if (!drag) return
-      const { minX, minY, maxX, maxY } = lastBox
-      const x = drag.start.x + event.clientX - drag.x0
-      const y = drag.start.y + event.clientY - drag.y0
-      moved.set(drag.name, { u: (x - minX) / (maxX - minX), v: (y - minY) / (maxY - minY) })
-      render()
-    })
-    window.addEventListener('pointerup', () => {
-      drag = null
-    })
-  }
-
-  // Allas platser just nu, relativt Sveriges ruta (u, v från 0 till 1), och
-  // i pixlar, plus skärmens storlek. För att kopiera från redigeringsläget.
-  function getPositions() {
-    if (!lastBox) return null
-    const { minX, minY, maxX, maxY } = lastBox
-    const round = (value) => Math.round(value * 1000) / 1000
-    const names = {}
-    for (const [name, { x, y }] of lastCenters) {
-      names[name] = {
-        u: round((x - minX) / (maxX - minX)),
-        v: round((y - minY) / (maxY - minY)),
-        x: Math.round(x),
-        y: Math.round(y),
-        flyttad: moved.has(name),
-      }
-    }
-    return {
-      skarm: { bredd: layer.clientWidth, hojd: layer.clientHeight },
-      sverige: { x: Math.round(minX), y: Math.round(minY), bredd: Math.round(maxX - minX), hojd: Math.round(maxY - minY) },
-      namn: names,
-    }
-  }
-
-  function resetPositions() {
-    moved.clear()
-    render()
-  }
   layer.addEventListener('mouseover', (event) => {
     const item = event.target.closest('.is-listed')
     onHover(item ? Number(item.dataset.id) : null)
@@ -769,7 +705,7 @@ function syncPlaceLabels(
 
   map.on('move', render)
   map.on('idle', refresh)
-  return { render, getPositions, resetPositions }
+  return { render }
 }
 
 function MapPrototype() {
@@ -855,23 +791,6 @@ function MapPrototype() {
   useEffect(() => {
     if (openPage === null && activitiesRef.current) loadActivities()
   }, [openPage])
-  // TILLFÄLLIGT: redigeringsläge för landskapslistan (adressen slutar på
-  // ?redigera). Namnen går att dra, och positionerna kan kopieras.
-  const editing = useMemo(() => new URLSearchParams(window.location.search).has('redigera'), [])
-  const [exportText, setExportText] = useState('')
-
-  async function copyPositions() {
-    const positions = labelsApiRef.current?.getPositions()
-    if (!positions) return
-    const text = JSON.stringify(positions, null, 1)
-    setExportText(text)
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {
-      // Urklipp fungerar inte överallt (t.ex. via nätverksadressen); texten
-      // står ändå i rutan och går att markera och kopiera.
-    }
-  }
   const fitRef = useRef(null) // mitt och zoom för hela Sverige (se fitSweden)
   // Namnet på området man senast zoomade till med nivåknapparna.
   const [levelName, setLevelName] = useState('')
@@ -1208,11 +1127,8 @@ function MapPrototype() {
       getKommuner: () => lanFocusRef.current?.kommuner ?? [],
       onPickKommun: (lngLat) => zoomToLevelRef.current('kommun', lngLat),
       onHoverLan: (id) => setHoveredLan(id),
-      editing,
     })
-    // Redigeringsläget börjar på Sverige-nivån.
-    if (editing) map.once('load', () => zoomToLevelRef.current('sverige'))
-    else startAtHome(map)
+    startAtHome(map)
     activitiesRef.current = attachActivityMarkers(map, activitiesLayerRef.current, {
       getKommun: () => selectedKommunRef.current,
       onPick: (item) => openActivityRef.current(item),
@@ -1344,29 +1260,6 @@ function MapPrototype() {
         <MapProfileWidget onOpen={setOpenPage} />
       </div>
       {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}
-      {editing && (
-        <div className="map-edit-panel">
-          <p className="map-edit-help">Dra namnen dit du vill ha dem.</p>
-          <div className="map-edit-buttons">
-            <button type="button" className="map-tool" onClick={copyPositions}>
-              Kopiera positioner
-            </button>
-            <button
-              type="button"
-              className="map-tool"
-              onClick={() => {
-                labelsApiRef.current?.resetPositions()
-                setExportText('')
-              }}
-            >
-              Återställ
-            </button>
-          </div>
-          {exportText && (
-            <textarea className="map-edit-output" readOnly value={exportText} onFocus={(e) => e.target.select()} />
-          )}
-        </div>
-      )}
       <div className="map-sketch-table" aria-hidden="true" />
       {openPage === 'profil' && <MapProfilePad onClose={() => setOpenPage(null)} />}
       {openPage && openPage !== 'profil' && (
