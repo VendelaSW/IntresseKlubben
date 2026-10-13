@@ -728,6 +728,27 @@ function syncPlaceLabels(
   return { render }
 }
 
+// Lugnt läge sparas i webbläsaren. Går det inte (t.ex. privat läge) visas
+// kartan som vanligt.
+const CALM_KEY = 'karta-lugnt-lage'
+
+function readCalm() {
+  try {
+    return window.localStorage.getItem(CALM_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function saveCalm(calm) {
+  try {
+    if (calm) window.localStorage.setItem(CALM_KEY, '1')
+    else window.localStorage.removeItem(CALM_KEY)
+  } catch {
+    // Valet gäller då bara tills sidan laddas om.
+  }
+}
+
 function MapPrototype() {
   const rootRef = useRef(null)
   const containerRef = useRef(null)
@@ -743,6 +764,12 @@ function MapPrototype() {
   // Sidan som ligger som block på kartan: 'profil', 'brev', 'personer',
   // 'klubbar', 'events' eller null.
   const [openPage, setOpenPage] = useState(null)
+  // Lugnt läge: kartan göms och bara pappret, widgetarna och blocken syns
+  // (för den som vill ha en lugnare bakgrund, eller en långsam dator). Valet
+  // sparas i webbläsaren.
+  const [calm, setCalm] = useState(readCalm)
+  const toggleCalm = () => setCalm((was) => !was)
+  useEffect(() => saveCalm(calm), [calm])
   const mapRef = useRef(null)
   const labelsApiRef = useRef(null) // för att rita om namnen när nivån byts
   const outsideApiRef = useRef(null) // för att rita om papperet när nivån byts
@@ -1209,7 +1236,7 @@ function MapPrototype() {
   return (
     <div
       ref={rootRef}
-      className={`map-sketch${mode !== 'free' ? ' is-level-locked' : ''}${openPage ? ' has-pad' : ''}`}
+      className={`map-sketch${mode !== 'free' ? ' is-level-locked' : ''}${openPage ? ' has-pad' : ''}${calm ? ' is-calm' : ''}`}
       style={{ '--map-tilt': `${TILT}deg` }}
     >
       {/* Blockets linjer, lutade på samma sätt som kartan. */}
@@ -1277,8 +1304,16 @@ function MapPrototype() {
       </div>
       <div className="map-top-widgets">
         <MapPageWidgets openPage={openPage} onOpen={setOpenPage} />
-        <MapProfileWidget onOpen={setOpenPage} />
+        <MapProfileWidget onOpen={setOpenPage} calm={calm} onToggleCalm={toggleCalm} />
       </div>
+      {calm && (
+        <div className="map-calm-note">
+          <p>Kartan är pausad.</p>
+          <button type="button" className="map-tool" onClick={toggleCalm}>
+            Visa kartan
+          </button>
+        </div>
+      )}
       {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}
       <div className="map-sketch-table" aria-hidden="true" />
       {openPage === 'profil' && <MapProfilePad onClose={() => setOpenPage(null)} />}

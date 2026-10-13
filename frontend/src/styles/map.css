@@ -52,6 +52,64 @@
 }
 
 
+/* Lugnt läge (se MapPrototype.jsx): kartan och allt som hör till den göms,
+   och pappret ligger platt. Widgetarna, profilen och blocken ligger kvar.
+   visibility (inte display) så att kartan behåller sin storlek och kommer
+   tillbaka som den var. */
+.map-sketch.is-calm .map-sketch-canvas,
+.map-sketch.is-calm .map-sketch-outside,
+.map-sketch.is-calm .map-sketch-buildings,
+.map-sketch.is-calm .map-sketch-signs,
+.map-sketch.is-calm .map-sketch-labels,
+.map-sketch.is-calm .map-sketch-activities,
+.map-sketch.is-calm .map-sketch-notes,
+.map-sketch.is-calm .map-sketch-thread,
+.map-sketch.is-calm .map-sketch-compass,
+.map-sketch.is-calm .map-sketch-tools,
+.map-sketch.is-calm .map-sketch-hint,
+.map-sketch.is-calm .map-levels {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.map-sketch.is-calm .map-sketch-paper {
+  transform: none;
+}
+
+/* Utan zoomknapparna behövs ingen plats för dem uppe till höger (på mobil
+   sitter profillappen ensam där, se längre ned). */
+.map-sketch.is-calm .map-top-widgets {
+  right: 10px;
+}
+
+@media (max-width: 600px) {
+  .map-sketch.is-calm .map-profile-wrap {
+    right: 10px;
+  }
+}
+
+/* Mitt på pappret i lugnt läge: att kartan är pausad, och hur man får
+   tillbaka den. */
+.map-calm-note {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  transform: translate(-50%, -50%);
+  color: #3a2f25;
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  text-align: center;
+}
+
+.map-calm-note p {
+  margin: 0;
+}
+
 /* Dubbel klass, annars vinner MapLibres egen .maplibregl-map
    (position: relative) och kartan får höjden 0. */
 .map-sketch .map-sketch-canvas {
