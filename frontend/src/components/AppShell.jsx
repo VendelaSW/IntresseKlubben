@@ -7,6 +7,7 @@ import brevIcon from '../assets/brev.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import { useAuth } from '../hooks/useAuth'
+import { setStartView } from '../hooks/useStartView'
 import { getContacts } from '../services/contacts'
 import { INVITATIONS_CHANGED, getGroupInvitationCount } from '../services/groups'
 import { countUnseenConversations, getConversations } from '../services/messages'
@@ -112,6 +113,12 @@ function AppShell() {
     navigate('/')
   }
 
+  // Tillbaka till kartan som startsida (se useStartView och HomeSwitch).
+  function showMap() {
+    setStartView('karta')
+    navigate('/hem')
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -162,6 +169,11 @@ function AppShell() {
           )}
         </nav>
         <div className="app-user">
+          {profileDone && (
+            <button type="button" className="secondary-button button-small" onClick={showMap}>
+              Visa kartan
+            </button>
+          )}
           <Link to="/profil" className="info-link highlight" style={{ borderBottom: 'none' }}>
             {user?.username}
           </Link>
