@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import Avatar from '../Avatar'
 import { getGroupMembers } from '../../services/groups'
 
 // Vilka som är med i klubben. Varje namn länkar till personens profil, där
@@ -26,13 +27,7 @@ function GroupMembers({ groupId, memberCount }) {
         {members.map((m) => (
           <li key={m.id}>
             <Link to={`/anvandare/${m.id}`} className="person-list-item">
-              {m.image_url ? (
-                <img src={m.image_url} alt="" className="person-list-avatar" />
-              ) : (
-                <span className="person-list-avatar card-avatar-initials" aria-hidden="true">
-                  {(m.name ?? m.username).trim()[0]?.toUpperCase()}
-                </span>
-              )}
+              <Avatar name={m.name ?? m.username} imageUrl={m.image_url} className="person-list-avatar" />
               <span>{m.name ?? m.username}</span>
               {m.role === 'owner' && <span className="hint-text">Ägare</span>}
             </Link>

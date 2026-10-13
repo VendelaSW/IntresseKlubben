@@ -50,6 +50,18 @@ def _clean_profile_text(v: str) -> str:
     return v
 
 
+class ProfileTextCheck(BaseModel):
+    """Om mig-texten att förhandskontrollera (POST /profile/text-check), med samma regler för längd och språk som
+    när profilen sparas."""
+
+    profile_text: str
+
+    @field_validator("profile_text")
+    @classmethod
+    def validate_profile_text(cls, v: str) -> str:
+        return _clean_profile_text(v)
+
+
 class ProfileCreate(BaseModel):
     """Skapa en profil (POST /profile/). Alla obligatoriska fält måste vara med,
     plus minst ett intresse, som sparas i samma anrop så att en profil aldrig
