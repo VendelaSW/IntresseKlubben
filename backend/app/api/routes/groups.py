@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.auth.security import get_current_user
+from app.auth.security import get_current_user, require_profile
 from app.core import error_messages as msg
 from app.core import storage
 from app.crud.contact import blocked_by_me_ids, blocked_user_ids
@@ -34,7 +34,8 @@ from app.schemas.contact import ContactUser
 from app.schemas.group import GroupCreate, GroupInvite, GroupMemberResponse, GroupResponse
 from app.schemas.group_message import GroupMessageCreate, GroupMessageOut
 
-router = APIRouter(prefix="/groups", tags=["groups"])
+# Låst tills profilen är klar (se require_profile).
+router = APIRouter(prefix="/groups", tags=["groups"], dependencies=[Depends(require_profile)])
 
 
 def _blocks(db: Session, user_id: int) -> tuple[set[int], set[int]]:
