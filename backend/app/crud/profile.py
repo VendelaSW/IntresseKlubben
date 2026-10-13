@@ -2,9 +2,11 @@ from datetime import date
 
 from sqlalchemy.orm import Session, selectinload
 
+from app.crud.interest import set_user_interests
 from app.models.interest import Interest, InterestStatus
 from app.models.profile import GenderEnum, Profile
 from app.models.user import User
+from app.models.user_interest import UserInterest
 from app.schemas.profile import ProfileCreate, ProfileUpdate
 
 
@@ -67,7 +69,9 @@ def create_profile(db: Session, user_id: int, data: ProfileCreate) -> Profile:
         gender_searchable=data.gender_searchable,
     )
     db.add(profile)
-    db.get(User, user_id).interests = interests
+    # Inte user.interests = interests: det kraschar om användaren redan har
+    # något av intressena (se set_user_interests).
+    set_user_interests(db.get(User, user_id), interests)
     db.commit()
     db.refresh(profile)
     return profile
@@ -119,7 +123,10 @@ def list_people(
     query = (
         db.query(Profile)
         .join(User, User.id == Profile.user_id)
-        .options(selectinload(Profile.municipality), selectinload(Profile.user).selectinload(User.interests))
+        .options(
+            selectinload(Profile.municipality),
+            selectinload(Profile.user).selectinload(User.interest_links).selectinload(UserInterest.interest),
+        )
         .filter(Profile.name.isnot(None), Profile.user_id != exclude_user_id)
     )
     if exclude_user_ids:

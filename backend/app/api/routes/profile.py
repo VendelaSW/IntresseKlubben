@@ -23,8 +23,20 @@ from app.schemas.profile import (
     ProfileResponse,
     ProfileUpdate,
 )
+from app.services.text_policy import TextCheckUnavailable, TextNotAllowed, check_text
 
 router = APIRouter(prefix="/profile", tags=["profile"])
+
+
+def _check_profile_text(text: str) -> None:
+    """Om mig-texten får inte vara nazistisk, pedofil eller hatisk eller våldsam (se
+    app/services/text_policy.py). Kontrollen är fail-closed: går den inte att köra sparas inget."""
+    try:
+        check_text(text)
+    except TextNotAllowed:
+        raise HTTPException(status_code=422, detail=msg.PROFILE_TEXT_NOT_ALLOWED) from None
+    except TextCheckUnavailable:
+        raise HTTPException(status_code=503, detail=msg.TEXT_CHECK_UNAVAILABLE) from None
 
 
 def _to_response(profile) -> ProfileResponse:
@@ -63,6 +75,7 @@ def add_profile(
     # ett databasfel (500) från främmande nyckeln.
     if db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
+    _check_profile_text(data.profile_text)
     try:
         profile = create_profile(db, current_user.id, data)
     except ProfileExistsError:
@@ -82,6 +95,8 @@ def edit_profile(
     # ett databasfel (500) från främmande nyckeln.
     if data.municipality_code is not None and db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
+    if data.profile_text is not None:
+        _check_profile_text(data.profile_text)
     try:
         profile = update_profile(db, current_user.id, data)
     except ProfileNotFoundError:
