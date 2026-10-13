@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import BackButton from '../components/BackButton'
 import { useAuth } from '../hooks/useAuth'
+import { useCanGoBack } from '../hooks/useCanGoBack'
 import { getConversation, markConversationSeen, sendMessage } from '../services/messages'
 import { getProfile } from '../services/profile'
 import { formatSentAt } from '../utils/formatSentAt'
@@ -26,6 +27,7 @@ function ConversationPage() {
   const { userId } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const canGoBack = useCanGoBack()
   // Vem konversationen är med (från servern), för namnet överst och vid breven.
   const [other, setOther] = useState(null)
   // Den egna profilen, för ens egen bild vid ens egna brev.
@@ -97,10 +99,9 @@ function ConversationPage() {
 
   // Tillbaka dit man kom ifrån (t.ex. någons profil), som på profilsidan.
   // Öppnades chatten direkt via en länk finns ingen tidigare sida i appen, och
-  // då går vi till Brev i stället för ut ur appen. window.history.state.idx är
-  // satt av react-router och är 0 bara för sidans allra första post.
+  // då går vi till Brev i stället för ut ur appen (se useCanGoBack).
   function handleBack() {
-    if (window.history.state && window.history.state.idx > 0) {
+    if (canGoBack()) {
       navigate(-1)
     } else {
       navigate('/meddelanden')
