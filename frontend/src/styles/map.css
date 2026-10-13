@@ -225,19 +225,57 @@
   stroke-linejoin: round;
 }
 
-/* Kaffefläcken ritas med fyllningar (se MapCalmPage.jsx), inga linjer. */
+/* Det utspillda kaffet (se MapCalmPage.jsx). Multiply, så att pappret och
+   linjerna syns igenom som på en riktig fläck. Går lite utanför kanten. */
 .map-calm-coffee {
-  right: 6%;
-  bottom: 10%;
-  width: 170px;
-  height: 170px;
+  right: -24px;
+  bottom: 6%;
+  width: 240px;
+  height: 240px;
   stroke: none !important;
-  rotate: -12deg;
+  rotate: -8deg;
+  mix-blend-mode: multiply;
+}
+
+.map-calm-coffee-fill {
+  fill: #c56f1f;
+  fill-opacity: 0.42;
+}
+
+.map-calm-coffee-spots {
+  fill: #9c4b14;
+  fill-opacity: 0.3;
+}
+
+/* Mörkare band precis innanför kanten: kaffet drar sig mot kanten när det
+   torkar. */
+.map-calm-coffee-band {
+  fill: none;
+  stroke: #a85a1e !important;
+  stroke-width: 7 !important;
+  stroke-opacity: 0.22;
+}
+
+.map-calm-coffee-rim {
+  fill: none;
+  stroke: #73320e !important;
+  stroke-width: 1.5 !important;
+  stroke-opacity: 0.85;
 }
 
 .map-calm-coffee-drop {
-  fill: #6b3f1a;
-  fill-opacity: 0.35;
+  fill: #c56f1f;
+  fill-opacity: 0.45;
+  stroke: #73320e !important;
+  stroke-width: 1.1 !important;
+  stroke-opacity: 0.75;
+}
+
+.map-calm-coffee-old {
+  fill: none;
+  stroke: #8a5a2b !important;
+  stroke-width: 3 !important;
+  stroke-opacity: 0.16;
 }
 
 .map-calm-plane {
