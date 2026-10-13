@@ -29,6 +29,7 @@ import UserProfilePage from './UserProfilePage'
 
 // Startsidan i blocket för varje widget (se MapPageWidgets).
 export const MAP_PAGES = {
+  profil: '/profil',
   brev: '/meddelanden',
   personer: '/personer',
   klubbar: '/klubbar',
