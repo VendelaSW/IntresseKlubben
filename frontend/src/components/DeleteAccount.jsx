@@ -62,8 +62,9 @@ function DeleteAccount() {
       <button type="submit" disabled={busy || password === ''}>
         {busy ? 'Raderar...' : 'Radera kontot för gott'}
       </button>
+      {/* Heter inte "Avbryt": under Redigera profil finns redan en Avbryt för redigeringen, och de två ligger nära varandra. */}
       <button type="button" className="button-secondary" onClick={close} disabled={busy}>
-        Avbryt
+        Behåll kontot
       </button>
     </form>
   )
