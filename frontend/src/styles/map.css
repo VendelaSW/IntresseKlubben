@@ -188,25 +188,6 @@
   touch-action: none;
 }
 
-/* Hela lappen med lite luft runt, så att tejpen upptill och skuggan nere
-   till höger kommer med i rutorna. */
-.map-note-sheet {
-  position: absolute;
-  left: 0;
-  top: 0;
-  padding: 10px 12px 12px 4px;
-}
-
-/* En bit av lappen: klipper ut sin del av kopian och sträcks ut mellan sina
-   fyra hörn (se mapPrototypeNotes.js). */
-.map-note-cell {
-  position: absolute;
-  left: 0;
-  top: 0;
-  overflow: hidden;
-  transform-origin: 0 0;
-}
-
 .map-note-stuck:hover {
   z-index: 100000 !important;
 }
@@ -344,7 +325,7 @@
 }
 
 
-/* Lapp för en plats, stående på den lutade kartan. Vit (stilguidens färg för
+/* Lapp för en plats, platt ovanpå kartan. Vit (stilguidens färg för
    kort och boxar) med ojämna hörn, bläckkant och en hård bläckskugga, så att
    den ser ritad ut och inte fotograferad. */
 .map-note {
