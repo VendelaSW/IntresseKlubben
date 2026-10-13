@@ -5,7 +5,7 @@ from pydantic import BaseModel, field_validator
 from app.core import error_messages as msg
 from app.core.profanity import validate_clean_text
 from app.models.profile import GenderEnum
-from app.schemas.interest import InterestResponse
+from app.schemas.interest import ProfileInterest
 
 
 def _clean_name(v: str) -> str:
@@ -179,7 +179,7 @@ class PublicProfileResponse(BaseModel):
     district: str | None
     image_url: str | None
     profile_text: str | None
-    interests: list[InterestResponse]
+    interests: list[ProfileInterest]
 
 
 class PersonResponse(BaseModel):
@@ -194,7 +194,7 @@ class PersonResponse(BaseModel):
     municipality_name: str | None
     district: str | None
     image_url: str | None
-    interests: list[InterestResponse]
+    interests: list[ProfileInterest]
 
 
 class ProfileImageUploadUrl(BaseModel):

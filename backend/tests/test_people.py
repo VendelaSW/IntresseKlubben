@@ -82,6 +82,20 @@ def test_includes_username_and_interests(client, db, user):
     assert [i["name"] for i in body["interests"]] == ["Klättring"]
 
 
+def test_interests_on_person_cards_have_parent_id(client, db, user):
+    history = Interest(name="Historia")
+    db.add(history)
+    db.flush()
+    coins = Interest(name="Mynt", parent_id=history.id)
+    db.add(coins)
+    db.commit()
+    _create_person(db, "bob", "Bob", interests=[history, coins])
+
+    body = client.get("/users/").json()[0]
+
+    assert {i["name"]: i["parent_id"] for i in body["interests"]} == {"Historia": None, "Mynt": history.id}
+
+
 def test_interests_are_sorted_by_name(client, db, user):
     # Tillagda i omvänd bokstavsordning, för att inte råka stämma av misstag.
     schack = Interest(name="Schack")

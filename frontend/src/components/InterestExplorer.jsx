@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import InterestTree, { PROFILE_MAX_SUBS, profileTree } from './InterestTree'
 import { getChildInterests, getTopInterests, searchInterests } from '../services/interests'
 
 // Så länge sökningen väntar efter senaste tangenttrycket, så att inte varje
@@ -12,8 +13,11 @@ const SEARCH_DELAY_MS = 300
 // Komponenten sparar inget själv: `onAdd(interest)` och `onRemove(interest)`
 // gör det (direkt på profilen, eller i formuläret när profilen skapas). De får
 // returnera ett promise; misslyckas det visas felet här. `selected` är de valda
-// intressena ({ id, name }). `card` = eget vitt kort (profilen); utan ligger den
-// direkt i ett formulär (när profilen skapas).
+// intressena ({ id, name, parent_id }), som visas som ett träd (InterestTree):
+// ett intresse vars förälder också är vald ligger under den. När profilen skapas
+// kommer de valda från sökningen och utforska, som saknar parent_id, så där
+// ligger alla överst. `card` = eget vitt kort (profilen); utan ligger den direkt
+// i ett formulär (när profilen skapas).
 //
 // På profilen syns bara de valda intressena tills man trycker "Lägg till
 // intressen", då fälls sök och Utforska ut. I formuläret är allt öppet direkt,
@@ -120,21 +124,13 @@ function InterestExplorer({ selected, onAdd, onRemove, card = true }) {
         {selected.length === 0 ? (
           <p className="hint-text">Inga intressen än.</p>
         ) : (
-          <ul className="tags">
-            {selected.map((interest) => (
-              <li key={interest.id}>
-                <button
-                  type="button"
-                  className="tag tag-selected"
-                  aria-label={`Ta bort ${interest.name}`}
-                  disabled={busyId === interest.id}
-                  onClick={() => toggle(interest)}
-                >
-                  {interest.name} <span aria-hidden="true">×</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <InterestTree
+            proposals={profileTree(selected)}
+            align="start"
+            maxSubs={PROFILE_MAX_SUBS}
+            busyKey={busyId === null ? null : `id:${busyId}`}
+            onRemove={(key) => toggle(selected.find((i) => `id:${i.id}` === key))}
+          />
         )}
       </div>
 

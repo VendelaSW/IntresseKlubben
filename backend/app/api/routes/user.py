@@ -80,7 +80,7 @@ from app.crud.user import (
 from app.db.session import get_db
 from app.models.profile import GenderEnum
 from app.models.user import User
-from app.schemas.interest import InterestResponse
+from app.schemas.interest import ProfileInterest
 from app.schemas.profile import PersonResponse, PublicProfileResponse
 from app.schemas.user import (
     AccountDelete,
@@ -195,7 +195,7 @@ def _to_person_response(profile) -> PersonResponse:
         municipality_name=profile.municipality.name if profile.municipality else None,
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
-        interests=[InterestResponse.model_validate(i) for i in sorted_interests(profile.user)],
+        interests=[ProfileInterest.model_validate(i) for i in sorted_interests(profile.user)],
     )
 
 
@@ -269,7 +269,7 @@ def _to_public_response(profile) -> PublicProfileResponse:
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
         profile_text=profile.profile_text,
-        interests=[InterestResponse.model_validate(i) for i in sorted_interests(profile.user)],
+        interests=[ProfileInterest.model_validate(i) for i in sorted_interests(profile.user)],
     )
 
 

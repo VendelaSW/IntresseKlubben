@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import MapPad from './MapPad'
-import InterestTags from '../components/InterestTags'
+import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import { getMyInterests } from '../services/interests'
 import { genderLabel, getProfile } from '../services/profile'
@@ -68,7 +68,7 @@ function MapProfilePad({ onClose }) {
 
           <p className="map-pad-subheading">Intressen</p>
           {interests.length > 0 ? (
-            <InterestTags interests={interests} />
+            <InterestTree proposals={profileTree(interests)} align="start" maxSubs={PROFILE_MAX_SUBS} />
           ) : (
             <p className="hint-text">Inga intressen valda än.</p>
           )}

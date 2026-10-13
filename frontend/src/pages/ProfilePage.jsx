@@ -283,7 +283,10 @@ function ProfilePage() {
     setMyInterests(await addInterest(interest.id))
   }
 
+  // Frågar först. Underintressen till det man tar bort ligger kvar, och visas
+  // överst i stället.
   async function removeSavedInterest(interest) {
+    if (!window.confirm(`Vill du ta bort ${interest.name} från din profil?`)) return
     setMyInterests(await removeInterest(interest.id))
   }
 
