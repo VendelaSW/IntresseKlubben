@@ -1,5 +1,5 @@
 import { ApiError, apiGet, apiPatch, apiPost, apiPut } from './api'
-import { imageToWebp } from './imageToWebp'
+import { resizeProfileImage } from './resizeProfileImage'
 
 // Värdena måste matcha GenderEnum i backend/app/models/profile.py.
 export const GENDER_OPTIONS = [
@@ -38,6 +38,13 @@ export function createProfile(data) {
   return apiPost('/profile/', data)
 }
 
+// Kontrollerar Om mig-texten utan att spara något, så att man får veta att den nekas redan när man har skrivit den.
+// Samma kontroll som när profilen sparas. Går texten bra svarar det tomt; annars kastas ett ApiError med backendens
+// svenska meddelande (422 om texten inte får finnas, 503 om kontrollen inte gick att köra, 429 vid för många försök).
+export function checkProfileText(text) {
+  return apiPost('/profile/text-check', { profile_text: text })
+}
+
 // Ändrar en befintlig profil, bara fälten som skickas med.
 export function updateProfile(data) {
   return apiPatch('/profile/', data)
@@ -55,20 +62,22 @@ export async function getUserProfile(userId) {
   }
 }
 
-// Profilbild: gör om till WebP, be backend om en uppladdningslänk, ladda upp
-// direkt till bucketen och bekräfta. Returnerar den uppdaterade profilen.
+// Profilbild: skala om (WebP, eller JPEG på iPhone), be backend om en
+// uppladdningslänk, ladda upp direkt till bucketen och bekräfta. Returnerar
+// den uppdaterade profilen.
 export async function uploadProfileImage(file) {
-  return uploadProfileWebp(await imageToWebp(file))
+  return uploadResizedImage(await resizeProfileImage(file))
 }
 
-// Samma sak för en bild som redan är gjord till WebP (används när bilden
-// väljs i "Skapa din profil" och laddas upp först när profilen har sparats).
-export async function uploadProfileWebp(webp) {
-  const { upload_url, key } = await apiPost('/profile/image/upload-url', {})
+// Samma sak för en bild som redan är omskalad (används när bilden väljs i
+// "Skapa din profil" och laddas upp först när profilen har sparats). Länken
+// gäller bara för bildens filtyp, så den skickas med.
+export async function uploadResizedImage(image) {
+  const { upload_url, key } = await apiPost('/profile/image/upload-url', { content_type: image.type })
   const res = await fetch(upload_url, {
     method: 'PUT',
-    headers: { 'Content-Type': 'image/webp' },
-    body: webp,
+    headers: { 'Content-Type': image.type },
+    body: image,
   })
   if (!res.ok) throw new Error('Uppladdningen misslyckades. Försök igen.')
   return apiPut('/profile/image', { key })

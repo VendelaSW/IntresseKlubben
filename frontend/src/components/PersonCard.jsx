@@ -1,16 +1,6 @@
 import { Link } from 'react-router-dom'
+import Avatar from './Avatar'
 import InterestTags from './InterestTags'
-
-function initials(name) {
-  if (!name) return '?'
-  return name
-    .trim()
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-}
 
 // Ett kort för en annan användare. Avatar, namn och plats länkar till
 // personens skrivskyddade profil. Åtgärdsknapparna (skicka/acceptera/ta
@@ -27,13 +17,7 @@ function PersonCard({ person, sharedInterestIds, reason, actions }) {
   return (
     <article className="card card-interactive person-card">
       <Link to={`/anvandare/${person.id}`} className="person-card-link">
-        {person.image_url ? (
-          <img src={person.image_url} alt="" className="card-avatar" />
-        ) : (
-          <div className="card-avatar card-avatar-initials" aria-hidden="true">
-            {initials(displayName)}
-          </div>
-        )}
+        <Avatar name={displayName} imageUrl={person.image_url} className="card-avatar" maxLetters={2} />
         <p className="card-title">
           {displayName}
           {person.age ? `, ${person.age}` : ''}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Avatar from './Avatar'
 import { getBlockedUsers, unblockUser } from '../services/contacts'
 
 // De man själv har blockerat, med en knapp för att avblockera. Blockerade
@@ -39,13 +40,7 @@ function BlockedUsers() {
         {blocked.map((u) => (
           <li key={u.id}>
             <div className="person-list-item">
-              {u.image_url ? (
-                <img src={u.image_url} alt="" className="person-list-avatar" />
-              ) : (
-                <span className="person-list-avatar card-avatar-initials" aria-hidden="true">
-                  {(u.name ?? u.username).trim()[0]?.toUpperCase()}
-                </span>
-              )}
+              <Avatar name={u.name ?? u.username} imageUrl={u.image_url} className="person-list-avatar" />
               <span>{u.name ?? u.username}</span>
               <button
                 type="button"

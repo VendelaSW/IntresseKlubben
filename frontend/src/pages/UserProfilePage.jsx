@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
-import InterestTags from '../components/InterestTags'
+import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import { useAuth } from '../hooks/useAuth'
+import { useCanGoBack } from '../hooks/useCanGoBack'
 import {
   answerContactRequest,
   blockUser,
@@ -211,6 +212,7 @@ function UserProfilePage() {
   // Id:t från adressen (/anvandare/:userId) är text, men id:n från API:t är tal.
   const userId = Number(useParams().userId)
   const navigate = useNavigate()
+  const canGoBack = useCanGoBack()
   const { user } = useAuth()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'not-found' | 'error'
   const [profile, setProfile] = useState(null)
@@ -244,10 +246,9 @@ function UserProfilePage() {
   // Går tillbaka dit man kom ifrån. Om sidan öppnades direkt (t.ex. en
   // delad länk) finns ingen tidigare sida i appen att gå tillbaka till,
   // och då skulle navigate(-1) ta en ut ur appen - gå till personlistan
-  // i stället. window.history.state.idx är satt av react-router och är
-  // 0 bara för sidans allra första post i historiken.
+  // i stället (se useCanGoBack).
   function handleBack() {
-    if (window.history.state && window.history.state.idx > 0) {
+    if (canGoBack()) {
       navigate(-1)
     } else {
       navigate('/personer')
@@ -291,11 +292,13 @@ function UserProfilePage() {
           <ProfileAbout text={profile.profile_text} />
           <section className="profile-interests">
             <h2>Intressen</h2>
-            {/* Gemensamma intressen gula. Den egna profilen: alla gula, som på Min profil. */}
+            {/* Som ett träd, som på Min profil. Gemensamma intressen gula; den egna profilen: alla gula. */}
             {profile.interests.length > 0 ? (
-              <InterestTags
-                interests={profile.interests}
-                highlight={isMe ? undefined : (myInterestIds ?? new Set())}
+              <InterestTree
+                proposals={profileTree(profile.interests)}
+                align="start"
+                maxSubs={PROFILE_MAX_SUBS}
+                highlight={isMe ? undefined : new Set([...(myInterestIds ?? [])].map((id) => `id:${id}`))}
               />
             ) : (
               <p className="hint-text">Inga intressen valda än.</p>

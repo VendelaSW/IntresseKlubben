@@ -477,6 +477,20 @@ def test_the_prompt_tells_a_concrete_activity_from_a_bare_verb():
     assert "aldrig none" in MATCH_PROMPT
 
 
+def test_the_prompt_makes_the_catch_all_area_a_last_resort():
+    assert "Övrigt och nischat" in MATCH_PROMPT
+    assert "sista utvägen" in MATCH_PROMPT
+    assert "välj alltid ett riktigt område" in MATCH_PROMPT
+
+
+def test_the_library_has_the_catch_all_area_with_no_parent_and_no_aliases():
+    from app.crud.interest_library import load_library
+
+    area = next(e for e in load_library() if e.slug == "ovrigt-och-nischat")
+    assert area.parent is None and area.name == "Övrigt och nischat"
+    assert not area.aliases  # ingen ska kunna träffa det av misstag med ett vanligt ord
+
+
 def test_the_index_from_the_database_has_each_interests_own_activity_list(db):
     musik = Interest(name="Musik", activities=["lyssna", "spela"])
     db.add(musik)

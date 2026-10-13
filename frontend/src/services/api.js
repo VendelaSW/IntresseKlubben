@@ -109,7 +109,18 @@ export function deleteAccount(password) {
   return apiDelete('/users/me', { password })
 }
 
-// För konton som skapades innan e-post krävdes. Går bara när e-post saknas.
-export function addMyEmail(email) {
-  return apiPut('/users/me/email', { email })
+// Ändrar användarnamn och/eller e-post: { password, username?, email? }. Även
+// för konton som saknar e-post. Fel lösenord ger 403 (inte 401), så man loggas
+// inte ut av ett felskrivet lösenord. Svarar med de nya uppgifterna (som /users/me).
+export function updateAccount(changes) {
+  return apiPatch('/users/me', changes)
+}
+
+// Om ett användarnamn och/eller en e-post redan används av någon annan:
+// { username, email } med samma meddelanden som när man sparar, null = ledigt.
+export function checkAvailability({ username = '', email = '' }) {
+  const params = new URLSearchParams()
+  if (username.trim()) params.set('username', username)
+  if (email.trim()) params.set('email', email)
+  return apiGet(`/users/me/availability?${params}`)
 }

@@ -67,8 +67,8 @@ Intressen är byggd hela vägen och följer alla konventioner. Öppna filerna i 
 | Endpoints | `backend/app/api/routes/interests.py` |
 | Tester | `backend/tests/test_interests.py` |
 | Frontend-anrop | `frontend/src/services/interests.js` |
-| Komponenter | `frontend/src/components/InterestPicker.jsx`, `InterestTags.jsx` |
-| Används i | `frontend/src/pages/ProfilePage.jsx` |
+| Komponenter | `frontend/src/components/InterestExplorer.jsx`, `InterestTree.jsx` (profilens intressen som träd), `InterestTags.jsx` (platta taggar) |
+| Används i | `frontend/src/pages/ProfilePage.jsx`, `UserProfilePage.jsx` |
 
 ---
 
@@ -118,6 +118,7 @@ En ticket ger en liten PR. Ju längre en branch lever, desto mer av `dev` missar
 - **Inga fejkade användare** (`FakeUser`, `id = 1` och liknande) i koden som mergas.
 - I frontend sköts inloggning av `services/auth.js` och `services/api.js`. Skapa inga egna varianter.
 - Man loggar in med **användarnamn eller e-post** i samma fält (`username_or_email`). Med @ är det en e-postadress, därför får användarnamn inte innehålla @.
+- **Resten av appen är låst tills profilen är klar.** I backend lägger `require_profile` (från `app.auth.security`) på 403 "Skapa din profil först."; lägg `dependencies=[Depends(require_profile)]` på nya routrar. Öppet utan profil är bara inloggning, `/users/me`, `/profile/...`, `/interests/...` och `/municipalities/`. Vakttestet i `test_require_profile.py` fäller en ny endpoint som glömt låset. I frontend sköts samma sak av `RequireProfile` runt alla sidor utom `/profil`.
 
 ### Data om andra användare
 - Den inloggade användaren får se allt om sig själv. Andra ser bara det ticketen säger, t.ex. användarnamn, namn, ålder, kommun och bild, aldrig e-post, födelsedatum (visa ålder i stället), kön eller lösenord.

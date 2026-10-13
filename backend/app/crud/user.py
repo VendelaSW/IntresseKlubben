@@ -32,10 +32,6 @@ class EmailTakenError(Exception):
     """E-postadressen används redan av en annan användare."""
 
 
-class EmailAlreadySetError(Exception):
-    """Användaren har redan en e-postadress. Den går inte att ändra här."""
-
-
 def get_user_by_username(db: Session, username: str) -> User | None:
     """
     Hämtar en User baserat på username, eller None om den inte finns.
@@ -73,43 +69,61 @@ def get_user_by_username_or_email(db: Session, value: str) -> User | None:
     return get_user_by_username(db, value)
 
 
-def _commit_or_raise_taken(db: Session, username: str | None, email: str | None) -> None:
+def _commit_or_raise_taken(
+    db: Session, username: str | None, email: str | None, own_id: int | None = None
+) -> None:
     """
     Sparar, men gör om en krock med en annan användare till samma fel som
     kontrollerna före sparandet ger.
 
-    Kontrollerna i create_user och set_email hinner inte alltid: sparar två
-    personer samma användarnamn eller e-post exakt samtidigt hittar ingen av
-    dem den andra, och databasen (unika index) stoppar den som kommer sist.
+    Kontrollerna i create_user och update_account hinner inte alltid: sparar
+    två personer samma användarnamn eller e-post exakt samtidigt hittar ingen
+    av dem den andra, och databasen (unika index) stoppar den som kommer sist.
     Utan det här skulle det bli ett serverfel (500) i stället för 409.
+    own_id är den som ändrar sina uppgifter: den egna raden räknas inte som en
+    krock (t.ex. "vendela" som blir "Vendela").
     """
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        if username is not None and get_user_by_username(db, username) is not None:
+
+        def taken_by_other(found: User | None) -> bool:
+            return found is not None and found.id != own_id
+
+        if username is not None and taken_by_other(get_user_by_username(db, username)):
             raise UsernameTakenError(username) from None
-        if email is not None and get_user_by_email(db, email) is not None:
+        if email is not None and taken_by_other(get_user_by_email(db, email)):
             raise EmailTakenError(email) from None
         raise
 
 
-def set_email(db: Session, user: User, email: str) -> User:
+def update_account(db: Session, user: User, username: str | None = None, email: str | None = None) -> User:
     """
-    Lägger till e-post för ett konto som skapades innan e-post krävdes.
+    Ändrar användarnamn och/eller e-post (None = lämna som det är). Fungerar
+    också för att lägga till e-post på ett konto som skapades innan e-post
+    krävdes.
 
-    email kommer redan kontrollerad och med små bokstäver från EmailUpdate
-    (se schemas/user.py). Går bara att göra en gång: att byta en befintlig
-    adress är ett eget ärende (bör t.ex. kräva lösenordet).
+    Värdena kommer redan kontrollerade från AccountUpdate (se
+    schemas/user.py), e-posten med små bokstäver. Lösenordet kontrolleras i
+    routen. Ett användarnamn eller en e-post som någon annan har ger samma fel
+    som vid registrering; att byta skiftläge på sitt eget namn går bra.
+    Inloggningen bygger på användarens id, så man förblir inloggad.
     """
-    if user.email is not None:
-        raise EmailAlreadySetError()
-    other = get_user_by_email(db, email)
-    if other is not None and other.id != user.id:
-        raise EmailTakenError(email)
+    if username is not None:
+        other = get_user_by_username(db, username)
+        if other is not None and other.id != user.id:
+            raise UsernameTakenError(username)
+    if email is not None:
+        other = get_user_by_email(db, email)
+        if other is not None and other.id != user.id:
+            raise EmailTakenError(email)
 
-    user.email = email
-    _commit_or_raise_taken(db, username=None, email=email)
+    if username is not None:
+        user.username = username
+    if email is not None:
+        user.email = email
+    _commit_or_raise_taken(db, username=username, email=email, own_id=user.id)
     db.refresh(user)
     return user
 

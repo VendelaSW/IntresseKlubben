@@ -80,7 +80,7 @@ def complete_interview(
         raise HTTPException(status_code=409, detail=msg.PROFILE_ALREADY_EXISTS)
     if db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
-    _check_profile_text(data.profile_text)
+    _check_profile_text(data.profile_text, current_user.id)
 
     user = db.get(User, current_user.id)
     profile = Profile(
