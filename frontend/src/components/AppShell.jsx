@@ -9,11 +9,7 @@ import personerIcon from '../assets/personer.png'
 import { useAuth } from '../hooks/useAuth'
 import { getContacts } from '../services/contacts'
 import { INVITATIONS_CHANGED, getGroupInvitationCount } from '../services/groups'
-import {
-  countUnseenConversations,
-  getConversations,
-  markConversationsSeen,
-} from '../services/messages'
+import { countUnseenConversations, getConversations } from '../services/messages'
 
 // Hur ofta siffran på brev-loggan räknas om medan man står kvar på en sida.
 const MESSAGES_POLL_MS = 30000
@@ -69,20 +65,19 @@ function AppShell() {
     }
   }, [location.pathname, profileDone])
 
-  // Konversationer med nya brev, för siffran på brev-loggan. När man kommer
-  // till Brev (/meddelanden) räknas allt som sett och siffran försvinner.
-  // Räknas om vid sidbyte och var MESSAGES_POLL_MS, så att nya brev syns utan
-  // att man byter sida. Pausar när fliken inte syns och räknar om direkt när
-  // man kommer tillbaka.
+  // Konversationer med nya brev, för siffran på brev-loggan: samma antal som
+  // fliken Nya på Brev. En konversation räknas som sedd först när man öppnar
+  // den, och den man har öppen (/meddelanden/:id) räknas inte, eftersom chatten
+  // själv markerar den som sedd. Brev från någon annan medan man chattar räknas
+  // som vanligt. Räknas om vid sidbyte och var MESSAGES_POLL_MS, så att nya brev
+  // syns utan att man byter sida. Pausar när fliken inte syns och räknar om
+  // direkt när man kommer tillbaka.
   useEffect(() => {
     if (!profileDone) return undefined
-    const onMessages = location.pathname.startsWith('/meddelanden')
+    const openMatch = location.pathname.match(/^\/meddelanden\/(\d+)/)
+    const openConversationId = openMatch ? Number(openMatch[1]) : null
     let cancelled = false
     let fetching = false
-    // Allt markeras som sett bara vid första hämtningen efter sidbytet. Brev
-    // som kommer medan man står kvar (t.ex. från B medan man chattar med A)
-    // har man inte sett, och ska räknas som nya när man går därifrån.
-    let firstFetch = true
 
     async function refresh() {
       if (fetching || document.hidden) return
@@ -90,9 +85,7 @@ function AppShell() {
       try {
         const conversations = await getConversations()
         if (cancelled) return
-        if (onMessages && firstFetch) markConversationsSeen(conversations)
-        firstFetch = false
-        setUnseenMessages(onMessages ? 0 : countUnseenConversations(conversations))
+        setUnseenMessages(countUnseenConversations(conversations.filter((c) => c.id !== openConversationId)))
       } catch {
         // Siffran är inte viktig nog för ett felmeddelande; nästa försök kommer snart.
       } finally {
