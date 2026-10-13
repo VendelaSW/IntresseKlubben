@@ -6,6 +6,7 @@ import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import BackButton from '../components/BackButton'
+import ConversationCard from '../components/ConversationCard'
 import Modal from '../components/Modal'
 import FormField from '../components/FormField'
 import ProfileAbout from '../components/ProfileAbout'
@@ -29,6 +30,15 @@ const COLORS = [
   { name: '--color-muted', hex: '#6b6b6b', label: 'Dämpad (platshållartext)' },
   { name: '--color-success', hex: '#3b6d11', label: 'Success (bekräftelser)' },
   { name: '--color-error', hex: '#a32d2d', label: 'Error (felmeddelanden)' },
+  { name: '--color-paper', hex: '#f5eddc', label: 'Brevpapper (aningen mörkare än bakgrunden)' },
+  { name: '--color-paper-margin', hex: '#e7a1a1', label: 'Brevpapprets röda marginal' },
+  { name: '--color-envelope-inside', hex: '#eef3f8', label: 'Kuvertets insida' },
+]
+
+// Exempel för Brev-avsnittet: ett nytt och ett öppnat kuvert.
+const EXAMPLE_CONVERSATIONS = [
+  { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), isNew: true },
+  { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', isNew: false },
 ]
 
 const SIZES = [
@@ -208,6 +218,59 @@ function StyleGuide() {
           <p className="card-subheading">Stockholm</p>
           <p className="card-text">Gillar brädspel, klättring och katter.</p>
         </div>
+      </section>
+
+      <section className="style-section">
+        <h2>Brev</h2>
+        <p className="swatch-label">Kuvert (.envelopes med ConversationCard)</p>
+        <p className="hint-text">
+          Fyra per rad på dator, tre på mobil. Klickbara som andra kort (.card-interactive): lyfts och
+          får gul kant vid hover. Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret; ett
+          nytt (.envelope-new) förblir stängt och har ett gult sigill. Avståndet mellan raderna följer
+          kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför.
+        </p>
+        <ul className="envelopes" style={{ marginTop: '1rem' }}>
+          {EXAMPLE_CONVERSATIONS.map(({ isNew, ...conversation }) => (
+            <li key={conversation.id}>
+              <ConversationCard conversation={conversation} isNew={isNew} />
+            </li>
+          ))}
+        </ul>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Anteckningspapper (.notepad .lined-paper), för en konversation
+        </p>
+        <p className="hint-text">
+          Linjerat papper med röd marginal. Allt på pappret har radhöjden --line-gap, så att texten
+          står på linjerna. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
+          ner på skärmen.
+        </p>
+        <article className="notepad lined-paper" style={{ marginTop: '1rem' }}>
+          <h3 className="notepad-title">Bob</h3>
+          <ol className="notepad-messages">
+            <li className="notepad-message">
+              <p>
+                <strong>Bob</strong> <time className="hint-text">igår 12:05</time>
+              </p>
+              <p>Ska vi klättra på lördag?</p>
+            </li>
+            <li className="notepad-message notepad-message-mine">
+              <p>
+                <strong>Du</strong> <time className="hint-text">11:35</time>
+              </p>
+              <p>Ja gärna!</p>
+            </li>
+          </ol>
+          <form className="notepad-reply" onSubmit={(e) => e.preventDefault()}>
+            <label htmlFor="example-reply" className="visually-hidden">
+              Skriv till Bob
+            </label>
+            <input id="example-reply" type="text" placeholder="Skriv till Bob..." />
+            <button type="submit" className="primary-button button-small">
+              Skicka
+            </button>
+          </form>
+        </article>
       </section>
 
       <section className="style-section">
