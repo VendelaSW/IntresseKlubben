@@ -261,10 +261,13 @@ med parent_key läggs under sin överordnade tagg, så för den får parent_id v
 som är ett område eller ett intresse, aldrig en rad som redan är tre nivåer ner. Skriv new_name som \
 taggens namn, eller ett av dess alias, och inget annat ord.
 - none: taggen är inget intresse man har eller gör, till exempel en egenskap ("social", "snäll"), en \
-avsikt ("träffa nya människor", "ha kul"), en aktivitet i sig ("samlande", "spelande", "lyssnande": \
-hobbyn är det man samlar, spelar eller lyssnar på, inte själva aktiviteten), ett påhittat \
-samlingsord ("samlarsaker", "hobbyer") eller något för vagt för att vara ett intresse. Välj också \
-none om du är osäker på vad taggen betyder.
+avsikt ("träffa nya människor", "ha kul"), ett allmänt verb som saknar föremål ("samlande", \
+"spelande", "lyssnande": hobbyn är det man samlar, spelar eller lyssnar på, inte själva verbet), ett \
+påhittat samlingsord ("samlarsaker", "hobbyer") eller något för vagt för att vara ett intresse. Välj \
+också none om du är osäker på vad taggen betyder. En konkret aktivitet som man håller på med för sin \
+egen skull är däremot ett riktigt intresse, aldrig none ("badning", "bad" och "sjöbad" i betydelsen att \
+bada, "simning", "löpning", "vandring", "dans", "bastu"): koppla den till det intresse den är ("simning" är Simning) eller lägg den som new \
+under det område den hör till (badning hör under Friluftsliv eller Sport och träning).
 
 Använd sammanhanget för att förstå taggen: "hårdrock" med sammanhanget "musik" är en musikgenre. \
 Gissa inte. Svara med ett objekt per tagg, med taggens key. Fält som inte gäller sätts till null.

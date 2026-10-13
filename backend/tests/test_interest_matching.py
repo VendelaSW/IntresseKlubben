@@ -468,6 +468,15 @@ def test_only_the_newest_own_interests_go_in_the_prompt_but_the_library_always_d
     assert exact_match(Tag("t1", "Eget 0"), index)
 
 
+def test_the_prompt_tells_a_concrete_activity_from_a_bare_verb():
+    # Buggen: "bada" blev none eftersom prompten tog bort "aktiviteter i sig". Bara verb utan föremål ska bort.
+    for bare_verb in ("samlande", "spelande", "lyssnande"):
+        assert bare_verb in MATCH_PROMPT
+    for activity in ("badning", "simning", "löpning", "vandring"):
+        assert activity in MATCH_PROMPT
+    assert "aldrig none" in MATCH_PROMPT
+
+
 def test_the_index_from_the_database_has_each_interests_own_activity_list(db):
     musik = Interest(name="Musik", activities=["lyssna", "spela"])
     db.add(musik)
