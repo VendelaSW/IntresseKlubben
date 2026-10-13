@@ -8,6 +8,7 @@ import { attachPlaceNotes } from './mapPrototypeNotes'
 import { attachSketchedBuildings } from './mapPrototypeBuildings'
 import { attachPinsAndThread } from './mapPrototypeRoute'
 import { attachPlaceSigns } from './mapPrototypeSigns'
+import MapCalmPage from './MapCalmPage'
 import MapPagePad from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
 import MapProfilePad from './MapProfilePad'
@@ -1307,12 +1308,11 @@ function MapPrototype() {
         <MapProfileWidget onOpen={setOpenPage} calm={calm} onToggleCalm={toggleCalm} />
       </div>
       {calm && (
-        <div className="map-calm-note">
-          <p>Kartan är pausad.</p>
-          <button type="button" className="map-tool" onClick={toggleCalm}>
-            Visa kartan
-          </button>
-        </div>
+        <MapCalmPage
+          onOpen={setOpenPage}
+          onOpenEvent={(id) => openActivityRef.current({ type: 'event', id })}
+          onShowMap={toggleCalm}
+        />
       )}
       {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}
       <div className="map-sketch-table" aria-hidden="true" />
