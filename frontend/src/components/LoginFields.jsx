@@ -5,7 +5,8 @@ import { loginUser } from '../services/api'
 
 // Inloggningsfälten, tänkta att visas inline på Home (se LoginFields/
 // RegisterFields-paret) istället för på en egen sida.
-function LoginFields({ onSwitchToRegister }) {
+// `notice` är ett meddelande överst, t.ex. att kontot just har skapats.
+function LoginFields({ onSwitchToRegister, notice }) {
   // Användarnamn eller e-post, i samma fält.
   const [usernameOrEmail, setUsernameOrEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,6 +33,7 @@ function LoginFields({ onSwitchToRegister }) {
   return (
     <>
       <h1>Logga in</h1>
+      {notice && <p className="form-success">{notice}</p>}
       <form className="auth-form" onSubmit={handleSubmit}>
         <label htmlFor="login-username">Användarnamn eller e-post</label>
         <input

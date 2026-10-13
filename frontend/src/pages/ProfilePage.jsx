@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import BlockedUsers from '../components/BlockedUsers'
 import DeleteAccount from '../components/DeleteAccount'
 import InterestExplorer from '../components/InterestExplorer'
@@ -133,6 +134,11 @@ function NewProfileImage({ name, image, onChange }) {
 
 function ProfilePage() {
   const { updateUser } = useAuth()
+  const navigate = useNavigate()
+  // ?lista=1: formuläret där man väljer intressen ur listan i stället för att gå igenom intervjun. Dit länkar
+  // intervjun när AI:n inte kan tolka texten.
+  const [searchParams] = useSearchParams()
+  const listMode = searchParams.has('lista')
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   // Kontouppgifterna (användarnamn och e-post) från /users/me. Visas i
@@ -170,11 +176,15 @@ function ProfilePage() {
     // anta att det finns en giltig token när den här sidan visas.
     Promise.all([getProfile(), getMunicipalities(), getMyInterests(), getCurrentUser()])
       .then(([data, list, mine, me]) => {
+        // Ingen profil än → intervjun, där profilen skapas. Med ?lista=1 visas formuläret i stället.
+        if (data === null && !listMode) {
+          navigate('/profil/intervju', { replace: true })
+          return
+        }
         setProfile(data)
         setMunicipalities(list)
         setMyInterests(mine)
         setAccount(me)
-        // Ingen profil än → visa formuläret direkt.
         setEditing(data === null)
         setStatus('ready')
       })
@@ -265,8 +275,10 @@ function ProfilePage() {
     }
     if (district.trim()) data.district = district
 
-    // 0. Kontouppgifterna, om de ändrats. Fel lösenord eller ett upptaget namn
-    //    stoppar allt, så att inget sparas halvvägs.
+    // 0. Kontouppgifterna, om de ändrats. De sparas först, så att fel lösenord
+    //    eller ett upptaget namn (de vanligaste felen) stoppar allt innan
+    //    profilen ändras. Misslyckas profilen efteråt är kontouppgifterna ändå
+    //    sparade; de visas då som sparade, och felet för profilen visas.
     if (accountChanged) {
       try {
         const me = await updateAccount({ password: accountPassword, ...accountChanges })

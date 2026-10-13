@@ -18,6 +18,7 @@ from app.models.dismissed_suggestion import DismissedSuggestion
 from app.models.event import Event, EventInvitation, EventResponse
 from app.models.group import GroupInvitation
 from app.models.group_message import GroupMessage
+from app.models.interest import Interest
 from app.models.message import Message
 from app.models.user import User
 from app.schemas.user import UserCreate
@@ -172,7 +173,8 @@ def delete_user(db: Session, user: User) -> str | None:
     - Meddelanden, kontakter, blockeringar och borttagna förslag raderas åt
       båda hållen, så att inget pekar på kontot efteråt. Egna
       gruppchattmeddelanden raderas också.
-    - Profil, intressen och sist själva kontot.
+    - Profil, intressen och sist själva kontot. Egna intressen som kontot
+      skapat finns kvar för andra som har dem, men utan skapare.
 
     Allt raderas uttryckligen här i stället för att lita på databasens
     ON DELETE, så att det fungerar likadant i testerna (SQLite) och i Neon.
@@ -210,10 +212,15 @@ def delete_user(db: Session, user: User) -> str | None:
         or_(DismissedSuggestion.user_id == user_id, DismissedSuggestion.dismissed_user_id == user_id)
     ).delete(synchronize_session=False)
 
+    # Egna intressen som kontot skapat finns kvar för andra som har dem, utan skapare.
+    db.query(Interest).filter(Interest.created_by_user_id == user_id).update(
+        {Interest.created_by_user_id: None}, synchronize_session=False
+    )
+
     image_key = user.profile.profile_image_url if user.profile else None
     if user.profile is not None:
         db.delete(user.profile)
-    user.interests.clear()
+    user.interest_links.clear()
     db.delete(user)
     db.commit()
     return image_key
