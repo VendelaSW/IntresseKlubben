@@ -23,6 +23,7 @@ from app.models.municipality import Municipality
 from app.schemas.profile import (
     ProfileCreate,
     ProfileImageConfirm,
+    ProfileImageUploadRequest,
     ProfileImageUploadUrl,
     ProfileResponse,
     ProfileTextCheck,
@@ -168,7 +169,7 @@ def edit_profile(
 # Profilbild i två steg, så att själva bilden går direkt från webbläsaren
 # till bucketen (Vercel begränsar anrop till backend till ca 4,5 MB):
 #   1. POST /profile/image/upload-url  → länk att ladda upp till
-#   2. webbläsaren laddar upp WebP-bilden till länken
+#   2. webbläsaren laddar upp bilden (WebP, eller JPEG på iPhone) till länken
 #   3. PUT  /profile/image              → backend kontrollerar filen och sparar den
 def _require_storage():
     if not storage.is_configured():
@@ -177,14 +178,16 @@ def _require_storage():
 
 @router.post("/image/upload-url", response_model=ProfileImageUploadUrl)
 def create_profile_image_upload_url(
+    data: ProfileImageUploadRequest | None = None,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     _require_storage()
     if get_profile(db, current_user.id) is None:
         raise HTTPException(status_code=404, detail="Skapa din profil innan du lägger till en bild")
-    key = storage.new_profile_image_key(current_user.id)
-    return ProfileImageUploadUrl(upload_url=storage.create_upload_url(key), key=key)
+    content_type = (data or ProfileImageUploadRequest()).content_type
+    key = storage.new_profile_image_key(current_user.id, content_type)
+    return ProfileImageUploadUrl(upload_url=storage.create_upload_url(key, content_type), key=key)
 
 
 @router.put("/image", response_model=ProfileResponse)
@@ -201,15 +204,17 @@ def confirm_profile_image(
     # Bara filer i användarens egen mapp, med ett namn vi själva har delat ut.
     prefix = f"profiles/{current_user.id}/"
     name = data.key.removeprefix(prefix)
-    if not data.key.startswith(prefix) or "/" in name or not name.endswith(".webp"):
+    expected_type = storage.content_type_for_key(name)
+    if not data.key.startswith(prefix) or "/" in name or expected_type is None:
         raise HTTPException(status_code=422, detail="Ogiltig bild")
 
     info = storage.get_object_info(data.key)
     if info is None:
         raise HTTPException(status_code=422, detail="Bilden hittades inte. Försök ladda upp igen.")
-    if info["content_type"] != storage.IMAGE_CONTENT_TYPE or info["size"] > storage.MAX_IMAGE_BYTES:
+    # Filtypen måste stämma med filändelsen vi delade ut (en .jpg ska vara JPEG).
+    if info["content_type"] != expected_type or info["size"] > storage.MAX_IMAGE_BYTES:
         storage.delete_object(data.key)
-        raise HTTPException(status_code=422, detail="Bilden måste vara WebP och högst 2 MB")
+        raise HTTPException(status_code=422, detail="Bilden måste vara WebP eller JPEG och högst 2 MB")
 
     old_key = set_profile_image(db, profile, data.key)
     if old_key and old_key != data.key:

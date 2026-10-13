@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, field_validator
 
@@ -195,6 +196,12 @@ class PersonResponse(BaseModel):
     district: str | None
     image_url: str | None
     interests: list[ProfileInterest]
+
+
+class ProfileImageUploadRequest(BaseModel):
+    # Filtypen frontend gjorde bilden till: WebP, eller JPEG där webbläsaren
+    # inte kan skapa WebP (iPhone). Utan värde WebP, som förut.
+    content_type: Literal["image/webp", "image/jpeg"] = "image/webp"
 
 
 class ProfileImageUploadUrl(BaseModel):
