@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import eventIcon from '../assets/event.png'
 import hemIcon from '../assets/hem.png'
@@ -7,12 +6,7 @@ import brevIcon from '../assets/brev.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import { useAuth } from '../hooks/useAuth'
-import { getContacts } from '../services/contacts'
-import { INVITATIONS_CHANGED, getGroupInvitationCount } from '../services/groups'
-import { countUnseenConversations, getConversations } from '../services/messages'
-
-// Hur ofta siffran på brev-loggan räknas om medan man står kvar på en sida.
-const MESSAGES_POLL_MS = 30000
+import { EMPTY_COUNTS, useBadgeCounts } from '../hooks/useBadgeCounts'
 
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
@@ -30,82 +24,16 @@ function AppShell() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [incomingCount, setIncomingCount] = useState(0)
-  const [unseenMessages, setUnseenMessages] = useState(0)
-  const [clubInvitations, setClubInvitations] = useState(0)
-  // Siffrorna i menyn bygger på anrop som är låsta tills profilen är klar
-  // (require_profile i backend), så de hämtas inte innan dess.
+  // Siffrorna i menyn (se useBadgeCounts). Konversationen man har öppen
+  // (/meddelanden/:id) räknas inte som ny.
+  const openMatch = location.pathname.match(/^\/meddelanden\/(\d+)/)
+  const { contactRequests, clubInvitations, eventInvitations, unseenMessages } =
+    useBadgeCounts({
+      refreshKey: location.pathname,
+      openConversationId: openMatch ? Number(openMatch[1]) : null,
+    }) ?? EMPTY_COUNTS
+  // Menyn är inte länkar innan profilen är klar (allt annat är ändå låst).
   const profileDone = Boolean(user?.profile_completed)
-
-  // Antal obesvarade kontaktförfrågningar, för badgen vid Personer. Hämtas
-  // om vid varje sidbyte - enkel och "nog bra" uppdatering utan att bygga
-  // en delad kontakter-context bara för en badge.
-  useEffect(() => {
-    if (!profileDone) return undefined
-    getContacts()
-      .then((data) => setIncomingCount(data.incoming_requests.length))
-      .catch(() => {})
-  }, [location.pathname, profileDone])
-
-  // Antal klubbar man är inbjuden till, för märket vid Klubbar. Räknas om vid
-  // sidbyte och när man har gått med i eller avböjt en klubb.
-  useEffect(() => {
-    if (!profileDone) return undefined
-    let cancelled = false
-    function refresh() {
-      getGroupInvitationCount()
-        .then((count) => !cancelled && setClubInvitations(count))
-        .catch(() => {})
-    }
-    refresh()
-    window.addEventListener(INVITATIONS_CHANGED, refresh)
-    return () => {
-      cancelled = true
-      window.removeEventListener(INVITATIONS_CHANGED, refresh)
-    }
-  }, [location.pathname, profileDone])
-
-  // Konversationer med nya brev, för siffran på brev-loggan: samma antal som
-  // fliken Nya på Brev. En konversation räknas som sedd först när man öppnar
-  // den, och den man har öppen (/meddelanden/:id) räknas inte, eftersom chatten
-  // själv markerar den som sedd. Brev från någon annan medan man chattar räknas
-  // som vanligt. Räknas om vid sidbyte och var MESSAGES_POLL_MS, så att nya brev
-  // syns utan att man byter sida. Pausar när fliken inte syns och räknar om
-  // direkt när man kommer tillbaka.
-  useEffect(() => {
-    if (!profileDone) return undefined
-    const openMatch = location.pathname.match(/^\/meddelanden\/(\d+)/)
-    const openConversationId = openMatch ? Number(openMatch[1]) : null
-    let cancelled = false
-    let fetching = false
-
-    async function refresh() {
-      if (fetching || document.hidden) return
-      fetching = true
-      try {
-        const conversations = await getConversations()
-        if (cancelled) return
-        setUnseenMessages(countUnseenConversations(conversations.filter((c) => c.id !== openConversationId)))
-      } catch {
-        // Siffran är inte viktig nog för ett felmeddelande; nästa försök kommer snart.
-      } finally {
-        fetching = false
-      }
-    }
-
-    function onVisibilityChange() {
-      if (!document.hidden) refresh()
-    }
-
-    refresh()
-    const timer = setInterval(refresh, MESSAGES_POLL_MS)
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => {
-      cancelled = true
-      clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-    }
-  }, [location.pathname, profileDone])
 
   function handleLogout() {
     logout()
@@ -130,14 +58,19 @@ function AppShell() {
               >
                 {/* Badgarna går på adressen, inte texten, så att ett nytt
                     menynamn inte tar bort dem. */}
-                {to === '/personer' && incomingCount > 0 && (
-                  <span className="nav-badge" aria-label={`${incomingCount} nya förfrågningar`}>
-                    {incomingCount}
+                {to === '/personer' && contactRequests > 0 && (
+                  <span className="nav-badge" aria-label={`${contactRequests} nya förfrågningar`}>
+                    {contactRequests}
                   </span>
                 )}
                 {to === '/klubbar' && clubInvitations > 0 && (
                   <span className="nav-badge" aria-label={`${clubInvitations} klubbinbjudningar`}>
                     {clubInvitations}
+                  </span>
+                )}
+                {to === '/events' && eventInvitations > 0 && (
+                  <span className="nav-badge" aria-label={`${eventInvitations} eventinbjudningar`}>
+                    {eventInvitations}
                   </span>
                 )}
                 {to === '/meddelanden' && unseenMessages > 0 && (
