@@ -84,6 +84,73 @@
       ]
     },
     {
+      "slug": "country",
+      "name": "Country",
+      "parent": "musik",
+      "description": "Country: lyssna på eller spela countrymusik.",
+      "aliases": [
+        "countrymusik"
+      ]
+    },
+    {
+      "slug": "soul-och-rnb",
+      "name": "Soul och R&B",
+      "parent": "musik",
+      "description": "Soul och R&B: lyssna på soul, funk och R&B.",
+      "aliases": [
+        "soul",
+        "rnb",
+        "r&b",
+        "funk"
+      ]
+    },
+    {
+      "slug": "indie",
+      "name": "Indie",
+      "parent": "musik",
+      "description": "Indie: indiepop, indierock och alternativ musik.",
+      "aliases": [
+        "indiemusik",
+        "alternativ musik"
+      ]
+    },
+    {
+      "slug": "blues",
+      "name": "Blues",
+      "parent": "musik",
+      "description": "Blues: lyssna på eller spela blues."
+    },
+    {
+      "slug": "musikproduktion",
+      "name": "Musikproduktion",
+      "parent": "musik",
+      "description": "Musikproduktion: göra egen musik i studio eller på dator.",
+      "aliases": [
+        "producera musik",
+        "beatmaking",
+        "musikskapande"
+      ],
+      "activities": [
+        "skapa",
+        "lara-sig"
+      ]
+    },
+    {
+      "slug": "dj",
+      "name": "DJ",
+      "parent": "musik",
+      "description": "DJ: mixa musik på fester och klubbar.",
+      "aliases": [
+        "dj:a",
+        "djing",
+        "mixa musik"
+      ],
+      "activities": [
+        "skapa",
+        "lara-sig"
+      ]
+    },
+    {
       "slug": "pop",
       "name": "Pop",
       "parent": "musik",
@@ -258,14 +325,49 @@
       "slug": "film-och-tv",
       "name": "Film och tv",
       "parent": null,
-      "description": "Film och tv: titta på och prata om filmer och tv-serier.",
+      "description": "Film och tv: titta på och prata om filmer, tv-serier och anime.",
       "aliases": [
-        "film",
-        "filmer",
-        "tv-serier"
+        "tv och film",
+        "film & tv"
       ],
       "activities": [
         "titta"
+      ]
+    },
+    {
+      "slug": "filmer",
+      "name": "Filmer",
+      "parent": "film-och-tv",
+      "description": "Filmer: se och prata om film, hemma eller på bio.",
+      "aliases": [
+        "film",
+        "bio",
+        "filmkväll",
+        "filmtittande"
+      ]
+    },
+    {
+      "slug": "tv-serier",
+      "name": "Tv-serier",
+      "parent": "film-och-tv",
+      "description": "Tv-serier: följa serier på tv och streaming.",
+      "aliases": [
+        "tv",
+        "tv-serie",
+        "serie",
+        "streaming",
+        "binge"
+      ]
+    },
+    {
+      "slug": "krimserier",
+      "name": "Krimserier",
+      "parent": "tv-serier",
+      "description": "Krimserier: titta på kriminal- och deckarserier.",
+      "aliases": [
+        "kriminalserier",
+        "deckarserier",
+        "tv-deckare"
       ]
     },
     {
@@ -358,25 +460,118 @@
     },
     {
       "slug": "deckare",
-      "name": "Deckare",
+      "name": "Thriller",
       "parent": "film-och-tv",
-      "description": "Deckare på tv: kriminalserier och filmer om mord och poliser.",
+      "description": "Thriller: titta på spännings- och kriminalfilm.",
       "aliases": [
-        "kriminalserier"
+        "thrillerfilm",
+        "spänningsfilm",
+        "kriminalfilm",
+        "deckarfilm"
       ]
     },
     {
       "slug": "bocker",
-      "name": "Böcker",
+      "name": "Böcker och litteratur",
       "parent": null,
-      "description": "Böcker: läsa och prata om böcker.",
+      "description": "Böcker och litteratur: läsa och prata om böcker, romaner och facklitteratur.",
       "aliases": [
+        "böcker",
+        "litteratur",
         "läsa",
         "läsning",
-        "litteratur"
+        "bokläsning"
       ],
       "activities": [
         "lasa"
+      ]
+    },
+    {
+      "slug": "skonlitteratur",
+      "name": "Skönlitteratur",
+      "parent": "bocker",
+      "description": "Skönlitteratur: romaner, noveller och annan fiktion.",
+      "aliases": [
+        "romaner",
+        "roman",
+        "fiktion",
+        "noveller"
+      ]
+    },
+    {
+      "slug": "klassiker",
+      "name": "Klassiker",
+      "parent": "skonlitteratur",
+      "description": "Klassiker: klassisk litteratur och världslitteratur.",
+      "aliases": [
+        "klassisk litteratur",
+        "världslitteratur"
+      ]
+    },
+    {
+      "slug": "facklitteratur",
+      "name": "Facklitteratur",
+      "parent": "bocker",
+      "description": "Facklitteratur: böcker som berättar om verkligheten.",
+      "aliases": [
+        "fackböcker",
+        "faktaböcker",
+        "sakprosa"
+      ]
+    },
+    {
+      "slug": "biografier-och-memoarer",
+      "name": "Biografier och memoarer",
+      "parent": "facklitteratur",
+      "description": "Biografier och memoarer: böcker om verkliga människors liv.",
+      "aliases": [
+        "biografi",
+        "biografier",
+        "självbiografi",
+        "memoarer"
+      ]
+    },
+    {
+      "slug": "popularvetenskap",
+      "name": "Populärvetenskap",
+      "parent": "facklitteratur",
+      "description": "Populärvetenskap: vetenskap för allmänheten i bokform.",
+      "aliases": [
+        "populärvetenskapliga böcker"
+      ]
+    },
+    {
+      "slug": "sjalvhjalpsbocker",
+      "name": "Självhjälpsböcker",
+      "parent": "facklitteratur",
+      "description": "Självhjälpsböcker: böcker om att utvecklas och må bättre.",
+      "aliases": [
+        "självhjälp"
+      ]
+    },
+    {
+      "slug": "barn-och-ungdomsbocker",
+      "name": "Barn- och ungdomsböcker",
+      "parent": "bocker",
+      "description": "Barn- och ungdomsböcker: läsa för eller som barn och unga.",
+      "aliases": [
+        "barnböcker",
+        "ungdomsböcker",
+        "young adult",
+        "ya"
+      ]
+    },
+    {
+      "slug": "ljudbocker",
+      "name": "Ljudböcker",
+      "parent": "bocker",
+      "description": "Ljudböcker: lyssna på inlästa böcker.",
+      "aliases": [
+        "ljudbok",
+        "audible"
+      ],
+      "activities": [
+        "lyssna"
       ]
     },
     {
@@ -396,7 +591,13 @@
       "slug": "deckare-och-thrillers",
       "name": "Deckare och thrillers",
       "parent": "bocker",
-      "description": "Deckare och thrillers: spännande böcker om brott, mord och poliser."
+      "description": "Deckare och thrillers: spännande böcker om brott, mord och poliser.",
+      "aliases": [
+        "deckare",
+        "deckarromaner",
+        "kriminalromaner",
+        "kriminallitteratur"
+      ]
     },
     {
       "slug": "bocker-fantasy",
@@ -919,6 +1120,116 @@
       ]
     },
     {
+      "slug": "hastsport",
+      "name": "Hästsport",
+      "parent": "sport-och-traning",
+      "description": "Hästsport: rida, tävla och träna med häst.",
+      "aliases": [
+        "ridning",
+        "rida",
+        "ridsport",
+        "ridskola"
+      ],
+      "activities": [
+        "utova",
+        "tavla",
+        "leda"
+      ]
+    },
+    {
+      "slug": "hoppning",
+      "name": "Hoppning",
+      "parent": "hastsport",
+      "description": "Hoppning: hoppa banhoppning med häst.",
+      "aliases": [
+        "banhoppning",
+        "hopptävling"
+      ],
+      "activities": [
+        "utova",
+        "tavla"
+      ]
+    },
+    {
+      "slug": "dressyr",
+      "name": "Dressyr",
+      "parent": "hastsport",
+      "description": "Dressyr: ridsport med precision och samspel mellan häst och ryttare.",
+      "activities": [
+        "utova",
+        "tavla"
+      ]
+    },
+    {
+      "slug": "bollsport",
+      "name": "Bollsport",
+      "parent": "sport-och-traning",
+      "description": "Bollsport: sporter där man spelar med boll.",
+      "aliases": [
+        "bollsporter",
+        "bollspel"
+      ]
+    },
+    {
+      "slug": "tennis",
+      "name": "Tennis",
+      "parent": "bollsport",
+      "description": "Tennis: spela eller titta på tennis."
+    },
+    {
+      "slug": "basket",
+      "name": "Basket",
+      "parent": "bollsport",
+      "description": "Basket: spela eller titta på basket.",
+      "aliases": [
+        "basketboll"
+      ]
+    },
+    {
+      "slug": "handboll",
+      "name": "Handboll",
+      "parent": "bollsport",
+      "description": "Handboll: spela eller titta på handboll."
+    },
+    {
+      "slug": "volleyboll",
+      "name": "Volleyboll",
+      "parent": "bollsport",
+      "description": "Volleyboll: spela inomhus eller på stranden.",
+      "aliases": [
+        "beachvolleyboll",
+        "beachvolley"
+      ]
+    },
+    {
+      "slug": "golf",
+      "name": "Golf",
+      "parent": "bollsport",
+      "description": "Golf: spela eller titta på golf.",
+      "aliases": [
+        "golfa"
+      ]
+    },
+    {
+      "slug": "bordtennis",
+      "name": "Bordtennis",
+      "parent": "bollsport",
+      "description": "Bordtennis: spela pingis.",
+      "aliases": [
+        "pingis",
+        "ping pong"
+      ]
+    },
+    {
+      "slug": "ishockey",
+      "name": "Ishockey",
+      "parent": "sport-och-traning",
+      "description": "Ishockey: spela eller titta på hockey.",
+      "aliases": [
+        "hockey"
+      ]
+    },
+    {
       "slug": "lopning",
       "name": "Löpning",
       "parent": "sport-och-traning",
@@ -957,10 +1268,9 @@
     {
       "slug": "fotboll",
       "name": "Fotboll",
-      "parent": "sport-och-traning",
+      "parent": "bollsport",
       "description": "Fotboll: spela eller titta på fotboll.",
       "aliases": [
-        "boll",
         "fotbollsmatch"
       ]
     },
@@ -971,8 +1281,7 @@
       "description": "Gym: styrketräning med vikter på gym.",
       "aliases": [
         "styrketräning",
-        "lyfta vikter",
-        "träna"
+        "lyfta vikter"
       ],
       "activities": [
         "utova"
@@ -1048,7 +1357,7 @@
     {
       "slug": "padel",
       "name": "Padel",
-      "parent": "sport-och-traning",
+      "parent": "bollsport",
       "description": "Padel: racketsport som spelas i par på en bana med väggar.",
       "aliases": [
         "padeltennis"
@@ -1099,7 +1408,7 @@
     {
       "slug": "innebandy",
       "name": "Innebandy",
-      "parent": "sport-och-traning",
+      "parent": "bollsport",
       "description": "Innebandy: lagsport med klubba och boll inomhus."
     },
     {
@@ -1111,6 +1420,76 @@
         "naturen",
         "utomhus",
         "uteliv"
+      ]
+    },
+    {
+      "slug": "bad-och-bastu",
+      "name": "Bad och bastu",
+      "parent": "friluftsliv",
+      "description": "Bad och bastu: bada i sjö eller hav, kallbad och bastu.",
+      "aliases": [
+        "bada",
+        "badning",
+        "bad",
+        "bastu",
+        "sjöbad",
+        "kallbad",
+        "bastubad",
+        "dopp"
+      ]
+    },
+    {
+      "slug": "skidakning",
+      "name": "Skidåkning",
+      "parent": "friluftsliv",
+      "description": "Skidåkning: åka skidor, längdskidor eller utför.",
+      "aliases": [
+        "åka skidor",
+        "skidor",
+        "skidsemester"
+      ]
+    },
+    {
+      "slug": "langdskidakning",
+      "name": "Längdskidåkning",
+      "parent": "skidakning",
+      "description": "Längdskidåkning: åka längdskidor i spår eller på fjället.",
+      "aliases": [
+        "längdskidor",
+        "skidspår"
+      ]
+    },
+    {
+      "slug": "alpin-skidakning",
+      "name": "Alpin skidåkning",
+      "parent": "skidakning",
+      "description": "Alpin skidåkning: åka utför på skidor eller snowboard.",
+      "aliases": [
+        "alpint",
+        "slalom",
+        "störtlopp",
+        "skidbacke",
+        "snowboard"
+      ]
+    },
+    {
+      "slug": "orientering",
+      "name": "Orientering",
+      "parent": "friluftsliv",
+      "description": "Orientering: hitta med karta och kompass.",
+      "aliases": [
+        "orienteringslopp"
+      ]
+    },
+    {
+      "slug": "langfardsskridskor",
+      "name": "Långfärdsskridskor",
+      "parent": "friluftsliv",
+      "description": "Långfärdsskridskor: åka skridskor på natur-is.",
+      "aliases": [
+        "skridskor",
+        "skridskoåkning",
+        "natur-is"
       ]
     },
     {
@@ -1251,6 +1630,50 @@
       ]
     },
     {
+      "slug": "kaffe",
+      "name": "Kaffe",
+      "parent": "mat-och-dryck",
+      "description": "Kaffe: brygga, prova och prata kaffe.",
+      "aliases": [
+        "kaffedrickande",
+        "barista",
+        "bryggkaffe",
+        "espresso"
+      ],
+      "activities": [
+        "prova",
+        "laga"
+      ]
+    },
+    {
+      "slug": "drinkar-och-cocktails",
+      "name": "Drinkar och cocktails",
+      "parent": "mat-och-dryck",
+      "description": "Drinkar och cocktails: blanda och prova drinkar.",
+      "aliases": [
+        "drinkar",
+        "cocktails",
+        "mixologi"
+      ],
+      "activities": [
+        "prova",
+        "laga"
+      ]
+    },
+    {
+      "slug": "restaurangbesok",
+      "name": "Restaurangbesök",
+      "parent": "mat-och-dryck",
+      "description": "Restaurangbesök: äta ute och prova nya ställen.",
+      "aliases": [
+        "restauranger",
+        "äta ute"
+      ],
+      "activities": [
+        "besoka"
+      ]
+    },
+    {
       "slug": "matlagning",
       "name": "Matlagning",
       "parent": "mat-och-dryck",
@@ -1318,12 +1741,12 @@
     },
     {
       "slug": "ol-och-vin",
-      "name": "Öl och vin",
+      "name": "Öl",
       "parent": "mat-och-dryck",
-      "description": "Öl och vin: provsmaka öl och vin.",
+      "description": "Öl: dricka, prova och brygga öl.",
       "aliases": [
-        "öl",
-        "ölprovning"
+        "ölkultur",
+        "hantverksöl"
       ],
       "activities": [
         "prova",
@@ -1331,13 +1754,38 @@
       ]
     },
     {
+      "slug": "vin",
+      "name": "Vin",
+      "parent": "mat-och-dryck",
+      "description": "Vin: dricka, prova och lära sig om vin.",
+      "aliases": [
+        "viner"
+      ],
+      "activities": [
+        "prova"
+      ]
+    },
+    {
+      "slug": "olprovning",
+      "name": "Ölprovning",
+      "parent": "ol-och-vin",
+      "description": "Ölprovning: prova och jämföra öl.",
+      "aliases": [
+        "ölprovningar",
+        "ölsmakning"
+      ],
+      "activities": [
+        "prova"
+      ]
+    },
+    {
       "slug": "vinprovning",
       "name": "Vinprovning",
-      "parent": "ol-och-vin",
+      "parent": "vin",
       "description": "Vinprovning: att prova, jämföra och lära sig om viner.",
       "aliases": [
-        "vin",
-        "viner"
+        "vinprovningar",
+        "vinsmakning"
       ],
       "activities": [
         "prova"
@@ -1372,6 +1820,48 @@
       "description": "Djur och natur: djur, växter och natur.",
       "aliases": [
         "djur"
+      ]
+    },
+    {
+      "slug": "akvarium",
+      "name": "Akvarium",
+      "parent": "djur-och-natur",
+      "description": "Akvarium: ha och sköta akvarium med fisk.",
+      "aliases": [
+        "akvariefiskar",
+        "akvaristik"
+      ],
+      "activities": [
+        "ha"
+      ]
+    },
+    {
+      "slug": "smadjur",
+      "name": "Smådjur",
+      "parent": "djur-och-natur",
+      "description": "Smådjur: ha kaniner, marsvin och andra smådjur.",
+      "aliases": [
+        "kaniner",
+        "marsvin",
+        "hamster",
+        "gnagare"
+      ],
+      "activities": [
+        "ha"
+      ]
+    },
+    {
+      "slug": "reptiler",
+      "name": "Reptiler",
+      "parent": "djur-och-natur",
+      "description": "Reptiler: ha ormar, ödlor och andra reptiler.",
+      "aliases": [
+        "ormar",
+        "ödlor",
+        "terrarium"
+      ],
+      "activities": [
+        "ha"
       ]
     },
     {
@@ -1416,24 +1906,10 @@
       "parent": "djur-och-natur",
       "description": "Hästar: rida och sköta hästar.",
       "aliases": [
-        "häst",
-        "rida",
-        "ridning"
+        "häst"
       ],
       "activities": [
-        "ha",
-        "utova",
-        "tavla"
-      ]
-    },
-    {
-      "slug": "dressyr",
-      "name": "Dressyr",
-      "parent": "hastar",
-      "description": "Dressyr: ridsport med precision och samspel mellan häst och ryttare.",
-      "activities": [
-        "utova",
-        "tavla"
+        "ha"
       ]
     },
     {
@@ -1536,6 +2012,76 @@
       "description": "Teknik: datorer, prylar och att bygga saker med teknik.",
       "aliases": [
         "tech"
+      ]
+    },
+    {
+      "slug": "datorbygge",
+      "name": "Datorbygge",
+      "parent": "teknik",
+      "description": "Datorbygge: bygga och uppgradera datorer.",
+      "aliases": [
+        "bygga dator",
+        "pc-bygge",
+        "datorbyggen"
+      ],
+      "activities": [
+        "bygga",
+        "lara-sig"
+      ]
+    },
+    {
+      "slug": "dronare",
+      "name": "Drönare",
+      "parent": "teknik",
+      "description": "Drönare: flyga och bygga drönare.",
+      "aliases": [
+        "drönarflygning",
+        "fpv"
+      ],
+      "activities": [
+        "kora",
+        "bygga"
+      ]
+    },
+    {
+      "slug": "cybersakerhet",
+      "name": "Cybersäkerhet",
+      "parent": "teknik",
+      "description": "Cybersäkerhet: skydda system och data.",
+      "aliases": [
+        "it-säkerhet",
+        "informationssäkerhet"
+      ],
+      "activities": [
+        "lara-sig",
+        "utova"
+      ]
+    },
+    {
+      "slug": "robotik",
+      "name": "Robotik",
+      "parent": "teknik",
+      "description": "Robotik: bygga och programmera robotar.",
+      "aliases": [
+        "robotar"
+      ],
+      "activities": [
+        "bygga",
+        "lara-sig"
+      ]
+    },
+    {
+      "slug": "smarta-hem",
+      "name": "Smarta hem",
+      "parent": "teknik",
+      "description": "Smarta hem: automatisera och styra hemmet.",
+      "aliases": [
+        "smart home",
+        "hemautomation"
+      ],
+      "activities": [
+        "bygga",
+        "lara-sig"
       ]
     },
     {
@@ -1642,6 +2188,35 @@
         "kreativt",
         "hantverk",
         "pyssel"
+      ]
+    },
+    {
+      "slug": "modellbygge",
+      "name": "Modellbygge",
+      "parent": "skapande",
+      "description": "Modellbygge: bygga och måla modeller.",
+      "aliases": [
+        "bygga modeller",
+        "plastmodeller",
+        "modellbyggen"
+      ],
+      "activities": [
+        "bygga",
+        "samla"
+      ]
+    },
+    {
+      "slug": "lego",
+      "name": "Lego",
+      "parent": "skapande",
+      "description": "Lego: bygga med klossar.",
+      "aliases": [
+        "legobyggen",
+        "klossar"
+      ],
+      "activities": [
+        "bygga",
+        "samla"
       ]
     },
     {
@@ -2089,6 +2664,19 @@
       ]
     },
     {
+      "slug": "har-och-frisyrer",
+      "name": "Hår och frisyrer",
+      "parent": "mode-och-stil",
+      "description": "Hår och frisyrer: frisyrer, hårvård och stylingtips.",
+      "aliases": [
+        "frisyr",
+        "frisyrer",
+        "hår",
+        "frisör",
+        "hårvård"
+      ]
+    },
+    {
       "slug": "klader-och-trender",
       "name": "Kläder och trender",
       "parent": "mode-och-stil",
@@ -2517,6 +3105,18 @@
       ]
     },
     {
+      "slug": "husbil-och-husvagn",
+      "name": "Husbil och husvagn",
+      "parent": "resor",
+      "description": "Husbil och husvagn: resa och bo i husbil eller husvagn.",
+      "aliases": [
+        "husbil",
+        "husvagn",
+        "husbilsliv",
+        "husvagnsliv"
+      ]
+    },
+    {
       "slug": "backpacking",
       "name": "Backpacking",
       "parent": "resor",
@@ -2544,8 +3144,7 @@
       "description": "Roadtrips: att upptäcka platser längs vägen med bil eller husbil.",
       "aliases": [
         "roadtrip",
-        "bilsemester",
-        "husbil"
+        "bilsemester"
       ]
     },
     {
@@ -2694,6 +3293,129 @@
       "aliases": [
         "nyheter",
         "omvärldsbevakning"
+      ]
+    },
+    {
+      "slug": "hem-och-inredning",
+      "name": "Hem och inredning",
+      "parent": null,
+      "description": "Hem och inredning: göra hemmet fint och fixa själv.",
+      "aliases": [
+        "hemmet",
+        "bostad"
+      ]
+    },
+    {
+      "slug": "inredning",
+      "name": "Inredning",
+      "parent": "hem-och-inredning",
+      "description": "Inredning: inreda och styla hemmet.",
+      "aliases": [
+        "inreda",
+        "heminredning",
+        "interiör"
+      ]
+    },
+    {
+      "slug": "renovering-och-diy",
+      "name": "Renovering och DIY",
+      "parent": "hem-och-inredning",
+      "description": "Renovering och DIY: renovera och fixa hemma.",
+      "aliases": [
+        "renovera",
+        "gör det själv",
+        "diy",
+        "byggprojekt hemma"
+      ],
+      "activities": [
+        "bygga",
+        "lara-sig"
+      ]
+    },
+    {
+      "slug": "halsa-och-valmaende",
+      "name": "Hälsa och välmående",
+      "parent": null,
+      "description": "Hälsa och välmående: må bra, äta bra och sova bra.",
+      "aliases": [
+        "hälsa",
+        "välmående",
+        "wellness"
+      ]
+    },
+    {
+      "slug": "kost-och-naring",
+      "name": "Kost och näring",
+      "parent": "halsa-och-valmaende",
+      "description": "Kost och näring: äta för att må bra.",
+      "aliases": [
+        "kost",
+        "näringslära",
+        "hälsosam mat"
+      ]
+    },
+    {
+      "slug": "somn",
+      "name": "Sömn",
+      "parent": "halsa-och-valmaende",
+      "description": "Sömn: sova bättre.",
+      "aliases": [
+        "sova bättre",
+        "sömnhygien"
+      ]
+    },
+    {
+      "slug": "mental-halsa",
+      "name": "Mental hälsa",
+      "parent": "halsa-och-valmaende",
+      "description": "Mental hälsa: må bra i huvudet.",
+      "aliases": [
+        "psykisk hälsa",
+        "mående"
+      ]
+    },
+    {
+      "slug": "friskvard",
+      "name": "Friskvård",
+      "parent": "halsa-och-valmaende",
+      "description": "Friskvård: massage, spa och återhämtning.",
+      "aliases": [
+        "massage",
+        "spa",
+        "återhämtning"
+      ]
+    },
+    {
+      "slug": "podcasts-och-radio",
+      "name": "Podcasts och radio",
+      "parent": null,
+      "description": "Podcasts och radio: lyssna på program och poddar.",
+      "aliases": [
+        "ljudmedia"
+      ],
+      "activities": [
+        "lyssna"
+      ]
+    },
+    {
+      "slug": "podcasts",
+      "name": "Podcasts",
+      "parent": "podcasts-och-radio",
+      "description": "Podcasts: lyssna på och prata om poddar.",
+      "aliases": [
+        "podd",
+        "poddar",
+        "poddcast"
+      ]
+    },
+    {
+      "slug": "radio",
+      "name": "Radio",
+      "parent": "podcasts-och-radio",
+      "description": "Radio: lyssna på radioprogram.",
+      "aliases": [
+        "radioprogram",
+        "p3"
       ]
     }
   ]
