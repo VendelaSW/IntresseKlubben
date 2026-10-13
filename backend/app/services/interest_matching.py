@@ -256,7 +256,9 @@ som taggen hör under bäst (en tagg om ett kortspel hör under Kortspel, en mus
 modellbygge under Skapande). Lämna aldrig parent_id tomt för en sådan tagg. Finns ingen exakt förälder \
 väljer du det område som ligger närmast (mynt och frimärken hör närmast under Historia, \
 hantverk under Skapande). Ett riktigt intresse ska aldrig bli none bara för att området inte passar \
-perfekt, utan hamna under det närmaste. En tagg \
+perfekt, utan hamna under det närmaste. Området Övrigt och nischat är den sista utvägen och får bara \
+väljas när inget annat område passar alls, aldrig för att du är osäker: välj alltid ett riktigt område \
+först. En tagg \
 med parent_key läggs under sin överordnade tagg, så för den får parent_id vara null. Välj en förälder \
 som är ett område eller ett intresse, aldrig en rad som redan är tre nivåer ner. Skriv new_name som \
 taggens namn, eller ett av dess alias, och inget annat ord.
