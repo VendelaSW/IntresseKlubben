@@ -40,16 +40,18 @@ function App() {
         <Route path="/stilguide" element={<StyleGuide />} />
 
         <Route element={<ProtectedRoute />}>
-          {/* PROTOTYP: inte länkad från menyn än. Bara för inloggade, och utanför
-              AppShell eftersom kartan tar hela skärmen. */}
-          <Route
-            path="/karta-prototyp"
-            element={
-              <Suspense fallback={<p className="hint-text">Laddar karta...</p>}>
-                <MapPrototype />
-              </Suspense>
-            }
-          />
+          {/* PROTOTYP: inte länkad från menyn än. Bara för inloggade med klar
+              profil, och utanför AppShell eftersom kartan tar hela skärmen. */}
+          <Route element={<RequireProfile />}>
+            <Route
+              path="/karta-prototyp"
+              element={
+                <Suspense fallback={<p className="hint-text">Laddar karta...</p>}>
+                  <MapPrototype />
+                </Suspense>
+              }
+            />
+          </Route>
           {/* Intervjun har en egen helskärmsvy, utan menyn. */}
           <Route path="/profil/intervju" element={<ProfileInterview />} />
           <Route element={<AppShell />}>
