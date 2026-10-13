@@ -327,9 +327,10 @@ function StyleGuide() {
           Rubrikrad (.page-header) med rund knapp, och flikar (.filter-tabs)
         </p>
         <p className="hint-text">
-          Lägg .app-section-centered på sidans .app-section för att centrera rubrik, flikar,
-          kortrutnät och ark, med tätare avstånd (Klubbar och Events). Utan den ligger allt
-          vänsterställt (Personer och Brev).
+          På dator ligger rubrik och flikar till vänster på alla sidor, på mobil centrerade (Brev,
+          Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
+          .app-section för sidor med kort i rutnät (Klubbar och Events): "+"-knappen direkt efter
+          rubriken, tätare avstånd, högst tre kort per rad, och på mobil centreras även korten.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
           <div className="page-header">
