@@ -8,6 +8,7 @@ import {
   parsePath,
 } from 'react-router-dom'
 import { MapActionsContext } from '../components/ShowOnMapButton'
+import { CanGoBackContext } from '../hooks/useCanGoBack'
 import ConversationPage from './ConversationPage'
 import EventsPage from './EventsPage'
 import GroupsPage from './GroupsPage'
@@ -118,6 +119,8 @@ function MapPagePad({ start, onClose, mapActions }) {
   }, [parent, onClose])
 
   const title = padRouteFor(location.pathname)?.title ?? ''
+  // "Tillbaka" på sidorna går bakåt i blocket när det finns något där.
+  const canGoBack = useMemo(() => () => historyRef.current.length > 1, [])
 
   return (
     <MapPad title={title} wide onClose={onClose}>
@@ -127,14 +130,16 @@ function MapPagePad({ start, onClose, mapActions }) {
         <PageErrorBoundary key={location.pathname}>
           <MapActionsContext.Provider value={mapActions}>
             <NavigationContext.Provider value={navigation}>
-              {/* Sidorna matchas mot blockets adress, inte kartans. */}
-              <RouteContext.Provider value={{ outlet: null, matches: [], isDataRoute: false }}>
-                <Routes location={location}>
-                  {PAD_ROUTES.map(({ path, Page }) => (
-                    <Route key={path} path={path} element={<Page />} />
-                  ))}
-                </Routes>
-              </RouteContext.Provider>
+              <CanGoBackContext.Provider value={canGoBack}>
+                {/* Sidorna matchas mot blockets adress, inte kartans. */}
+                <RouteContext.Provider value={{ outlet: null, matches: [], isDataRoute: false }}>
+                  <Routes location={location}>
+                    {PAD_ROUTES.map(({ path, Page }) => (
+                      <Route key={path} path={path} element={<Page />} />
+                    ))}
+                  </Routes>
+                </RouteContext.Provider>
+              </CanGoBackContext.Provider>
             </NavigationContext.Provider>
           </MapActionsContext.Provider>
         </PageErrorBoundary>
