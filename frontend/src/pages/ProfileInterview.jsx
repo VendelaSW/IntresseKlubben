@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import FormField from '../components/FormField'
 import InterestTree, { descendantKeys, withoutDuplicates } from '../components/InterestTree'
 import TextareaWithCount from '../components/TextareaWithCount'
+import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
 import { GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
@@ -155,6 +156,7 @@ function ProfileInterview() {
   // Har sigillen gått ut (400 vid sparande)? Då får man tolka texterna på nytt.
   const [expired, setExpired] = useState(false)
   const navigate = useNavigate()
+  const { user, updateUser } = useAuth()
   // Intervjun är till för den som inte har en profil än. Har man en skickas man till startsidan, så att man inte
   // skapar en till. Tills det är kollat visas ingenting.
   const [checkingProfile, setCheckingProfile] = useState(true)
@@ -495,6 +497,8 @@ function ProfileInterview() {
         district: answers.district.trim() || null,
         batches: approved,
       })
+      // Nu är profilen klar, så resten av appen låses upp (se RequireProfile).
+      updateUser({ ...user, profile_completed: true })
       navigate('/hem')
     } catch (error) {
       setExpired(error instanceof ApiError && error.status === 400)

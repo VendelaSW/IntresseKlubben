@@ -19,7 +19,7 @@ syns i några adresser.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.auth.security import get_current_user
+from app.auth.security import get_current_user, require_profile
 from app.core import storage
 from app.crud.contact import is_blocked
 from app.crud.message import CannotMessageSelfError, get_conversation, list_conversations, send_message
@@ -28,7 +28,8 @@ from app.models.user import User
 from app.schemas.contact import ContactUser
 from app.schemas.message import ConversationDetail, ConversationResponse, MessageCreate, MessageOut
 
-router = APIRouter(prefix="/messages", tags=["messages"])
+# Låst tills profilen är klar (se require_profile).
+router = APIRouter(prefix="/messages", tags=["messages"], dependencies=[Depends(require_profile)])
 
 
 def _reachable_user_or_404(db: Session, current_user_id: int, user_id: int) -> User:

@@ -66,6 +66,7 @@ def test_wrong_password_and_unknown_user_give_the_same_error(client):
     ("method", "path"),
     [
         ("get", "/users/me"),
+        ("patch", "/users/me"),
         ("get", "/profile/"),
         ("patch", "/profile/"),
         ("get", "/profile/interests"),
