@@ -129,10 +129,41 @@ function TodoLine({ onClick, done, children }) {
 function MarginDoodles() {
   return (
     <div className="map-calm-doodles" aria-hidden="true">
-      {/* Kaffefläcken nere till höger. */}
-      <svg className="map-calm-coffee" viewBox="-50 -50 100 100">
-        <circle cx="0" cy="0" r="44" />
-        <path d="M-42 10 A43 43 0 0 0 28 33" />
+      {/* Kaffefläcken nere till höger: en torkad ring med mörkare, ojämn kant
+          och ljusare insida, en svagare ring där koppen stod först och några
+          stänk. Bruset (feTurbulence) gör kanterna ojämna som på riktigt. */}
+      <svg className="map-calm-coffee" viewBox="-70 -70 140 140">
+        <defs>
+          <radialGradient id="map-calm-coffee-ring">
+            <stop offset="0.62" stopColor="#8a5a2b" stopOpacity="0.06" />
+            <stop offset="0.8" stopColor="#8a5a2b" stopOpacity="0.14" />
+            <stop offset="0.9" stopColor="#6b3f1a" stopOpacity="0.42" />
+            <stop offset="0.95" stopColor="#5a3314" stopOpacity="0.55" />
+            <stop offset="1" stopColor="#5a3314" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="map-calm-coffee-faint">
+            <stop offset="0.86" stopColor="#6b3f1a" stopOpacity="0" />
+            <stop offset="0.94" stopColor="#6b3f1a" stopOpacity="0.28" />
+            <stop offset="1" stopColor="#6b3f1a" stopOpacity="0" />
+          </radialGradient>
+          <filter id="map-calm-coffee-wobble" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="3" seed="7" />
+            <feDisplacementMap in="SourceGraphic" scale="6" />
+            <feGaussianBlur stdDeviation="0.6" />
+          </filter>
+          {/* Bara ungefär två tredjedelar av den första ringen syns. */}
+          <mask id="map-calm-coffee-part">
+            <rect x="-70" y="-70" width="140" height="140" fill="black" />
+            <path d="M-70 -70 L70 -70 L70 20 L-20 70 L-70 70 Z" fill="white" />
+          </mask>
+        </defs>
+        <g filter="url(#map-calm-coffee-wobble)">
+          <circle cx="9" cy="-7" r="50" fill="url(#map-calm-coffee-faint)" mask="url(#map-calm-coffee-part)" />
+          <circle cx="0" cy="0" r="52" fill="url(#map-calm-coffee-ring)" />
+          <circle cx="-54" cy="34" r="3.2" className="map-calm-coffee-drop" />
+          <circle cx="-61" cy="41" r="1.8" className="map-calm-coffee-drop" />
+          <circle cx="47" cy="-46" r="2.2" className="map-calm-coffee-drop" />
+        </g>
       </svg>
       {/* Pappersflygplanet uppe till höger, med en loop bakom sig. */}
       <svg className="map-calm-plane" viewBox="-265 0 270 75">

@@ -225,14 +225,19 @@
   stroke-linejoin: round;
 }
 
+/* Kaffefläcken ritas med fyllningar (se MapCalmPage.jsx), inga linjer. */
 .map-calm-coffee {
-  right: 7%;
-  bottom: 12%;
-  width: 130px;
-  height: 130px;
-  stroke: rgba(120, 72, 30, 0.35) !important;
-  stroke-width: 5 !important;
+  right: 6%;
+  bottom: 10%;
+  width: 170px;
+  height: 170px;
+  stroke: none !important;
   rotate: -12deg;
+}
+
+.map-calm-coffee-drop {
+  fill: #6b3f1a;
+  fill-opacity: 0.35;
 }
 
 .map-calm-plane {
