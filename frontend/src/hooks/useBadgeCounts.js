@@ -8,7 +8,7 @@ import { countUnseenConversations, getConversations } from '../services/messages
 // Hur ofta siffrorna räknas om medan man står kvar.
 const POLL_MS = 30000
 
-const EMPTY = { contactRequests: 0, clubInvitations: 0, eventInvitations: 0, unseenMessages: 0 }
+export const EMPTY_COUNTS = { contactRequests: 0, clubInvitations: 0, eventInvitations: 0, unseenMessages: 0 }
 
 // Siffrorna för appens märken (menyn i AppShell och lapparna på kartan):
 //   contactRequests: obesvarade kontaktförfrågningar (Personer)
@@ -23,37 +23,45 @@ const EMPTY = { contactRequests: 0, clubInvitations: 0, eventInvitations: 0, uns
 // man gör något. Pausar när fliken inte syns och räknar om direkt när man
 // kommer tillbaka. Anropen är låsta tills profilen är klar (require_profile i
 // backend), så inget hämtas innan dess.
+//
+// Ger null tills första hämtningen är klar, så att den som jämför siffror
+// (kartans lappar studsar när en går upp) inte tar de första riktiga
+// siffrorna för en ökning från noll. Alla fyra sätts på en gång.
 export function useBadgeCounts({ refreshKey = null, openConversationId = null } = {}) {
   const { user } = useAuth()
   const profileDone = Boolean(user?.profile_completed)
-  const [counts, setCounts] = useState(EMPTY)
+  const [counts, setCounts] = useState(null)
 
   useEffect(() => {
     if (!profileDone) return undefined
     let cancelled = false
     let fetching = false
 
-    // Varje siffra för sig, så att ett anrop som misslyckas inte nollar de
-    // andra. Siffrorna är inte viktiga nog för ett felmeddelande; nästa försök
-    // kommer snart.
-    function update(key, value) {
-      if (!cancelled) setCounts((current) => (current[key] === value ? current : { ...current, [key]: value }))
-    }
-
     async function refresh() {
       if (fetching || document.hidden) return
       fetching = true
-      await Promise.allSettled([
-        getContacts().then((data) => update('contactRequests', data.incoming_requests.length)),
-        getGroupInvitationCount().then((count) => update('clubInvitations', count)),
-        getEvents().then((events) =>
-          update('eventInvitations', events.filter((e) => e.is_invited && e.my_answer === null).length),
-        ),
+      const results = await Promise.allSettled([
+        getContacts().then((data) => data.incoming_requests.length),
+        getGroupInvitationCount(),
+        getEvents().then((events) => events.filter((e) => e.is_invited && e.my_answer === null).length),
         getConversations().then((conversations) =>
-          update('unseenMessages', countUnseenConversations(conversations.filter((c) => c.id !== openConversationId))),
+          countUnseenConversations(conversations.filter((c) => c.id !== openConversationId)),
         ),
       ])
       fetching = false
+      if (cancelled) return
+      // Ett anrop som misslyckas behåller sin förra siffra (0 första gången),
+      // så att det inte nollar de andra. Siffrorna är inte viktiga nog för ett
+      // felmeddelande; nästa försök kommer snart.
+      const keys = ['contactRequests', 'clubInvitations', 'eventInvitations', 'unseenMessages']
+      setCounts((current) => {
+        const next = { ...(current ?? EMPTY_COUNTS) }
+        results.forEach((result, i) => {
+          if (result.status === 'fulfilled') next[keys[i]] = result.value
+        })
+        const same = current && keys.every((key) => current[key] === next[key])
+        return same ? current : next
+      })
     }
 
     function onVisibilityChange() {

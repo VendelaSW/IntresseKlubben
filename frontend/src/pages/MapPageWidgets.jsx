@@ -27,12 +27,14 @@ const PING_MS = 1200
 function MapPageWidgets({ openPage, onOpen }) {
   // Räknas om när ett block öppnas eller stängs, eftersom man kan ha läst brev
   // eller svarat på en inbjudan i det.
+  // null tills första hämtningen är klar (se useBadgeCounts).
   const counts = useBadgeCounts({ refreshKey: openPage })
   const [pinged, setPinged] = useState(() => new Set())
   const previous = useRef(null)
   const pingTimer = useRef(null)
 
   useEffect(() => {
+    if (!counts) return
     const before = previous.current
     previous.current = counts
     // Första hämtningen är inget nytt, bara läget när kartan öppnades.
@@ -57,7 +59,7 @@ function MapPageWidgets({ openPage, onOpen }) {
           title={label}
           onClick={() => onOpen(openPage === id ? null : id)}
         >
-          {counts[key] > 0 && (
+          {counts?.[key] > 0 && (
             <span className="map-widget-badge" aria-label={`${counts[key]} ${badgeLabel}`}>
               {counts[key]}
             </span>

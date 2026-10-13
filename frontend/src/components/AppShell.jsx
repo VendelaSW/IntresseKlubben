@@ -6,7 +6,7 @@ import brevIcon from '../assets/brev.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import { useAuth } from '../hooks/useAuth'
-import { useBadgeCounts } from '../hooks/useBadgeCounts'
+import { EMPTY_COUNTS, useBadgeCounts } from '../hooks/useBadgeCounts'
 
 // Menyord utan egen sida än blir bara text tills vidare; de med `to` länkar dit.
 const NAV_ITEMS = [
@@ -27,10 +27,11 @@ function AppShell() {
   // Siffrorna i menyn (se useBadgeCounts). Konversationen man har öppen
   // (/meddelanden/:id) räknas inte som ny.
   const openMatch = location.pathname.match(/^\/meddelanden\/(\d+)/)
-  const { contactRequests, clubInvitations, eventInvitations, unseenMessages } = useBadgeCounts({
-    refreshKey: location.pathname,
-    openConversationId: openMatch ? Number(openMatch[1]) : null,
-  })
+  const { contactRequests, clubInvitations, eventInvitations, unseenMessages } =
+    useBadgeCounts({
+      refreshKey: location.pathname,
+      openConversationId: openMatch ? Number(openMatch[1]) : null,
+    }) ?? EMPTY_COUNTS
   // Menyn är inte länkar innan profilen är klar (allt annat är ändå låst).
   const profileDone = Boolean(user?.profile_completed)
 
