@@ -9,6 +9,14 @@ import { useAuth } from '../hooks/useAuth'
 function Home() {
   const { user, loading } = useAuth()
   const [view, setView] = useState(null) // null | 'login' | 'register'
+  // Har man precis skapat ett konto hamnar man direkt på inloggningen, med ett
+  // meddelande om det. Byter man vy själv försvinner meddelandet.
+  const [justRegistered, setJustRegistered] = useState(false)
+
+  function show(next) {
+    setJustRegistered(false)
+    setView(next)
+  }
 
   // Redan inloggad: inget att göra här, skicka vidare till hubben.
   if (loading) return null
@@ -30,10 +38,10 @@ function Home() {
 
       {view === null && (
         <div className="account-choice-links">
-          <button type="button" className="primary-button" onClick={() => setView('login')}>
+          <button type="button" className="primary-button" onClick={() => show('login')}>
             Logga in
           </button>
-          <button type="button" className="primary-button" onClick={() => setView('register')}>
+          <button type="button" className="primary-button" onClick={() => show('register')}>
             Registrera dig
           </button>
         </div>
@@ -41,8 +49,11 @@ function Home() {
 
       {view === 'login' && (
         <>
-          <LoginFields onSwitchToRegister={() => setView('register')} />
-          <button type="button" className="text-button" onClick={() => setView(null)}>
+          <LoginFields
+            onSwitchToRegister={() => show('register')}
+            notice={justRegistered ? 'Kontot är skapat! Logga in med ditt användarnamn eller din e-post.' : null}
+          />
+          <button type="button" className="text-button" onClick={() => show(null)}>
             ← Tillbaka
           </button>
         </>
@@ -50,8 +61,14 @@ function Home() {
 
       {view === 'register' && (
         <>
-          <RegisterFields onSwitchToLogin={() => setView('login')} />
-          <button type="button" className="text-button" onClick={() => setView(null)}>
+          <RegisterFields
+            onSwitchToLogin={() => show('login')}
+            onRegistered={() => {
+              setView('login')
+              setJustRegistered(true)
+            }}
+          />
+          <button type="button" className="text-button" onClick={() => show(null)}>
             ← Tillbaka
           </button>
         </>
