@@ -45,6 +45,12 @@
   --color-muted: #6b6b6b;
   --color-success: #3b6d11;
   --color-error: #a32d2d;
+  /* Brev: pappret (aningen mörkare än bakgrunden, som ett gammalt papper), dess
+     något mörkare kanter, den röda marginallinjen och kuvertets insida. */
+  --color-paper: #f5eddc;
+  --color-paper-edge: rgba(176, 140, 80, 0.08);
+  --color-paper-margin: #e7a1a1;
+  --color-envelope-inside: #eef3f8;
 
   --font-heading: 'Caveat', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
@@ -903,6 +909,8 @@ span.tag-selected:hover {
 
 .app-shell {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-header {
@@ -1021,39 +1029,370 @@ span.tag-selected:hover {
   text-align: left;
 }
 
-/* Chatten: meddelanden och svarsfält i en vänsterställd spalt mitt på
-   sidan. Smalare än profilkortet, så att raderna inte blir för långa att
-   läsa; tillbaka-knappen följer med så att de linjerar. */
-.conversation,
-.conversation-page .back-row {
-  width: 100%;
-  max-width: 400px;
+/* ---------- Brev (pages/InboxPage.jsx, ConversationPage.jsx) ---------- */
+
+/* Linjerat papper med röd marginal, som i loggans anteckningsblock. Används
+   både för brevet i kuvertet och för konversationen. --line-gap är avståndet
+   mellan linjerna, --paper-margin var den röda linjen går och --line-offset
+   flyttar linjerna så att texten står på dem. */
+.lined-paper {
+  --line-gap: 1.6rem;
+  --paper-margin: 3.4rem;
+  --line-offset: 0px;
+  background-color: var(--color-paper);
+  background-image:
+    radial-gradient(ellipse at center, transparent 60%, var(--color-paper-edge) 100%),
+    linear-gradient(90deg, transparent calc(var(--paper-margin) - 1px), var(--color-paper-margin) calc(var(--paper-margin) - 1px), var(--color-paper-margin) calc(var(--paper-margin) + 1px), transparent calc(var(--paper-margin) + 1px)),
+    repeating-linear-gradient(to bottom, transparent 0 calc(var(--line-gap) - 1px), var(--color-line) calc(var(--line-gap) - 1px) var(--line-gap));
+  background-position: 0 0, 0 0, 0 var(--line-offset);
 }
 
-.conversation {
+/* Kuverten: fyra per rad på dator och tre på mobil. Ett öppnat kuvert når upp
+   ca 40 % av sin höjd (fliken), och höjden följer bredden. --envelope-reach är
+   den höjden, räknad från sidans bredd, så att ett öppnat kuvert alltid har
+   lite luft till flikarna och till kuvertet ovanför utan att mellanrummet blir
+   större än det behöver. */
+.envelopes {
+  --envelope-reach: calc(0.07 * (min(100vw - 3rem, 992px) - 5.25rem));
+  list-style: none;
+  margin: 0;
+  padding: calc(var(--envelope-reach) - 0.25rem) 0 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: calc(var(--envelope-reach) + 1.1rem) 1.75rem;
+}
+
+/* Kuvertet man pekar på läggs överst, så att dess öppna flik och papper syns
+   helt över kuvertet ovanför. */
+.envelopes li {
+  position: relative;
+}
+
+.envelopes li:hover,
+.envelopes li:focus-within {
+  z-index: 1;
+}
+
+/* Kanten och skuggan ligger på själva kuvertet, så att .card-interactive ger
+   samma gula kant, gula skugga och lyft som andra klickbara kort. */
+.envelope {
+  position: relative;
+  display: block;
+  aspect-ratio: 10 / 7;
+  border: 2px solid var(--color-line);
+  border-radius: 6px;
+  box-shadow: 0 6px 0 var(--color-line);
+  background: var(--color-white);
+  color: var(--color-text);
+  text-decoration: none;
+  perspective: 700px;
+  container-type: inline-size;
+}
+
+.envelope-inside,
+.envelope-letter,
+.envelope-front,
+.envelope-flap,
+.envelope-seal {
+  position: absolute;
+}
+
+/* Insidan syns bara när kuvertet är öppet. */
+.envelope-inside {
+  inset: 0;
+  z-index: 1;
+  border-radius: 4px;
+  background: var(--color-envelope-inside);
+}
+
+.envelope-letter {
+  --line-gap: 0.9rem;
+  --paper-margin: 14%;
+  --line-offset: 0.6rem;
+  left: 8%;
+  right: 8%;
+  top: 7%;
+  bottom: 6%;
+  z-index: 2;
+  border: 1px solid var(--color-line);
+  border-radius: 3px;
+  transition: transform 0.3s ease;
+}
+
+/* Framsidan, med ett V-format hack upptill (där fliken ligger) och vikkanter. */
+.envelope-front {
+  inset: 0;
+  z-index: 3;
+  border-radius: 4px;
+  background: var(--color-white);
+  clip-path: polygon(0 0, 50% 40%, 100% 0, 100% 100%, 0 100%);
+}
+
+.envelope-front svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--color-line);
+  stroke-width: 1.4;
+}
+
+/* Namnet och datumet staplade nertill, så att de aldrig överlappar. Storlekarna
+   följer kuvertets bredd (cqi), så att de passar både på dator och mobil. */
+.envelope-address {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 6%;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  align-items: center;
+  gap: 0.15rem;
+  line-height: 1;
+}
+
+.envelope-name {
+  max-width: 100%;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13.5cqi;
+  /* Caveats bokstäver sticker ut lite utanför sin ruta (t.ex. sista "d" i
+     David). Luften runt namnet gör att de inte klipps av overflow: hidden. */
+  padding: 0.1em 0.2em;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.envelope-when {
+  font-size: clamp(0.5rem, 4.9cqi, 0.7rem);
+  color: var(--color-muted);
+}
+
+/* Fliken: en blå triangel med en vit triangel inuti, så att kanten syns. Blir
+   gul vid hover, som kuvertets kant. Vänds upp och hamnar bakom brevet när
+   kuvertet öppnas. */
+.envelope-flap {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 44%;
+  z-index: 4;
+  background: var(--color-line);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: top;
+  transition: transform 0.35s ease 0.25s, z-index 0s 0.25s, background 0.15s ease;
+}
+
+.envelope-flap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--color-white);
+  clip-path: polygon(2px 0, calc(100% - 2px) 0, 50% calc(100% - 3px));
+}
+
+.envelope:hover .envelope-flap,
+.envelope:focus-visible .envelope-flap {
+  background: var(--color-accent);
+}
+
+/* Gult sigill på ett nytt, oöppnat kuvert. */
+.envelope-seal {
+  left: 50%;
+  top: 44%;
+  width: clamp(1.35rem, 16cqi, 2.3rem);
+  height: clamp(1.35rem, 16cqi, 2.3rem);
+  translate: -50% -55%;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-white), 0 2px 0 3px var(--color-line);
+  font-size: clamp(0.38rem, 4.3cqi, 0.62rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  transition: transform 0.2s ease;
+}
+
+/* Dator med mus: ett öppnat kuvert öppnar fliken och brevet kommer upp en bit.
+   Ett nytt kuvert förblir stängt; bara sigillet växer lite. */
+@media (hover: hover) and (min-width: 768px) {
+  .envelope:not(.envelope-new):hover .envelope-flap,
+  .envelope:not(.envelope-new):focus-visible .envelope-flap {
+    transform: rotateX(140deg);
+    z-index: 1;
+    transition: transform 0.35s ease, z-index 0s 0.17s, background 0.15s ease;
+  }
+
+  /* Uppvikt syns flikens insida, i samma ton som kuvertets insida. */
+  .envelope:not(.envelope-new):hover .envelope-flap::after,
+  .envelope:not(.envelope-new):focus-visible .envelope-flap::after {
+    background: var(--color-envelope-inside);
+    transition: background 0s 0.17s;
+  }
+
+  .envelope:not(.envelope-new):hover .envelope-letter,
+  .envelope:not(.envelope-new):focus-visible .envelope-letter {
+    transform: translateY(-19%);
+    transition: transform 0.45s cubic-bezier(0.34, 1.6, 0.6, 1) 0.22s;
+  }
+
+  .envelope-new:hover .envelope-seal,
+  .envelope-new:focus-visible .envelope-seal {
+    transform: scale(1.12);
+  }
+}
+
+/* Konversationen: anteckningspappret med namnet överst, breven och svarsraden.
+   Allt har radhöjden --line-gap, så att texten står på linjerna. */
+.conversation-page .back-row,
+.notepad {
+  width: 100%;
+  max-width: 640px;
+}
+
+.notepad {
+  --notepad-top: 3.6rem;
+  --line-offset: calc(var(--notepad-top) - 0.28rem);
+  position: relative;
+  padding: var(--notepad-top) 1.2rem var(--line-gap) calc(var(--paper-margin) + 0.8rem);
+  border: 2px solid var(--color-line);
+  border-radius: 4px;
+  box-shadow: 0 6px 0 var(--color-line);
+  line-height: var(--line-gap);
   text-align: left;
 }
 
-.conversation-messages {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.notepad p {
+  margin: 0;
 }
 
-/* Ett meddelande: raden med namn och tid, och texten tätt under. Långa ord
-   och länkar bryts, så att de inte sticker ut ur den smala spalten (som
-   .soft-box-text). */
-.message {
+.notepad .hint-text {
+  line-height: inherit;
+}
+
+.notepad-title {
+  position: absolute;
+  top: 0.9rem;
+  left: calc(var(--paper-margin) + 0.8rem);
+  right: 1.2rem;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 2.6rem;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notepad-messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: var(--line-gap);
+}
+
+/* Långa ord och länkar bryts, så att de inte sticker ut ur pappret. */
+.notepad-message {
   overflow-wrap: anywhere;
 }
 
+.notepad-message time {
+  margin-left: 0.2rem;
+}
+
+.notepad-message-mine strong {
+  box-shadow: inset 0 -5px 0 var(--color-accent);
+}
+
+/* Svarsraden är exakt en rad hög, så att texten i fältet står på linjen. */
+.notepad-reply {
+  margin-top: var(--line-gap);
+  height: var(--line-gap);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.notepad-reply input {
+  flex: 1;
+  min-width: 0;
+  height: var(--line-gap);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  line-height: var(--line-gap);
+  color: var(--color-text);
+}
+
+.notepad-reply input::placeholder {
+  color: var(--color-muted);
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+}
+
+/* Fokus: raden man skriver på får en svag gul ton, i stället för en ram som
+   krockar med linjerna. */
+.notepad-reply input:focus {
+  outline: none;
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+}
+
+.notepad-reply button {
+  height: calc(var(--line-gap) - 2px);
+  line-height: 1;
+}
+
+/* Mobil: tre mindre kuvert per rad utan animation (namn och sigill krymper med
+   kuvertet), och pappret i chatten ligger längst ner på skärmen, där man skriver. */
+@media (max-width: 767px) {
+  .envelopes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.4rem 0.75rem;
+    padding-top: 0.25rem;
+  }
+
+  .conversation-page {
+    flex: 1;
+  }
+
+  .conversation-page .notepad {
+    margin-top: auto;
+  }
+
+  .notepad {
+    --paper-margin: 2.2rem;
+    padding-right: 0.8rem;
+    padding-left: calc(var(--paper-margin) + 0.6rem);
+  }
+
+  .notepad-title {
+    left: calc(var(--paper-margin) + 0.6rem);
+    right: 0.8rem;
+    font-size: 2.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .envelope-flap,
+  .envelope-letter,
+  .envelope-seal {
+    transition: none;
+  }
+}
+
 .app-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2.5rem;

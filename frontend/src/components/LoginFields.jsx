@@ -5,8 +5,10 @@ import { loginUser } from '../services/api'
 
 // Inloggningsfälten, tänkta att visas inline på Home (se LoginFields/
 // RegisterFields-paret) istället för på en egen sida.
-function LoginFields({ onSwitchToRegister }) {
-  const [username, setUsername] = useState('')
+// `notice` är ett meddelande överst, t.ex. att kontot just har skapats.
+function LoginFields({ onSwitchToRegister, notice }) {
+  // Användarnamn eller e-post, i samma fält.
+  const [usernameOrEmail, setUsernameOrEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -18,7 +20,7 @@ function LoginFields({ onSwitchToRegister }) {
     setError('')
     setSubmitting(true)
     try {
-      const { access_token, user } = await loginUser(username, password)
+      const { access_token, user } = await loginUser(usernameOrEmail, password)
       login(access_token, user)
       // Hubben skickar vidare till "Skapa din profil" om profilen saknas.
       navigate('/hem')
@@ -31,13 +33,15 @@ function LoginFields({ onSwitchToRegister }) {
   return (
     <>
       <h1>Logga in</h1>
+      {notice && <p className="form-success">{notice}</p>}
       <form className="auth-form" onSubmit={handleSubmit}>
-        <label htmlFor="login-username">Användarnamn</label>
+        <label htmlFor="login-username">Användarnamn eller e-post</label>
         <input
           id="login-username"
           type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          autoComplete="username"
+          value={usernameOrEmail}
+          onChange={(e) => setUsernameOrEmail(e.target.value)}
           required
         />
 
@@ -45,6 +49,7 @@ function LoginFields({ onSwitchToRegister }) {
         <input
           id="login-password"
           type="password"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required

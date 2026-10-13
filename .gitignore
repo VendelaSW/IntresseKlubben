@@ -223,3 +223,9 @@ node_modules/
 
 # macOS
 .DS_Store
+
+# Videorna till intervjun (Intressekompisen). Bara de färdiga klippen som används ligger i git;
+# originalen och HandBrake-filerna man arbetar med ligger kvar på datorn.
+frontend/public/video/*
+!frontend/public/video/*_fix.mp4
+!frontend/public/video/intervju1_srgb.mp4

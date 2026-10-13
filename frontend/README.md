@@ -24,6 +24,7 @@ på nya hex-koder eller pixelvärden.
 | Boxar | `.card`, `.card-avatar`, `.card-title`, `.card-subheading`, `.card-text` | Se Boxar-exemplet i stilguiden |
 | Formulär | `.auth-form`, dess `input`/`label`/`button` | Se Formulärfält-exemplet i stilguiden |
 | Länkar | `.info-link` | `<a className="info-link">` |
+| Brev | `.envelopes` + `ConversationCard` (kuvert), `.lined-paper` (linjerat papper), `.notepad` (konversationen) | Se Brev-exemplet i stilguiden |
 | Rubriker | Vanliga `<h1>`/`<h2>`-taggar, redan stylade automatiskt | `<h2>Min rubrik</h2>` |
 
 Behöver ni något nytt (en ny färg, en ny komponenttyp), lägg till den i
