@@ -1,13 +1,13 @@
-# Körs på varje pull request mot dev/main och på varje push till dev.
+# Körs på varje pull request mot pre-dev/dev/main och på varje push till pre-dev/dev.
 # Rör aldrig Neon eller den riktiga bucketen: backend-testerna använder en
 # SQLite-databas i minnet (se backend/tests/conftest.py). Inga hemligheter behövs.
 name: CI
 
 on:
   pull_request:
-    branches: [dev, main]
+    branches: [pre-dev, dev, main]
   push:
-    branches: [dev]
+    branches: [pre-dev, dev]
 
 jobs:
   backend:
