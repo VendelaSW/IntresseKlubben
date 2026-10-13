@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import '../styles/map.css'
-import { useSearchParams } from 'react-router-dom'
 import { LngLat, Map as MapLibreMap, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { addMissingDoodle } from './mapPrototypeDoodles'
@@ -8,7 +7,7 @@ import { attachPlaceNotes } from './mapPrototypeNotes'
 import { attachSketchedBuildings } from './mapPrototypeBuildings'
 import { attachPinsAndThread } from './mapPrototypeRoute'
 import { attachPlaceSigns } from './mapPrototypeSigns'
-import MapPagePad from './MapPagePad'
+import MapPagePad, { MAP_PAGES } from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
 import MapProfilePad from './MapProfilePad'
 import MapProfileWidget from './MapProfileWidget'
@@ -741,8 +740,16 @@ function MapPrototype() {
   const [route, setRoute] = useState({ placing: false, style: 'road', pinCount: 0, hint: '' })
   // Profilblocket som ligger ovanpå kartan, öppnat från profilmenyn.
   // Sidan som ligger som block på kartan: 'profil', 'brev', 'personer',
-  // 'klubbar', 'events' eller null.
+  // 'klubbar', 'events', 'redigera' (profilformuläret) eller null.
   const [openPage, setOpenPage] = useState(null)
+  // Adressen blocket öppnas på (se MapPagePad), t.ex. '/klubbar?klubb=3'.
+  const [padStart, setPadStart] = useState(null)
+
+  // Öppnar ett block: en widget (start = widgetens sida) eller en viss sida.
+  function openPad(page, start = MAP_PAGES[page] ?? null) {
+    setOpenPage(page)
+    setPadStart(start)
+  }
   const mapRef = useRef(null)
   const labelsApiRef = useRef(null) // för att rita om namnen när nivån byts
   const outsideApiRef = useRef(null) // för att rita om papperet när nivån byts
@@ -761,9 +768,6 @@ function MapPrototype() {
   const flyTokenRef = useRef(0)
   const activitiesRef = useRef(null) // klubbarnas och eventens lappar på kartan
   const activitiesLayerRef = useRef(null)
-  // Används för att öppna en viss klubb eller ett visst event i blocket
-  // (Klubbar och Events läser ?klubb= och ?event= när de öppnas).
-  const [, setSearchParams] = useSearchParams()
 
   // Hämtar klubbar och events som syns för användaren (samma som listorna i
   // appen) och lägger dem på kartan.
@@ -784,8 +788,9 @@ function MapPrototype() {
 
   // Klick på en lapp: öppna klubben eller eventet i sitt block.
   function openActivity(item) {
-    setSearchParams(item.type === 'klubb' ? { klubb: item.id } : { event: item.id }, { replace: true })
-    setOpenPage(item.type === 'klubb' ? 'klubbar' : 'events')
+    // Klubbar och Events läser ?klubb= och ?event= när de öppnas.
+    if (item.type === 'klubb') openPad('klubbar', `/klubbar?klubb=${item.id}`)
+    else openPad('events', `/events?event=${item.id}`)
   }
   const openActivityRef = useRef(openActivity)
   openActivityRef.current = openActivity
@@ -1276,15 +1281,22 @@ function MapPrototype() {
         )}
       </div>
       <div className="map-top-widgets">
-        <MapPageWidgets openPage={openPage} onOpen={setOpenPage} />
-        <MapProfileWidget onOpen={setOpenPage} />
+        <MapPageWidgets openPage={openPage} onOpen={(page) => (page ? openPad(page) : setOpenPage(null))} />
+        <MapProfileWidget onOpen={openPad} />
       </div>
       {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}
       <div className="map-sketch-table" aria-hidden="true" />
-      {openPage === 'profil' && <MapProfilePad onClose={() => setOpenPage(null)} />}
-      {openPage && openPage !== 'profil' && (
+      {openPage === 'profil' && (
+        <MapProfilePad onClose={() => setOpenPage(null)} onEdit={() => openPad('redigera', '/profil?redigera=1')} />
+      )}
+      {openPage && openPage !== 'profil' && padStart && (
         // key: byter man sida landar ett nytt block.
-        <MapPagePad key={openPage} page={openPage} onClose={() => setOpenPage(null)} mapActions={mapActions} />
+        <MapPagePad
+          key={`${openPage} ${padStart}`}
+          start={padStart}
+          onClose={() => setOpenPage(null)}
+          mapActions={mapActions}
+        />
       )}
     </div>
   )

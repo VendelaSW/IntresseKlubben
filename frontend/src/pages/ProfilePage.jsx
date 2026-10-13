@@ -140,6 +140,9 @@ function ProfilePage() {
   // intervjun när AI:n inte kan tolka texten.
   const [searchParams] = useSearchParams()
   const listMode = searchParams.has('lista')
+  // ?redigera=1: öppnas direkt i "Redigera profil" (kartans profilblock länkar hit).
+  const editRequested = searchParams.has('redigera')
+  const editStarted = useRef(false)
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   // Kontouppgifterna (användarnamn och e-post) från /users/me. Visas i
@@ -245,6 +248,12 @@ function ProfilePage() {
     setFormError('')
     setEditing(true)
   }
+
+  useEffect(() => {
+    if (!editRequested || editStarted.current || status !== 'ready' || !profile) return
+    editStarted.current = true
+    startEditing()
+  }, [editRequested, status, profile])
 
   // Ändrade kontouppgifter (bara för en befintlig profil). Bara det som
   // ändrats skickas och kontrolleras.

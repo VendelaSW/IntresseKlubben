@@ -6,9 +6,10 @@ import ProfileAbout from '../components/ProfileAbout'
 import { getMyInterests } from '../services/interests'
 import { genderLabel, getProfile } from '../services/profile'
 
-// Profilen som ett anteckningsblock på kartan (se MapPad). Bara läsläge än;
-// "Redigera" leder till profilsidan tills redigeringen flyttat in i blocket.
-function MapProfilePad({ onClose }) {
+// Profilen som ett anteckningsblock på kartan (se MapPad), i läsläge.
+// "Redigera profil" anropar `onEdit`, som öppnar profilformuläret i ett
+// block på kartan (se MapPagePad).
+function MapProfilePad({ onClose, onEdit }) {
   const [profile, setProfile] = useState(null)
   const [interests, setInterests] = useState([])
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
@@ -73,9 +74,9 @@ function MapProfilePad({ onClose }) {
             <p className="hint-text">Inga intressen valda än.</p>
           )}
 
-          <Link to="/profil" className="map-tool map-pad-edit">
+          <button type="button" className="map-tool map-pad-edit" onClick={onEdit}>
             Redigera profil
-          </Link>
+          </button>
         </>
       )}
     </MapPad>
