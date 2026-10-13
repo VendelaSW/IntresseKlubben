@@ -2,7 +2,7 @@
 
 Den här guiden beskriver hur en feature går från ticket till merge, hur koden hänger ihop och vad vi har kommit överens om. Den ersätter den gamla `FEATURE_WORKFLOW.pdf`.
 
-**Du kan inte förstöra `dev` av misstag.** Allt går via pull requests, CI testar varje PR automatiskt, någon annan granskar innan merge, och allt i Git går att backa. Så experimentera, fråga och öppna PR:er tidigt.
+**Du kan inte förstöra `pre-dev` eller `dev` av misstag.** Allt går via pull requests, CI testar varje PR automatiskt, någon annan granskar innan merge, och allt i Git går att backa. Så experimentera, fråga och öppna PR:er tidigt.
 
 ---
 
@@ -10,7 +10,20 @@ Den här guiden beskriver hur en feature går från ticket till merge, hur koden
 
 Backend (FastAPI) och frontend (React + Vite) ligger i samma repo men deployas som två separata Vercel-projekt.
 
-Bara `main` och `dev` deployas automatiskt (`git.deploymentEnabled` i `frontend/vercel.json` och `backend/vercel.json`). Gratisplanen tillåter 100 deployer per dag, och varje push till en branch kostade två (ett per projekt), så feature-branches och PR:er får ingen egen förhandsvisning. Testa lokalt innan du öppnar en PR, och samla gärna ändringarna så att du pushar mer sällan. Behöver en PR ändå en förhandsvisning går det att starta en deploy för branchen manuellt i Vercel.
+Bara `main` och `dev` deployas automatiskt (`git.deploymentEnabled` i `frontend/vercel.json` och `backend/vercel.json`). Gratisplanen tillåter 100 deployer per dag, och varje push till en branch kostade två (ett per projekt), så feature-branches, `pre-dev` och PR:er får ingen egen förhandsvisning. Testa lokalt innan du öppnar en PR, och samla gärna ändringarna så att du pushar mer sällan. Behöver en PR ändå en förhandsvisning går det att starta en deploy för branchen manuellt i Vercel.
+
+### Från feature till produktion
+
+```
+feat/... ──PR──▶ pre-dev ──PR──▶ dev ──PR──▶ main
+                 (samlas, ingen    (deployas,     (produktion)
+                  deploy)           Neon följer dev)
+```
+
+1. **Feature-branch:** bygg klart en hel feature i sin egen branch från `pre-dev`.
+2. **PR till `pre-dev`:** granskas och mergas som vanligt. `pre-dev` är där features möts; den deployas inte, så den kostar inget.
+3. **PR från `pre-dev` till `dev`:** när ett gäng features är klara och fungerar ihop lokalt. Då deployas `dev`, och migrationer och synk av intressebiblioteket körs mot Neon (se avsnitt 3).
+4. **PR från `dev` till `main`:** när `dev` är testad. Det är produktionen.
 
 ### Ett anrop från början till slut
 
@@ -89,27 +102,27 @@ Osäker på upplägget? Skriv två rader i ticketen eller ta det på standup inn
 
 ### Steg för steg
 
-1. **Skapa en branch från senaste `dev`:**
+1. **Skapa en branch från senaste `pre-dev`:**
    ```
-   git switch dev
+   git switch pre-dev
    git pull
    git switch -c feat/kort-beskrivning
    ```
 2. **Bygg i lager**, som i intressen-exemplet: modell → migration → schema → crud → route → koppla in routern i `main.py` → tester → frontend-anrop i `services/` → sida/komponent.
 3. **Committa ofta, med tydliga meddelanden** (se avsnitt 5).
 4. **Öppna en draft-PR tidigt** när du vill ha feedback på riktningen. En draft kan inte mergas av misstag.
-5. **Hämta in senaste `dev` regelbundet**, minst en gång om dagen och alltid innan du ber om review:
+5. **Hämta in senaste `pre-dev` regelbundet**, minst en gång om dagen och alltid innan du ber om review:
    ```
    git fetch
-   git merge origin/dev
+   git merge origin/pre-dev
    ```
-   Har `dev` ändrat något grundläggande, som inloggningen, måste din kod anpassas. Det är så de flesta överraskningar i review uppstår.
+   Har `pre-dev` ändrat något grundläggande, som inloggningen, måste din kod anpassas. Det är så de flesta överraskningar i review uppstår.
 6. **Kör testerna lokalt** (se avsnitt 4).
-7. **Gör PR:en redo** ("Ready for review") och fyll i checklistan. **Nämn en granskare.**
+7. **Gör PR:en redo** ("Ready for review") mot `pre-dev` och fyll i checklistan. **Nämn en granskare.**
 
-### Små PR:er
+### En PR per feature
 
-En ticket ger en liten PR. Ju längre en branch lever, desto mer av `dev` missar den och desto svårare blir den att granska. Är något stort, dela upp det, t.ex. först backend med tester och sedan frontend.
+Bygg klart en feature innan du öppnar PR:en, i stället för många små PR:er, så blir det färre pushar och merges (och färre deployer). Håll den ändå till en feature: ju längre en branch lever, desto mer av `pre-dev` missar den och desto svårare blir den att granska. Är något väldigt stort, dela upp det, t.ex. först backend med tester och sedan frontend.
 
 ---
 
@@ -136,14 +149,14 @@ En ticket ger en liten PR. Ju längre en branch lever, desto mer av `dev` missar
 ### Databas och migrationer
 - Ändrar du en modell behövs en migration: `alembic revision --autogenerate -m "kort beskrivning"`.
 - **Läs igenom migrationsfilen.** Kontrollera att `down_revision` är den senaste befintliga migrationen. CI fäller PR:en om historiken delar sig.
-- **Kör inte `alembic upgrade head` innan merge.** Vi delar en Neon-databas (lokalt, dev och produktion), så en migration ändrar databasen för alla direkt. Testa i stället med `pytest`, som använder en egen databas.
-- **Direkt efter merge** kör den som mergade `alembic upgrade head` och skriver i Discord att det är gjort.
+- **Kör inte `alembic upgrade head` innan migrationen har kommit in i `dev`.** Vi delar en Neon-databas (lokalt, dev och produktion), så en migration ändrar databasen för alla direkt. Testa i stället med `pytest`, som använder en egen databas.
+- **När `pre-dev` har mergats in i `dev`** kör den som mergade `alembic upgrade head` (från `dev`) och skriver i Discord att det är gjort.
 
 ### Intressebiblioteket
 - Alla intressen och deras träd (huvudområde › intresse › mer specifikt) står i `backend/app/data/interests.json`. Vill du lägga till, byta namn på eller flytta ett intresse ändrar du där, inte direkt i databasen.
 - `slug` är intressets fasta id. Ändra inte en slug som redan finns, då blir det ett nytt intresse. Ett intresse som tas bort ur filen blir inaktivt i databasen, det raderas aldrig (användarnas val finns kvar).
 - `pytest` kontrollerar att filen är giltig (unika slugs, föräldrar som finns, inga loopar).
-- **Direkt efter merge**, efter `alembic upgrade head`, kör den som mergade (från `backend/`): `python -m app.sync_interests`. Kör det aldrig från en branch som inte är mergad, av samma skäl som migrationerna.
+- **När ändringen har kommit in i `dev`**, efter `alembic upgrade head`, kör den som mergade (från `backend/`, på `dev`): `python -m app.sync_interests`. Kör det aldrig från en branch som inte är i `dev`, av samma skäl som migrationerna.
 
 ### Miljövariabler
 - Ny variabel? Lägg till den i `.env.example` **utan riktigt värde**, skriv i Discord att alla behöver lägga till den lokalt, och lägg in den i Vercel.
@@ -169,7 +182,7 @@ Testerna använder en tillfällig databas i minnet, och bildtesterna en fejkad b
 Testa beteendet som spelar roll: huvudflödet och de fel en användare faktiskt kan råka ut för (t.ex. upptaget användarnamn, ogiltig data, något som inte finns, inte inloggad). Varje test ska kontrollera ett riktigt resultat, inte bara köra kod för att höja täckningen. Fixturerna i `tests/conftest.py` ger dig en databas, en testklient och en inloggad användare (`user`).
 
 ### Vad CI kontrollerar automatiskt
-CI körs på varje PR mot `dev`. Utöver dina tester kontrolleras bland annat att:
+CI körs på varje PR mot `pre-dev`, `dev` och `main`. Utöver dina tester kontrolleras bland annat att:
 - alla routrar är inkopplade i `main.py`
 - migrationerna bildar en enda kedja
 - frontend bygger utan fel
@@ -179,7 +192,7 @@ Täckningsgraden visas i loggen men fäller aldrig bygget.
 ### Starta om CI eller förstå ett rött kryss
 - **Rött kryss:** klicka på "Details" vid checken. Loggen visar vilket test som föll och varför.
 - **Köra om:** fliken Actions → välj körningen → "Re-run jobs". En ny push till branchen startar också CI.
-- **Står checken på "Expected – waiting"?** Då har CI inte körts för den senaste koden. Hämta in senaste `dev` och pusha, eller använd "Update branch" på PR-sidan.
+- **Står checken på "Expected – waiting"?** Då har CI inte körts för den senaste koden. Hämta in senaste `pre-dev` och pusha, eller använd "Update branch" på PR-sidan.
 
 ---
 
@@ -213,7 +226,7 @@ Välj ett språk per meddelande och var konsekvent; svenska går bra.
 Vi jobbar på olika tider, så det mesta behöver fungera utan att vi pratar samtidigt.
 
 - **Kort status i Discord** när du slutar för dagen: vad du gjorde, vad du gör härnäst, vad du är blockerad av.
-- **Heads-up när något grundläggande ändras**, t.ex. "dev kräver nu inloggning, använd `get_current_user`" eller "ny miljövariabel: X". Det sparar timmar för andra.
+- **Heads-up när något grundläggande ändras**, t.ex. "pre-dev kräver nu inloggning, använd `get_current_user`" eller "ny miljövariabel: X". Det sparar timmar för andra.
 - **Fråga hellre en gång för mycket.** Ett meddelande som "Är det här rätt väg?" är alltid okej.
 
 ---
