@@ -389,9 +389,8 @@ button.banner-button {
   margin: 0;
 }
 
-/* Avsnitten Intressen och E-post på profilen. */
-.profile-interests,
-.profile-email {
+/* Avsnittet Intressen på profilen. */
+.profile-interests {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
