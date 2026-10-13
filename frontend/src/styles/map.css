@@ -429,15 +429,46 @@
   pointer-events: auto;
 }
 
-.map-activity:hover {
+/* Bokade events ovanpå de andra (se nedan). En egen, enkel regel före
+   :hover och .is-highlighted, så att de fortfarande vinner. */
+.map-activity.is-booked {
   z-index: 1;
+}
+
+.map-activity:hover {
+  z-index: 2;
   box-shadow: none;
   translate: 2px 2px;
 }
 
-/* Events på gult papper, klubbar på vitt, så att de går att skilja åt. */
+/* Events på rosa papper, klubbar på vitt, så att de går att skilja åt. */
 .map-activity.is-event {
-  background: #fff4b8;
+  background: #ffd6e7;
+}
+
+/* Det grå datumet är för ljust på rosa (4,07:1); samma bläck som på de
+   bokade ger god kontrast. */
+.map-activity.is-event .map-activity-sub {
+  color: #3a2f25;
+}
+
+/* Ens bokade events (se mapPrototypeActivities.js): starkt rosa, lite större
+   och ovanpå de andra (z-index ovan), så att de syns direkt. */
+.map-activity.is-event.is-booked {
+  padding: 0.3rem 0.65rem 0.3rem 0.35rem;
+  background: #ff6fae;
+  border-width: 2px;
+  box-shadow: 3px 3px 0 #3a2f25;
+}
+
+.map-activity.is-booked img {
+  width: 26px;
+  height: 26px;
+}
+
+.map-activity.is-booked .map-activity-sub {
+  color: #3a2f25;
+  font-weight: 700;
 }
 
 .map-activity img {
@@ -470,7 +501,7 @@
 
 /* Lappen man nyss visade på kartan (från Klubbar eller Events). */
 .map-activity.is-highlighted {
-  z-index: 1;
+  z-index: 3;
   outline: 3px solid var(--color-accent);
   outline-offset: 2px;
 }
@@ -495,25 +526,6 @@
   pointer-events: auto;
   /* Nyp med två fingrar på en lapp ska inte zooma hela sidan. */
   touch-action: none;
-}
-
-/* Hela lappen med lite luft runt, så att tejpen upptill och skuggan nere
-   till höger kommer med i rutorna. */
-.map-note-sheet {
-  position: absolute;
-  left: 0;
-  top: 0;
-  padding: 10px 12px 12px 4px;
-}
-
-/* En bit av lappen: klipper ut sin del av kopian och sträcks ut mellan sina
-   fyra hörn (se mapPrototypeNotes.js). */
-.map-note-cell {
-  position: absolute;
-  left: 0;
-  top: 0;
-  overflow: hidden;
-  transform-origin: 0 0;
 }
 
 .map-note-stuck:hover {
@@ -653,7 +665,7 @@
 }
 
 
-/* Lapp för en plats, stående på den lutade kartan. Vit (stilguidens färg för
+/* Lapp för en plats, platt ovanpå kartan. Vit (stilguidens färg för
    kort och boxar) med ojämna hörn, bläckkant och en hård bläckskugga, så att
    den ser ritad ut och inte fotograferad. */
 .map-note {
@@ -978,6 +990,89 @@
   object-fit: contain;
 }
 
+/* Märket på en lapp (se MapPageWidgets): en röd prick med siffran, som ett
+   klistermärke uppe i hörnet. */
+.map-page-widget {
+  position: relative;
+}
+
+.map-widget-badge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  background: #d0352f;
+  border: 1.5px solid #3a2f25;
+  border-radius: 999px;
+  color: var(--color-white);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* När en siffra går upp studsar lappen till och märket pulsar, en gång. */
+.map-page-widget.is-pinged {
+  animation: map-widget-ping 1.2s ease-out;
+}
+
+.map-page-widget.is-pinged .map-widget-badge {
+  animation: map-widget-badge-ping 1.2s ease-out;
+}
+
+@keyframes map-widget-ping {
+  0%,
+  100% {
+    rotate: 0deg;
+    translate: 0 0;
+  }
+  15% {
+    rotate: -6deg;
+    translate: 0 -6px;
+  }
+  30% {
+    rotate: 5deg;
+    translate: 0 0;
+  }
+  45% {
+    rotate: -3deg;
+    translate: 0 -2px;
+  }
+  60% {
+    rotate: 1deg;
+    translate: 0 0;
+  }
+}
+
+@keyframes map-widget-badge-ping {
+  0% {
+    scale: 1;
+  }
+  20% {
+    scale: 1.45;
+  }
+  40% {
+    scale: 0.95;
+  }
+  60%,
+  100% {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-page-widget.is-pinged,
+  .map-page-widget.is-pinged .map-widget-badge {
+    animation: none;
+  }
+}
+
 /* Smalare fönster: bara ikonerna, så att raden inte krockar med nålarnas
    knappar uppe till vänster (namnet finns i title). */
 @media (max-width: 1100px) {
@@ -1093,11 +1188,12 @@
   perspective: 150dvh;
 }
 
-/* Blocket ligger lite på snedden och lutar en aning bakåt, som bordet, men
-   mindre än kartan så att texten går att läsa. Skuggan är tät, för att
+/* Blocket ligger platt och rakt när det har landat, så att det är lugnt att
+   läsa och arbeta i (ett lutande block blev tröttsamt, och vissa blev åksjuka
+   av det). Bara landningen och lyftet rör sig. Skuggan är tät, för att
    blocket ligger direkt på pappret. */
 .map-pad {
-  --pad-rest: rotateX(14deg) rotateZ(-1.5deg);
+  --pad-rest: none;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1109,8 +1205,8 @@
   animation: map-pad-land 620ms cubic-bezier(0.3, 0.7, 0.4, 1) both;
 }
 
-/* Faller in uppifrån (närmare kameran, större, mer snett och med en mjuk,
-   förskjuten skugga), landar och studsar till. */
+/* Faller in uppifrån (närmare kameran, större, snett och med en mjuk,
+   förskjuten skugga), rätar upp sig, landar och studsar till lite. */
 @keyframes map-pad-land {
   0% {
     opacity: 0;
@@ -1121,11 +1217,11 @@
     opacity: 1;
   }
   72% {
-    transform: translate3d(0, 0, 0) rotateX(16deg) rotateZ(-1deg);
+    transform: translate3d(0, 0, 0) rotateX(3deg) rotateZ(-0.5deg);
     filter: drop-shadow(2px 4px 0 rgba(58, 47, 37, 0.85)) drop-shadow(0 10px 14px rgba(40, 30, 20, 0.25));
   }
   86% {
-    transform: translate3d(0, -6px, 12px) rotateX(13deg) rotateZ(-1.7deg);
+    transform: translate3d(0, -4px, 6px);
   }
   100% {
     transform: var(--pad-rest);
@@ -1158,9 +1254,8 @@
 
 /* Spiralen överst: ringar som går genom hål i kartongen. */
 /* Bredare block för appens sidor med kort i rutnät (Brev, Personer,
-   Klubbar, Events), och lite mindre lutning så att mycket text går att läsa. */
+   Klubbar, Events). */
 .map-pad.is-wide {
-  --pad-rest: rotateX(10deg) rotateZ(-0.8deg);
   width: min(64rem, 100%);
 }
 
@@ -1207,6 +1302,24 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+}
+
+/* Mobil: rubriken i blocken med appens sidor (Brev, Personer, Klubbar och
+   Events) centreras, som sidornas rubriker och flikar (se index.css). Krysset
+   ligger kvar i högerkanten, och lika mycket luft på båda sidor håller
+   rubriken i mitten. */
+@media (max-width: 767px) {
+  .map-pad.is-wide .map-pad-head {
+    position: relative;
+    justify-content: center;
+    padding: 0 2.2rem;
+  }
+
+  .map-pad.is-wide .map-pad-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
 }
 
 .map-pad-title {
@@ -1396,7 +1509,6 @@
 
   .map-pad,
   .map-pad.is-wide {
-    --pad-rest: none;
     width: 100%;
     max-height: none;
     height: 100%;

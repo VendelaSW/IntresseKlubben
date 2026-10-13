@@ -8,12 +8,12 @@ import { useState } from 'react'
 // Färgerna är appens egna (--color-accent, --color-accent-soft), och formen är samma som övriga taggar
 // (.tag). Storlekarna ligger här i stället för i index.css, eftersom de bara gäller trädet.
 const LEVELS = [
-  { background: 'var(--color-accent)', borderColor: 'var(--color-accent)', fontSize: '1.1rem', padding: '0.45rem 1.1rem' },
+  { background: 'var(--color-accent)', borderColor: 'var(--color-accent)', fontSize: '0.95rem', padding: '0.3rem 0.85rem' },
   {
     background: 'var(--color-accent-soft)',
     borderColor: 'var(--color-accent)',
-    fontSize: '0.75rem',
-    padding: '0.15rem 0.6rem',
+    fontSize: '0.72rem',
+    padding: '0.1rem 0.5rem',
   },
 ]
 
@@ -124,7 +124,8 @@ function Tag({ level, name, marked, disabled, onRemove }) {
 }
 
 // Ett förslag med det som ligger under det, rekursivt. De två översta nivåerna har egna storlekar, resten följer den
-// andra. Med `maxSubs` visas bara så många subs, och resten fälls ut med ⋯.
+// andra. Med `maxSubs` (profilen) visas bara så många subs, resten fälls ut med ⋯, och de ligger två och två under
+// intresset, som en triangel, i stället för i en lång rad. I intervjun kan det vara många, så där ligger de i rad.
 function Node({ proposal, level, ...tree }) {
   const { proposals, onRemove, highlight, busyKey, maxSubs } = tree
   const [showAll, setShowAll] = useState(false)
@@ -141,27 +142,42 @@ function Node({ proposal, level, ...tree }) {
         onRemove={onRemove && (() => onRemove(proposal.key))}
       />
       {subs.length > 0 && (
-        <ul style={{ ...list, ...row, alignItems: 'flex-start', gap: '0.25rem', marginTop: '-0.15rem' }}>
-          {subs.slice(0, subs.length - hidden).map((sub) => (
-            <Node key={sub.key} proposal={sub} level={level + 1} {...tree} />
-          ))}
-          {maxSubs && subs.length > maxSubs && (
-            <li>
-              <button
-                type="button"
-                className="tag"
-                style={sizeOf(1)}
-                aria-expanded={showAll}
-                aria-label={showAll ? `Visa färre under ${name}` : `Visa alla ${subs.length} under ${name}`}
-                onClick={() => setShowAll(!showAll)}
-              >
-                {showAll ? 'Visa färre' : '⋯'}
-              </button>
-            </li>
-          )}
+        // Radavståndet är halverat i triangeln, eftersom radbrytningen (se pairs) räknas som en egen rad.
+        <ul style={{ ...list, ...row, alignItems: 'flex-start', gap: maxSubs ? '0.125rem 0.25rem' : '0.25rem', marginTop: '-0.15rem' }}>
+          {pairs(maxSubs, [
+            ...subs.slice(0, subs.length - hidden).map((sub) => (
+              <Node key={sub.key} proposal={sub} level={level + 1} {...tree} />
+            )),
+            maxSubs && subs.length > maxSubs && (
+              <li key="more">
+                <button
+                  type="button"
+                  className="tag"
+                  style={sizeOf(1)}
+                  aria-expanded={showAll}
+                  aria-label={showAll ? `Visa färre under ${name}` : `Visa alla ${subs.length} under ${name}`}
+                  onClick={() => setShowAll(!showAll)}
+                >
+                  {showAll ? 'Visa färre' : '⋯'}
+                </button>
+              </li>
+            ),
+          ])}
         </ul>
       )}
     </li>
+  )
+}
+
+// Två och två per rad (en radbrytning efter varannan), när `on` är satt. Brytningen är ett tomt listelement som tar
+// hela bredden, dolt för skärmläsare.
+function pairs(on, items) {
+  const shown = items.filter(Boolean)
+  if (!on) return shown
+  return shown.flatMap((item, i) =>
+    i % 2 === 1 && i < shown.length - 1
+      ? [item, <li key={`break-${i}`} aria-hidden="true" role="presentation" style={{ flexBasis: '100%', height: 0 }} />]
+      : [item],
   )
 }
 
@@ -175,7 +191,7 @@ function InterestTree({ proposals, onRemove, highlight, busyKey, maxSubs, align 
   const tops = proposals.filter((p) => !parentKeyOf(p, proposals))
   const tree = { proposals, onRemove, highlight, busyKey, maxSubs }
   return (
-    <ul style={{ ...list, ...row, justifyContent: align, gap: '1.5rem 1.25rem', marginTop: '0.75rem' }}>
+    <ul style={{ ...list, ...row, justifyContent: align, gap: '1rem 0.9rem', marginTop: '0.75rem' }}>
       {tops.map((top) => (
         <Node key={top.key} proposal={top} level={0} {...tree} />
       ))}

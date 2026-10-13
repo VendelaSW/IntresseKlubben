@@ -1,0 +1,215 @@
+import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../../hooks/useAuth'
+import { getGroupMembers, getGroupMessages, sendGroupMessage } from '../../services/groups'
+import { formatSentAt } from '../../utils/formatSentAt'
+import Avatar from '../Avatar'
+
+// Hur ofta chatten hämtas igen medan den är öppen, så att nya meddelanden syns utan att man laddar om sidan.
+const POLL_MS = 5000
+
+// Samma brytpunkt som i index.css: under den vill man se det senaste och svarsraden.
+const MOBILE_QUERY = '(max-width: 767px)'
+
+// Klubbens chatt på ett linjerat anteckningspapper (.notepad i stilguiden), som brevtråden. Bara för medlemmar
+// (GroupDetails visar den inte annars), och servern kontrollerar medlemskapet.
+function GroupChat({ groupId }) {
+  const { user } = useAuth()
+  const [messages, setMessages] = useState([])
+  const [members, setMembers] = useState([])
+  const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error' | 'denied'
+  const [content, setContent] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
+  const [refreshError, setRefreshError] = useState('')
+  const revision = useRef(0)
+  const submitting = useRef(false)
+  const mounted = useRef(false)
+  const replyRef = useRef(null)
+  // Medlemmarna hämtas en gång när chatten öppnas, inte vid varje hämtning: listan ändras sällan. Kommer ett
+  // meddelande från någon som saknas i listan (en ny medlem) hämtas den om, en gång per avsändare.
+  const knownSenders = useRef(new Set())
+  const refetchedFor = useRef(new Set())
+  const membersLoaded = useRef(false)
+  // Första gången meddelandena läses in ska sidan inte flyttas, bara när det kommer fler.
+  const loadedOnce = useRef(false)
+
+  useEffect(() => {
+    let cancelled = false
+    let fetching = false
+    let denied = false
+    mounted.current = true
+
+    async function loadMembers() {
+      const people = await getGroupMembers(groupId)
+      if (cancelled) return
+      knownSenders.current = new Set(people.map((person) => person.id))
+      membersLoaded.current = true
+      setMembers(people)
+    }
+
+    async function refresh() {
+      if (fetching || submitting.current || denied || document.hidden) return
+      fetching = true
+      const startedAtRevision = revision.current
+      try {
+        const history = await getGroupMessages(groupId)
+        if (cancelled || startedAtRevision !== revision.current) return
+        // Någon vi inte känner till har skrivit: hämta medlemmarna igen, en gång per avsändare.
+        const unknown = history.filter(
+          (message) => !knownSenders.current.has(message.sender_id) && !refetchedFor.current.has(message.sender_id),
+        )
+        if (unknown.length > 0 || !membersLoaded.current) {
+          unknown.forEach((message) => refetchedFor.current.add(message.sender_id))
+          await loadMembers()
+          if (cancelled || startedAtRevision !== revision.current) return
+        }
+        setMessages(history)
+        setStatus('ready')
+        setRefreshError('')
+      } catch (err) {
+        if (cancelled || startedAtRevision !== revision.current) return
+        if (err.status === 403 || err.status === 404) {
+          denied = true
+          setMessages([])
+          setError('')
+          setStatus('denied')
+        } else {
+          setStatus((current) => (current === 'loading' ? 'error' : current))
+        }
+        setRefreshError(err.message)
+      } finally {
+        fetching = false
+      }
+    }
+
+    function onVisibilityChange() {
+      if (!document.hidden) refresh()
+    }
+
+    refresh()
+    const timer = setInterval(refresh, POLL_MS)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      cancelled = true
+      mounted.current = false
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [groupId])
+
+  // Kommer det fler meddelanden (någon annans eller ens eget) på mobil bringas svarsraden i sikte, så att de
+  // senaste syns. Inte första gången de läses in, så att sidan inte hoppar bara för att man öppnar klubben.
+  useEffect(() => {
+    if (status !== 'ready') return
+    if (!loadedOnce.current) {
+      loadedOnce.current = true
+      return
+    }
+    if (window.matchMedia(MOBILE_QUERY).matches) {
+      replyRef.current?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [messages.length, status])
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    const text = content.trim()
+    if (!text || submitting.current || status !== 'ready') return
+    submitting.current = true
+    revision.current += 1
+    setSending(true)
+    setError('')
+    try {
+      const message = await sendGroupMessage(groupId, text)
+      if (!mounted.current) return
+      setMessages((current) => (current.some((item) => item.id === message.id) ? current : [...current, message]))
+      setContent('')
+    } catch (err) {
+      if (!mounted.current) return
+      setError(err.message)
+      if (err.status === 403 || err.status === 404) {
+        setMessages([])
+        setStatus('denied')
+      }
+    } finally {
+      revision.current += 1
+      submitting.current = false
+      if (mounted.current) setSending(false)
+    }
+  }
+
+  function senderOf(senderId) {
+    return members.find((person) => person.id === senderId)
+  }
+
+  const titleId = `group-chat-${groupId}`
+
+  return (
+    <section className="notepad lined-paper" aria-labelledby={titleId}>
+      <h2 id={titleId} className="notepad-title">
+        <span className="notepad-title-name">Klubbchatt</span>
+      </h2>
+      {status === 'loading' && (
+        <p className="hint-text" role="status">
+          Laddar meddelanden...
+        </p>
+      )}
+      {refreshError && (
+        <p className="status-error" role="alert">
+          {refreshError}
+        </p>
+      )}
+      {status === 'ready' && messages.length === 0 && <p className="hint-text">Inga meddelanden än.</p>}
+      {messages.length > 0 && (
+        <ol className="notepad-messages">
+          {/* Namn och tid som en rad överst, meddelandet under, som i brevtråden. */}
+          {messages.map((message) => {
+            const mine = message.sender_id === user?.id
+            const sender = senderOf(message.sender_id)
+            const name = sender ? (sender.name ?? sender.username) : 'Tidigare medlem'
+            return (
+              <li key={message.id} className="notepad-message">
+                <p>
+                  <Avatar name={name} imageUrl={sender?.image_url} className="person-list-avatar notepad-message-avatar" />
+                  {/* Ditt namn med den gula överstrykningspennan, som i brevtråden. */}
+                  <strong className={mine ? 'highlight' : undefined}>{mine ? 'Du' : name}</strong>{' '}
+                  <time className="hint-text" dateTime={message.created_at}>
+                    {formatSentAt(message.created_at)}
+                  </time>
+                </p>
+                <p>{message.content}</p>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+      {status !== 'denied' && (
+        // Svarsraden är exakt en rad hög, så att texten står på linjen.
+        <form className="notepad-reply" onSubmit={handleSubmit} ref={replyRef}>
+          <label htmlFor={`group-reply-${groupId}`} className="visually-hidden">
+            Skriv till klubben
+          </label>
+          <input
+            id={`group-reply-${groupId}`}
+            type="text"
+            placeholder="Skriv till klubben..."
+            value={content}
+            onChange={(event) => setContent(event.target.value)}
+            maxLength={2000}
+            required
+            disabled={sending || status !== 'ready'}
+          />
+          <button type="submit" className="primary-button button-small" disabled={sending || status !== 'ready' || !content.trim()}>
+            {sending ? 'Skickar...' : 'Skicka'}
+          </button>
+        </form>
+      )}
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
+  )
+}
+
+export default GroupChat
