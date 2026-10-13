@@ -202,8 +202,9 @@ function createNote(map, layer, feature, onClose) {
   })
 
   function position() {
+    // Hela pixlar, annars kan texten bli suddig.
     const { x, y } = map.project(place)
-    element.style.transform = `translate(${x}px, ${y - NOTE_GAP_PX}px) translate(-50%, -100%)`
+    element.style.transform = `translate(${Math.round(x)}px, ${Math.round(y - NOTE_GAP_PX)}px) translate(-50%, -100%)`
     // Närmare lappar (längre ned på skärmen) ovanpå lappar längre bort.
     element.style.zIndex = Math.round(y)
   }
