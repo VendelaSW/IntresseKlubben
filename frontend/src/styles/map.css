@@ -120,15 +120,46 @@
   pointer-events: auto;
 }
 
-.map-activity:hover {
+/* Bokade events ovanpå de andra (se nedan). En egen, enkel regel före
+   :hover och .is-highlighted, så att de fortfarande vinner. */
+.map-activity.is-booked {
   z-index: 1;
+}
+
+.map-activity:hover {
+  z-index: 2;
   box-shadow: none;
   translate: 2px 2px;
 }
 
-/* Events på gult papper, klubbar på vitt, så att de går att skilja åt. */
+/* Events på rosa papper, klubbar på vitt, så att de går att skilja åt. */
 .map-activity.is-event {
-  background: #fff4b8;
+  background: #ffd6e7;
+}
+
+/* Det grå datumet är för ljust på rosa (4,07:1); samma bläck som på de
+   bokade ger god kontrast. */
+.map-activity.is-event .map-activity-sub {
+  color: #3a2f25;
+}
+
+/* Ens bokade events (se mapPrototypeActivities.js): starkt rosa, lite större
+   och ovanpå de andra (z-index ovan), så att de syns direkt. */
+.map-activity.is-event.is-booked {
+  padding: 0.3rem 0.65rem 0.3rem 0.35rem;
+  background: #ff6fae;
+  border-width: 2px;
+  box-shadow: 3px 3px 0 #3a2f25;
+}
+
+.map-activity.is-booked img {
+  width: 26px;
+  height: 26px;
+}
+
+.map-activity.is-booked .map-activity-sub {
+  color: #3a2f25;
+  font-weight: 700;
 }
 
 .map-activity img {
@@ -161,7 +192,7 @@
 
 /* Lappen man nyss visade på kartan (från Klubbar eller Events). */
 .map-activity.is-highlighted {
-  z-index: 1;
+  z-index: 3;
   outline: 3px solid var(--color-accent);
   outline-offset: 2px;
 }
@@ -648,6 +679,89 @@
   width: 34px;
   height: 34px;
   object-fit: contain;
+}
+
+/* Märket på en lapp (se MapPageWidgets): en röd prick med siffran, som ett
+   klistermärke uppe i hörnet. */
+.map-page-widget {
+  position: relative;
+}
+
+.map-widget-badge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  background: #d0352f;
+  border: 1.5px solid #3a2f25;
+  border-radius: 999px;
+  color: var(--color-white);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* När en siffra går upp studsar lappen till och märket pulsar, en gång. */
+.map-page-widget.is-pinged {
+  animation: map-widget-ping 1.2s ease-out;
+}
+
+.map-page-widget.is-pinged .map-widget-badge {
+  animation: map-widget-badge-ping 1.2s ease-out;
+}
+
+@keyframes map-widget-ping {
+  0%,
+  100% {
+    rotate: 0deg;
+    translate: 0 0;
+  }
+  15% {
+    rotate: -6deg;
+    translate: 0 -6px;
+  }
+  30% {
+    rotate: 5deg;
+    translate: 0 0;
+  }
+  45% {
+    rotate: -3deg;
+    translate: 0 -2px;
+  }
+  60% {
+    rotate: 1deg;
+    translate: 0 0;
+  }
+}
+
+@keyframes map-widget-badge-ping {
+  0% {
+    scale: 1;
+  }
+  20% {
+    scale: 1.45;
+  }
+  40% {
+    scale: 0.95;
+  }
+  60%,
+  100% {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-page-widget.is-pinged,
+  .map-page-widget.is-pinged .map-widget-badge {
+    animation: none;
+  }
 }
 
 /* Smalare fönster: bara ikonerna, så att raden inte krockar med nålarnas
