@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Användartest – Intresseklubben</title>
+  <!--
+    Manus och anteckningsmall för användartest. Öppna filen direkt i webbläsaren
+    (dubbelklicka på den), ingen server behövs. Det du skriver sparas i din egen
+    webbläsare, en uppsättning per testperson. "Ladda ner svar" ger en textfil
+    att dela, och "Skriv ut" ger en PDF.
+    Färger och typsnitt är samma som i appen (frontend/src/styles/index.css).
+  -->
+  <style>
+    @font-face { font-family: 'Caveat'; src: url('../frontend/public/fonts/Caveat-Bold.ttf') format('truetype'); font-weight: 700; }
+    @font-face { font-family: 'Inter'; src: url('../frontend/public/fonts/Inter_18pt-Regular.ttf') format('truetype'); font-weight: 400; }
+    @font-face { font-family: 'Inter'; src: url('../frontend/public/fonts/Inter_18pt-Bold.ttf') format('truetype'); font-weight: 700; }
+
+    :root {
+      color-scheme: light;
+      --color-bg: #f7f1e3;
+      --color-text: #1a1a1a;
+      --color-accent: #f4c430;
+      --color-accent-soft: #fdf6e0;
+      --color-line: #bfd7ed;
+      --color-white: #ffffff;
+      --color-muted: #6b6b6b;
+      --color-success: #3b6d11;
+      --font-heading: 'Caveat', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); line-height: 1.6; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+    h1 { font-family: var(--font-heading); font-weight: 700; font-size: 3.2rem; line-height: 1.1; margin: 0 0 0.25rem; }
+    h2 { font-family: var(--font-heading); font-weight: 700; font-size: 2.25rem; line-height: 1.1; margin: 0 0 0.75rem; }
+    h3 { font-family: var(--font-body); font-weight: 700; font-size: 1.05rem; margin: 0 0 0.5rem; }
+    p { margin: 0 0 0.75rem; }
+    .muted { color: var(--color-muted); font-size: 0.85rem; }
+
+    .card { background: var(--color-white); border: 2px solid var(--color-line); border-radius: 4px; padding: 1.25rem; margin: 0 0 1.5rem; box-shadow: 0 6px 0 var(--color-line); }
+    .say { background: var(--color-accent-soft); border-left: 4px solid var(--color-accent); padding: 0.75rem 1rem; margin: 0 0 1rem; }
+    .say p:last-child { margin-bottom: 0; }
+    .watch { font-size: 0.95rem; }
+    .watch b { font-weight: 700; }
+
+    .topbar { position: sticky; top: 0; z-index: 5; background: var(--color-bg); border-bottom: 2px solid var(--color-accent); padding: 0.6rem 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: center; justify-content: space-between; }
+    .topbar .who { display: flex; gap: 0.5rem; align-items: center; font-weight: 700; font-size: 0.9rem; }
+    .topbar .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .saved { font-size: 0.8rem; color: var(--color-success); min-width: 5rem; }
+
+    button, select, input[type=text], textarea { font-family: var(--font-body); font-size: 1rem; color: var(--color-text); }
+    .btn { font-weight: 700; font-size: 0.9rem; padding: 0.45rem 1.1rem; border-radius: 999px; border: 2px solid var(--color-accent); background: var(--color-white); cursor: pointer; }
+    .btn.primary { background: var(--color-accent); }
+    .btn:hover { opacity: 0.85; }
+    select, input[type=text] { border: 2px solid var(--color-line); border-radius: 4px; padding: 0.4rem 0.6rem; background: var(--color-white); }
+    textarea { width: 100%; min-height: 6.5rem; border: 2px solid var(--color-line); border-radius: 4px; padding: 0.6rem 0.75rem; background: var(--color-white); resize: vertical; line-height: 1.5; }
+    select:focus, input:focus, textarea:focus { outline: none; border-color: var(--color-accent); }
+
+    .field { margin: 0 0 1rem; }
+    .label { display: block; font-weight: 700; font-size: 0.9rem; margin: 0 0 0.25rem; }
+    .label .hint { font-weight: 400; color: var(--color-muted); }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; }
+    .row input[type=text] { width: 100%; }
+
+    .opts { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; }
+    .opts label, .checks label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+    .opts input, .checks input { width: 1.15rem; height: 1.15rem; accent-color: #b8890a; }
+    .checks { display: grid; gap: 0.5rem; margin: 0 0 1rem; }
+
+    .questions { margin: 0 0 1rem; padding-left: 1.25rem; }
+    .questions li { margin-bottom: 0.25rem; }
+
+    .scale { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .scale label { cursor: pointer; }
+    .scale input { position: absolute; opacity: 0; pointer-events: none; }
+    .scale span { display: inline-flex; align-items: center; justify-content: center; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 2px solid var(--color-line); background: var(--color-white); font-weight: 700; }
+    .scale input:checked + span { background: var(--color-accent); border-color: var(--color-accent); }
+    .scale input:focus-visible + span { outline: 2px solid var(--color-text); outline-offset: 2px; }
+    .rate { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem 1rem; padding: 0.6rem 0; border-bottom: 1px solid var(--color-line); }
+    .rate:last-of-type { border-bottom: 0; }
+    .rate .t { flex: 1 1 220px; }
+
+    ol.steps { padding-left: 1.25rem; }
+    ol.steps li { margin-bottom: 0.4rem; }
+    .score { font-weight: 700; margin-top: 0.75rem; }
+
+    /* Sammanfattningen visas i stället för formuläret när man trycker Klar. */
+    #summary { display: none; }
+    .summary-mode #summary { display: block; }
+    .summary-mode #form, .summary-mode .topbar { display: none; }
+    .sumbar { position: sticky; top: 0; z-index: 5; background: var(--color-bg); border-bottom: 2px solid var(--color-accent); padding: 0.6rem 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; }
+    .facts { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; font-size: 0.95rem; margin: 0 0 1.5rem; }
+    .facts b { font-weight: 700; }
+    .chip { display: inline-block; padding: 0.1rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
+    .chip.ok { background: #e6f0d9; color: var(--color-success); }
+    .chip.mid { background: var(--color-accent-soft); border-color: var(--color-accent); }
+    .chip.bad { background: #f6dcdc; color: #a32d2d; }
+    .chip.none { background: #eee; color: var(--color-muted); }
+    .sumtask { padding: 0.75rem 0; border-bottom: 1px solid var(--color-line); break-inside: avoid; }
+    .sumtask:last-child { border-bottom: 0; }
+    .sumtask .head { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem; }
+    .sumtask .head h3 { margin: 0; }
+    .sumtask .k { font-weight: 700; font-size: 0.85rem; color: var(--color-muted); margin-top: 0.4rem; }
+    .txt { white-space: pre-wrap; margin: 0; }
+    .empty { color: var(--color-muted); }
+    .trouble li { margin-bottom: 0.4rem; }
+    .scorebox { display: inline-block; font-weight: 700; font-size: 1.4rem; background: var(--color-accent); border-radius: 4px; padding: 0.1rem 0.8rem; }
+
+    @media (max-width: 520px) { h1 { font-size: 2.6rem; } }
+
+    @media print {
+      body { background: #fff; }
+      .topbar, .sumbar, .noprint { display: none !important; }
+      .wrap { max-width: none; padding: 0; }
+      .card { box-shadow: none; break-inside: avoid-page; }
+      textarea { resize: none; border-color: #999; }
+      h2 { break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="who">
+    <label for="person">Testperson</label>
+    <select id="person">
+      <option value="T1">T1</option><option value="T2">T2</option><option value="T3">T3</option>
+      <option value="T4">T4</option><option value="T5">T5</option><option value="T6">T6</option>
+    </select>
+    <span class="saved" id="saved" aria-live="polite"></span>
+  </div>
+  <div class="actions">
+    <button class="btn" type="button" id="download">Ladda ner svar</button>
+    <button class="btn" type="button" id="clear">Rensa denna testperson</button>
+    <button class="btn primary" type="button" id="done">Klar – visa sammanfattning</button>
+  </div>
+</div>
+
+<main class="wrap" id="form">
+
+  <h1>Användartest av Intresseklubben</h1>
+  <p class="muted">En testperson, en som håller testet, cirka 25–30 minuter. Allt du skriver sparas automatiskt i din webbläsare, en uppsättning per testperson i listan ovan.</p>
+
+  <section class="card">
+    <h2>Om testet</h2>
+    <div class="row">
+      <div class="field"><label class="label" for="datum">Datum</label><input type="text" id="datum" data-k="datum" data-label="Datum" /></div>
+      <div class="field"><label class="label" for="testare">Vem håller testet?</label><input type="text" id="testare" data-k="testare" data-label="Testledare" /></div>
+      <div class="field"><label class="label" for="enhet">Mobil eller dator?</label><input type="text" id="enhet" data-k="enhet" data-label="Mobil eller dator" /></div>
+    </div>
+    <p><b>Målet:</b> se var en ny användare tvekar, klickar fel eller blir osäker, framför allt i gränssnittet och i flödet från konto till första klubb. Du som håller testet läser det som står i gula rutor ordagrant och skriver det testpersonen gör och säger, inte vad du tror att hen menar. Testpersonen ska inte ha något konto i appen sedan tidigare.</p>
+  </section>
+
+  <section class="card">
+    <h2>Före testet</h2>
+    <div class="checks">
+      <label><input type="checkbox" data-k="fore1" data-label="Före: live-versionen kör" /> Appen kör på den live-version vi vill testa, och sidan laddas utan fel.</label>
+      <label><input type="checkbox" data-k="fore2" data-label="Före: inget konto" /> <span>Testpersonen har <b>inget konto</b> sedan tidigare. Använd en e-postadress hen inte har registrerat i appen.</span></label>
+      <label><input type="checkbox" data-k="fore3" data-label="Före: Intressekompisen fungerar" /> Intervjun med Intressekompisen fungerar (AI-svar kommer). Prova med ett eget testkonto innan.</label>
+      <label><input type="checkbox" data-k="fore4" data-label="Före: det finns en klubb" /> Det finns minst en klubb som går att gå med i.</label>
+      <label><input type="checkbox" data-k="fore5" data-label="Före: enhet klar" /> Telefon eller dator är laddad och uppkopplad. Du har bestämt om testet körs på mobil eller dator.</label>
+      <label><input type="checkbox" data-k="fore6" data-label="Före: notiser av" /> Ljudet av på notiser. Ingen annan flik är öppen i webbläsaren.</label>
+      <label><input type="checkbox" data-k="fore7" data-label="Före: kamera" /> Mobilen eller kameran för en bild av dig själv under testet finns inom räckhåll.</label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Del 1 – Kort presentation</h2>
+    <div class="say">
+      <p>Det här är Intresseklubben, en webbtjänst/app där tanken är att man ska hitta nya vänner och andra som delar dina intressen. Vi testar appen, inte dig. Det finns inga fel svar, och du kan inte göra något fel. Om något är knepigt är det appens fel, och just det vill vi veta.</p>
+      <p>Du får en uppgift i taget. Jag skriver anteckningar medan du gör uppgifterna.</p>
+      <p>Det hjälper mycket om du säger högt vad du tänker och gör medan du använder appen, till exempel ”jäh, jag letar efter…” eller ”hmm, vad betyder den här knappen?”. Du kan säga till när som helst om du vill sluta.</p>
+    </div>
+    <p>Fråga: ”Känns det okej? Har du någon fråga innan vi börjar?” Starta sedan Uppgift 1.</p>
+  </section>
+
+  <!-- Uppgifterna. Varje uppgift har samma tre fält. -->
+  <section class="card" data-task="Uppgift 1 – Första intrycket">
+    <h2>Uppgift 1 – Första intrycket</h2>
+    <div class="say"><p>”Här är startsidan. Titta dig omkring en stund. Berätta vad ditt första intryck är och om det känns otydligt vad syftet med sidan är.”</p></div>
+    <p class="watch"><b>Titta på:</b> vart blicken går först, om hen förstår vad appen är för något, vad hen tror att knapparna gör.</p>
+    <div class="field"><span class="label">Klarade hen det?</span>
+      <div class="opts" data-radio="u1_klar" data-label="Uppgift 1 – klarade hen det?" data-options="Ja, utan krångel|Ja, men det krånglade|Nej"></div></div>
+    <div class="field"><label class="label" for="u1_hande">Vad hände? <span class="hint">(tvekade, klickade fel, fastnade)</span></label><textarea id="u1_hande" data-k="u1_hande" data-label="Uppgift 1 – vad hände?"></textarea></div>
+    <p class="label">Frågor att ställa efteråt</p>
+    <ol class="questions"><li>Vad tror du att appen är till för?</li><li>Finns det något här du inte förstår?</li></ol>
+    <div class="field"><label class="label" for="u1_sa">Vad sa hen? <span class="hint">(ordagrant, även svaren på frågorna)</span></label><textarea id="u1_sa" data-k="u1_sa" data-label="Uppgift 1 – vad sa hen?"></textarea></div>
+  </section>
+
+  <section class="card" data-task="Uppgift 2 – Skapa konto och profil">
+    <h2>Uppgift 2 – Skapa konto och profil</h2>
+    <div class="say"><p>”Föreställ dig att du vill börja använda appen. Skapa ett konto och gör din profil klar.”</p></div>
+    <p class="watch"><b>Titta på:</b> om registreringen är tydlig, om hen förstår vad Intressekompisen är och ska göra, hur hen reagerar på att skriva egna ord om sina intressen, om väntetiden känns lång, om färger och nivåer i intresselistan ger mening.</p>
+    <div class="field"><span class="label">Klarade hen det?</span>
+      <div class="opts" data-radio="u2_klar" data-label="Uppgift 2 – klarade hen det?" data-options="Ja, utan krångel|Ja, men det krånglade|Nej"></div></div>
+    <div class="field"><label class="label" for="u2_hande">Vad hände? <span class="hint">(tvekade, klickade fel, fastnade)</span></label><textarea id="u2_hande" data-k="u2_hande" data-label="Uppgift 2 – vad hände?"></textarea></div>
+    <p class="label">Frågor att ställa efteråt</p>
+    <ol class="questions"><li>Var det tydligt vad du skulle göra i varje steg?</li><li>Vad tyckte du Intressekompisen?</li><li>Fick du med de intressen som är viktiga för dig? Var det något som saknades eller blev fel?</li></ol>
+    <div class="field"><label class="label" for="u2_sa">Vad sa hen? <span class="hint">(ordagrant, även svaren på frågorna)</span></label><textarea id="u2_sa" data-k="u2_sa" data-label="Uppgift 2 – vad sa hen?"></textarea></div>
+  </section>
+
+  <section class="card" data-task="Uppgift 3 – Hitta och gå med i en klubb">
+    <h2>Uppgift 3 – Hitta och gå med i en klubb</h2>
+    <div class="say"><p>”Du vill hitta en klubb att gå med i. Hitta eller skapa en klubb som passar dig.”</p></div>
+    <p class="watch"><b>Titta på:</b> hittar hen klubbarna utan hjälp, förstår hen kartan, hittar hen knappen för att gå med, känner hen att hen lyckades.</p>
+    <div class="field"><span class="label">Klarade hen det?</span>
+      <div class="opts" data-radio="u3_klar" data-label="Uppgift 3 – klarade hen det?" data-options="Ja, utan krångel|Ja, men det krånglade|Nej"></div></div>
+    <div class="field"><label class="label" for="u3_hande">Vad hände? <span class="hint">(tvekade, klickade fel, fastnade)</span></label><textarea id="u3_hande" data-k="u3_hande" data-label="Uppgift 3 – vad hände?"></textarea></div>
+    <p class="label">Frågor att ställa efteråt</p>
+    <ol class="questions"><li>Hur visste du var du skulle börja leta?</li><li>Var det tydligt att du hade gått med i klubben? Hur kunde du se det?</li><li>Vad hade du velat veta om klubben innan du gick med?</li></ol>
+    <div class="field"><label class="label" for="u3_sa">Vad sa hen? <span class="hint">(ordagrant, även svaren på frågorna)</span></label><textarea id="u3_sa" data-k="u3_sa" data-label="Uppgift 3 – vad sa hen?"></textarea></div>
+  </section>
+
+  <section class="card" data-task="Uppgift 4 – Hitta en person och ta kontakt">
+    <h2>Uppgift 4 – Hitta en person och ta kontakt</h2>
+    <div class="say"><p>”Du vill hitta någon som gillar samma saker som du. Hitta en person som verkar passa dig och ta kontakt.”</p></div>
+    <p class="watch"><b>Titta på:</b> hittar hen sidan Personer, förstår hen varför en person visas, vad hen tittar på för att avgöra om personen passar, hur hen tar kontakt.</p>
+    <div class="field"><span class="label">Klarade hen det?</span>
+      <div class="opts" data-radio="u4_klar" data-label="Uppgift 4 – klarade hen det?" data-options="Ja, utan krångel|Ja, men det krånglade|Nej"></div></div>
+    <div class="field"><label class="label" for="u4_hande">Vad hände? <span class="hint">(tvekade, klickade fel, fastnade)</span></label><textarea id="u4_hande" data-k="u4_hande" data-label="Uppgift 4 – vad hände?"></textarea></div>
+    <p class="label">Frågor att ställa efteråt</p>
+    <ol class="questions"><li>Hur bedömde du om en person passade dig?</li><li>Var det något som saknades i det du såg om personerna?</li><li>Hur kändes det att ta kontakt?</li></ol>
+    <div class="field"><label class="label" for="u4_sa">Vad sa hen? <span class="hint">(ordagrant, även svaren på frågorna)</span></label><textarea id="u4_sa" data-k="u4_sa" data-label="Uppgift 4 – vad sa hen?"></textarea></div>
+  </section>
+
+  <section class="card" data-task="Uppgift 5 – Lägg till ett intresse">
+    <h2>Uppgift 5 – Lägg till ett intresse</h2>
+    <div class="say"><p>”Du kommer på ett intresse som du glömde att ta med. Lägg till det på din profil.”</p></div>
+    <p class="watch"><b>Titta på:</b> hittar hen Min profil, förstår hen hur man lägger till ett intresse och om hen ser att intresset har sparats.</p>
+    <div class="field"><span class="label">Klarade hen det?</span>
+      <div class="opts" data-radio="u5_klar" data-label="Uppgift 5 – klarade hen det?" data-options="Ja, utan krångel|Ja, men det krånglade|Nej"></div></div>
+    <div class="field"><label class="label" for="u5_hande">Vad hände? <span class="hint">(tvekade, klickade fel, fastnade)</span></label><textarea id="u5_hande" data-k="u5_hande" data-label="Uppgift 5 – vad hände?"></textarea></div>
+    <p class="label">Frågor att ställa efteråt</p>
+    <ol class="questions"><li>Var det lätt eller svårt att hitta hit?</li><li>Hur var det att lägga till ett intresse?</li></ol>
+    <div class="field"><label class="label" for="u5_sa">Vad sa hen? <span class="hint">(ordagrant, även svaren på frågorna)</span></label><textarea id="u5_sa" data-k="u5_sa" data-label="Uppgift 5 – vad sa hen?"></textarea></div>
+  </section>
+
+  <section class="card" data-task="Uppgift 6 – Fri lek">
+    <h2>Uppgift 6 – Fri lek</h2>
+    <div class="say"><p>”Nu får du använda appen som du vill i några minuter. Gör det du tycker verkar intressant, och säg vad du gör.”</p></div>
+    <p class="watch"><b>Titta på:</b> vad hen väljer själv, vad hen inte hittar eller inte vill trycka på, vilka delar hen hoppar över.</p>
+    <div class="field"><label class="label" for="u6_hande">Vad hände? <span class="hint">(vad gjorde hen, tvekade, klickade fel, hoppade över)</span></label><textarea id="u6_hande" data-k="u6_hande" data-label="Uppgift 6 – vad hände?"></textarea></div>
+    <div class="field"><label class="label" for="u6_sa">Vad sa hen? <span class="hint">(ordagrant)</span></label><textarea id="u6_sa" data-k="u6_sa" data-label="Uppgift 6 – vad sa hen?"></textarea></div>
+  </section>
+
+  <section class="card">
+    <h2>Del 3 – Frågor efter testet</h2>
+    <p>Ställ frågorna i den här ordningen, låt testpersonen svara först och följ sedan upp med ”berätta mer” eller ”varför?” om det behövs. Skriv svaren så ordagrant du kan.</p>
+    <div id="followups"></div>
+  </section>
+
+  <section class="card">
+    <h2>Betyg</h2>
+    <h3>Hur väl stämmer det?</h3>
+    <p class="muted">Be testpersonen välja ett tal. 1 = stämmer inte alls, 5 = stämmer helt. Det här är en förkortad variant av SUS med fem påståenden, så jämför inte poängen med vanlig SUS.</p>
+    <div id="sus"></div>
+    <p class="score">Poäng: <span id="susScore">–</span> av 25 <span class="muted">(påstående 2 räknas omvänt, alltså 6 minus betyget)</span></p>
+  </section>
+
+  <section class="card">
+    <h2>Del 4 – Avslut</h2>
+    <div class="say"><p>Det var allt. Det du har gjort och sagt hjälper oss att göra appen bättre! Tack för att du ville testa.</p></div>
+    <div class="checks">
+      <label><input type="checkbox" data-k="slut1" data-label="Avslut: bild tagen" /> Jag har tagit en bild av mig själv under testet.</label>
+      <label><input type="checkbox" data-k="slut2" data-label="Avslut: testkonto" /> Testkontot är raderat, eller testpersonen vill behålla det.</label>
+    </div>
+    <div class="field"><label class="label" for="ovrigt">Övrigt du vill komma ihåg</label><textarea id="ovrigt" data-k="ovrigt" data-label="Övrigt"></textarea></div>
+  </section>
+
+  <section class="card noprint">
+    <h2>Klar med testet?</h2>
+    <p>Tryck på knappen så får du en sammanfattning av testet som du kan skriva ut eller spara som PDF.</p>
+    <button class="btn primary" type="button" id="done2">Klar – visa sammanfattning</button>
+  </section>
+
+  <section class="card noprint">
+    <h2>Efter testerna – syntes</h2>
+    <p>Gör det här tillsammans i teamet när alla tester är klara.</p>
+    <ol class="steps">
+      <li>Skriv varje problem du hittar som ett kort, med vilken testperson och uppgift det gällde.</li>
+      <li>Lägg ihop korten som hör ihop, till exempel allt som gäller kartan eller intervjun.</li>
+      <li>Räkna hur många testpersoner som drabbades av varje problem. Det som träffar flera är viktigast.</li>
+      <li>Välj de tre till fem viktigaste problemen och gör en uppgift (ticket) av varje.</li>
+    </ol>
+  </section>
+
+</main>
+
+<div id="summary">
+  <div class="sumbar">
+    <button class="btn" type="button" id="back">Tillbaka och redigera</button>
+    <button class="btn primary" type="button" id="print">Skriv ut / spara som PDF</button>
+  </div>
+  <div class="wrap" id="summaryBody"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var FOLLOWUPS = [
+    'Vad är din första känsla efter att ha använt tjänsten? Säg det första du kommer att tänka på.',
+    'Vad var lättast att göra i appen? Och vad var svårast?',
+    'Hur tyckte du att appen såg ut? Var det något som kändes rörigt, för litet, för stort eller svårt att läsa?',
+    'Visste du hela tiden var du var i appen och hur du kom tillbaka? Var det någon gång du kände dig vilse?',
+    'Kändes appen snabb och responsiv?',
+    'Fick du någon gång ett felmeddelande eller en text som du inte förstod?',
+    'Skulle du vilja använda appen i verkligheten? Varför, eller varför inte?',
+    'Om du fick ändra en enda sak i appen, vad skulle det vara?',
+    'Har du något mer du vill säga?'
+  ];
+  var SUS = [
+    'Jag skulle vilja använda appen ofta.',
+    'Appen kändes onödigt komplicerad.',
+    'Appen var lätt att använda.',
+    'De olika delarna i appen hängde ihop på ett bra sätt.',
+    'De flesta skulle snabbt lära sig använda appen.'
+  ];
+
+  var form = document.getElementById('form');
+  var personSel = document.getElementById('person');
+  var savedEl = document.getElementById('saved');
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+  // Bygg frågorna efter testet och betygsskalorna.
+  var fu = '';
+  FOLLOWUPS.forEach(function (q, i) {
+    var id = 'f' + (i + 1);
+    fu += '<div class="field"><label class="label" for="' + id + '">' + (i + 1) + '. ' + esc(q) + '</label>' +
+      '<textarea id="' + id + '" data-k="' + id + '" data-label="Efter testet ' + (i + 1) + ': ' + esc(q) + '"></textarea></div>';
+  });
+  document.getElementById('followups').innerHTML = fu;
+
+  function scale(name, label, max) {
+    var s = '<div class="scale" data-radio-scale="' + name + '" data-label="' + esc(label) + '">';
+    for (var n = 1; n <= max; n++) {
+      s += '<label><input type="radio" name="' + name + '" value="' + n + '" data-k="' + name + '" /><span>' + n + '</span></label>';
+    }
+    return s + '</div>';
+  }
+  var sus = '';
+  SUS.forEach(function (t, i) {
+    sus += '<div class="rate"><span class="t">' + (i + 1) + '. ' + esc(t) + '</span>' + scale('sus' + (i + 1), 'SUS ' + (i + 1) + ': ' + t, 5) + '</div>';
+  });
+  document.getElementById('sus').innerHTML = sus;
+
+  // Uppgifternas "Klarade hen det?" är radioknappar med text.
+  Array.prototype.forEach.call(document.querySelectorAll('[data-radio]'), function (box) {
+    var name = box.getAttribute('data-radio');
+    box.innerHTML = box.getAttribute('data-options').split('|').map(function (o) {
+      return '<label><input type="radio" name="' + name + '" value="' + esc(o) + '" data-k="' + name + '" /> ' + esc(o) + '</label>';
+    }).join('');
+  });
+
+  // Spara och läsa in. En uppsättning per testperson.
+  function storageKey() { return 'ik-anvandartest-' + personSel.value; }
+  function readAll() {
+    var data = {};
+    Array.prototype.forEach.call(form.querySelectorAll('[data-k]'), function (el) {
+      var k = el.getAttribute('data-k');
+      if (el.type === 'radio') { if (el.checked) data[k] = el.value; }
+      else if (el.type === 'checkbox') { data[k] = el.checked; }
+      else { data[k] = el.value; }
+    });
+    return data;
+  }
+  function writeAll(data) {
+    Array.prototype.forEach.call(form.querySelectorAll('[data-k]'), function (el) {
+      var k = el.getAttribute('data-k');
+      if (el.type === 'radio') el.checked = data[k] === el.value;
+      else if (el.type === 'checkbox') el.checked = !!data[k];
+      else el.value = data[k] || '';
+    });
+    Array.prototype.forEach.call(form.querySelectorAll('textarea'), grow);
+    updateScore();
+  }
+  function save() {
+    try { localStorage.setItem(storageKey(), JSON.stringify(readAll())); savedEl.textContent = 'Sparat'; }
+    catch (e) { savedEl.textContent = 'Kunde inte spara'; savedEl.style.color = '#a32d2d'; }
+  }
+  function load() {
+    var data = {};
+    try { data = JSON.parse(localStorage.getItem(storageKey()) || '{}'); } catch (e) { data = {}; }
+    writeAll(data);
+    savedEl.textContent = '';
+  }
+  function grow(t) { t.style.height = 'auto'; t.style.height = Math.max(t.scrollHeight + 2, 104) + 'px'; }
+  function updateScore() {
+    var total = 0, all = true;
+    for (var i = 1; i <= 5; i++) {
+      var el = form.querySelector('input[name="sus' + i + '"]:checked');
+      if (!el) { all = false; continue; }
+      var v = parseInt(el.value, 10);
+      total += i === 2 ? 6 - v : v;
+    }
+    document.getElementById('susScore').textContent = all ? String(total) : '–';
+  }
+
+  form.addEventListener('input', function (e) {
+    if (e.target.tagName === 'TEXTAREA') grow(e.target);
+    updateScore();
+    save();
+  });
+  form.addEventListener('change', function () { updateScore(); save(); });
+  personSel.addEventListener('change', load);
+
+  // Sammanfattning: bara det som är ifyllt, redo att skrivas ut som PDF.
+  var FORM_TITLE = document.title;
+  function chipFor(v) {
+    if (v === 'Ja, utan krångel') return '<span class="chip ok">' + esc(v) + '</span>';
+    if (v === 'Ja, men det krånglade') return '<span class="chip mid">' + esc(v) + '</span>';
+    if (v === 'Nej') return '<span class="chip bad">' + esc(v) + '</span>';
+    return '<span class="chip none">Ej ifyllt</span>';
+  }
+  function txt(v) { return v ? '<p class="txt">' + esc(v) + '</p>' : '<p class="txt empty">–</p>'; }
+
+  function buildSummary() {
+    var d = readAll();
+    var tasks = Array.prototype.map.call(document.querySelectorAll('[data-task]'), function (s) { return s.getAttribute('data-task'); });
+    var h = '<h1>Sammanfattning</h1>';
+    h += '<div class="facts">' +
+      '<span><b>Testperson:</b> ' + esc(personSel.value) + '</span>' +
+      '<span><b>Datum:</b> ' + esc(d.datum || '–') + '</span>' +
+      '<span><b>Testledare:</b> ' + esc(d.testare || '–') + '</span>' +
+      '<span><b>Enhet:</b> ' + esc(d.enhet || '–') + '</span></div>';
+
+    // Det som krånglade: uppgifter som inte gick utan krångel.
+    var trouble = '';
+    tasks.forEach(function (t, i) {
+      var k = 'u' + (i + 1), v = d[k + '_klar'];
+      if (v === 'Ja, men det krånglade' || v === 'Nej') {
+        trouble += '<li><b>' + esc(t) + '</b> ' + chipFor(v) + (d[k + '_hande'] ? '<br>' + esc(d[k + '_hande']) : '') + '</li>';
+      }
+    });
+    h += '<section class="card"><h2>Det som krånglade</h2>' +
+      (trouble ? '<ul class="trouble">' + trouble + '</ul>' : '<p class="empty">Inget är markerat som krångligt.</p>') + '</section>';
+
+    h += '<section class="card"><h2>Uppgifterna</h2>';
+    tasks.forEach(function (t, i) {
+      var k = 'u' + (i + 1);
+      h += '<div class="sumtask"><div class="head"><h3>' + esc(t) + '</h3>' + (k === 'u6' ? '' : chipFor(d[k + '_klar'])) + '</div>' +
+        '<div class="k">Vad hände?</div>' + txt(d[k + '_hande']) +
+        '<div class="k">Vad sa hen?</div>' + txt(d[k + '_sa']) + '</div>';
+    });
+    h += '</section>';
+
+    h += '<section class="card"><h2>Frågor efter testet</h2>';
+    FOLLOWUPS.forEach(function (q, i) {
+      var a = d['f' + (i + 1)];
+      if (!a) return;
+      h += '<div class="sumtask"><h3>' + (i + 1) + '. ' + esc(q) + '</h3>' + txt(a) + '</div>';
+    });
+    if (!FOLLOWUPS.some(function (q, i) { return d['f' + (i + 1)]; })) h += '<p class="empty">Inga svar ifyllda.</p>';
+    h += '</section>';
+
+    h += '<section class="card"><h2>Betyg</h2>';
+    SUS.forEach(function (t, i) {
+      var v = d['sus' + (i + 1)];
+      h += '<div class="rate"><span class="t">' + (i + 1) + '. ' + esc(t) + '</span><b>' + (v ? v + ' av 5' : '–') + '</b></div>';
+    });
+    h += '<p style="margin-top:1rem"><span class="scorebox">' +
+      esc(document.getElementById('susScore').textContent) + '</span> av 25 <span class="muted">(förkortad SUS, påstående 2 räknas omvänt)</span></p></section>';
+
+    if (d.ovrigt) h += '<section class="card"><h2>Övrigt</h2>' + txt(d.ovrigt) + '</section>';
+    document.getElementById('summaryBody').innerHTML = h;
+  }
+  function showSummary() {
+    updateScore();
+    buildSummary();
+    document.body.classList.add('summary-mode');
+    document.title = 'Användartest ' + personSel.value + ' – sammanfattning';
+    window.scrollTo(0, 0);
+  }
+  function showForm() {
+    document.body.classList.remove('summary-mode');
+    document.title = FORM_TITLE;
+    window.scrollTo(0, 0);
+  }
+  document.getElementById('done').addEventListener('click', showSummary);
+  document.getElementById('done2').addEventListener('click', showSummary);
+  document.getElementById('back').addEventListener('click', showForm);
+  document.getElementById('print').addEventListener('click', function () { window.print(); });
+  document.getElementById('clear').addEventListener('click', function () {
+    if (!window.confirm('Rensa alla svar för ' + personSel.value + '? Det går inte att ångra.')) return;
+    try { localStorage.removeItem(storageKey()); } catch (e) {}
+    load();
+  });
+
+  // Textfil med allt som är ifyllt, att dela med teamet.
+  document.getElementById('download').addEventListener('click', function () {
+    var out = ['Användartest av Intresseklubben', 'Testperson: ' + personSel.value, ''];
+    var seen = {};
+    Array.prototype.forEach.call(form.querySelectorAll('[data-k]'), function (el) {
+      var k = el.getAttribute('data-k');
+      if (seen[k]) return; seen[k] = true;
+      var label = el.getAttribute('data-label') || (el.closest('[data-label]') && el.closest('[data-label]').getAttribute('data-label')) || k;
+      var val;
+      if (el.type === 'radio') {
+        var on = form.querySelector('input[name="' + k + '"]:checked'); val = on ? on.value : '';
+        label = (el.closest('[data-label]') && el.closest('[data-label]').getAttribute('data-label')) || label;
+      } else if (el.type === 'checkbox') { val = el.checked ? 'ja' : 'nej'; }
+      else { val = el.value; }
+      if (val === '' ) return;
+      out.push(label + ':'); out.push(val); out.push('');
+    });
+    out.push('SUS-poäng: ' + document.getElementById('susScore').textContent + ' av 25');
+    var blob = new Blob([out.join('\n')], { type: 'text/plain;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'anvandartest-' + personSel.value + '.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
