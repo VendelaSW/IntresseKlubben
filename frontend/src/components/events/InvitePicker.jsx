@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Avatar from '../Avatar'
 import { memberCountText } from '../groups/GroupList'
 
 // Innehållet i popupen "Bjud in": en sökbar lista över ens kontakter och en lista
@@ -48,13 +49,7 @@ function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onS
                         checked={userIds.includes(c.id)}
                         onChange={() => toggle(userIds, setUserIds, c.id)}
                       />
-                      {c.image_url ? (
-                        <img src={c.image_url} alt="" className="person-list-avatar" />
-                      ) : (
-                        <span className="person-list-avatar card-avatar-initials" aria-hidden="true">
-                          {(c.name ?? c.username).trim()[0]?.toUpperCase()}
-                        </span>
-                      )}
+                      <Avatar name={c.name ?? c.username} imageUrl={c.image_url} className="person-list-avatar" />
                       <span>{c.name ?? c.username}</span>
                     </label>
                   </li>

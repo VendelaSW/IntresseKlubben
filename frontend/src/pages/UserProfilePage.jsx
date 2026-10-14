@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
-import InterestTags from '../components/InterestTags'
+import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import { useAuth } from '../hooks/useAuth'
+import { useCanGoBack } from '../hooks/useCanGoBack'
 import {
   answerContactRequest,
   blockUser,
   cancelContactRequest,
-  getContacts,
+  contactsQuery,
   removeContact,
   sendContactRequest,
   unblockUser,
@@ -66,25 +68,24 @@ function MessageForm({ userId }) {
 // GET /contacts och matchat på id. contactId pekar på själva
 // relations-raden (inte personen), behövs för att acceptera/avböja/ta
 // bort/svara på just den.
+// Kontakterna kommer ur det delade minnet (se services/queryClient.js), och
+// åtgärderna (förfrågan, blockera...) säger själva till minnet, så relationen
+// stämmer direkt efteråt.
 function useRelation(userId) {
-  const [relation, setRelation] = useState(null)
+  const { data, refetch } = useQuery(contactsQuery)
+  const relation = useMemo(() => {
+    if (!data) return null
+    const findIn = (list) => list.find((c) => c.user.id === userId)
+    const friend = findIn(data.contacts)
+    const outgoing = findIn(data.outgoing_requests)
+    const incoming = findIn(data.incoming_requests)
+    if (friend) return { type: 'friends', contactId: friend.id }
+    if (outgoing) return { type: 'outgoing', contactId: outgoing.id }
+    if (incoming) return { type: 'incoming', contactId: incoming.id }
+    return { type: 'none' }
+  }, [data, userId])
 
-  function refresh() {
-    getContacts().then((data) => {
-      const findIn = (list) => list.find((c) => c.user.id === userId)
-      const friend = findIn(data.contacts)
-      const outgoing = findIn(data.outgoing_requests)
-      const incoming = findIn(data.incoming_requests)
-      if (friend) setRelation({ type: 'friends', contactId: friend.id })
-      else if (outgoing) setRelation({ type: 'outgoing', contactId: outgoing.id })
-      else if (incoming) setRelation({ type: 'incoming', contactId: incoming.id })
-      else setRelation({ type: 'none' })
-    })
-  }
-
-  useEffect(refresh, [userId])
-
-  return [relation, refresh]
+  return [relation, refetch]
 }
 
 // Vänförfrågan/blockera-knapparna för en annan användares profil. Alla
@@ -211,6 +212,7 @@ function UserProfilePage() {
   // Id:t från adressen (/anvandare/:userId) är text, men id:n från API:t är tal.
   const userId = Number(useParams().userId)
   const navigate = useNavigate()
+  const canGoBack = useCanGoBack()
   const { user } = useAuth()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'not-found' | 'error'
   const [profile, setProfile] = useState(null)
@@ -244,10 +246,9 @@ function UserProfilePage() {
   // Går tillbaka dit man kom ifrån. Om sidan öppnades direkt (t.ex. en
   // delad länk) finns ingen tidigare sida i appen att gå tillbaka till,
   // och då skulle navigate(-1) ta en ut ur appen - gå till personlistan
-  // i stället. window.history.state.idx är satt av react-router och är
-  // 0 bara för sidans allra första post i historiken.
+  // i stället (se useCanGoBack).
   function handleBack() {
-    if (window.history.state && window.history.state.idx > 0) {
+    if (canGoBack()) {
       navigate(-1)
     } else {
       navigate('/personer')
@@ -291,11 +292,13 @@ function UserProfilePage() {
           <ProfileAbout text={profile.profile_text} />
           <section className="profile-interests">
             <h2>Intressen</h2>
-            {/* Gemensamma intressen gula. Den egna profilen: alla gula, som på Min profil. */}
+            {/* Som ett träd, som på Min profil. Gemensamma intressen gula; den egna profilen: alla gula. */}
             {profile.interests.length > 0 ? (
-              <InterestTags
-                interests={profile.interests}
-                highlight={isMe ? undefined : (myInterestIds ?? new Set())}
+              <InterestTree
+                proposals={profileTree(profile.interests)}
+                align="start"
+                maxSubs={PROFILE_MAX_SUBS}
+                highlight={isMe ? undefined : new Set([...(myInterestIds ?? [])].map((id) => `id:${id}`))}
               />
             ) : (
               <p className="hint-text">Inga intressen valda än.</p>

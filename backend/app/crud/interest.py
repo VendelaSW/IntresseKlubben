@@ -3,8 +3,10 @@ from sqlalchemy.orm import Session
 
 # Samma skydd mot jokertecken (% och _) som klubbsökningen.
 from app.crud.group import _escape_like
-from app.models.interest import Interest, InterestStatus
+from app.models.interest import Interest, InterestSource, InterestStatus
 from app.models.user import User
+from app.models.user_interest import UserInterest
+from app.services.interest_matching import LibraryIndex, LibraryItem
 
 # Hur många träffar en sökning ger som mest.
 SEARCH_LIMIT = 20
@@ -54,6 +56,40 @@ def search_interests(db: Session, query: str, limit: int = SEARCH_LIMIT) -> list
     return sorted(candidates, key=rank)[:limit]
 
 
+def load_library_index(db: Session) -> LibraryIndex:
+    """Alla aktiva intressen som ett uppslagsregister för matchningen (se
+    services/interest_matching.py): nivå, plats i trädet, alias och om intresset är ett eget som en
+    användare skapat. Hämtas med en fråga, och trädet byggs i minnet."""
+    rows = _active(db).all()
+    by_id = {row.id: row for row in rows}
+
+    def ancestors(row: Interest) -> list[Interest]:
+        chain: list[Interest] = []
+        parent = by_id.get(row.parent_id) if row.parent_id is not None else None
+        while parent is not None and len(chain) < 10:  # skydd mot en cirkel
+            chain.insert(0, parent)
+            parent = by_id.get(parent.parent_id) if parent.parent_id is not None else None
+        return chain
+
+    items = []
+    for row in rows:
+        chain = ancestors(row)
+        items.append(
+            LibraryItem(
+                id=row.id,
+                name=row.name,
+                aliases=tuple(alias.strip() for alias in (row.aliases or "").split("\n") if alias.strip()),
+                parent_id=row.parent_id if row.parent_id in by_id else None,
+                level=len(chain) + 1,
+                path=tuple(parent.name for parent in chain),
+                own=row.source != InterestSource.library.value,
+                activities=tuple(row.activities) if row.activities is not None else None,
+            )
+        )
+    items.sort(key=lambda item: (*item.path, item.name))
+    return LibraryIndex(items)
+
+
 def interest_path(interest: Interest) -> list[str]:
     """Namnen ovanför intresset i trädet, uppifrån."""
     path = []
@@ -83,12 +119,48 @@ def get_active_interest(db: Session, interest_id: int) -> Interest | None:
     return interest if interest is not None and interest.status == InterestStatus.active.value else None
 
 
+def allowed_activities(interest: Interest) -> list[str]:
+    """Hur intresset kan utövas, som slugs ur bibliotekets aktivitetslista.
+
+    Ett intresse utan egen lista ärver förälderns, så att Pokémon TCG får
+    Kortspels "spela" och "samla" men aldrig "odla". En tom lista betyder
+    uttryckligen inga. Också ett huvudområdes egen lista räknas: den som skriver
+    "jag gillar att lyssna på musik" får Musik med "lyssna". Skriver man inget om
+    hur, sätts ingen aktivitet (det avgörs av analysen, inte av den här listan)."""
+    node = interest
+    while node is not None:
+        if node.activities is not None:
+            return list(node.activities)
+        node = node.parent
+    return []
+
+
 def get_user(db: Session, user_id: int) -> User | None:
     return db.get(User, user_id)
 
 
 def sorted_interests(user: User) -> list[Interest]:
-    return sorted(user.interests, key=lambda i: i.name)
+    """Användarens intressen i namnordning. Ett intresse som sparats med flera
+    aktiviteter kommer med en gång."""
+    unique = {interest.id: interest for interest in user.interests}
+    return sorted(unique.values(), key=lambda i: i.name)
+
+
+def set_user_interests(user: User, interests: list[Interest]) -> None:
+    """Gör så att användaren har exakt de här intressena, utan att spara.
+
+    Rader som redan finns behålls som de är, med aktivitet och egna ord. De som
+    inte längre är med tas bort, och de som saknas läggs till utan aktivitet.
+    Att i stället tilldela user.interests en ny lista skapar nya rader för allt,
+    också det användaren redan har, och då slår unik-villkoret till."""
+    wanted = {interest.id: interest for interest in interests}
+    for link in list(user.interest_links):
+        if link.interest.id not in wanted:
+            user.interest_links.remove(link)
+    existing = {link.interest.id for link in user.interest_links}
+    for interest_id, interest in wanted.items():
+        if interest_id not in existing:
+            user.interest_links.append(UserInterest(interest=interest))
 
 
 def add_user_interest(db: Session, user: User, interest: Interest) -> list[Interest]:
@@ -100,7 +172,10 @@ def add_user_interest(db: Session, user: User, interest: Interest) -> list[Inter
 
 
 def remove_user_interest(db: Session, user: User, interest: Interest) -> list[Interest]:
-    if interest in user.interests:
-        user.interests.remove(interest)
+    """Tar bort intresset från profilen, med alla aktiviteter det sparats med."""
+    links = [link for link in user.interest_links if link.interest_id == interest.id]
+    for link in links:
+        user.interest_links.remove(link)
+    if links:
         db.commit()
     return sorted_interests(user)

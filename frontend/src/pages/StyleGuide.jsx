@@ -5,9 +5,15 @@ import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
+import Avatar from '../components/Avatar'
+import Intressekompis from '../components/Intressekompis'
+import LocationPicker from '../components/LocationPicker'
 import BackButton from '../components/BackButton'
+import ChatSender from '../components/ChatSender'
+import ConversationCard from '../components/ConversationCard'
 import Modal from '../components/Modal'
 import FormField from '../components/FormField'
+import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 
@@ -29,6 +35,15 @@ const COLORS = [
   { name: '--color-muted', hex: '#6b6b6b', label: 'Dämpad (platshållartext)' },
   { name: '--color-success', hex: '#3b6d11', label: 'Success (bekräftelser)' },
   { name: '--color-error', hex: '#a32d2d', label: 'Error (felmeddelanden)' },
+  { name: '--color-paper', hex: '#f5eddc', label: 'Brevpapper (aningen mörkare än bakgrunden)' },
+  { name: '--color-paper-margin', hex: '#e7a1a1', label: 'Brevpapprets röda marginal' },
+  { name: '--color-envelope-inside', hex: '#eef3f8', label: 'Kuvertets insida' },
+]
+
+// Exempel för Brev-avsnittet: ett nytt och ett öppnat kuvert.
+const EXAMPLE_CONVERSATIONS = [
+  { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), isNew: true },
+  { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', isNew: false },
 ]
 
 const SIZES = [
@@ -45,6 +60,7 @@ function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  const [examplePosition, setExamplePosition] = useState(null)
 
   return (
     <div className="page">
@@ -149,6 +165,26 @@ function StyleGuide() {
           <li><button type="button" className="tag">Ej vald</button></li>
           <li><button type="button" className="tag tag-selected">Vald</button></li>
         </ul>
+
+        <h3>Intressen som träd (components/InterestTree.jsx)</h3>
+        <p className="hint-text">
+          Profilens intressen. Ett intresse vars förälder också är vald ligger under den, i mindre format. Högst{' '}
+          {PROFILE_MAX_SUBS} syns, resten fälls ut med ⋯. På någon annans profil är bara gemensamma intressen gula.
+        </p>
+        <InterestTree
+          proposals={profileTree([
+            { id: 1, name: 'Historia', parent_id: null },
+            { id: 2, name: 'Mynt', parent_id: 1 },
+            { id: 3, name: 'Vikingatiden', parent_id: 1 },
+            { id: 4, name: 'Medeltiden', parent_id: 1 },
+            { id: 5, name: 'Antiken', parent_id: 1 },
+            { id: 6, name: 'Metal', parent_id: 7 },
+            { id: 8, name: 'Löpning', parent_id: null },
+          ])}
+          align="start"
+          maxSubs={PROFILE_MAX_SUBS}
+          highlight={new Set(['id:1', 'id:2', 'id:3', 'id:4', 'id:5', 'id:6'])}
+        />
       </section>
 
       <section className="style-section">
@@ -157,7 +193,8 @@ function StyleGuide() {
           Handritade, matchar loggans stil (.nav-icon). Ikon ovanför text, används i huvudmenyn.
           På smala skärmar krymper ikonerna, texten och luften mellan menypunkterna steglöst
           (clamp), så att alla ryms på en rad ned till 320 px. Från ca 400 px gäller de vanliga
-          måtten: 34 px ikon, 0,8 rem text.
+          måtten: 34 px ikon, 0,8 rem text. Innan profilen är klar är menypunkterna låsta
+          (.app-nav-link-locked): nedtonade och inte klickbara.
         </p>
         <div className="swatch-grid" style={{ marginTop: '1rem' }}>
           {NAV_ICONS.map(({ icon, label }) => (
@@ -179,6 +216,53 @@ function StyleGuide() {
           <p className="card-title">Emmy, 24</p>
           <p className="card-subheading">Stockholm</p>
           <p className="card-text">Gillar brädspel, klättring och katter.</p>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Avatar (components/Avatar.jsx)
+        </p>
+        <p className="hint-text">
+          En persons bild, eller initialen i en blå cirkel om bild saknas. Använd komponenten i stället
+          för att skriva egen markering. Storleken ges med en klass: .person-list-avatar (liten, i
+          listor) eller .card-avatar (på kort).
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
+          <Avatar name="Emmy" className="person-list-avatar" />
+          <Avatar name="Emmy Lund" className="card-avatar" maxLetters={2} />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Platsväljare (components/LocationPicker.jsx)
+        </p>
+        <p className="hint-text">
+          Var på kartan ett event eller en klubbs träffplats är. "Hitta adressen på kartan" söker på queries i tur och
+          ordning (GET /geocode, kräver inloggning) och sätter en nål; nålen går att dra eller flytta med ett klick.
+          Utan nål visas kommunCode:s kommun, annars hela Sverige. value är {'{ latitude, longitude }'} eller null.
+          Kartan laddas först när komponenten visas.
+        </p>
+        <div className="auth-form form-wide" style={{ marginTop: '0.5rem' }}>
+          <LocationPicker
+            id="styleguide-position"
+            queries={['Odelbergs väg 2, Värmdö']}
+            value={examplePosition}
+            onChange={setExamplePosition}
+            saveLabel="Spara"
+            kommunCode="0120"
+          />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Intressekompisen (components/Intressekompis.jsx)
+        </p>
+        <p className="hint-text">
+          Maskoten, med pupiller som följer muspekaren. Fyller bredden på sin förälder och behåller proportionerna, så
+          storleken ges med `width` (till exempel "200px") eller genom förälderns bredd. Rent dekorativ: ge den alt=""
+          där den bara pryder. Pupillerna står stilla för den som valt mindre rörelse i systemet. Ingen egen CSS, allt
+          ligger i komponenten.
+        </p>
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-end', marginTop: '0.5rem' }}>
+          <Intressekompis width="200px" />
+          <Intressekompis width="90px" alt="" />
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
@@ -211,6 +295,67 @@ function StyleGuide() {
       </section>
 
       <section className="style-section">
+        <h2>Brev</h2>
+        <p className="swatch-label">Kuvert (.envelopes med ConversationCard)</p>
+        <p className="hint-text">
+          Fem per rad på dator, från vänster i linje med rubriken och flikarna, och tre i mitten på
+          mobil. Klickbara som andra kort (.card-interactive): lyfts och
+          får gul kant vid hover. Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret; ett
+          nytt (.envelope-new) förblir stängt och har ett gult sigill. Avståndet mellan raderna följer
+          kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför. Personens bild står
+          bredvid namnet och växer med kuvertet.
+        </p>
+        <ul className="envelopes" style={{ marginTop: '1rem' }}>
+          {EXAMPLE_CONVERSATIONS.map(({ isNew, ...conversation }) => (
+            <li key={conversation.id}>
+              <ConversationCard conversation={conversation} isNew={isNew} />
+            </li>
+          ))}
+        </ul>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Anteckningspapper (.notepad .lined-paper), för en konversation
+        </p>
+        <p className="hint-text">
+          Linjerat papper med röd marginal. Allt på pappret har radhöjden --line-gap, så att texten
+          står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. Någon annans bild och namn (överst och vid breven, ChatSender) är länkar till profilen. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
+          ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och under på mobil: rubriken Klubbchatt, medlemmarnas bilder
+          och namn vid varje meddelande, och en svarsrad.
+        </p>
+        <article className="notepad lined-paper" style={{ marginTop: '1rem' }}>
+          <h3 className="notepad-title">
+            <span className="notepad-title-link">
+              <Avatar name="Bob" className="person-list-avatar notepad-title-avatar" />
+              <span className="notepad-title-name">Bob</span>
+            </span>
+          </h3>
+          <ol className="notepad-messages">
+            <li className="notepad-message">
+              <p>
+                <ChatSender userId={2} name="Bob" /> <time className="hint-text">igår 12:05</time>
+              </p>
+              <p>Ska vi klättra på lördag?</p>
+            </li>
+            <li className="notepad-message">
+              <p>
+                <ChatSender mine name="Emmy" /> <time className="hint-text">11:35</time>
+              </p>
+              <p>Ja gärna!</p>
+            </li>
+          </ol>
+          <form className="notepad-reply" onSubmit={(e) => e.preventDefault()}>
+            <label htmlFor="example-reply" className="visually-hidden">
+              Skriv till Bob
+            </label>
+            <input id="example-reply" type="text" placeholder="Skriv till Bob..." />
+            <button type="submit" className="primary-button button-small">
+              Skicka
+            </button>
+          </form>
+        </article>
+      </section>
+
+      <section className="style-section">
         <h2>Sidlayout och listor</h2>
         <p className="hint-text">
           Byggstenarna som listsidor (Klubbar, Events) delar. Nya sidor ska återanvända dem och
@@ -221,9 +366,10 @@ function StyleGuide() {
           Rubrikrad (.page-header) med rund knapp, och flikar (.filter-tabs)
         </p>
         <p className="hint-text">
-          Lägg .app-section-centered på sidans .app-section för att centrera rubrik, flikar,
-          kortrutnät och ark, med tätare avstånd (Klubbar och Events). Utan den ligger allt
-          vänsterställt (Personer och Brev).
+          På dator ligger rubrik och flikar till vänster på alla sidor, på mobil centrerade (Brev,
+          Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
+          .app-section för sidor med kort i rutnät (Klubbar och Events): "+"-knappen direkt efter
+          rubriken och tätare avstånd.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
           <div className="page-header">
@@ -249,7 +395,11 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Hela övre delen (.list-card-link) är klickbar. Knappar och märken ligger utanför den, i
-          .card-actions. Beskrivningen kortas av efter tre rader (.list-card-description).
+          .card-actions. Korten i .card-grid-compact är lika höga i varje rad, och på dator fyller de
+          bredden kant i kant med rubriken, så många per rad som får plats. Klubb- och eventkort är
+          minst --card-height höga; namnet kortas av efter två rader och beskrivningen efter tre, med
+          "…". Personkorten är så höga som innehållet och visar högst tre intressen på en rad (så
+          många som får plats hela); fler fälls ut i en ruta med ⋯.
         </p>
         <div className="card-grid card-grid-compact" style={{ marginTop: '1rem' }}>
           <article className="card card-interactive list-card">
@@ -323,14 +473,14 @@ function StyleGuide() {
             <ul>
               <li>
                 <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
-                  <span className="person-list-avatar card-avatar-initials" aria-hidden="true">E</span>
+                  <Avatar name="E" className="person-list-avatar" />
                   <span>Emmy</span>
                   <span className="hint-text">Ägare</span>
                 </a>
               </li>
               <li>
                 <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
-                  <span className="person-list-avatar card-avatar-initials" aria-hidden="true">L</span>
+                  <Avatar name="L" className="person-list-avatar" />
                   <span>Leonard</span>
                 </a>
               </li>
@@ -352,13 +502,13 @@ function StyleGuide() {
               <ul>
                 <li>
                   <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
-                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">E</span>
+                    <Avatar name="E" className="person-list-avatar" />
                     <span>Emmy</span>
                   </a>
                 </li>
                 <li>
                   <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
-                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">F</span>
+                    <Avatar name="F" className="person-list-avatar" />
                     <span>Filip</span>
                     <span className="status-pill">Blockerad</span>
                   </a>
@@ -370,7 +520,7 @@ function StyleGuide() {
               <ul>
                 <li>
                   <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
-                    <span className="person-list-avatar card-avatar-initials" aria-hidden="true">L</span>
+                    <Avatar name="L" className="person-list-avatar" />
                     <span>Leonard</span>
                   </a>
                 </li>
@@ -427,14 +577,14 @@ function StyleGuide() {
                   <li>
                     <label className="person-list-item">
                       <input type="checkbox" />
-                      <span className="person-list-avatar card-avatar-initials" aria-hidden="true">E</span>
+                      <Avatar name="E" className="person-list-avatar" />
                       <span>Emmy</span>
                     </label>
                   </li>
                   <li>
                     <label className="person-list-item">
                       <input type="checkbox" defaultChecked />
-                      <span className="person-list-avatar card-avatar-initials" aria-hidden="true">L</span>
+                      <Avatar name="L" className="person-list-avatar" />
                       <span>Leonard</span>
                     </label>
                   </li>

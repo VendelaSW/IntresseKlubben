@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import Avatar from '../Avatar'
 import InterestTags from '../InterestTags'
 import Modal from '../Modal'
+import ShowOnMapButton from '../ShowOnMapButton'
 import InvitePicker from './InvitePicker'
 import { eventTimeText, visibilityPillClass, visibilityText } from './EventList'
 import { EVENT_ANSWER, answerEvent, getEventResponses, inviteToEvent, updateEvent } from '../../services/events'
@@ -95,6 +97,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
         {eventTimeText(event)} · {event.place_name}
       </p>
       <p className="hint-text">{event.address}</p>
+      <ShowOnMapButton type="event" id={event.id} data={event} />
       <p className="card-text">{event.description}</p>
       <div className="detail-view-section">
         <InterestTags
@@ -200,13 +203,7 @@ function Attendees({ responses, failed }) {
               {people.map((p) => (
                 <li key={p.id}>
                   <Link to={`/anvandare/${p.id}`} className="person-list-item">
-                    {p.image_url ? (
-                      <img src={p.image_url} alt="" className="person-list-avatar" />
-                    ) : (
-                      <span className="person-list-avatar card-avatar-initials" aria-hidden="true">
-                        {(p.name ?? p.username).trim()[0]?.toUpperCase()}
-                      </span>
-                    )}
+                    <Avatar name={p.name ?? p.username} imageUrl={p.image_url} className="person-list-avatar" />
                     <span>{p.name ?? p.username}</span>
                     {p.blocked_by_me && <span className="status-pill">Blockerad</span>}
                   </Link>

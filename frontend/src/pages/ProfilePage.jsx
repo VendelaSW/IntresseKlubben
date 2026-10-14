@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import BlockedUsers from '../components/BlockedUsers'
 import DeleteAccount from '../components/DeleteAccount'
 import InterestExplorer from '../components/InterestExplorer'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
-import { addMyEmail, getCurrentUser } from '../services/api'
-import { imageToWebp } from '../services/imageToWebp'
-import { addInterest, getMyInterests, removeInterest } from '../services/interests'
+import { useAuth } from '../hooks/useAuth'
+import { checkAvailability, getCurrentUser, updateAccount } from '../services/api'
+import { clearProfileDraft, loadProfileDraft, saveProfileDraft } from '../services/profileDraft'
+import { resizeProfileImage } from '../services/resizeProfileImage'
+import { addInterest, getMyInterests, getTopInterests, removeInterest } from '../services/interests'
 import {
   GENDER_OPTIONS,
   createProfile,
@@ -15,8 +18,12 @@ import {
   getProfile,
   updateProfile,
   uploadProfileImage,
-  uploadProfileWebp,
+  uploadResizedImage,
 } from '../services/profile'
+
+// Så länge kontrollen av användarnamn/e-post väntar efter senaste
+// tangenttrycket, så att inte varje bokstav blir ett anrop.
+const AVAILABILITY_DELAY_MS = 400
 
 // Dagens datum som YYYY-MM-DD i lokal tid (toISOString ger UTC och kan
 // visa fel dag runt midnatt).
@@ -81,75 +88,8 @@ function ProfileImage({ profile, onUploaded, editable = false }) {
   )
 }
 
-// Ens e-post. Konton som skapades innan e-post krävdes vid registrering
-// saknar den, och får här lägga till den (tänkt att behövas för att kunna
-// återställa lösenordet, när det finns). En befintlig e-post går inte att
-// ändra här.
-function ProfileEmail() {
-  const [email, setEmail] = useState(undefined) // undefined = laddar, null = saknas
-  const [draft, setDraft] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    getCurrentUser()
-      .then((me) => setEmail(me.email))
-      .catch(() => setError('Kunde inte hämta din e-post.'))
-  }, [])
-
-  async function handleSubmit(event) {
-    event.preventDefault()
-    setSaving(true)
-    setError('')
-    try {
-      const me = await addMyEmail(draft)
-      setEmail(me.email)
-      setSaved(true)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (email === undefined && !error) return null
-
-  return (
-    <section className="profile-email">
-      <h2>E-post</h2>
-      {email ? (
-        <>
-          <p className="card-text">{email}</p>
-          {saved && <p className="status-success">E-posten är sparad.</p>}
-          <p className="hint-text">Syns bara för dig.</p>
-        </>
-      ) : (
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <p className="hint-text">
-            Lägg till din e-post. Den syns bara för dig.
-          </p>
-          <label htmlFor="profile-email">E-postadress</label>
-          <input
-            id="profile-email"
-            type="email"
-            autoComplete="email"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            required
-          />
-          {error && <p className="form-error">{error}</p>}
-          <button type="submit" disabled={saving}>
-            {saving ? 'Sparar...' : 'Spara e-post'}
-          </button>
-        </form>
-      )}
-    </section>
-  )
-}
-
-// Bildväljare för "Skapa din profil". Profilen finns inte än, så bilden görs
-// om till WebP direkt men laddas upp först när formuläret sparas.
+// Bildväljare för "Skapa din profil". Profilen finns inte än, så bilden skalas
+// om direkt men laddas upp först när formuläret sparas.
 function NewProfileImage({ name, image, onChange }) {
   const [preview, setPreview] = useState(null)
   const [error, setError] = useState('')
@@ -167,7 +107,7 @@ function NewProfileImage({ name, image, onChange }) {
     if (!file) return
     setError('')
     try {
-      onChange(await imageToWebp(file))
+      onChange(await resizeProfileImage(file))
     } catch (err) {
       setError(err.message)
     }
@@ -194,8 +134,19 @@ function NewProfileImage({ name, image, onChange }) {
 }
 
 function ProfilePage() {
+  const { user, updateUser } = useAuth()
+  const navigate = useNavigate()
+  // ?lista=1: formuläret där man väljer intressen ur listan i stället för att gå igenom intervjun. Dit länkar
+  // intervjun när AI:n inte kan tolka texten.
+  const [searchParams] = useSearchParams()
+  const listMode = searchParams.has('lista')
+  // ?redigera=1: öppnas direkt i "Redigera profil" (kartans profilblock länkar hit).
+  const editRequested = searchParams.has('redigera')
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
+  // Kontouppgifterna (användarnamn och e-post) från /users/me. Visas i
+  // profilens lista och ändras i "Redigera profil". E-posten syns bara här.
+  const [account, setAccount] = useState(null)
   const [editing, setEditing] = useState(false)
   const [municipalities, setMunicipalities] = useState([])
   const [myInterests, setMyInterests] = useState([])
@@ -215,17 +166,49 @@ function ProfilePage() {
   // Bild vald i "Skapa din profil", laddas upp efter att profilen sparats.
   const [pendingImage, setPendingImage] = useState(null)
   const [imageNotice, setImageNotice] = useState('')
+  // Kontouppgifterna i "Redigera profil". Lösenordet krävs bara om man ändrar dem.
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [accountPassword, setAccountPassword] = useState('')
+  // "Upptaget"-meddelanden medan man skriver (null = ledigt eller oförändrat).
+  const [availability, setAvailability] = useState({ username: null, email: null })
+  const availabilityRequest = useRef(0)
 
   useEffect(() => {
     // Själva inloggningskollen sköts redan av ProtectedRoute, så vi kan
     // anta att det finns en giltig token när den här sidan visas.
-    Promise.all([getProfile(), getMunicipalities(), getMyInterests()])
-      .then(([data, list, mine]) => {
+    // Intresseväljaren visas först när profilen har laddat, men hämtar redan nu.
+    getTopInterests().catch(() => {})
+    Promise.all([getProfile(), getMunicipalities(), getMyInterests(), getCurrentUser()])
+      .then(([data, list, mine, me]) => {
+        // Ingen profil än → intervjun, där profilen skapas. Med ?lista=1 visas formuläret i stället.
+        if (data === null && !listMode) {
+          navigate('/profil/intervju', { replace: true })
+          return
+        }
         setProfile(data)
         setMunicipalities(list)
         setMyInterests(mine)
-        // Ingen profil än → visa formuläret direkt.
-        setEditing(data === null)
+        setAccount(me)
+        // Ingen profil än (listläget) → visa formuläret direkt, med det man redan
+        // fyllt i om man lämnat sidan innan profilen sparades (se profileDraft.js).
+        if (data === null) {
+          const draft = loadProfileDraft(me.id)
+          if (draft) {
+            setName(draft.name ?? '')
+            setBirthDate(draft.birthDate ?? '')
+            setGender(draft.gender ?? '')
+            setGenderSearchable(draft.genderSearchable ?? false)
+            setMunicipalityCode(draft.municipalityCode ?? '')
+            setDistrict(draft.district ?? '')
+            setAboutText(draft.aboutText ?? '')
+            setDraftInterests(draft.interests ?? [])
+          }
+        }
+        // Här och inte i en egen effekt, så att det fungerar även när
+        // laddningen körs två gånger (StrictMode i utvecklingsläget).
+        if (data !== null && editRequested) startEditing(data, me)
+        else setEditing(data === null)
         setStatus('ready')
       })
       .catch((err) => {
@@ -236,17 +219,71 @@ function ProfilePage() {
       })
   }, [])
 
-  function startEditing() {
-    setName(profile?.name ?? '')
-    setBirthDate(profile?.birth_date ?? '')
-    setGender(profile?.gender ?? '')
-    setGenderSearchable(profile?.gender_searchable ?? false)
-    setMunicipalityCode(profile?.municipality_code ?? '')
-    setDistrict(profile?.district ?? '')
-    setAboutText(profile?.profile_text ?? '')
+  // "Skapa din profil": spara utkastet medan man fyller i, så att inget går
+  // förlorat om man råkar lämna sidan eller laddar om den. Bilden kan inte
+  // sparas så, den väljer man igen.
+  const creating = status === 'ready' && profile === null && account !== null
+  useEffect(() => {
+    if (!creating) return
+    saveProfileDraft(account.id, {
+      name,
+      birthDate,
+      gender,
+      genderSearchable,
+      municipalityCode,
+      district,
+      aboutText,
+      interests: draftInterests,
+    })
+  }, [creating, account, name, birthDate, gender, genderSearchable, municipalityCode, district, aboutText, draftInterests])
+
+  // Fyller formuläret från profilen och kontot. Utan argument de sparade;
+  // direkt efter laddningen skickas de nyss hämtade med, eftersom state inte
+  // hunnit uppdateras än.
+  function startEditing(fromProfile = profile, fromAccount = account) {
+    setName(fromProfile?.name ?? '')
+    setBirthDate(fromProfile?.birth_date ?? '')
+    setGender(fromProfile?.gender ?? '')
+    setGenderSearchable(fromProfile?.gender_searchable ?? false)
+    setMunicipalityCode(fromProfile?.municipality_code ?? '')
+    setDistrict(fromProfile?.district ?? '')
+    setAboutText(fromProfile?.profile_text ?? '')
+    setUsername(fromAccount?.username ?? '')
+    setEmail(fromAccount?.email ?? '')
+    setAccountPassword('')
+    setAvailability({ username: null, email: null })
     setFormError('')
     setEditing(true)
   }
+
+  // Ändrade kontouppgifter (bara för en befintlig profil). Bara det som
+  // ändrats skickas och kontrolleras.
+  const accountChanges = {}
+  if (profile && account && editing) {
+    if (username !== account.username) accountChanges.username = username
+    if (email !== (account.email ?? '')) accountChanges.email = email
+  }
+  const accountChanged = Object.keys(accountChanges).length > 0
+
+  // Säger till direkt om ett nytt användarnamn eller en ny e-post redan används
+  // av någon annan, en kort stund efter senaste tangenttrycket. Svar på en äldre
+  // kontroll (som man hunnit skriva vidare på) kastas.
+  const changedUsername = accountChanges.username ?? ''
+  const changedEmail = accountChanges.email ?? ''
+  useEffect(() => {
+    const request = ++availabilityRequest.current
+    if (!changedUsername.trim() && !changedEmail.trim()) {
+      setAvailability({ username: null, email: null })
+      return undefined
+    }
+    const timer = setTimeout(() => {
+      checkAvailability({ username: changedUsername, email: changedEmail })
+        .then((result) => request === availabilityRequest.current && setAvailability(result))
+        // Kontrollen är bara en hjälp: misslyckas den säger Spara till i stället.
+        .catch(() => {})
+    }, AVAILABILITY_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [changedUsername, changedEmail])
 
   const byName = (a, b) => a.name.localeCompare(b.name, 'sv')
 
@@ -256,7 +293,10 @@ function ProfilePage() {
     setMyInterests(await addInterest(interest.id))
   }
 
+  // Frågar först. Underintressen till det man tar bort ligger kvar, och visas
+  // överst i stället.
   async function removeSavedInterest(interest) {
+    if (!window.confirm(`Vill du ta bort ${interest.name} från din profil?`)) return
     setMyInterests(await removeInterest(interest.id))
   }
 
@@ -282,6 +322,23 @@ function ProfilePage() {
     }
     if (district.trim()) data.district = district
 
+    // 0. Kontouppgifterna, om de ändrats. De sparas först, så att fel lösenord
+    //    eller ett upptaget namn (de vanligaste felen) stoppar allt innan
+    //    profilen ändras. Misslyckas profilen efteråt är kontouppgifterna ändå
+    //    sparade; de visas då som sparade, och felet för profilen visas.
+    if (accountChanged) {
+      try {
+        const me = await updateAccount({ password: accountPassword, ...accountChanges })
+        setAccount(me)
+        // Namnet uppe i menyn hämtas från inloggningen, så den uppdateras också.
+        updateUser(me)
+      } catch (err) {
+        setFormError(err.message)
+        setSaving(false)
+        return
+      }
+    }
+
     // 1. Profilen. Misslyckas den sparas inget annat heller. En ny profil
     //    skapas tillsammans med intressena i samma anrop, en befintlig ändras.
     let saved
@@ -300,7 +357,7 @@ function ProfilePage() {
     setImageNotice('')
     if (pendingImage) {
       try {
-        saved = await uploadProfileWebp(pendingImage)
+        saved = await uploadResizedImage(pendingImage)
       } catch (err) {
         setImageNotice(`Profilen sparades, men bilden kunde inte laddas upp: ${err.message}`)
       }
@@ -308,8 +365,13 @@ function ProfilePage() {
     }
     setProfile(saved)
 
-    // 3. En ny profil sparade intressena i steg 1.
-    if (isNew) setMyInterests([...draftInterests].sort(byName))
+    // 3. En ny profil sparade intressena i steg 1. Nu är profilen klar, så
+    //    resten av appen låses upp (se RequireProfile).
+    if (isNew) {
+      setMyInterests([...draftInterests].sort(byName))
+      clearProfileDraft(account.id)
+      updateUser({ ...user, profile_completed: true })
+    }
 
     setEditing(false)
     setSaving(false)
@@ -442,9 +504,56 @@ function ProfilePage() {
             />
           )}
 
+          {/* Kontouppgifterna. En ny profil har redan valt dem när kontot skapades. */}
+          {!isNew && (
+            <>
+              <h2>Kontouppgifter</h2>
+              <label htmlFor="profile-username">Användarnamn</label>
+              <input
+                id="profile-username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                minLength={3}
+                maxLength={50}
+                required
+              />
+              {availability.username && <p className="form-error">{availability.username}</p>}
+
+              <label htmlFor="profile-email">E-postadress</label>
+              <input
+                id="profile-email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              {availability.email && <p className="form-error">{availability.email}</p>}
+              <p className="hint-text">E-posten syns bara för dig.</p>
+
+              {/* Lösenordet krävs bara när användarnamn eller e-post ändras. */}
+              {accountChanged && (
+                <>
+                  <label htmlFor="profile-account-password">
+                    Skriv ditt lösenord för att spara nytt användarnamn eller ny e-post
+                  </label>
+                  <input
+                    id="profile-account-password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={accountPassword}
+                    onChange={(e) => setAccountPassword(e.target.value)}
+                    required
+                  />
+                </>
+              )}
+            </>
+          )}
+
           {formError && <p className="form-error">{formError}</p>}
 
-          <button type="submit" disabled={saving}>
+          <button type="submit" disabled={saving || Boolean(availability.username || availability.email)}>
             {saving ? 'Sparar...' : 'Spara'}
           </button>
           {!isNew && (
@@ -453,6 +562,9 @@ function ProfilePage() {
             </button>
           )}
         </form>
+        {/* Utanför formuläret ovan: Radera konto har ett eget formulär, och formulär går inte att lägga i varandra.
+            Bara för en befintlig profil, en ny har inget att radera än. */}
+        {!isNew && <DeleteAccount />}
       </div>
     )
   }
@@ -460,7 +572,7 @@ function ProfilePage() {
   return (
     <div className="profile-layout">
     <div className="card card-wide content-stack">
-      <h1>Min profil</h1>
+      <h1 className="app-title">Min profil</h1>
       {imageNotice && (
         <p className="form-error">{withPeriod(imageNotice)} Försök igen under Redigera profil.</p>
       )}
@@ -478,14 +590,17 @@ function ProfilePage() {
         <dd>{profile.municipality_name ?? '–'}</dd>
         <dt>Stadsdel</dt>
         <dd>{profile.district ?? '–'}</dd>
+        <dt>Användarnamn</dt>
+        <dd>{account?.username ?? '–'}</dd>
+        <dt>E-post</dt>
+        <dd>{account?.email ?? 'Ingen e-post sparad'}</dd>
       </dl>
-      <ProfileEmail />
+      <p className="hint-text">E-posten syns bara för dig.</p>
       <ProfileAbout text={profile.profile_text} />
       <BlockedUsers />
-      <button type="button" className="primary-button" onClick={startEditing}>
+      <button type="button" className="primary-button" onClick={() => startEditing()}>
         Redigera profil
       </button>
-      <DeleteAccount />
     </div>
     {/* Intressena som ett eget vitt kort bredvid profilen (under på mobil).
         Ändringar sparas direkt. */}

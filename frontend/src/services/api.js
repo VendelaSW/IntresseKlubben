@@ -1,4 +1,5 @@
 import { clearToken, getToken } from './auth'
+import { MINUTE, cached, queryClient } from './queryClient'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -94,12 +95,17 @@ export function registerUser(username, email, password) {
   return apiPost('/users/register', { username, email, password })
 }
 
-export function loginUser(username, password) {
-  return apiPost('/users/login', { username, password })
+// Man loggar in med användarnamn eller e-post i samma fält.
+export function loginUser(usernameOrEmail, password) {
+  return apiPost('/users/login', { username_or_email: usernameOrEmail, password })
 }
 
+export const CURRENT_USER_KEY = ['current-user']
+
+// Sparas i minnet (se queryClient.js): inloggningen hämtar den vid start, och
+// profilsidan får den sedan utan ett nytt anrop.
 export function getCurrentUser() {
-  return apiGet('/users/me')
+  return cached(CURRENT_USER_KEY, () => apiGet('/users/me'), 5 * MINUTE)
 }
 
 // Raderar kontot och allt som hör till det. Fel lösenord ger 403 (inte 401),
@@ -108,7 +114,18 @@ export function deleteAccount(password) {
   return apiDelete('/users/me', { password })
 }
 
-// För konton som skapades innan e-post krävdes. Går bara när e-post saknas.
-export function addMyEmail(email) {
-  return apiPut('/users/me/email', { email })
+// Ändrar användarnamn och/eller e-post: { password, username?, email? }. Även
+// för konton som saknar e-post. Fel lösenord ger 403 (inte 401), så man loggas
+// inte ut av ett felskrivet lösenord. Svarar med de nya uppgifterna (som /users/me).
+export async function updateAccount(changes) {
+  return queryClient.setQueryData(CURRENT_USER_KEY, await apiPatch('/users/me', changes))
+}
+
+// Om ett användarnamn och/eller en e-post redan används av någon annan:
+// { username, email } med samma meddelanden som när man sparar, null = ledigt.
+export function checkAvailability({ username = '', email = '' }) {
+  const params = new URLSearchParams()
+  if (username.trim()) params.set('username', username)
+  if (email.trim()) params.set('email', email)
+  return apiGet(`/users/me/availability?${params}`)
 }

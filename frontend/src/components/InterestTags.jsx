@@ -1,10 +1,12 @@
 // Visar någons valda intressen som taggar, bara för visning (t.ex. på någon
 // annans profil eller i personlistan). Ange `highlight` (en Set av
 // intresse-id:n) för att markera vilka som är gemensamma med en själv -
-// annars visas alla som markerade, som tidigare.
-function InterestTags({ interests, highlight }) {
+// annars visas alla som markerade, som tidigare. `children` läggs sist i
+// raden, t.ex. en knapp som visar fler, och `listRef` pekar på listan (för
+// att mäta den, se PersonCard).
+function InterestTags({ interests, highlight, children, listRef }) {
   return (
-    <ul className="tags">
+    <ul className="tags" ref={listRef}>
       {interests.map((interest) => {
         const shared = highlight ? highlight.has(interest.id) : true
         return (
@@ -13,6 +15,7 @@ function InterestTags({ interests, highlight }) {
           </li>
         )
       })}
+      {children && <li>{children}</li>}
     </ul>
   )
 }

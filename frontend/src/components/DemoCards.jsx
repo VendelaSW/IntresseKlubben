@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import Avatar from './Avatar'
 import { useDemo } from '../hooks/useDemo'
 
 export function DemoBackLink({ to = '/demo', children = '← Tillbaka' }) {
@@ -22,15 +23,6 @@ export function InterestTags({ interests, highlight = [] }) {
       ))}
     </ul>
   )
-}
-
-function initials(name) {
-  return name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
 }
 
 // Knappen ändras efter hur relationen till personen ser ut just nu.
@@ -82,9 +74,7 @@ function RelationActions({ person }) {
 export function PersonCard({ person, shared = [] }) {
   return (
     <article className="card demo-card">
-      <div className="card-avatar card-avatar-initials" aria-hidden="true">
-        {initials(person.name)}
-      </div>
+      <Avatar name={person.name} className="card-avatar" maxLetters={2} />
       <p className="card-title">
         {person.name}, {person.age}
       </p>

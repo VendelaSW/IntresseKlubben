@@ -70,9 +70,65 @@ def test_database_rejects_usernames_differing_only_in_case(db):
 
 def test_login_is_not_case_sensitive(client):
     _register(client, username="Vendela")
-    response = client.post("/users/login", json={"username": "VENDELA", "password": "hemligt123"})
+    response = client.post("/users/login", json={"username_or_email": "VENDELA", "password": "hemligt123"})
     assert response.status_code == 200
     assert response.json()["user"]["username"] == "Vendela"  # ursprungligt skiftläge bevaras
+
+
+def _login(client, username_or_email, password="hemligt123"):
+    return client.post("/users/login", json={"username_or_email": username_or_email, "password": password})
+
+
+@pytest.mark.parametrize("typed", ["vendela@example.com", "  Vendela@Example.COM  ", "vendela", " VENDELA "])
+def test_login_with_username_or_email_in_the_same_field(client, typed):
+    # Samma fält tar emot användarnamn eller e-post, oavsett skiftläge och
+    # mellanslag runt texten.
+    _register(client)
+    response = _login(client, typed)
+    assert response.status_code == 200
+    assert response.json()["user"]["username"] == "vendela"
+
+
+def test_login_with_email_needs_the_right_password(client):
+    _register(client)
+    response = _login(client, "vendela@example.com", password="fel-lösenord")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Fel användarnamn, e-post eller lösenord."
+
+
+def test_unknown_email_gives_the_same_error_as_a_wrong_password(client):
+    _register(client)
+    unknown = _login(client, "finnsinte@example.com")
+    wrong_password = _login(client, "vendela@example.com", password="fel-lösenord")
+    assert unknown.status_code == wrong_password.status_code == 401
+    assert unknown.json() == wrong_password.json()
+
+
+def test_login_finds_older_account_with_at_sign_in_username(client, db):
+    # Konton från innan @ förbjöds i användarnamn kan fortfarande logga in med
+    # användarnamnet, när ingen har det som e-post.
+    db.add(User(username="gamla@kontot", email="gamla@example.com", password_hash=hash_password("hemligt123")))
+    db.commit()
+    response = _login(client, "gamla@kontot")
+    assert response.status_code == 200
+    assert response.json()["user"]["username"] == "gamla@kontot"
+
+
+def test_email_wins_over_an_older_username_with_the_same_text(client, db):
+    # Har någon ett gammalt användarnamn som är någon annans e-post, är det
+    # e-posten som gäller. Den andra loggar in med sin egen e-post.
+    db.add(User(username="bob@example.com", email="bob-gammal@example.com", password_hash=hash_password("annat-losen")))
+    db.commit()
+    _register(client, username="bob", email="bob@example.com")
+    response = _login(client, "bob@example.com")
+    assert response.status_code == 200
+    assert response.json()["user"]["username"] == "bob"
+
+
+def test_register_rejects_at_sign_in_username(client):
+    response = _register(client, username="vendela@hem")
+    assert response.status_code == 422
+    assert "Användarnamnet får inte innehålla @" in response.json()["detail"][0]["msg"]
 
 
 @pytest.mark.parametrize(
@@ -106,11 +162,24 @@ def test_verify_password():
     assert not verify_password("hemligt123", "")  # ogiltig hash ger False, inte krasch
 
 
-# --- Lägga till e-post i efterhand (PUT /users/me/email) ---
-# Konton som skapades innan e-post krävdes saknar den. `user`-fixturen är ett
-# sådant konto (ingen e-post). Att andra aldrig ser e-posten täcks redan av
-# testerna som kontrollerar exakt vilka fält som skickas ut om andra
-# (test_user_profile.py, test_people.py).
+# --- Ändra användarnamn och e-post (PATCH /users/me) ---
+# Lösenordet krävs. `user`-fixturen saknar e-post, som konton som skapades
+# innan e-post krävdes; den får ett riktigt lösenord här. Att andra aldrig ser
+# e-posten täcks redan av testerna som kontrollerar exakt vilka fält som
+# skickas ut om andra (test_user_profile.py, test_people.py).
+
+PASSWORD = "hemligt123"
+
+
+@pytest.fixture
+def me(db, user):
+    user.password_hash = hash_password(PASSWORD)
+    db.commit()
+    return user
+
+
+def _update(client, password=PASSWORD, **changes):
+    return client.patch("/users/me", json={"password": password, **changes})
 
 
 def test_me_shows_own_email_as_none_when_missing(client, user):
@@ -119,43 +188,121 @@ def test_me_shows_own_email_as_none_when_missing(client, user):
     assert response.json()["email"] is None
 
 
-def test_add_email_saves_it_in_lowercase(client, db, user):
-    response = client.put("/users/me/email", json={"email": "  Test@Example.COM "})
+def test_change_username_and_log_in_with_the_new_one(client, db, me):
+    me.email = "test@example.com"
+    db.commit()
+    response = _update(client, username="Nytt_namn")
     assert response.status_code == 200
-    assert response.json()["email"] == "test@example.com"
-    db.refresh(user)
-    assert user.email == "test@example.com"
-    # Och /users/me visar den nu.
-    assert client.get("/users/me").json()["email"] == "test@example.com"
+    assert response.json()["username"] == "Nytt_namn"
+    db.refresh(me)
+    assert me.username == "Nytt_namn"
+    # Det nya namnet fungerar vid inloggning, det gamla inte längre.
+    assert _login(client, "nytt_namn").status_code == 200
+    assert _login(client, "testuser").status_code == 401
 
 
-def test_add_email_rejects_invalid_address_in_swedish(client, db, user):
-    response = client.put("/users/me/email", json={"email": "inte-en-epost"})
-    assert response.status_code == 422
-    assert "Ogiltig e-postadress" in response.json()["detail"][0]["msg"]
-    db.refresh(user)
-    assert user.email is None
+def test_change_email_saves_it_in_lowercase(client, db, me):
+    me.email = "forsta@example.com"
+    db.commit()
+    response = _update(client, email="  Andra@Example.COM ")
+    assert response.status_code == 200
+    assert response.json()["email"] == "andra@example.com"
+    assert client.get("/users/me").json()["email"] == "andra@example.com"
+    assert _login(client, "andra@example.com").status_code == 200
 
 
-def test_add_email_rejects_address_taken_by_someone_else(client, db, user):
+def test_add_email_to_an_older_account_without_one(client, db, me):
+    response = _update(client, email="ny@example.com")
+    assert response.status_code == 200
+    assert response.json()["email"] == "ny@example.com"
+
+
+def test_change_both_at_once(client, db, me):
+    response = _update(client, username="bada", email="bada@example.com")
+    assert response.status_code == 200
+    assert (response.json()["username"], response.json()["email"]) == ("bada", "bada@example.com")
+
+
+def test_only_given_fields_change(client, db, me):
+    me.email = "kvar@example.com"
+    db.commit()
+    _update(client, username="bara_namnet")
+    db.refresh(me)
+    assert me.email == "kvar@example.com"
+
+
+def test_change_case_of_own_username(client, db, me):
+    response = _update(client, username="TestUser")
+    assert response.status_code == 200
+    assert response.json()["username"] == "TestUser"
+
+
+def test_wrong_password_changes_nothing(client, db, me):
+    response = _update(client, password="fel-lösenord", username="annat")
+    # 403, inte 401: frontend loggar ut vid 401.
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Fel lösenord."
+    db.refresh(me)
+    assert me.username == "testuser"
+
+
+@pytest.mark.parametrize(
+    ("changes", "detail"),
+    [
+        ({"username": "ANNAN"}, "Användarnamnet är upptaget."),
+        ({"email": "Upptagen@Example.com"}, "E-postadressen används redan."),
+    ],
+)
+def test_username_or_email_taken_by_someone_else(client, db, me, changes, detail):
     db.add(User(username="annan", email="upptagen@example.com", password_hash="x"))
     db.commit()
-    # Andra stora/små bokstäver är samma adress.
-    response = client.put("/users/me/email", json={"email": "Upptagen@Example.com"})
+    response = _update(client, **changes)
     assert response.status_code == 409
-    assert response.json()["detail"] == "E-postadressen används redan."
-    db.refresh(user)
-    assert user.email is None
+    assert response.json()["detail"] == detail
+    db.refresh(me)
+    assert (me.username, me.email) == ("testuser", None)
 
 
-def test_add_email_cannot_change_existing_email(client, db, user):
-    user.email = "forsta@example.com"
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"username": "x@y"}, "Användarnamnet får inte innehålla @"),
+        ({"username": "ab"}, "Måste vara minst 3 tecken"),
+        ({"email": "inte-en-epost"}, "Ogiltig e-postadress"),
+        ({}, "Ange ett nytt användarnamn eller en ny e-postadress"),
+    ],
+)
+def test_update_validates_like_registration(client, db, me, changes, message):
+    response = _update(client, **changes)
+    assert response.status_code == 422
+    assert message in response.json()["detail"][0]["msg"]
+    db.refresh(me)
+    assert (me.username, me.email) == ("testuser", None)
+
+
+# --- Är användarnamnet/e-posten ledig? (GET /users/me/availability) ---
+# Formuläret frågar medan man skriver, så att "upptaget" syns direkt.
+
+
+def test_availability_says_taken_with_the_same_messages_as_saving(client, db, user):
+    db.add(User(username="annan", email="upptagen@example.com", password_hash="x"))
     db.commit()
-    response = client.put("/users/me/email", json={"email": "andra@example.com"})
-    assert response.status_code == 409
-    assert response.json()["detail"] == "Du har redan en e-postadress."
-    db.refresh(user)
-    assert user.email == "forsta@example.com"
+    response = client.get("/users/me/availability", params={"username": "ANNAN", "email": " Upptagen@Example.com "})
+    assert response.status_code == 200
+    assert response.json() == {"username": "Användarnamnet är upptaget.", "email": "E-postadressen används redan."}
+
+
+def test_availability_free_and_own_values_are_not_taken(client, db, user):
+    user.email = "min@example.com"
+    db.commit()
+    response = client.get("/users/me/availability", params={"username": "TestUser", "email": "min@example.com"})
+    assert response.json() == {"username": None, "email": None}
+    response = client.get("/users/me/availability", params={"username": "ledigt_namn"})
+    assert response.json() == {"username": None, "email": None}
+
+
+def test_availability_requires_login(client):
+    assert client.get("/users/me/availability", params={"username": "x"}).status_code == 401
 
 
 # --- Två som sparar samma användarnamn/e-post exakt samtidigt ---
@@ -195,12 +342,32 @@ def test_register_same_email_at_the_same_time_gives_409(client, monkeypatch):
     assert response.json()["detail"] == "E-postadressen används redan."
 
 
-def test_add_same_email_at_the_same_time_gives_409(client, db, user, monkeypatch):
+def test_update_to_same_email_at_the_same_time_gives_409(client, db, me, monkeypatch):
     db.add(User(username="annan", email="upptagen@example.com", password_hash="x"))
     db.commit()
     _miss_first_check(monkeypatch, "get_user_by_email")
-    response = client.put("/users/me/email", json={"email": "upptagen@example.com"})
+    response = _update(client, email="upptagen@example.com")
     assert response.status_code == 409
     assert response.json()["detail"] == "E-postadressen används redan."
-    db.refresh(user)
-    assert user.email is None
+    db.refresh(me)
+    assert me.email is None
+
+
+def test_update_to_same_username_at_the_same_time_gives_409(client, db, me, monkeypatch):
+    db.add(User(username="annan", password_hash="x"))
+    db.commit()
+    _miss_first_check(monkeypatch, "get_user_by_username")
+    response = _update(client, username="annan")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Användarnamnet är upptaget."
+
+
+def test_own_row_is_not_a_conflict_when_saving_fails_for_another_reason(client, db, me, monkeypatch):
+    # Byter man bara skiftläge på sitt namn och e-posten krockar samtidigt, ska
+    # felet gälla e-posten, inte ens eget användarnamn.
+    db.add(User(username="annan", email="upptagen@example.com", password_hash="x"))
+    db.commit()
+    _miss_first_check(monkeypatch, "get_user_by_email")
+    response = _update(client, username="TESTUSER", email="upptagen@example.com")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "E-postadressen används redan."

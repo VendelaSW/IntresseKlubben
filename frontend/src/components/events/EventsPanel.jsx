@@ -1,13 +1,17 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useGoBack } from '../../hooks/useCanGoBack'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
-import { getContacts } from '../../services/contacts'
-import { getEvents } from '../../services/events'
-import { getMyGroups } from '../../services/groups'
+import { contactsQuery } from '../../services/contacts'
+import { eventsQuery } from '../../services/events'
+import { myGroupsQuery } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
+import { useAuth } from '../../hooks/useAuth'
+import { markEventsSeen } from '../../services/eventsSeen'
 
 const TABS = [
   { id: 'mine', label: 'Mina events' },
@@ -44,88 +48,84 @@ function splitEvents(events) {
 // Allt innehåll för events. Byggd på samma sätt som GroupsPanel: en egen
 // <section className="app-section"> (som Klubbar och Personer) med rubrik och
 // en rund plusknapp, flikar under och en lista per flik.
+const NONE = []
+
 function EventsPanel() {
-  // Status för det formuläret behöver (intressen, klubbar). Misslyckas hämtningen
-  // av själva events visas ett fel i listan, men rubriken och formuläret finns kvar.
-  const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
-  const [eventsFailed, setEventsFailed] = useState(false)
+  // Intressena (för formuläret och för att markera ens egna) hämtas ur minnet.
+  const [interestsStatus, setInterestsStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [tab, setTab] = useState('mine')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  // 'list', 'create' eller id för det event som visas. Andra sidor kan öppna en vy
-  // direkt: /events?event=ID visar ett event, /events?skapa=1&klubb=ID öppnar
-  // formuläret med klubben vald.
-  const [view, setView] = useState(() => {
-    const eventId = Number(searchParams.get('event'))
-    if (eventId) return eventId
-    return searchParams.get('skapa') ? 'create' : 'list'
-  })
-  // Kommer man från en klubbs sida (?skapa=1&klubb=ID) går man tillbaka dit efter att
-  // ha skapat eller avbrutit.
-  const [fromGroupId] = useState(() =>
-    searchParams.get('skapa') ? Number(searchParams.get('klubb')) || null : null,
+  // 'list', 'create' eller id för det event som visas. Vyn står i adressen
+  // (/events?event=ID, /events?skapa=1), så att Tillbaka och webbläsarens bakåt går
+  // till sidan innan, och andra sidor kan öppna en vy direkt. En klubb kan stå med
+  // (?skapa=1&klubb=ID eller ?event=ID&klubb=ID): då är klubben förvald i formuläret,
+  // och det är dit Tillbaka går om sidan öppnades via en länk.
+  const view = Number(searchParams.get('event')) || (searchParams.get('skapa') ? 'create' : 'list')
+  const fromGroupId = Number(searchParams.get('klubb')) || null
+  // `replace` byter ut sidan i historiken i stället för att lägga till en.
+  function setView(next, { replace = false } = {}) {
+    if (next === view) return
+    setSearchParams(next === 'list' ? {} : next === 'create' ? { skapa: '1' } : { event: String(next) }, { replace })
+  }
+  // Tillbaka till sidan innan. Finns ingen går man till klubben sidan kom från,
+  // annars till listan.
+  const goBack = useGoBack(() =>
+    fromGroupId ? navigate(`/klubbar?klubb=${fromGroupId}`, { replace: true }) : setView('list', { replace: true }),
   )
-  // Öppnas ett event från en klubb (?event=ID&klubb=ID) går Tillbaka dit, men bara
-  // för just det eventet. Öppnar man ett annat event i listan går man tillbaka till listan.
-  const [eventFromGroup] = useState(() => {
-    const eventId = Number(searchParams.get('event'))
-    const groupId = Number(searchParams.get('klubb'))
-    return eventId && groupId ? { eventId, groupId } : null
-  })
+  // Har man öppnat Events har man sett klubbarnas nya events, så de räknas
+  // inte längre i märket (se services/eventsSeen.js).
+  const { user } = useAuth()
   useEffect(() => {
-    // Adressen har gjort sitt, så en omladdning ska inte öppna samma vy igen.
-    if (searchParams.toString()) setSearchParams({}, { replace: true })
-  }, [])
-  // Alla events man får se. Flikarna räknas ut ur den här listan, men ett event
-  // man har svarat Nej på ligger inte i någon flik och måste ändå gå att visa.
-  const [events, setEvents] = useState([])
+    if (user) markEventsSeen(user.id)
+  }, [user?.id])
+  // Alla events man får se, ens klubbar (formuläret) och ens kontakter (för att
+  // bjuda in), ur det delade minnet (se services/queryClient.js): har man varit
+  // här nyss visas de direkt och hämtas om i bakgrunden. Det som ändrar ett event
+  // (skapa, svara, bjuda in) säger själv till minnet (se services/events.js).
+  // Flikarna räknas ut ur listan, men ett event man har svarat Nej på ligger inte
+  // i någon flik och måste ändå gå att visa.
+  const eventsResult = useQuery(eventsQuery)
+  const groupsResult = useQuery(myGroupsQuery)
+  const contactsResult = useQuery(contactsQuery)
+  const events = eventsResult.data ?? NONE
+  const myGroups = groupsResult.data ?? NONE
+  const contacts = useMemo(() => (contactsResult.data?.contacts ?? []).map((c) => c.user), [contactsResult.data])
+  // Misslyckas hämtningen av själva events visas ett fel i listan, men rubriken
+  // och formuläret finns kvar. Ett fel efter att listan väl har visats syns inte;
+  // det som redan visas ligger kvar.
+  const eventsFailed = eventsResult.isError && eventsResult.data === undefined
+  const failed = (result) => result.isError && result.data === undefined
+  const status =
+    interestsStatus === 'error' || failed(groupsResult) || failed(contactsResult)
+      ? 'error'
+      : interestsStatus === 'ready' && groupsResult.data && contactsResult.data && (eventsResult.data || eventsFailed)
+        ? 'ready'
+        : 'loading'
+  const loadEvents = () => eventsResult.refetch()
   const [interests, setInterests] = useState([])
-  const [myGroups, setMyGroups] = useState([])
-  // Ens kontakter (accepterade), för att kunna bjuda in dem.
-  const [contacts, setContacts] = useState([])
   // Fel från inbjudningarna när eventet skapades (eventet skapades ändå).
   const [inviteProblem, setInviteProblem] = useState('')
   const [myInterestIds, setMyInterestIds] = useState(new Set())
 
-  const loadEvents = useCallback(
-    () =>
-      getEvents()
-        .then((all) => {
-          setEvents(all)
-          setEventsFailed(false)
-        })
-        .catch(() => setEventsFailed(true)),
-    [],
-  )
-
   useEffect(() => {
-    Promise.all([getAllInterests(), getMyGroups(), getMyInterests(), getContacts(), loadEvents()])
-      .then(([allInterests, groups, mine, contactData]) => {
+    Promise.all([getAllInterests(), getMyInterests()])
+      .then(([allInterests, mine]) => {
         setInterests(allInterests)
-        setMyGroups(groups)
-        setContacts(contactData.contacts.map((c) => c.user))
         setMyInterestIds(new Set(mine.map((i) => i.id)))
-        setStatus('ready')
+        setInterestsStatus('ready')
       })
-      .catch(() => setStatus('error'))
-  }, [loadEvents])
-
-  function backToGroup() {
-    navigate(`/klubbar?klubb=${fromGroupId}`)
-  }
-
-  function backFromEvent() {
-    if (eventFromGroup && view === eventFromGroup.eventId) navigate(`/klubbar?klubb=${eventFromGroup.groupId}`)
-    else setView('list')
-  }
+      .catch(() => setInterestsStatus('error'))
+  }, [])
 
   async function handleCreated(created, problem) {
     setTab('mine')
-    setView('list')
     setInviteProblem(problem ? `Eventet skapades, men inbjudningarna gick inte att skicka: ${problem}` : '')
     await loadEvents()
     // Från en klubb går man tillbaka dit, om inte något gick fel som ska synas här.
-    if (fromGroupId && !problem) backToGroup()
+    // Annars byts formuläret ut mot listan, så att Tillbaka inte öppnar det igen.
+    if (fromGroupId && !problem) goBack()
+    else setView('list', { replace: true })
   }
 
   const lists = splitEvents(events)
@@ -155,7 +155,7 @@ function EventsPanel() {
         <p className="status-error">Kunde inte hämta sidan. Försök igen senare.</p>
       ) : view === 'create' ? (
         <>
-          <BackButton onClick={() => (fromGroupId ? backToGroup() : setView('list'))} />
+          <BackButton onClick={goBack} />
           <div className="card sheet">
             <CreateEventForm
               interests={interests}
@@ -163,7 +163,7 @@ function EventsPanel() {
               contacts={contacts}
               initialGroupId={fromGroupId}
               onCreated={handleCreated}
-              onCancel={() => (fromGroupId ? backToGroup() : setView('list'))}
+              onCancel={goBack}
             />
           </div>
         </>
@@ -192,7 +192,7 @@ function EventsPanel() {
             <p className="status-error">Kunde inte hämta events. Försök igen senare.</p>
           ) : selected ? (
             <>
-              <BackButton onClick={backFromEvent} />
+              <BackButton onClick={goBack} />
               <div className="card sheet">
                 <EventDetails
                   event={selected}

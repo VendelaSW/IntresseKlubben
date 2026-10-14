@@ -33,7 +33,7 @@ from app.crud.interest import (
 )
 from app.db.session import get_db
 from app.models.interest import Interest
-from app.schemas.interest import InterestBrowseItem, InterestResponse
+from app.schemas.interest import InterestBrowseItem, InterestResponse, ProfileInterest
 
 router = APIRouter(tags=["interests"])
 
@@ -91,7 +91,7 @@ def read_child_interests(
     return _browse_items(db, list_child_interests(db, interest))
 
 
-@router.get("/profile/interests", response_model=list[InterestResponse])
+@router.get("/profile/interests", response_model=list[ProfileInterest])
 def read_my_interests(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -100,7 +100,7 @@ def read_my_interests(
 
 
 # PUT eftersom det går att upprepa: redan tillagt intresse ger samma svar.
-@router.put("/profile/interests/{interest_id}", response_model=list[InterestResponse])
+@router.put("/profile/interests/{interest_id}", response_model=list[ProfileInterest])
 def add_my_interest(
     interest_id: int,
     current_user=Depends(get_current_user),
@@ -115,7 +115,7 @@ def add_my_interest(
     return add_user_interest(db, user, interest)
 
 
-@router.delete("/profile/interests/{interest_id}", response_model=list[InterestResponse])
+@router.delete("/profile/interests/{interest_id}", response_model=list[ProfileInterest])
 def remove_my_interest(
     interest_id: int,
     current_user=Depends(get_current_user),
@@ -125,6 +125,7 @@ def remove_my_interest(
     interest = _interest_or_404(db, interest_id)
     # Ett intresse krävs alltid, så det sista går inte att ta bort. Att byta
     # ut det görs genom att först lägga till det nya, sen ta bort det gamla.
-    if interest in user.interests and len(user.interests) == 1:
+    # Räknat i olika intressen: samma intresse med två aktiviteter är ett.
+    if {i.id for i in user.interests} == {interest.id}:
         raise HTTPException(status_code=409, detail=msg.LAST_INTEREST_CANNOT_BE_REMOVED)
     return remove_user_interest(db, user, interest)

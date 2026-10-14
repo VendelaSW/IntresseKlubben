@@ -21,6 +21,7 @@ from app.models import (
     Message,
     Profile,
     User,
+    UserInterest,
 )
 from app.models.event import EventAnswer
 from app.models.group import GroupRole
@@ -35,7 +36,7 @@ def _register(client, db, username):
         "/users/register",
         json={"username": username, "email": f"{username}@example.com", "password": PASSWORD},
     )
-    token = client.post("/users/login", json={"username": username, "password": PASSWORD}).json()["access_token"]
+    token = client.post("/users/login", json={"username_or_email": username, "password": PASSWORD}).json()["access_token"]
     user = db.query(User).filter(User.username == username).one()
     return user, {"Authorization": f"Bearer {token}"}
 
@@ -86,7 +87,7 @@ def test_deleting_removes_the_account_and_logs_out(client, db, me):
     assert db.query(Profile).count() == 0
     # Samma token fungerar inte längre, och det går inte att logga in igen.
     assert client.get("/users/me", headers=headers).status_code == 401
-    assert client.post("/users/login", json={"username": "anna", "password": PASSWORD}).status_code == 401
+    assert client.post("/users/login", json={"username_or_email": "anna", "password": PASSWORD}).status_code == 401
 
 
 def test_everything_that_points_at_the_account_is_removed(client, db, me, other):
@@ -202,11 +203,33 @@ def test_every_column_pointing_at_users_is_handled():
         "group_members.user_id",
         "group_messages.sender_id",
         "groups.created_by",  # ON DELETE SET NULL: klubben finns kvar utan skapare
+        "interests.created_by_user_id",  # sätts till tomt: ett eget intresse finns kvar för andra
         "messages.recipient_id",
         "messages.sender_id",
         "profiles.user_id",
         "user_interests.user_id",
     ]
+
+
+def test_an_own_interest_stays_for_others_without_its_creator(client, db, me, other):
+    user, headers = me
+    own = Interest(name="Fyrmodeller", source="user_suggestion", created_by_user_id=user.id)
+    db.add(own)
+    db.commit()
+    own_id = own.id
+    db.add_all([
+        UserInterest(user_id=user.id, interest_id=own_id, activity="bygga"),
+        UserInterest(user_id=other.id, interest_id=own_id),
+    ])
+    db.commit()
+
+    assert _delete(client, headers).status_code == 204
+
+    db.expire_all()
+    kept = db.get(Interest, own_id)
+    assert kept is not None
+    assert kept.created_by_user_id is None
+    assert [link.user_id for link in db.query(UserInterest).all()] == [other.id]
 
 
 def test_profile_image_is_removed_from_the_bucket(client, db, me, monkeypatch):

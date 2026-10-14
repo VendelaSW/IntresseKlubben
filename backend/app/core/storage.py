@@ -7,11 +7,19 @@ from botocore.exceptions import ClientError
 
 from app.core.config import settings
 
-# Frontend skalar om bilden till 512x512 WebP (oftast 20-60 KB), så 2 MB
-# är gott om marginal men stoppar att någon laddar upp något enormt.
+# Frontend skalar om bilden till 512x512 (oftast 20-60 KB), så 2 MB är gott
+# om marginal men stoppar att någon laddar upp något enormt.
 MAX_IMAGE_BYTES = 2 * 1024 * 1024
-IMAGE_CONTENT_TYPE = "image/webp"
+# Filtyperna som tas emot, med filändelsen bilden får. Frontend gör WebP, och
+# JPEG i webbläsare som inte kan skapa WebP (Safari, och därmed alla
+# webbläsare på iPhone).
+IMAGE_TYPES = {"image/webp": "webp", "image/jpeg": "jpg"}
 UPLOAD_LINK_SECONDS = 300
+
+# En uppladdad bild ändras aldrig: en ny bild får ett nytt namn (se
+# new_profile_image_key). Därför får webbläsare spara den i ett år utan att
+# fråga lagringen igen, vilket gör listor med många profilbilder snabbare.
+IMAGE_CACHE_CONTROL = "public, max-age=31536000, immutable"
 
 
 def is_configured() -> bool:
@@ -37,16 +45,36 @@ def _client():
     )
 
 
-def new_profile_image_key(user_id: int) -> str:
+def new_profile_image_key(user_id: int, content_type: str) -> str:
     # Slumpat namn: en ny bild får en ny adress, så gamla cachade bilder
     # visas aldrig, och adresser går inte att gissa.
-    return f"profiles/{user_id}/{secrets.token_hex(8)}.webp"
+    return f"profiles/{user_id}/{secrets.token_hex(8)}.{IMAGE_TYPES[content_type]}"
 
 
-def create_upload_url(key: str) -> str:
+def content_type_for_key(key: str) -> str | None:
+    """Filtypen en bild med det här namnet ska ha, eller None för en okänd ändelse."""
+    extension = key.rsplit(".", 1)[-1]
+    return next((ct for ct, ext in IMAGE_TYPES.items() if ext == extension), None)
+
+
+def upload_headers(content_type: str) -> dict[str, str]:
+    """Headrarna webbläsaren ska skicka med uppladdningen. De ingår i
+    signaturen (se create_upload_url), så de måste stämma exakt."""
+    return {"Content-Type": content_type, "Cache-Control": IMAGE_CACHE_CONTROL}
+
+
+def create_upload_url(key: str, content_type: str) -> str:
+    # Filtypen och cache-inställningen ingår i signaturen, så uppladdningen
+    # måste skickas med just dem (se upload_headers). Lagringen sparar
+    # cache-inställningen med bilden och skickar den när bilden visas.
     return _client().generate_presigned_url(
         "put_object",
-        Params={"Bucket": settings.s3_bucket, "Key": key, "ContentType": IMAGE_CONTENT_TYPE},
+        Params={
+            "Bucket": settings.s3_bucket,
+            "Key": key,
+            "ContentType": content_type,
+            "CacheControl": IMAGE_CACHE_CONTROL,
+        },
         ExpiresIn=UPLOAD_LINK_SECONDS,
     )
 

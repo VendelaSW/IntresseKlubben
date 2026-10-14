@@ -18,6 +18,7 @@ REGION = "eu-central-1"
 ENDPOINT = f"https://s3.{REGION}.amazonaws.com"
 # Backend kontrollerar bara filtyp och storlek, inte själva bildinnehållet.
 WEBP = b"RIFF\x00\x00\x00\x00WEBPVP8 test"
+JPEG = b"\xff\xd8\xff\xe0 test"
 
 
 @pytest.fixture
@@ -47,9 +48,11 @@ def profile(db, user):
     db.commit()
 
 
-def _upload(client, s3, body=WEBP, content_type="image/webp"):
-    """Hämtar en uppladdningslänk och "laddar upp" som webbläsaren skulle."""
-    key = client.post("/profile/image/upload-url").json()["key"]
+def _upload(client, s3, body=WEBP, content_type="image/webp", requested=None):
+    """Hämtar en uppladdningslänk och "laddar upp" som webbläsaren skulle.
+    `requested` är filtypen frontend ber om länken för (utan: ingen body, som förut)."""
+    json = {"content_type": requested} if requested else None
+    key = client.post("/profile/image/upload-url", json=json).json()["key"]
     s3.put_object(Bucket=BUCKET, Key=key, Body=body, ContentType=content_type)
     return key
 
@@ -67,6 +70,16 @@ def test_upload_link_is_signed_and_points_to_own_folder(client, s3, profile):
     assert body["key"] in body["upload_url"]
     assert "X-Amz-Signature=" in body["upload_url"]
     assert "X-Amz-Expires=300" in body["upload_url"]
+
+
+def test_upload_link_makes_the_image_cacheable(client, s3, profile):
+    # Bilden får ett nytt namn vid varje uppladdning, så webbläsaren får spara
+    # den länge. Inställningen ingår i signaturen, och frontend får headrarna den
+    # måste skicka med.
+    body = client.post("/profile/image/upload-url").json()
+    assert "cache-control" in body["upload_url"].split("X-Amz-SignedHeaders=")[1].split("&")[0]
+    assert body["upload_headers"] == {"Content-Type": "image/webp", "Cache-Control": storage.IMAGE_CACHE_CONTROL}
+    assert "max-age=31536000" in storage.IMAGE_CACHE_CONTROL
 
 
 def test_confirmed_image_is_saved_and_shown_on_profile(client, s3, profile):
@@ -95,7 +108,8 @@ def test_new_image_replaces_and_deletes_the_old_one(client, s3, profile):
         "profiles/2/abc.webp",        # någon annans mapp
         "profiles/1/../2/abc.webp",   # försök att ta sig ur den egna mappen
         "profiles/1/sub/abc.webp",    # undermappar delas aldrig ut
-        "profiles/1/abc.png",         # bara .webp
+        "profiles/1/abc.png",         # bara .webp och .jpg
+        "profiles/1/abc",             # ingen filändelse
         "other/1/abc.webp",           # utanför profiles/
     ],
 )
@@ -125,9 +139,48 @@ def test_rejects_and_deletes_invalid_uploads(client, s3, profile, body, content_
 
     response = client.put("/profile/image", json={"key": key})
     assert response.status_code == 422
-    assert response.json()["detail"] == "Bilden måste vara WebP och högst 2 MB"
+    assert response.json()["detail"] == "Bilden måste vara WebP eller JPEG och högst 2 MB"
     assert key not in _stored_keys(s3)
     assert client.get("/profile/").json()["image_url"] is None
+
+
+# --- JPEG: webbläsare som inte kan skapa WebP (Safari, alla på iPhone) -----------
+
+
+def test_upload_link_for_jpeg_gets_a_jpg_name(client, s3, profile):
+    response = client.post("/profile/image/upload-url", json={"content_type": "image/jpeg"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["key"].startswith("profiles/1/")
+    assert body["key"].endswith(".jpg")
+    assert "X-Amz-Signature=" in body["upload_url"]
+
+
+def test_confirmed_jpeg_is_saved_and_shown_on_profile(client, s3, profile):
+    key = _upload(client, s3, body=JPEG, content_type="image/jpeg", requested="image/jpeg")
+
+    response = client.put("/profile/image", json={"key": key})
+    assert response.status_code == 200
+    assert response.json()["image_url"] == f"{ENDPOINT}/{BUCKET}/{key}"
+
+
+@pytest.mark.parametrize(
+    ("requested", "uploaded_as"),
+    [("image/jpeg", "image/webp"), ("image/webp", "image/jpeg")],
+    ids=["jpg-name-webp-file", "webp-name-jpeg-file"],
+)
+def test_rejects_an_upload_whose_type_does_not_match_the_name(client, s3, profile, requested, uploaded_as):
+    key = _upload(client, s3, content_type=uploaded_as, requested=requested)
+
+    response = client.put("/profile/image", json={"key": key})
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Bilden måste vara WebP eller JPEG och högst 2 MB"
+    assert key not in _stored_keys(s3)
+
+
+def test_upload_link_refuses_other_image_types(client, s3, profile):
+    response = client.post("/profile/image/upload-url", json={"content_type": "image/png"})
+    assert response.status_code == 422
 
 
 def test_image_requires_an_existing_profile(client, s3, user):

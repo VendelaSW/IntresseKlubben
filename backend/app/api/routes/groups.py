@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.auth.security import get_current_user
+from app.auth.security import get_current_user, require_profile
 from app.core import error_messages as msg
 from app.core import storage
 from app.crud.contact import blocked_by_me_ids, blocked_user_ids
@@ -9,6 +9,7 @@ from app.crud.group import (
     GroupRuleError,
     GroupSort,
     can_invite,
+    count_user_invitations,
     create_group,
     decline_invitation,
     delete_group,
@@ -31,10 +32,11 @@ from app.models.group import Group, GroupRole, GroupVisibility
 from app.models.municipality import Municipality
 from app.models.user import User
 from app.schemas.contact import ContactUser
-from app.schemas.group import GroupCreate, GroupInvite, GroupMemberResponse, GroupResponse
+from app.schemas.group import GroupCreate, GroupInvite, GroupMemberResponse, GroupResponse, GroupsOverview
 from app.schemas.group_message import GroupMessageCreate, GroupMessageOut
 
-router = APIRouter(prefix="/groups", tags=["groups"])
+# Låst tills profilen är klar (se require_profile).
+router = APIRouter(prefix="/groups", tags=["groups"], dependencies=[Depends(require_profile)])
 
 
 def _blocks(db: Session, user_id: int) -> tuple[set[int], set[int]]:
@@ -55,6 +57,10 @@ def _to_response(group: Group, user_id: int, hidden: set[int], blocked_by_me: se
         name=group.name,
         description=group.description,
         meeting_info=group.meeting_info,
+        place_name=group.place_name,
+        address=group.address,
+        latitude=group.latitude,
+        longitude=group.longitude,
         interest_id=group.interest_id,
         interest_name=group.interest.name,
         municipality_code=group.municipality_code,
@@ -156,10 +162,23 @@ def read_my_invitations(current_user=Depends(get_current_user), db: Session = De
     return [_to_response(g, current_user.id, *blocks) for g in list_user_invitations(db, current_user.id)]
 
 
+# Klubbsidans tre listor (mina, förslag, inbjudningar) i ett anrop, med
+# blockeringarna hämtade en gång. Före /{group_id}, så att "overview" inte tolkas som ett id.
+@router.get("/overview", response_model=GroupsOverview)
+def read_groups_overview(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    user_id = current_user.id
+    blocks = _blocks(db, user_id)
+    return GroupsOverview(
+        mine=[_to_response(g, user_id, *blocks) for g in list_user_groups(db, user_id)],
+        suggested=[_to_response(g, user_id, *blocks) for g in list_suggested_groups(db, current_user)],
+        invitations=[_to_response(g, user_id, *blocks) for g in list_user_invitations(db, user_id)],
+    )
+
+
 # Bara antalet, för märket i headern.
 @router.get("/invitations/count")
 def read_my_invitation_count(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return {"count": len(list_user_invitations(db, current_user.id))}
+    return {"count": count_user_invitations(db, current_user.id)}
 
 
 @router.get("/{group_id}", response_model=GroupResponse)

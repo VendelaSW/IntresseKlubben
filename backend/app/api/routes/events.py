@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from app.auth.security import get_current_user
+from app.auth.security import get_current_user, require_profile
 from app.core import error_messages as msg
 from app.core import storage
 from app.crud.event import (
@@ -34,7 +34,8 @@ from app.schemas.event import (
     EventUpdate,
 )
 
-router = APIRouter(prefix="/events", tags=["events"])
+# Låst tills profilen är klar (se require_profile).
+router = APIRouter(prefix="/events", tags=["events"], dependencies=[Depends(require_profile)])
 
 
 def _to_response(event: Event, user_id: int) -> EventOut:
@@ -49,6 +50,8 @@ def _to_response(event: Event, user_id: int) -> EventOut:
         ends_at=event.ends_at,
         place_name=event.place_name,
         address=event.address,
+        latitude=event.latitude,
+        longitude=event.longitude,
         visibility=event.visibility,
         group_id=event.group_id,
         group_name=event.group.name if event.group else None,

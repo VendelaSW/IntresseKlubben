@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+import hashlib
+import time
+from collections import defaultdict, deque
+
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
@@ -19,12 +23,70 @@ from app.models.municipality import Municipality
 from app.schemas.profile import (
     ProfileCreate,
     ProfileImageConfirm,
+    ProfileImageUploadRequest,
     ProfileImageUploadUrl,
     ProfileResponse,
+    ProfileTextCheck,
     ProfileUpdate,
 )
+from app.services.text_policy import TextCheckUnavailable, TextNotAllowed, check_text
 
 router = APIRouter(prefix="/profile", tags=["profile"])
+
+# Förhandskontrollen av Om mig-texten kostar AI-anrop, så en användare får bara göra ett fåtal per minut. Gränsen
+# räknas i minnet per serverinstans, som den på /interests/analyze: en spärr och inget mer.
+TEXT_CHECK_LIMIT = 10
+TEXT_CHECK_WINDOW_SECONDS = 60
+_recent_text_checks: dict[int, deque[float]] = defaultdict(deque)
+
+
+def _check_text_rate_limit(user_id: int) -> None:
+    now = time.monotonic()
+    calls = _recent_text_checks[user_id]
+    while calls and now - calls[0] > TEXT_CHECK_WINDOW_SECONDS:
+        calls.popleft()
+    if len(calls) >= TEXT_CHECK_LIMIT:
+        raise HTTPException(status_code=429, detail=msg.INTERVIEW_TOO_MANY_REQUESTS)
+    calls.append(now)
+
+
+# Texter som redan har klarat förhandskontrollen, så att samma text inte kontrolleras en gång till när profilen sparas.
+# Minnet är per serverinstans och gäller en stund. Hamnar sparandet på en annan instans, eller har det gått för lång
+# tid, kontrolleras texten som vanligt. Det här sparar alltså bara anrop och kan aldrig släppa igenom en text som inte
+# har kontrollerats.
+CHECKED_TEXT_SECONDS = 30 * 60
+_checked_texts: dict[int, tuple[str, float]] = {}
+
+
+def _fingerprint(text: str) -> str:
+    return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()
+
+
+def _remember_checked(user_id: int, text: str) -> None:
+    now = time.monotonic()
+    for other, (_, at) in list(_checked_texts.items()):
+        if now - at > CHECKED_TEXT_SECONDS:
+            del _checked_texts[other]
+    _checked_texts[user_id] = (_fingerprint(text), now)
+
+
+def _already_checked(user_id: int, text: str) -> bool:
+    found = _checked_texts.get(user_id)
+    return found is not None and time.monotonic() - found[1] <= CHECKED_TEXT_SECONDS and found[0] == _fingerprint(text)
+
+
+def _check_profile_text(text: str, user_id: int | None = None) -> None:
+    """Om mig-texten får inte vara nazistisk, pedofil eller hatisk eller våldsam (se
+    app/services/text_policy.py). Kontrollen är fail-closed: går den inte att köra sparas inget. Är det
+    samma text som användaren nyss har fått godkänd av förhandskontrollen (user_id) görs den inte om."""
+    if user_id is not None and _already_checked(user_id, text):
+        return
+    try:
+        check_text(text)
+    except TextNotAllowed:
+        raise HTTPException(status_code=422, detail=msg.PROFILE_TEXT_NOT_ALLOWED) from None
+    except TextCheckUnavailable:
+        raise HTTPException(status_code=503, detail=msg.TEXT_CHECK_UNAVAILABLE) from None
 
 
 def _to_response(profile) -> ProfileResponse:
@@ -63,6 +125,7 @@ def add_profile(
     # ett databasfel (500) från främmande nyckeln.
     if db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
+    _check_profile_text(data.profile_text, current_user.id)
     try:
         profile = create_profile(db, current_user.id, data)
     except ProfileExistsError:
@@ -70,6 +133,18 @@ def add_profile(
     except UnknownInterestError:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
     return _to_response(profile)
+
+
+@router.post("/text-check", status_code=204)
+def check_profile_text_early(data: ProfileTextCheck, current_user=Depends(get_current_user)) -> Response:
+    """Kontrollerar Om mig-texten utan att spara något, så att man får veta att den nekas redan när man skrivit
+    den och inte först när profilen sparas. Samma kontroll som vid sparandet: 422 om texten inte får finnas,
+    503 om kontrollen inte gick att köra, 204 om den är okej. En text som klarat den kontrolleras inte igen när
+    samma text sparas strax efteråt."""
+    _check_text_rate_limit(current_user.id)
+    _check_profile_text(data.profile_text)
+    _remember_checked(current_user.id, data.profile_text)
+    return Response(status_code=204)
 
 
 @router.patch("/", response_model=ProfileResponse)
@@ -82,6 +157,8 @@ def edit_profile(
     # ett databasfel (500) från främmande nyckeln.
     if data.municipality_code is not None and db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
+    if data.profile_text is not None:
+        _check_profile_text(data.profile_text, current_user.id)
     try:
         profile = update_profile(db, current_user.id, data)
     except ProfileNotFoundError:
@@ -92,7 +169,7 @@ def edit_profile(
 # Profilbild i två steg, så att själva bilden går direkt från webbläsaren
 # till bucketen (Vercel begränsar anrop till backend till ca 4,5 MB):
 #   1. POST /profile/image/upload-url  → länk att ladda upp till
-#   2. webbläsaren laddar upp WebP-bilden till länken
+#   2. webbläsaren laddar upp bilden (WebP, eller JPEG på iPhone) till länken
 #   3. PUT  /profile/image              → backend kontrollerar filen och sparar den
 def _require_storage():
     if not storage.is_configured():
@@ -101,14 +178,20 @@ def _require_storage():
 
 @router.post("/image/upload-url", response_model=ProfileImageUploadUrl)
 def create_profile_image_upload_url(
+    data: ProfileImageUploadRequest | None = None,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     _require_storage()
     if get_profile(db, current_user.id) is None:
         raise HTTPException(status_code=404, detail="Skapa din profil innan du lägger till en bild")
-    key = storage.new_profile_image_key(current_user.id)
-    return ProfileImageUploadUrl(upload_url=storage.create_upload_url(key), key=key)
+    content_type = (data or ProfileImageUploadRequest()).content_type
+    key = storage.new_profile_image_key(current_user.id, content_type)
+    return ProfileImageUploadUrl(
+        upload_url=storage.create_upload_url(key, content_type),
+        key=key,
+        upload_headers=storage.upload_headers(content_type),
+    )
 
 
 @router.put("/image", response_model=ProfileResponse)
@@ -125,15 +208,17 @@ def confirm_profile_image(
     # Bara filer i användarens egen mapp, med ett namn vi själva har delat ut.
     prefix = f"profiles/{current_user.id}/"
     name = data.key.removeprefix(prefix)
-    if not data.key.startswith(prefix) or "/" in name or not name.endswith(".webp"):
+    expected_type = storage.content_type_for_key(name)
+    if not data.key.startswith(prefix) or "/" in name or expected_type is None:
         raise HTTPException(status_code=422, detail="Ogiltig bild")
 
     info = storage.get_object_info(data.key)
     if info is None:
         raise HTTPException(status_code=422, detail="Bilden hittades inte. Försök ladda upp igen.")
-    if info["content_type"] != storage.IMAGE_CONTENT_TYPE or info["size"] > storage.MAX_IMAGE_BYTES:
+    # Filtypen måste stämma med filändelsen vi delade ut (en .jpg ska vara JPEG).
+    if info["content_type"] != expected_type or info["size"] > storage.MAX_IMAGE_BYTES:
         storage.delete_object(data.key)
-        raise HTTPException(status_code=422, detail="Bilden måste vara WebP och högst 2 MB")
+        raise HTTPException(status_code=422, detail="Bilden måste vara WebP eller JPEG och högst 2 MB")
 
     old_key = set_profile_image(db, profile, data.key)
     if old_key and old_key != data.key:

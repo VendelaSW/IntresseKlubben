@@ -7,6 +7,10 @@ kommuner ber det om fixturerna `user` eller `municipalities`.
 `user` betyder också "inloggad som den användaren": get_current_user byts ut
 så att testet slipper logga in. Själva inloggningen (token) testas utan den
 genvägen i test_auth.py.
+
+Låset "resten av appen kräver en klar profil" (require_profile) är avstängt som
+standard, så att varje test slipper skapa en profil först. Testerna som gäller
+själva låset slår på det igen med fixturen `profile_lock` (se test_require_profile.py).
 """
 
 import os
@@ -20,6 +24,11 @@ os.environ["DATABASE_URL"] = "sqlite://"
 for _name in ("S3_BUCKET", "AWS_ENDPOINT_URL_S3", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"):
     os.environ[_name] = ""
 
+# Tomma värden gör att den riktiga OpenAI-nyckeln i .env aldrig läses in, så att inget test kan
+# råka anropa OpenAI på riktigt.
+os.environ["OPENAI_API_KEY"] = ""
+os.environ["OPENAI_MODEL"] = ""
+
 # Egen nyckel för inloggningstoken i tester, aldrig den riktiga från .env.
 os.environ["JWT_SECRET"] = "test-secret-only-for-tests-0123456789"
 
@@ -29,11 +38,35 @@ from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
-from app.auth.security import get_current_user  # noqa: E402
+from app.auth.security import get_current_user, require_profile  # noqa: E402
+from app.services.ai_clients import set_clients  # noqa: E402
+from app.services.geocoding import set_geocoder  # noqa: E402
+from tests.fakes import FakeGeocoder  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Municipality, User  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def fake_geocoder():
+    """Inget test ska anropa Nominatim: adressökningen är en fejkad version utan träffar, om inte
+    testet sätter in en egen. Spärren för antal sökningar nollställs också."""
+    from app.api.routes import geocode as geocode_route
+
+    set_geocoder(FakeGeocoder())
+    geocode_route._recent.clear()
+    yield
+    set_geocoder()
+    geocode_route._recent.clear()
+
+
+@pytest.fixture(autouse=True)
+def reset_ai_clients():
+    """Inget test ska råka behålla en fejkad AI-klient från ett annat test, eller anropa OpenAI."""
+    set_clients()
+    yield
+    set_clients()
 
 
 @pytest.fixture
@@ -58,6 +91,20 @@ def client(db):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _profile_lock_off():
+    """Låset av som standard (se modulens beskrivning)."""
+    app.dependency_overrides[require_profile] = lambda: None
+    yield
+    app.dependency_overrides.pop(require_profile, None)
+
+
+@pytest.fixture
+def profile_lock():
+    """Slår på låset igen, för testerna som gäller själva låset."""
+    app.dependency_overrides.pop(require_profile, None)
 
 
 @pytest.fixture

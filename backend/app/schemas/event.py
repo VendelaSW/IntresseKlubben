@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from app.core import error_messages as msg
 from app.models.event import EventAnswer, EventVisibility
 from app.schemas.contact import ContactUser
+from app.schemas.position import check_position
 
 
 def _required_text(value: str, max_length: int, empty_message: str, too_long_message: str) -> str:
@@ -49,6 +50,9 @@ class EventCreate(BaseModel):
     ends_at: datetime | None = None
     place_name: str
     address: str
+    # Var på kartan, valfritt (se schemas/position.py).
+    latitude: float | None = None
+    longitude: float | None = None
     # Säkrast om inget anges. Ett event i en privat klubb måste vara invite_only.
     visibility: EventVisibility = EventVisibility.invite_only
     group_id: int | None = None
@@ -88,10 +92,16 @@ class EventCreate(BaseModel):
             raise ValueError(msg.EVENT_END_BEFORE_START)
         return self
 
+    @model_validator(mode="after")
+    def position_valid(self):
+        check_position(self.latitude, self.longitude)
+        return self
+
 
 class EventUpdate(BaseModel):
     """Ändringar i ett event. Bara de fält som skickas ändras, och de
-    obligatoriska fälten kan inte tömmas. Sluttiden kan tas bort med null.
+    obligatoriska fälten kan inte tömmas. Sluttiden kan tas bort med null, och
+    positionen med latitude och longitude null (båda skickas alltid ihop).
     Klubb, skapare och synlighet går inte att ändra, och försöker man skickas
     ett fel i stället för att fältet tyst hoppas över."""
 
@@ -104,7 +114,18 @@ class EventUpdate(BaseModel):
     ends_at: datetime | None = None
     place_name: str | None = None
     address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     guests_can_invite: bool | None = None
+
+    @model_validator(mode="after")
+    def position_valid(self):
+        sent = {"latitude", "longitude"} & self.model_fields_set
+        if sent and sent != {"latitude", "longitude"}:
+            raise ValueError(msg.POSITION_INCOMPLETE)
+        if sent:
+            check_position(self.latitude, self.longitude)
+        return self
 
     @field_validator("guests_can_invite")
     @classmethod
@@ -191,6 +212,8 @@ class EventOut(BaseModel):
     ends_at: datetime | None
     place_name: str
     address: str
+    latitude: float | None
+    longitude: float | None
     visibility: EventVisibility
     group_id: int | None
     group_name: str | None
