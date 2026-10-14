@@ -572,7 +572,7 @@ function ProfilePage() {
   return (
     <div className="profile-layout">
     <div className="card card-wide content-stack">
-      <h1>Min profil</h1>
+      <h1 className="app-title">Min profil</h1>
       {imageNotice && (
         <p className="form-error">{withPeriod(imageNotice)} Försök igen under Redigera profil.</p>
       )}
