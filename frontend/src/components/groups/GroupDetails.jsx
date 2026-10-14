@@ -52,6 +52,9 @@ function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecl
       )}
       <p className="card-text">{group.description}</p>
       {group.meeting_info && <p className="hint-text">Träffas: {group.meeting_info}</p>}
+      {(group.place_name || group.address) && (
+        <p className="hint-text">Träffplats: {[group.place_name, group.address].filter(Boolean).join(', ')}</p>
+      )}
       <ul className="tags">
         <li>
           <span className="tag tag-selected tag-static">{group.interest_name}</span>

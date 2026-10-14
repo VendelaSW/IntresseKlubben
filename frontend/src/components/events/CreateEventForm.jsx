@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import FormField from '../FormField'
+import LocationPicker from '../LocationPicker'
 import Modal from '../Modal'
 import TextareaWithCount from '../TextareaWithCount'
 import InvitePicker from './InvitePicker'
@@ -33,6 +34,8 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
   const [endsAt, setEndsAt] = useState('')
   const [placeName, setPlaceName] = useState('')
   const [address, setAddress] = useState('')
+  // Var på kartan: { latitude, longitude } eller null (se LocationPicker).
+  const [position, setPosition] = useState(null)
   // Klubben kan vara vald från början (när man skapar ett event från en klubbs sida).
   const [groupId, setGroupId] = useState(initialGroupId ? String(initialGroupId) : '')
   const [isOpen, setIsOpen] = useState(false)
@@ -64,6 +67,8 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
         ends_at: endsAt ? new Date(endsAt).toISOString() : null,
         place_name: placeName,
         address,
+        latitude: position?.latitude ?? null,
+        longitude: position?.longitude ?? null,
         visibility: isOpen && !inPrivateGroup ? EVENT_VISIBILITY.open : EVENT_VISIBILITY.inviteOnly,
         group_id: groupId ? Number(groupId) : null,
         guests_can_invite: guestsCanInvite,
@@ -166,6 +171,13 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
           required
         />
       </FormField>
+
+      <LocationPicker
+        id="event-position"
+        query={[address, placeName].filter((part) => part.trim()).join(', ')}
+        value={position}
+        onChange={setPosition}
+      />
 
       <FormField id="event-group" label="Klubb (valfritt)">
         <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>

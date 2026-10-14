@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import FormField from '../FormField'
+import LocationPicker from '../LocationPicker'
 import { VISIBILITY, createGroup } from '../../services/groups'
 
 function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCreated, onCancel }) {
@@ -7,6 +8,10 @@ function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCre
   const [interestId, setInterestId] = useState('')
   const [municipalityCode, setMunicipalityCode] = useState(defaultMunicipality ?? '')
   const [meetingInfo, setMeetingInfo] = useState('')
+  // Valfri träffplats: namn, adress och var på kartan (se LocationPicker).
+  const [placeName, setPlaceName] = useState('')
+  const [address, setAddress] = useState('')
+  const [position, setPosition] = useState(null)
   const [description, setDescription] = useState('')
   const [isPrivate, setIsPrivate] = useState(false)
   const [membersCanInvite, setMembersCanInvite] = useState(false)
@@ -22,6 +27,10 @@ function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCre
         name,
         description,
         meeting_info: meetingInfo,
+        place_name: placeName,
+        address,
+        latitude: position?.latitude ?? null,
+        longitude: position?.longitude ?? null,
         interest_id: Number(interestId),
         municipality_code: municipalityCode,
         visibility: isPrivate ? VISIBILITY.private : VISIBILITY.public,
@@ -88,6 +97,39 @@ function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCre
           maxLength={100}
         />
       </FormField>
+
+      <div className="form-row">
+        <FormField id="group-place" label="Träffplats (valfritt)">
+          <input
+            id="group-place"
+            type="text"
+            value={placeName}
+            onChange={(e) => setPlaceName(e.target.value)}
+            placeholder="T.ex. Stadsbiblioteket"
+            maxLength={100}
+          />
+        </FormField>
+        <FormField id="group-address" label="Adress (valfritt)">
+          <input
+            id="group-address"
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="T.ex. Storgatan 1"
+            maxLength={100}
+          />
+        </FormField>
+      </div>
+
+      <LocationPicker
+        id="group-position"
+        // Kommunen med i sökningen, så att "Storgatan 1" hamnar i rätt stad.
+        query={[address, placeName, municipalities.find((m) => m.code === municipalityCode)?.name]
+          .filter((part) => part && part.trim())
+          .join(', ')}
+        value={position}
+        onChange={setPosition}
+      />
 
       <FormField id="group-description" label="Beskrivning">
         <input

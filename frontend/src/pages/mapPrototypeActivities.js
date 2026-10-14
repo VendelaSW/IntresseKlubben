@@ -1,6 +1,7 @@
 // PROTOTYP: klubbar och events på kartan, som små papperslappar med appens
-// ikoner. Varken klubbar eller events har koordinater i backend än, så
-// platsen är ungefärlig:
+// ikoner. Har klubben (träffplatsen) eller eventet en position (latitude och
+// longitude, satt med nålen i formuläret) står lappen där, i den kommun
+// positionen ligger i. Annars är platsen ungefärlig:
 //   - en klubb står mitt i sin kommun (kommunens namnpunkt),
 //   - ett event står i sin klubbs kommun, annars i en kommun vars namn finns
 //     i adressen eller platsens namn, annars visas det inte,
@@ -14,7 +15,7 @@
 
 import eventIcon from '../assets/event.png'
 import klubbarIcon from '../assets/klubbar.png'
-import { lanCodeAt } from './mapPrototypeZoomLevels'
+import { isInside, lanCodeAt } from './mapPrototypeZoomLevels'
 
 // Längre ut än så här blir lapparna för många och för små.
 const MIN_ZOOM = 6
@@ -32,32 +33,60 @@ const normalize = (text) =>
 
 const shortDate = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'short' })
 
+// Positionen [longitud, latitud] för en klubb eller ett event, eller null.
+const positionOf = (item) => (item.latitude != null && item.longitude != null ? [item.longitude, item.latitude] : null)
+
 // Gör om klubbar och events från API:t till lappar med plats. `kommuner` är
-// en Map från kommunkod till { name, label } (label = [longitud, latitud]).
+// en Map från kommunkod till { name, label, geometry, bbox } (label =
+// [longitud, latitud]).
 export function activitiesFrom({ groups, events, kommuner }) {
   const items = []
+  // Kommunen en position ligger i, eller null (t.ex. ute i havet).
+  const kommunAt = ([lng, lat]) =>
+    [...kommuner.values()].find(
+      (k) =>
+        k.bbox &&
+        lng >= k.bbox[0] &&
+        lng <= k.bbox[2] &&
+        lat >= k.bbox[1] &&
+        lat <= k.bbox[3] &&
+        isInside(k.geometry, [lng, lat]),
+    ) ?? null
   const groupKommun = new Map()
   for (const group of groups) {
-    const kommun = kommuner.get(group.municipality_code)
+    const own = kommuner.get(group.municipality_code)
+    const position = positionOf(group)
+    const kommun = (position && kommunAt(position)) ?? own
     if (!kommun?.label) continue
-    groupKommun.set(group.id, kommun)
-    items.push({ type: 'klubb', id: group.id, name: group.name, sub: kommun.name, lngLat: kommun.label, kommun: kommun.kod })
+    if (own) groupKommun.set(group.id, own)
+    items.push({
+      type: 'klubb',
+      id: group.id,
+      name: group.name,
+      sub: group.place_name ?? kommun.name,
+      lngLat: position ?? kommun.label,
+      kommun: kommun.kod,
+    })
   }
   // Kommunnamnen, längst först, så att t.ex. "Upplands Väsby" vinner över "Väsby".
   const byName = [...kommuner.values()].sort((a, b) => b.name.length - a.name.length)
   const now = Date.now()
   for (const event of events) {
     if (new Date(event.ends_at ?? event.starts_at).getTime() < now) continue
+    const position = positionOf(event)
     const text = ` ${normalize(`${event.place_name} ${event.address}`)} `
     const kommun =
-      groupKommun.get(event.group_id) ?? byName.find((k) => text.includes(` ${normalize(k.name)} `)) ?? null
+      (position && kommunAt(position)) ??
+      groupKommun.get(event.group_id) ??
+      byName.find((k) => text.includes(` ${normalize(k.name)} `)) ??
+      null
     if (!kommun?.label) continue
     items.push({
       type: 'event',
       id: event.id,
       name: event.title,
       sub: shortDate.format(new Date(event.starts_at)),
-      lngLat: kommun.label,
+      lngLat: position ?? kommun.label,
       kommun: kommun.kod,
       booked: event.is_owner || event.my_answer === 'yes' || event.my_answer === 'maybe',
     })
