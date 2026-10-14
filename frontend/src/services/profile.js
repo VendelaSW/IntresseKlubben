@@ -124,10 +124,13 @@ export async function uploadProfileImage(file) {
 // "Skapa din profil" och laddas upp först när profilen har sparats). Länken
 // gäller bara för bildens filtyp, så den skickas med.
 export async function uploadResizedImage(image) {
-  const { upload_url, key } = await apiPost('/profile/image/upload-url', { content_type: image.type })
+  const { upload_url, key, upload_headers } = await apiPost('/profile/image/upload-url', { content_type: image.type })
+  // Backend säger vilka headers som ingår i länkens signatur (filtyp och
+  // cache-inställning, så att bilden kan sparas i webbläsaren). En äldre backend
+  // skickar inga, och då räcker filtypen.
   const res = await fetch(upload_url, {
     method: 'PUT',
-    headers: { 'Content-Type': image.type },
+    headers: upload_headers ?? { 'Content-Type': image.type },
     body: image,
   })
   if (!res.ok) throw new Error('Uppladdningen misslyckades. Försök igen.')

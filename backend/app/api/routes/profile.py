@@ -187,7 +187,11 @@ def create_profile_image_upload_url(
         raise HTTPException(status_code=404, detail="Skapa din profil innan du lägger till en bild")
     content_type = (data or ProfileImageUploadRequest()).content_type
     key = storage.new_profile_image_key(current_user.id, content_type)
-    return ProfileImageUploadUrl(upload_url=storage.create_upload_url(key, content_type), key=key)
+    return ProfileImageUploadUrl(
+        upload_url=storage.create_upload_url(key, content_type),
+        key=key,
+        upload_headers=storage.upload_headers(content_type),
+    )
 
 
 @router.put("/image", response_model=ProfileResponse)

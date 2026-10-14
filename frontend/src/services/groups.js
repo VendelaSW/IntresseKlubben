@@ -67,17 +67,21 @@ export function getMyGroups() {
   return queryClient.fetchQuery(myGroupsQuery)
 }
 
-// Kör ett anrop som ändrar vilka klubbar man är med i, och säger sedan till
-// minnet. Klubbens events syns bara för medlemmar, så events hämtas också om.
-async function changingMyGroups(request) {
-  const result = await request
-  invalidate(MY_GROUPS_KEY, EVENTS_KEY)
-  return result
+// Klubbsidans tre listor (mina, förslag och inbjudningar) i ett anrop. Sparas
+// i minnet som mina klubbar.
+export const groupsOverviewQuery = {
+  queryKey: ['groups', 'overview'],
+  queryFn: () => apiGet('/groups/overview'),
+  staleTime: 15 * SECOND,
 }
 
-// Öppna grupper för ens intressen som man inte redan är med i.
-export function getSuggestedGroups() {
-  return apiGet('/groups/suggested')
+// Kör ett anrop som ändrar vilka klubbar man är med i, och säger sedan till
+// minnet (alla klubblistor). Klubbens events syns bara för medlemmar, så events
+// hämtas också om.
+async function changingMyGroups(request) {
+  const result = await request
+  invalidate(['groups'], EVENTS_KEY)
+  return result
 }
 
 // Vilka som är med i gruppen, längst med först.
@@ -110,19 +114,16 @@ export function deleteGroup(id) {
   return changingMyGroups(apiDelete(`/groups/${id}`))
 }
 
-// Klubbar man är inbjuden till (och inte redan med i), nyaste inbjudan först.
-export function getGroupInvitations() {
-  return apiGet('/groups/invitations')
-}
-
 // Bjuder in kontakter (userIds). Svaret är de som blev inbjudna den här gången.
 export function inviteToGroup(id, userIds) {
   return apiPost(`/groups/${id}/invitations`, { user_ids: userIds })
 }
 
 // Avböjer en inbjudan.
-export function declineGroupInvitation(id) {
-  return apiDelete(`/groups/${id}/invitations/me`)
+export async function declineGroupInvitation(id) {
+  const result = await apiDelete(`/groups/${id}/invitations/me`)
+  invalidate(['groups'])
+  return result
 }
 
 // Märket i headern räknas om när man har gått med i eller avböjt en klubb.

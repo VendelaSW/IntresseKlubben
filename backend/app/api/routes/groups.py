@@ -32,7 +32,7 @@ from app.models.group import Group, GroupRole, GroupVisibility
 from app.models.municipality import Municipality
 from app.models.user import User
 from app.schemas.contact import ContactUser
-from app.schemas.group import GroupCreate, GroupInvite, GroupMemberResponse, GroupResponse
+from app.schemas.group import GroupCreate, GroupInvite, GroupMemberResponse, GroupResponse, GroupsOverview
 from app.schemas.group_message import GroupMessageCreate, GroupMessageOut
 
 # Låst tills profilen är klar (se require_profile).
@@ -156,6 +156,19 @@ def read_suggested_groups(current_user=Depends(get_current_user), db: Session = 
 def read_my_invitations(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     blocks = _blocks(db, current_user.id)
     return [_to_response(g, current_user.id, *blocks) for g in list_user_invitations(db, current_user.id)]
+
+
+# Klubbsidans tre listor (mina, förslag, inbjudningar) i ett anrop, med
+# blockeringarna hämtade en gång. Före /{group_id}, så att "overview" inte tolkas som ett id.
+@router.get("/overview", response_model=GroupsOverview)
+def read_groups_overview(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    user_id = current_user.id
+    blocks = _blocks(db, user_id)
+    return GroupsOverview(
+        mine=[_to_response(g, user_id, *blocks) for g in list_user_groups(db, user_id)],
+        suggested=[_to_response(g, user_id, *blocks) for g in list_suggested_groups(db, current_user)],
+        invitations=[_to_response(g, user_id, *blocks) for g in list_user_invitations(db, user_id)],
+    )
 
 
 # Bara antalet, för märket i headern.
