@@ -18,6 +18,8 @@ function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCre
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const kommunName = municipalities.find((m) => m.code === municipalityCode)?.name
+
   async function handleSubmit(event) {
     event.preventDefault()
     setSaving(true)
@@ -123,12 +125,16 @@ function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCre
 
       <LocationPicker
         id="group-position"
-        // Kommunen med i sökningen, så att "Storgatan 1" hamnar i rätt stad.
-        query={[address, placeName, municipalities.find((m) => m.code === municipalityCode)?.name]
-          .filter((part) => part && part.trim())
-          .join(', ')}
+        // Adressen först, sedan platsens namn, med kommunen så att "Storgatan 1"
+        // hamnar i rätt stad. Utan kommun om det inte hittas så.
+        queries={[
+          address && kommunName ? `${address}, ${kommunName}` : address,
+          placeName && kommunName ? `${placeName}, ${kommunName}` : placeName,
+          address,
+        ]}
         value={position}
         onChange={setPosition}
+        saveLabel="Skapa klubb"
       />
 
       <FormField id="group-description" label="Beskrivning">

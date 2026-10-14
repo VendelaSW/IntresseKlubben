@@ -174,9 +174,11 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
 
       <LocationPicker
         id="event-position"
-        query={[address, placeName].filter((part) => part.trim()).join(', ')}
+        // Adressen först, sedan platsens namn (t.ex. "Slottsskogen").
+        queries={[address, placeName]}
         value={position}
         onChange={setPosition}
+        saveLabel="Skapa event"
       />
 
       <FormField id="event-group" label="Klubb (valfritt)">

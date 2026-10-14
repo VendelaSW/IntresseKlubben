@@ -9,25 +9,35 @@ const LocationPickerMap = lazy(() => import('./LocationPickerMap'))
 // eller flyttas med ett klick på kartan, så att den står exakt rätt även när
 // adressen är vag ("Badplatsen vid sjön").
 //
-// `query` är förslaget att söka på (t.ex. adressen och platsens namn), `value`
-// är { latitude, longitude } eller null, och `onChange` får det nya värdet.
-// Utan nål visas eventet eller klubben mitt i sin kommun på kartan.
-function LocationPicker({ id, query, value, onChange }) {
+// `queries` är det som ska sökas på, i tur och ordning tills något hittas
+// (t.ex. först adressen och sedan platsens namn, var för sig: ett eget namn
+// som "Pokémonkyrkan" finns inte på kartan och skulle annars stjälpa
+// sökningen). `value` är { latitude, longitude } eller null, `onChange` får
+// det nya värdet, och `saveLabel` är formulärets knapp ("Skapa klubb"), så att
+// det framgår när nålen sparas. Utan nål visas eventet eller klubben mitt i
+// sin kommun på kartan.
+function LocationPicker({ id, queries, value, onChange, saveLabel }) {
   const [results, setResults] = useState(null) // null = inte sökt än
+  const [searched, setSearched] = useState('')
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState('')
+  const candidates = [...new Set(queries.map((q) => (q ?? '').trim()).filter((q) => q.length >= 3))]
 
   async function search() {
-    const text = query.trim()
-    if (text.length < 3) {
+    if (candidates.length === 0) {
       setError('Skriv adressen eller platsens namn först.')
       return
     }
     setSearching(true)
     setError('')
     try {
-      const places = await searchPlaces(text)
+      let places = []
+      for (const text of candidates) {
+        places = await searchPlaces(text)
+        if (places.length > 0) break
+      }
       setResults(places)
+      setSearched(candidates[0])
       // En enda träff: sätt nålen direkt.
       if (places.length === 1) onChange({ latitude: places[0].latitude, longitude: places[0].longitude })
     } catch (err) {
@@ -36,6 +46,12 @@ function LocationPicker({ id, query, value, onChange }) {
     } finally {
       setSearching(false)
     }
+  }
+
+  // Sätts nålen för hand (klick eller drag) är sökträffarna inte längre aktuella.
+  function placePin(position) {
+    setResults(null)
+    onChange(position)
   }
 
   return (
@@ -55,8 +71,10 @@ function LocationPicker({ id, query, value, onChange }) {
       </div>
 
       {error && <p className="status-error">{error}</p>}
-      {results && results.length === 0 && (
-        <p className="hint-text">Hittade inget. Sätt ut nålen själv genom att klicka på kartan.</p>
+      {results && results.length === 0 && !value && (
+        <p className="hint-text">
+          Hittade inte &quot;{searched}&quot; på kartan. Klicka på kartan där ni ska vara, så hamnar nålen där.
+        </p>
       )}
       {results && results.length > 1 && (
         <ul className="location-picker-results">
@@ -75,11 +93,11 @@ function LocationPicker({ id, query, value, onChange }) {
       )}
 
       <Suspense fallback={<div className="location-picker-map" aria-hidden="true" />}>
-        <LocationPickerMap value={value} onChange={onChange} />
+        <LocationPickerMap value={value} onChange={placePin} />
       </Suspense>
       <p className="hint-text">
         {value
-          ? 'Dra nålen, eller klicka på kartan, om den inte står helt rätt.'
+          ? `Nålen är satt och sparas när du trycker "${saveLabel}". Dra den, eller klicka på kartan, om den inte står helt rätt.`
           : 'Ingen nål än: klicka på kartan, eller sök fram adressen. Utan nål visas den mitt i kommunen.'}
       </p>
     </div>
