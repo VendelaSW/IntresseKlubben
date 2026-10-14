@@ -47,9 +47,12 @@ class Geocoder(Protocol):
 
 
 def _short_label(display_name: str) -> str:
-    """Nominatims namn är långa ("Storgatan 1, Centrum, Gustavsberg, Värmdö kommun, Stockholms
-    län, 134 30, Sverige"). De tre första delarna räcker för att känna igen platsen."""
+    """Nominatims namn är långa ("2, Odelbergs väg, Charlottendal, Gustavsberg, Värmdö kommun,
+    ..., Sverige"). Gatunumret står först, så det flyttas efter gatan som i en vanlig adress
+    ("Odelbergs väg 2"), och sedan räcker de tre första delarna för att känna igen platsen."""
     parts = [part.strip() for part in display_name.split(",") if part.strip()]
+    if len(parts) > 1 and parts[0][:1].isdigit() and len(parts[0]) <= 6:
+        parts = [f"{parts[1]} {parts[0]}", *parts[2:]]
     return ", ".join(parts[:3])
 
 

@@ -207,6 +207,18 @@ def test_nominatim_client_asks_politely_shortens_names_and_remembers(monkeypatch
     assert len(requests) == 1
 
 
+@pytest.mark.parametrize(
+    "display_name, label",
+    [
+        ("2, Odelbergs väg, Charlottendal, Gustavsberg, Värmdö kommun, Sverige", "Odelbergs väg 2, Charlottendal, Gustavsberg"),
+        ("12B, Storgatan, Centrum, Sundsvall, Sverige", "Storgatan 12B, Centrum, Sundsvall"),
+        ("Slottsskogen, Göteborg, Västra Götalands län, Sverige", "Slottsskogen, Göteborg, Västra Götalands län"),
+    ],
+)
+def test_nominatim_labels_put_the_house_number_after_the_street(display_name, label):
+    assert geocoding._short_label(display_name) == label
+
+
 def test_nominatim_client_turns_network_errors_into_geocoding_failed(monkeypatch):
     def broken(request, timeout):
         raise geocoding.urllib.error.URLError("nere")
