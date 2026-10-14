@@ -8,6 +8,11 @@ import pupillVanster from '../assets/pupill-vanster.webp'
 // Intressekompisen med pupiller som följer muspekaren. Fyller bredden på sin förälder (eller `width`) och behåller
 // bildens proportioner, så den går att lägga var som helst: <Intressekompis />. Ingen CSS-fil behövs.
 //
+// Props:
+//   width      CSS-bredd, t.ex. "320px" eller "min(92vw, 560px)". Standard "100%" (förälderns bredd).
+//   className  läggs på ytterbehållaren, t.ex. för marginal eller placering.
+//   alt        bildtext. Standard "Intressekompisen".
+//
 // Kompisbilden har tomma ögonvitor. Pupillerna ligger i var sin ruta över ögonvitan, och rutan klipps med en mask
 // (kompis-ogon-*.png) som har ögonvitans exakta form, så att pupillen glider precis inuti hålet och aldrig sticker ut
 // över kanten eller glasögonbågen. Maskerna är ritade ur just den här bilden; byts bilden måste de göras om och
