@@ -15,8 +15,11 @@ from app.core.config import settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.crud.profile import calculate_age
 from app.models import interest
 from app.models.contact import Contact
+from app.models.interest import Interest
+from app.models.municipality import Municipality
 from app.models.user import User
 from tests.helpers import make_profile
 
@@ -189,13 +192,18 @@ class ContactRoutesTest(unittest.TestCase):
         self.assertEqual([c["id"] for c in body["contacts"]], [accepted_id])
         self.assertEqual([c["id"] for c in body["incoming_requests"]], [incoming_id])
         self.assertEqual([c["id"] for c in body["outgoing_requests"]], [outgoing_id])
-        self.assertEqual(body["contacts"][0]["user"], {
+        def basics(person):
+            return {key: person[key] for key in ("id", "username", "name", "image_url")}
+
+        self.assertEqual(basics(body["contacts"][0]["user"]), {
             "id": 4, "username": "user4", "name": "Fyra",
             "image_url": "https://s3.test/bucket/profiles/4/abc.webp"})
-        self.assertEqual(body["incoming_requests"][0]["user"],
+        self.assertEqual(basics(body["incoming_requests"][0]["user"]),
                          {"id": 3, "username": "user3", "name": "Tre", "image_url": None})
-        self.assertEqual(body["outgoing_requests"][0]["user"],
-                         {"id": 2, "username": "user2", "name": None, "image_url": None})
+        # Utan profil: bara användarnamnet, allt annat tomt.
+        self.assertEqual(body["outgoing_requests"][0]["user"], {
+            "id": 2, "username": "user2", "name": None, "age": None, "municipality_name": None,
+            "district": None, "image_url": None, "interests": []})
 
         self.actor_id = 5
         self.assertEqual(self.client.get("/contacts").json(),
@@ -211,10 +219,40 @@ class ContactRoutesTest(unittest.TestCase):
         listed = self.client.get("/contacts")
         user = listed.json()["outgoing_requests"][0]["user"]
         self.assertEqual(user["username"], "fyran")
-        for private in ("email", "birth_date", "password_hash"):
+        for private in ("email", "birth_date", "gender", "password_hash"):
             self.assertNotIn(private, user)
         for value in ("secret@example.com", "1990-01-01", "secret-hash"):
             self.assertNotIn(value, listed.text)
+
+    def test_list_contacts_shows_the_person_like_a_person_card(self):
+        # Kontakter och förfrågningar visas som förslagen på Personer: ålder,
+        # kommun, stadsdel och intressen (med förälder, för trädet på profilen).
+        self.db.add(Municipality(code="0120", name="Värmdö"))
+        self.db.add(User(id=4, username="fyran", password_hash="unused"))
+        self.db.add(make_profile(4, name="Fyra", birth_date=date(1990, 1, 1),
+                                 municipality_code="0120", district="Gustavsberg"))
+        history = Interest(name="Historia")
+        self.db.add(history)
+        self.db.flush()
+        coins = Interest(name="Mynt", parent_id=history.id)
+        self.db.add(coins)
+        self.db.commit()
+        self.db.get(User, 4).interests = [coins, history]
+        self.db.commit()
+        request_id = self.client.post("/contacts/request", json={"addressee_id": 4}).json()["id"]
+        self.actor_id = 4
+        self.client.patch(f"/contacts/requests/{request_id}", json={"action": "accept"})
+        self.actor_id = 1
+
+        person = self.client.get("/contacts").json()["contacts"][0]["user"]
+
+        self.assertEqual(person["age"], calculate_age(date(1990, 1, 1)))
+        self.assertEqual(person["municipality_name"], "Värmdö")
+        self.assertEqual(person["district"], "Gustavsberg")
+        self.assertEqual(person["interests"], [
+            {"id": history.id, "name": "Historia", "parent_id": None},
+            {"id": coins.id, "name": "Mynt", "parent_id": history.id},
+        ])
 
 
 if __name__ == "__main__":
