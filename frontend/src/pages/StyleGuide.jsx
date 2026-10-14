@@ -6,6 +6,7 @@ import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import Avatar from '../components/Avatar'
+import Intressekompis from '../components/Intressekompis'
 import BackButton from '../components/BackButton'
 import ConversationCard from '../components/ConversationCard'
 import Modal from '../components/Modal'
@@ -225,6 +226,20 @@ function StyleGuide() {
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
           <Avatar name="Emmy" className="person-list-avatar" />
           <Avatar name="Emmy Lund" className="card-avatar" maxLetters={2} />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Intressekompisen (components/Intressekompis.jsx)
+        </p>
+        <p className="hint-text">
+          Maskoten, med pupiller som följer muspekaren. Fyller bredden på sin förälder och behåller proportionerna, så
+          storleken ges med `width` (till exempel "200px") eller genom förälderns bredd. Rent dekorativ: ge den alt=""
+          där den bara pryder. Pupillerna står stilla för den som valt mindre rörelse i systemet. Ingen egen CSS, allt
+          ligger i komponenten.
+        </p>
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-end', marginTop: '0.5rem' }}>
+          <Intressekompis width="200px" />
+          <Intressekompis width="90px" alt="" />
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
