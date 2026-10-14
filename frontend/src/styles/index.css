@@ -871,14 +871,37 @@ span.tag-selected:hover {
   width: 100%;
 }
 
-/* Kort med en maxbredd i stället för att sträcka ut sig över hela raden
-   (card-grids 1fr) när det bara är något enstaka kort. Ligger kvar i samma
-   vänsterställda ram som resten av sidan. Lägg till utöver card-grid. */
-/* Kort i fast bredd (Personer, Klubbar och Events), centrerade: auto-fit tar
-   bort tomma kolumner, så att några få kort hamnar i mitten. */
+/* Kort i samma storlek (Personer, Klubbar och Events). Lägg till utöver
+   card-grid. Alla kort är minst --card-height höga och lika höga i varje rad
+   (grid-auto-rows), så att raderna blir jämna: längre text kortas med "…"
+   (se .list-card-link) och intressena på personkorten scrollar (se
+   .person-card > .tags). Kräver innehållet mer plats (t.ex. med större text i
+   webbläsaren) växer korten i stället för att klippas. På mobil ligger korten
+   i mitten, i fast bredd. */
 .card-grid-compact {
+  --card-height: 340px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
+  grid-auto-rows: 1fr;
   justify-content: center;
+}
+
+.card-grid-compact > .card {
+  min-height: var(--card-height);
+}
+
+/* Dator: korten fyller bredden kant i kant med rubriken och flikarna, med så
+   många kolumner som får plats (tre på en vanlig skärm, färre i ett smalare
+   fönster eller i kartans block). auto-fill behåller tomma kolumner, så att
+   ett eller två kort är lika breda som i en full rad och ligger till vänster. */
+@media (min-width: 768px) {
+  .card-grid-compact {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    justify-content: stretch;
+  }
+
+  .card-grid-compact > .card {
+    max-width: none;
+  }
 }
 
 /* Layouten för personkort och brevkort. Hover-effekten kommer från
@@ -889,7 +912,67 @@ span.tag-selected:hover {
 .person-card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
+}
+
+.person-card .card-avatar {
+  margin-bottom: 0;
+}
+
+/* Intressena på personkortet i en egen ruta som scrollar, så att bilden,
+   namnet, platsen, de gemensamma intressena och knapparna alltid syns. På
+   dator och mobil visas två och en halv rad taggar, så att man ser att det
+   finns fler att scrolla fram. */
+.person-card > .tags {
+  flex: none;
+  max-height: 6.5rem;
+  overflow-y: auto;
+  align-content: flex-start;
+  padding-right: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+/* Safari läser inte scrollbar-color, så där ritas scrollbaren så här. */
+.person-card > .tags::-webkit-scrollbar {
+  width: 6px;
+}
+
+.person-card > .tags::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 3px;
+}
+
+/* Rutan går att scrolla med tangentbordet (tabindex i PersonCard), och visar
+   då var fokus är. */
+.person-card > .tags:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Utan raden om gemensamma intressen kommer intressena direkt efter staden:
+   lite extra luft där. */
+.person-card-link + .tags {
+  margin-top: 0.5rem;
+}
+
+/* Knapparna på personkorten: den första mot vänsterkanten och den andra mot
+   högerkanten. Texten går på två rader ("Skicka / förfrågan"), så att knappen
+   bara blir så bred som det längsta ordet plus lite luft, och inte har
+   onödigt mycket gult på sidorna. */
+.person-card .card-actions {
+  justify-content: space-between;
+}
+
+.person-card .card-actions > .primary-button,
+.person-card .card-actions > .secondary-button {
+  width: min-content;
+  padding-inline: 0.9rem;
+}
+
+/* Textknappen ("Ta bort förslag") en bit in från högerkanten. */
+.person-card .card-actions > .text-button {
+  margin-right: 0.4rem;
 }
 
 /* Siffran i "Ni har 2 gemensamma intressen" på personkorten: fet och mörk,
@@ -901,12 +984,24 @@ span.tag-selected:hover {
   border-bottom: 2px solid var(--color-accent);
 }
 
+/* Bilden till vänster med namnet och åldern bredvid, och staden på raden
+   under, så att intressena får mer plats på kortet. */
 .person-card-link {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.5rem 1rem;
   text-decoration: none;
   color: inherit;
+}
+
+.person-card-link .card-title {
+  margin: 0;
+}
+
+.person-card-link .card-subheading {
+  grid-column: 1 / -1;
+  margin: 0;
 }
 
 .app-shell {
@@ -1061,18 +1156,17 @@ span.tag-selected:hover {
    lite luft till flikarna och till kuvertet ovanför utan att mellanrummet blir
    större än det behöver. */
 .envelopes {
-  --envelope-reach: calc(0.07 * (min(100vw - 3rem, 992px) - 5.25rem));
+  --envelope-reach: calc(0.056 * (min(100vw - 3rem, 992px) - 5rem));
   list-style: none;
   margin: 0;
   padding: calc(var(--envelope-reach) - 0.25rem) 0 0;
   width: 100%;
   display: grid;
-  /* Fyra lika breda kolumner. auto-fit tar bort de tomma, så att ett eller två
-     brev hamnar i mitten i stället för till vänster; fylls raden blir det som
-     förut. */
-  --envelope-gap: 1.75rem;
-  grid-template-columns: repeat(auto-fit, calc((100% - 3 * var(--envelope-gap)) / 4));
-  justify-content: center;
+  /* Lika breda kolumner från vänster, i linje med rubriken och flikarna, som
+     fylls på åt höger när nya brev kommer. Så många som får plats: fem på en
+     vanlig skärm, färre i ett smalare fönster eller i kartans block. */
+  --envelope-gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: calc(var(--envelope-reach) + 1.1rem) var(--envelope-gap);
 }
 
@@ -1423,7 +1517,10 @@ span.tag-selected:hover {
 @media (max-width: 767px) {
   .envelopes {
     --envelope-gap: 0.75rem;
+    /* Tre per rad, och ett eller två brev hamnar i mitten (auto-fit tar bort
+       de tomma kolumnerna). */
     grid-template-columns: repeat(auto-fit, calc((100% - 2 * var(--envelope-gap)) / 3));
+    justify-content: center;
     gap: 1.4rem var(--envelope-gap);
     padding-top: 0.25rem;
   }
@@ -1598,14 +1695,6 @@ span.tag-selected:hover {
   margin-top: 1.5rem;
 }
 
-/* Högst tre kort per rad (tre kortbredder plus två mellanrum), mitt på sidan.
-   På smala skärmar får bara en eller två kolumner plats, så korten lägger sig
-   under varandra av sig själva. */
-.app-section-centered .card-grid-compact {
-  max-width: calc(3 * 300px + 2 * 1rem);
-  margin-inline: auto;
-}
-
 .app-section-centered .filter-select-row {
   width: 100%;
 }
@@ -1614,7 +1703,7 @@ span.tag-selected:hover {
    Klubbar och Events, också i kartans block), så att flikarna går lika lätt
    att nå med höger och vänster tumme. Klubbar och Events centrerar även sina
    egna texter (tom lista, fel), men inte texter inne i ett ark. Korten och
-   breven är centrerade på alla skärmar (se .card-grid-compact och .envelopes). */
+   breven ligger också i mitten på mobil (se .card-grid-compact och .envelopes). */
 @media (max-width: 767px) {
   .app-section > .app-title {
     text-align: center;
@@ -1818,6 +1907,15 @@ span.tag-selected:hover {
 .list-card-link .card-subheading {
   margin: 0;
   line-height: 1.1;
+}
+
+/* Långa namn kortas med "…" efter två rader, som beskrivningen nedan, så att
+   alla kort blir lika höga. Hela namnet syns i postens egen vy. */
+.list-card-link .card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Bara början av beskrivningen på kortet; hela syns i postens egen vy. */

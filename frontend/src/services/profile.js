@@ -1,5 +1,5 @@
-import { ApiError, apiGet, apiPatch, apiPost, apiPut, getCurrentUser } from './api'
-import { MY_INTERESTS_KEY, getMyInterests, getTopInterests } from './interests'
+import { ApiError, apiGet, apiPatch, apiPost, apiPut } from './api'
+import { MY_INTERESTS_KEY } from './interests'
 import { HOUR, MINUTE, cachedInBrowser, queryClient } from './queryClient'
 import { resizeProfileImage } from './resizeProfileImage'
 
@@ -75,13 +75,6 @@ export async function createProfile(data) {
 // svenska meddelande (422 om texten inte får finnas, 503 om kontrollen inte gick att köra, 429 vid för många försök).
 export function checkProfileText(text) {
   return apiPost('/profile/text-check', { profile_text: text })
-}
-
-// Hämtar i förväg det som profilformuläret behöver, så att det öppnas direkt
-// (anropas när profilen visas på kartan, innan man har tryckt på Redigera).
-// Fel struntas i här: formuläret hämtar själv och visar dem.
-export function prefetchProfileForm() {
-  Promise.allSettled([getProfile(), getMunicipalities(), getMyInterests(), getCurrentUser(), getTopInterests()])
 }
 
 // Ändrar en befintlig profil, bara fälten som skickas med.

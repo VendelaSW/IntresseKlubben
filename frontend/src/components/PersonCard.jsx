@@ -26,7 +26,7 @@ function PersonCard({ person, sharedInterestIds, reason, actions }) {
       </Link>
       {reason && <p className="hint-text">{reason}</p>}
       {person.interests?.length > 0 && (
-        <InterestTags interests={person.interests} highlight={sharedInterestIds} />
+        <InterestTags interests={person.interests} highlight={sharedInterestIds} label={`Intressen för ${displayName}`} />
       )}
       {actions}
     </article>

@@ -10,7 +10,6 @@ import { attachPlaceSigns } from './mapPrototypeSigns'
 import MapCalmPage from './MapCalmPage'
 import MapPagePad, { MAP_PAGES } from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
-import MapProfilePad from './MapProfilePad'
 import MapProfileWidget from './MapProfileWidget'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
 import { getEvents } from '../services/events'
@@ -760,9 +759,8 @@ function MapPrototype() {
   const threadRef = useRef(null)
   const routeRef = useRef(null) // knapparnas funktioner (se attachPinsAndThread)
   const [route, setRoute] = useState({ placing: false, style: 'road', pinCount: 0, hint: '' })
-  // Profilblocket som ligger ovanpå kartan, öppnat från profilmenyn.
-  // Sidan som ligger som block på kartan: 'profil', 'brev', 'personer',
-  // 'klubbar', 'events', 'redigera' (profilformuläret) eller null.
+  // Sidan som ligger som block på kartan: 'profil' (Min profil, den egna sidan med
+  // Lägg till intressen), 'brev', 'personer', 'klubbar', 'events' eller null.
   const [openPage, setOpenPage] = useState(null)
   // Lugnt läge: kartan göms och bara pappret, widgetarna och blocken syns
   // (för den som vill ha en lugnare bakgrund, eller en långsam dator). Valet
@@ -1321,10 +1319,7 @@ function MapPrototype() {
       )}
       {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}
       <div className="map-sketch-table" aria-hidden="true" />
-      {openPage === 'profil' && (
-        <MapProfilePad onClose={() => setOpenPage(null)} onEdit={() => openPad('redigera', '/profil?redigera=1')} />
-      )}
-      {openPage && openPage !== 'profil' && padStart && (
+      {openPage && padStart && (
         // key: byter man sida landar ett nytt block.
         <MapPagePad
           key={`${openPage} ${padStart}`}
