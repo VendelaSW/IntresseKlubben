@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.contact import Contact
 from app.models.group import GroupInvitation, GroupMember, GroupRole
+from app.models.profile import Profile
 from app.models.user import User
+from app.models.user_interest import UserInterest
 
 
 class ContactError(Exception):
@@ -35,14 +37,17 @@ def _save(db: Session, contact: Contact) -> Contact:
 
 
 def list_contacts(db: Session, user_id: int) -> dict[str, list[tuple[Contact, User]]]:
-    """Each item pairs the contact row with the other user (profile preloaded)."""
+    """Each item pairs the contact row with the other user (profile, municipality
+    and interests preloaded, for the person card)."""
     # Blocks are excluded so users cannot see who has blocked them.
     rows = (db.query(Contact)
             .filter(or_(Contact.requester_id == user_id, Contact.addressee_id == user_id),
                     Contact.status.in_(("PENDING", "ACCEPTED")))
             .order_by(Contact.id).all())
     other_ids = {c.addressee_id if c.requester_id == user_id else c.requester_id for c in rows}
-    users = {u.id: u for u in (db.query(User).options(selectinload(User.profile))
+    users = {u.id: u for u in (db.query(User)
+                               .options(selectinload(User.profile).selectinload(Profile.municipality),
+                                        selectinload(User.interest_links).selectinload(UserInterest.interest))
                                .filter(User.id.in_(other_ids)).all())}
     result = {"contacts": [], "incoming_requests": [], "outgoing_requests": []}
     for c in rows:
