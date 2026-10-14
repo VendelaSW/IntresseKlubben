@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from './useAuth'
-import { getContacts } from '../services/contacts'
-import { getEvents } from '../services/events'
-import { INVITATIONS_CHANGED, getGroupInvitationCount } from '../services/groups'
-import { countUnseenConversations, getConversations } from '../services/messages'
+import { getBadges } from '../services/badges'
+import { INVITATIONS_CHANGED } from '../services/groups'
+import { countUnseenConversations } from '../services/messages'
 
 // Hur ofta siffrorna räknas om medan man står kvar.
 const POLL_MS = 30000
@@ -24,6 +23,9 @@ export const EMPTY_COUNTS = { contactRequests: 0, clubInvitations: 0, eventInvit
 // kommer tillbaka. Anropen är låsta tills profilen är klar (require_profile i
 // backend), så inget hämtas innan dess.
 //
+// Alla fyra kommer i ett anrop (GET /users/me/badges), så att en omräkning
+// inte blir fyra anrop som var och en kan råka ut för en kallstart.
+//
 // Ger null tills första hämtningen är klar, så att den som jämför siffror
 // (kartans lappar studsar när en går upp) inte tar de första riktiga
 // siffrorna för en ökning från noll. Alla fyra sätts på en gång.
@@ -40,26 +42,25 @@ export function useBadgeCounts({ refreshKey = null, openConversationId = null } 
     async function refresh() {
       if (fetching || document.hidden) return
       fetching = true
-      const results = await Promise.allSettled([
-        getContacts().then((data) => data.incoming_requests.length),
-        getGroupInvitationCount(),
-        getEvents().then((events) => events.filter((e) => e.is_invited && e.my_answer === null).length),
-        getConversations().then((conversations) =>
-          countUnseenConversations(conversations.filter((c) => c.id !== openConversationId)),
-        ),
-      ])
-      fetching = false
+      let badges
+      try {
+        badges = await getBadges()
+      } catch {
+        // Misslyckas anropet behålls de förra siffrorna. Siffrorna är inte
+        // viktiga nog för ett felmeddelande; nästa försök kommer snart.
+        return
+      } finally {
+        fetching = false
+      }
       if (cancelled) return
-      // Ett anrop som misslyckas behåller sin förra siffra (0 första gången),
-      // så att det inte nollar de andra. Siffrorna är inte viktiga nog för ett
-      // felmeddelande; nästa försök kommer snart.
-      const keys = ['contactRequests', 'clubInvitations', 'eventInvitations', 'unseenMessages']
+      const next = {
+        contactRequests: badges.contact_requests,
+        clubInvitations: badges.club_invitations,
+        eventInvitations: badges.event_invitations,
+        unseenMessages: countUnseenConversations(badges.conversations.filter((c) => c.id !== openConversationId)),
+      }
       setCounts((current) => {
-        const next = { ...(current ?? EMPTY_COUNTS) }
-        results.forEach((result, i) => {
-          if (result.status === 'fulfilled') next[keys[i]] = result.value
-        })
-        const same = current && keys.every((key) => current[key] === next[key])
+        const same = current && Object.keys(next).every((key) => current[key] === next[key])
         return same ? current : next
       })
     }

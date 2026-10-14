@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import CreateGroupForm from './CreateGroupForm'
@@ -9,10 +10,8 @@ import { getContacts } from '../../services/contacts'
 import {
   declineGroupInvitation,
   deleteGroup,
-  getGroupInvitations,
   getGroups,
-  getMyGroups,
-  getSuggestedGroups,
+  groupsOverviewQuery,
   joinGroup,
   leaveGroup,
   matchesSearch,
@@ -48,6 +47,8 @@ const SEARCH_DELAY_MS = 300
 // filtreras av backend och hämtas PAGE_SIZE åt gången, de andra två finns
 // redan här.
 // Utgången inloggning hanteras globalt i services/api.js.
+const NONE = []
+
 function GroupsPanel() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [tab, setTab] = useState('mine')
@@ -59,7 +60,8 @@ function GroupsPanel() {
     // Adressen har gjort sitt, så en omladdning ska inte öppna samma klubb igen.
     if (searchParams.toString()) setSearchParams({}, { replace: true })
   }, [])
-  const [lists, setLists] = useState({ mine: [], suggested: [], all: [], invitations: [] })
+  // Sidorna av "Alla" som har hämtats (se loadAll).
+  const [lists, setLists] = useState({ all: [] })
   // Finns det fler i "Alla" än de som hämtats?
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -118,15 +120,16 @@ function GroupsPanel() {
     return () => clearTimeout(timer)
   }, [search])
 
-  const loadMineAndSuggested = useCallback(
-    () =>
-      Promise.all([getMyGroups(), getSuggestedGroups(), getGroupInvitations()]).then(
-        ([mine, suggested, invitations]) =>
-          // Förslag och inbjudningar innehåller redan bara klubbar man inte är med i.
-          setLists((current) => ({ ...current, mine, suggested, invitations })),
-      ),
-    [],
-  )
+  // Mina klubbar, Förslag och Inbjudningar i ett anrop (GET /groups/overview), ur
+  // det delade minnet (se services/queryClient.js): har man varit här nyss visas
+  // de direkt och hämtas om i bakgrunden. Det som ändrar dem (gå med, lämna,
+  // avböja) säger själv till minnet (se services/groups.js). Förslag och
+  // inbjudningar innehåller redan bara klubbar man inte är med i.
+  const overview = useQuery(groupsOverviewQuery)
+  const { mine = NONE, suggested = NONE, invitations = NONE } = overview.data ?? {}
+  const overviewFailed = overview.isError && overview.data === undefined
+  const { refetch: refetchOverview } = overview
+  const loadMineAndSuggested = useCallback(() => refetchOverview(), [refetchOverview])
 
   // Hämtar en sida av "Alla" från offset. En extra klubb hämtas för att se
   // om det finns fler, men visas inte förrän nästa sida. "Alla" visar bara
@@ -146,10 +149,6 @@ function GroupsPanel() {
     },
     [filters],
   )
-
-  useEffect(() => {
-    loadMineAndSuggested().catch(() => setStatus('error'))
-  }, [loadMineAndSuggested])
 
   useEffect(() => {
     if (filters === null) return
@@ -228,7 +227,7 @@ function GroupsPanel() {
     setView(group.id)
   }
 
-  if (status === 'error') {
+  if (status === 'error' || overviewFailed) {
     return <p className="status-error">Kunde inte hämta klubbarna. Försök igen senare.</p>
   }
 
@@ -247,18 +246,18 @@ function GroupsPanel() {
       filters.reverse,
     )
   const shown = filters && {
-    mine: searchAndSort(lists.mine).sort((a, b) => Number(b.is_owner) - Number(a.is_owner)),
-    suggested: searchAndSort(lists.suggested),
+    mine: searchAndSort(mine).sort((a, b) => Number(b.is_owner) - Number(a.is_owner)),
+    suggested: searchAndSort(suggested),
     all: lists.all,
     // Inbjudningarna visas alla, nyaste först, utan sökning och filter.
-    invitations: lists.invitations,
+    invitations,
   }
   const filtering = filters && (filters.q || filters.interestId || filters.municipalityCode)
 
   // Leta upp gruppen i listorna, så att den visar senaste antal medlemmar och roll.
   const selected =
     typeof view === 'number'
-      ? [...lists.mine, ...lists.suggested, ...lists.all, ...lists.invitations].find((g) => g.id === view)
+      ? [...mine, ...suggested, ...lists.all, ...invitations].find((g) => g.id === view)
       : null
 
   return (
@@ -275,7 +274,8 @@ function GroupsPanel() {
         )}
       </div>
 
-      {status === 'loading' ? (
+      {/* Finns Mina klubbar redan i minnet visas sidan direkt, och "Alla" fylls i när den kommer. */}
+      {status === 'loading' && overview.data === undefined ? (
         <p className="hint-text">Laddar klubbar...</p>
       ) : view === 'create' ? (
         <>
