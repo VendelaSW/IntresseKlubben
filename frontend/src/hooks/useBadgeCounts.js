@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from './useAuth'
-import { getContacts } from '../services/contacts'
-import { getEvents } from '../services/events'
+import { getBadges } from '../services/badges'
 import { EVENTS_SEEN, eventsSeenAt } from '../services/eventsSeen'
-import { INVITATIONS_CHANGED, getGroupInvitationCount } from '../services/groups'
-import { countUnseenConversations, getConversations } from '../services/messages'
+import { INVITATIONS_CHANGED } from '../services/groups'
+import { countUnseenConversations } from '../services/messages'
 
 // Hur ofta siffrorna räknas om medan man står kvar.
 const POLL_MS = 30000
@@ -14,8 +13,8 @@ export const EMPTY_COUNTS = { contactRequests: 0, clubInvitations: 0, eventNews:
 // Siffrorna för appens märken (menyn i AppShell och lapparna på kartan):
 //   contactRequests: obesvarade kontaktförfrågningar (Personer)
 //   clubInvitations: klubbar man är inbjuden till (Klubbar)
-//   eventNews: events man inte har svarat på och som antingen är en inbjudan,
-//     eller är nya i en av ens klubbar sedan man senast tittade på Events (se
+//   eventNews: events man inte har svarat på som antingen är en inbjudan, eller
+//     är nya i en av ens klubbar sedan man senast tittade på Events (se
 //     services/eventsSeen.js). Ens egna och de som redan är slut räknas inte.
 //     (Events)
 //   unseenMessages: konversationer med nya brev, samma som fliken Nya på Brev
@@ -28,16 +27,12 @@ export const EMPTY_COUNTS = { contactRequests: 0, clubInvitations: 0, eventNews:
 // kommer tillbaka. Anropen är låsta tills profilen är klar (require_profile i
 // backend), så inget hämtas innan dess.
 //
-// Events som är nya för en: obesvarade inbjudningar, och obesvarade events i
-// ens klubbar som har skapats sedan `seenAt` (se eventNews ovan).
-function countEventNews(events, seenAt) {
-  const now = Date.now()
-  return events.filter((e) => {
-    if (e.my_answer !== null || e.is_owner) return false
-    if (new Date(e.ends_at ?? e.starts_at).getTime() < now) return false
-    return e.is_invited || (e.group_id != null && new Date(e.created_at).getTime() > seenAt)
-  }).length
-}
+// Alla fyra kommer i ett anrop (GET /users/me/badges), så att en omräkning
+// inte blir fyra anrop som var och en kan råka ut för en kallstart.
+//
+// Hur många av klubbarnas events ([{ id, created_at }]) som har skapats sedan
+// `seenAt`, när man senast tittade på Events.
+const countNew = (clubEvents, seenAt) => clubEvents.filter((e) => new Date(e.created_at).getTime() > seenAt).length
 
 // Ger null tills första hämtningen är klar, så att den som jämför siffror
 // (kartans lappar studsar när en går upp) inte tar de första riktiga
@@ -56,26 +51,27 @@ export function useBadgeCounts({ refreshKey = null, openConversationId = null } 
     async function refresh() {
       if (fetching || document.hidden) return
       fetching = true
-      const results = await Promise.allSettled([
-        getContacts().then((data) => data.incoming_requests.length),
-        getGroupInvitationCount(),
-        getEvents().then((events) => countEventNews(events, eventsSeenAt(userId))),
-        getConversations().then((conversations) =>
-          countUnseenConversations(conversations.filter((c) => c.id !== openConversationId)),
-        ),
-      ])
-      fetching = false
+      let badges
+      try {
+        badges = await getBadges()
+      } catch {
+        // Misslyckas anropet behålls de förra siffrorna. Siffrorna är inte
+        // viktiga nog för ett felmeddelande; nästa försök kommer snart.
+        return
+      } finally {
+        fetching = false
+      }
       if (cancelled) return
-      // Ett anrop som misslyckas behåller sin förra siffra (0 första gången),
-      // så att det inte nollar de andra. Siffrorna är inte viktiga nog för ett
-      // felmeddelande; nästa försök kommer snart.
-      const keys = ['contactRequests', 'clubInvitations', 'eventNews', 'unseenMessages']
+      const next = {
+        contactRequests: badges.contact_requests,
+        clubInvitations: badges.club_invitations,
+        // Klubbarnas events kommer utan inbjudningarna (de räknas redan), så
+        // inget räknas två gånger.
+        eventNews: badges.event_invitations + countNew(badges.club_events, eventsSeenAt(userId)),
+        unseenMessages: countUnseenConversations(badges.conversations.filter((c) => c.id !== openConversationId)),
+      }
       setCounts((current) => {
-        const next = { ...(current ?? EMPTY_COUNTS) }
-        results.forEach((result, i) => {
-          if (result.status === 'fulfilled') next[keys[i]] = result.value
-        })
-        const same = current && keys.every((key) => current[key] === next[key])
+        const same = current && Object.keys(next).every((key) => current[key] === next[key])
         return same ? current : next
       })
     }

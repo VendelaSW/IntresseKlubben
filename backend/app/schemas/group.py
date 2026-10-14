@@ -124,3 +124,12 @@ class GroupInvite(BaseModel):
         if not self.user_ids:
             raise ValueError(msg.GROUP_INVITE_NOBODY)
         return self
+
+
+class GroupsOverview(BaseModel):
+    """GET /groups/overview: klubbsidans tre listor i ett svar (samma som
+    /groups/mine, /groups/suggested och /groups/invitations)."""
+
+    mine: list[GroupResponse]
+    suggested: list[GroupResponse]
+    invitations: list[GroupResponse]
