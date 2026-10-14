@@ -4,7 +4,7 @@ import MapPad from './MapPad'
 import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import { getMyInterests } from '../services/interests'
-import { genderLabel, getProfile } from '../services/profile'
+import { genderLabel, getProfile, prefetchProfileForm } from '../services/profile'
 
 // Profilen som ett anteckningsblock på kartan (se MapPad), i läsläge.
 // "Redigera profil" anropar `onEdit`, som öppnar profilformuläret i ett
@@ -22,6 +22,8 @@ function MapProfilePad({ onClose, onEdit }) {
         setProfile(data)
         setInterests(mine)
         setStatus('ready')
+        // Den som tittar på sin profil vill ofta redigera den.
+        if (data) prefetchProfileForm()
       })
       .catch(() => !cancelled && setStatus('error'))
     return () => {

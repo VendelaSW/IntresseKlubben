@@ -1,8 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { setStartView } from '../hooks/useStartView'
-import { getProfile } from '../services/profile'
+import { profileQuery } from '../services/profile'
 
 // Menyn: profilsidan, som läggs på kartan som ett block (via `onOpen`), lugnt
 // läge av/på (via `onToggleCalm`), Avsluta kartan (tillbaka till appens
@@ -16,20 +17,12 @@ const MENU = [{ id: 'profil', label: 'Profilsida' }]
 function MapProfileWidget({ onOpen, calm, onToggleCalm }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [profile, setProfile] = useState(null)
+  // Profilen ur det delade minnet (se services/queryClient.js), så att namnet
+  // och bilden här ändras direkt när man sparar profilen. Utan profil (eller om
+  // den inte gick att hämta) visas användarnamnet och initialen.
+  const { data: profile = null } = useQuery(profileQuery)
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
-
-  useEffect(() => {
-    let cancelled = false
-    getProfile()
-      .then((data) => !cancelled && setProfile(data))
-      // Utan profil visas användarnamnet och initialen, så inget fel behövs.
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [user])
 
   // Menyn stängs med Escape eller ett klick någon annanstans (t.ex. på kartan).
   useEffect(() => {

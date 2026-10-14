@@ -1,4 +1,5 @@
 import { clearToken, getToken } from './auth'
+import { MINUTE, cached, queryClient } from './queryClient'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -99,8 +100,12 @@ export function loginUser(usernameOrEmail, password) {
   return apiPost('/users/login', { username_or_email: usernameOrEmail, password })
 }
 
+export const CURRENT_USER_KEY = ['current-user']
+
+// Sparas i minnet (se queryClient.js): inloggningen hämtar den vid start, och
+// profilsidan får den sedan utan ett nytt anrop.
 export function getCurrentUser() {
-  return apiGet('/users/me')
+  return cached(CURRENT_USER_KEY, () => apiGet('/users/me'), 5 * MINUTE)
 }
 
 // Raderar kontot och allt som hör till det. Fel lösenord ger 403 (inte 401),
@@ -112,8 +117,8 @@ export function deleteAccount(password) {
 // Ändrar användarnamn och/eller e-post: { password, username?, email? }. Även
 // för konton som saknar e-post. Fel lösenord ger 403 (inte 401), så man loggas
 // inte ut av ett felskrivet lösenord. Svarar med de nya uppgifterna (som /users/me).
-export function updateAccount(changes) {
-  return apiPatch('/users/me', changes)
+export async function updateAccount(changes) {
+  return queryClient.setQueryData(CURRENT_USER_KEY, await apiPatch('/users/me', changes))
 }
 
 // Om ett användarnamn och/eller en e-post redan används av någon annan:
