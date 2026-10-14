@@ -15,7 +15,7 @@ import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from '.
 import { getEvents } from '../services/events'
 import { getGroups, getMyGroups } from '../services/groups'
 import { getProfile } from '../services/profile'
-import { activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
+import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
 import {
   ZOOM_LEVELS,
   allKommuner,
@@ -115,10 +115,9 @@ const TILT = 45
 const DISTRICT_CLASSES = ['city', 'town', 'village', 'suburb', 'quarter', 'neighbourhood', 'hamlet', 'island']
 // Zoomen för en kommun eller stadsdel: där de skissade husen har vuxit upp.
 const DISTRICT_ZOOM = 15
-// Zoomen för "Visa på kartan": lappen med sin omgivning.
-const ACTIVITY_ZOOM = 11
-// "Visa på kartan" för en klubb eller ett event med nål (exakt plats): ända
-// ner till gatorna och husen.
+// Zoomen när kartan flyger till en klubb eller ett event med nål (exakt
+// plats): ända ner till gatorna och husen. Utan nål flygs det till FULL_ZOOM
+// (se mapPrototypeActivities.js), där lappen visas hel.
 const ACTIVITY_PLACE_ZOOM = 16
 // Längst in man kan zooma: kvarter med husen tydliga. Kartdatan har ingen
 // mer detalj längre in (den förstoras bara), och husen blir bara större.
@@ -829,6 +828,27 @@ function MapPrototype() {
   const openActivityRef = useRef(openActivity)
   openActivityRef.current = openActivity
 
+  // Flyg till en lapp och markera den: till gatunivån om den har en nål,
+  // annars så nära att lappen visas hel (den står då mitt i kommunen).
+  function flyToActivity(item) {
+    const map = mapRef.current
+    if (!map) return
+    setMode('free', null, item.lan, item.kommun)
+    const zoom = item.exact ? ACTIVITY_PLACE_ZOOM : FULL_ZOOM
+    map.easeTo({ center: item.lngLat, zoom, duration: 1400 })
+    setLevelName(item.name)
+    map.once('moveend', () => activitiesRef.current?.highlight(`${item.type}:${item.id}`))
+  }
+
+  // Klick på en lapp på kartan: är den hopfälld till en ikon flygs det dit
+  // först, och är den hel (man är redan där) öppnas klubben eller eventet.
+  function pickActivity(item, compact) {
+    if (compact) flyToActivity(item)
+    else openActivity(item)
+  }
+  const pickActivityRef = useRef(pickActivity)
+  pickActivityRef.current = pickActivity
+
   // "Visa på kartan" från Klubbar och Events: stäng blocket, gå till länet
   // där klubben eller eventet finns och flyg till lappen, som markeras.
   // Lappen för en klubb eller ett event. Finns den inte bland lapparna än (t.ex.
@@ -854,13 +874,7 @@ function MapPrototype() {
       // Ny lapp: lägg ut den, så att den syns och kan markeras.
       if (!activitiesRef.current?.getItem(type, id)) activitiesRef.current?.putItem(item)
       setOpenPage(null)
-      setMode('free', null, item.lan, item.kommun)
-      // Med nål zoomas det in till platsen. Utan nål står lappen mitt i
-      // kommunen, och då visas kommunen.
-      const zoom = item.exact ? ACTIVITY_PLACE_ZOOM : ACTIVITY_ZOOM
-      map.easeTo({ center: item.lngLat, zoom, duration: 1400 })
-      setLevelName(item.name)
-      map.once('moveend', () => activitiesRef.current?.highlight(`${type}:${id}`))
+      flyToActivity(item)
     },
   }
 
@@ -1209,7 +1223,7 @@ function MapPrototype() {
     startAtHome(map)
     activitiesRef.current = attachActivityMarkers(map, activitiesLayerRef.current, {
       getKommun: () => selectedKommunRef.current,
-      onPick: (item) => openActivityRef.current(item),
+      onPick: (item, compact) => pickActivityRef.current(item, compact),
     })
     loadActivities()
     labelsApiRef.current = labelsApi

@@ -20,8 +20,10 @@ import { isInside, lanCodeAt } from './mapPrototypeZoomLevels'
 
 // Längre ut än så här blir lapparna för många och för små.
 const MIN_ZOOM = 6
-// Inzoomat (från den här zoomen) visas hela lappen, annars bara ikonen.
-const FULL_ZOOM = 9
+// Inzoomat (från den här zoomen, strax innan gatunivån) visas hela lappen,
+// annars bara ikonen (namnet syns när man hovrar). Används också av kartan när
+// den flyger till en lapp utan exakt plats, så att lappen är hel när den landar.
+export const FULL_ZOOM = 14
 // Luft i pixlar mellan lappar.
 const GAP_PX = 4
 
@@ -100,7 +102,8 @@ export function activitiesFrom({ groups, events, kommuner }) {
 
 // Kopplar lapparna till kartan. `getKommun()` ger den valda kommunen
 // (kommunkod) på kommunnivå, annars null: lapparna syns bara då, och bara den
-// kommunens klubbar och events. `onPick(item)` anropas vid klick. Returnerar
+// kommunens klubbar och events. `onPick(item, compact)` anropas vid klick,
+// med om lappen var hopfälld till en ikon. Returnerar
 // { setItems, getItem, highlight, render }.
 export function attachActivityMarkers(map, layer, { getKommun, onPick }) {
   let items = []
@@ -186,7 +189,7 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick }) {
     const el = event.target.closest('.map-activity')
     if (!el) return
     const item = items.find((i) => `${i.type}:${i.id}` === el.dataset.key)
-    if (item) onPick(item)
+    if (item) onPick(item, el.classList.contains('is-compact'))
   })
 
   map.on('move', render)
