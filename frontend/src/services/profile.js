@@ -1,4 +1,6 @@
-import { ApiError, apiGet, apiPatch, apiPost, apiPut } from './api'
+import { ApiError, apiGet, apiPatch, apiPost, apiPut, getCurrentUser } from './api'
+import { MY_INTERESTS_KEY, getMyInterests, getTopInterests } from './interests'
+import { HOUR, MINUTE, cachedInBrowser, queryClient } from './queryClient'
 import { resizeProfileImage } from './resizeProfileImage'
 
 // Värdena måste matcha GenderEnum i backend/app/models/profile.py.
@@ -14,28 +16,58 @@ export function genderLabel(value) {
   return GENDER_OPTIONS.find((o) => o.value === value)?.label ?? null
 }
 
-// Returnerar null om användaren inte har skapat någon profil än.
-export async function getProfile() {
-  try {
-    return await apiGet('/profile/')
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 404) return null
-    throw err
-  }
+export const PROFILE_KEY = ['profile']
+
+// Returnerar null om användaren inte har skapat någon profil än. Profilen
+// sparas i minnet (se queryClient.js) och uppdateras av allt nedan som ändrar
+// den, så den hämtas bara en gång även när kartan, profilrutan och profilsidan
+// alla behöver den.
+export const profileQuery = {
+  queryKey: PROFILE_KEY,
+  queryFn: async () => {
+    try {
+      return await apiGet('/profile/')
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return null
+      throw err
+    }
+  },
+  staleTime: 5 * MINUTE,
+}
+
+export function getProfile() {
+  return queryClient.fetchQuery(profileQuery)
+}
+
+// Sparar en profil som backend just svarat med, så att nästa getProfile inte
+// behöver hämta den igen.
+function remember(profile) {
+  queryClient.setQueryData(PROFILE_KEY, profile)
+  return profile
 }
 
 const swedishOrder = new Intl.Collator('sv')
 
-// Alla 290 kommuner, sorterade i svensk ordning (å, ä, ö sist).
-export async function getMunicipalities() {
-  const list = await apiGet('/municipalities/')
-  return list.sort((a, b) => swedishOrder.compare(a.name, b.name))
+// Alla 290 kommuner, sorterade i svensk ordning (å, ä, ö sist). Ändras i
+// praktiken aldrig, så de sparas i webbläsaren (se queryClient.js).
+export function getMunicipalities() {
+  return cachedInBrowser(
+    ['municipalities'],
+    async () => {
+      const list = await apiGet('/municipalities/')
+      return list.sort((a, b) => swedishOrder.compare(a.name, b.name))
+    },
+    24 * HOUR,
+  )
 }
 
 // Skapar profilen. Alla obligatoriska fält och minst ett intresse
 // (interest_ids) måste vara med, intressena sparas i samma anrop.
-export function createProfile(data) {
-  return apiPost('/profile/', data)
+export async function createProfile(data) {
+  const profile = remember(await apiPost('/profile/', data))
+  // Intressena sparades i samma anrop.
+  queryClient.invalidateQueries({ queryKey: MY_INTERESTS_KEY })
+  return profile
 }
 
 // Kontrollerar Om mig-texten utan att spara något, så att man får veta att den nekas redan när man har skrivit den.
@@ -45,9 +77,16 @@ export function checkProfileText(text) {
   return apiPost('/profile/text-check', { profile_text: text })
 }
 
+// Hämtar i förväg det som profilformuläret behöver, så att det öppnas direkt
+// (anropas när profilen visas på kartan, innan man har tryckt på Redigera).
+// Fel struntas i här: formuläret hämtar själv och visar dem.
+export function prefetchProfileForm() {
+  Promise.allSettled([getProfile(), getMunicipalities(), getMyInterests(), getCurrentUser(), getTopInterests()])
+}
+
 // Ändrar en befintlig profil, bara fälten som skickas med.
-export function updateProfile(data) {
-  return apiPatch('/profile/', data)
+export async function updateProfile(data) {
+  return remember(await apiPatch('/profile/', data))
 }
 
 // En annan användares profil, skrivskyddat. null om personen inte har
@@ -80,5 +119,5 @@ export async function uploadResizedImage(image) {
     body: image,
   })
   if (!res.ok) throw new Error('Uppladdningen misslyckades. Försök igen.')
-  return apiPut('/profile/image', { key })
+  return remember(await apiPut('/profile/image', { key }))
 }
