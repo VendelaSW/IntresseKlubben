@@ -1,4 +1,6 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './api'
+import { EVENTS_KEY } from './events'
+import { SECOND, invalidate, queryClient } from './queryClient'
 
 // Värdena måste matcha GroupVisibility i backend/app/models/group.py.
 export const VISIBILITY = { public: 'public', private: 'private' }
@@ -51,9 +53,26 @@ export function getGroups({ interestId, municipalityCode, q, sort, reverse, limi
   return apiGet(`/groups/${query ? `?${query}` : ''}`)
 }
 
-// Grupper man är med i, även privata.
+export const MY_GROUPS_KEY = ['groups', 'mine']
+
+// Grupper man är med i, även privata. Sparas i minnet en kort stund (se
+// queryClient.js), så Klubbar, Events och kartan delar samma hämtning.
+export const myGroupsQuery = {
+  queryKey: MY_GROUPS_KEY,
+  queryFn: () => apiGet('/groups/mine'),
+  staleTime: 15 * SECOND,
+}
+
 export function getMyGroups() {
-  return apiGet('/groups/mine')
+  return queryClient.fetchQuery(myGroupsQuery)
+}
+
+// Kör ett anrop som ändrar vilka klubbar man är med i, och säger sedan till
+// minnet. Klubbens events syns bara för medlemmar, så events hämtas också om.
+async function changingMyGroups(request) {
+  const result = await request
+  invalidate(MY_GROUPS_KEY, EVENTS_KEY)
+  return result
 }
 
 // Öppna grupper för ens intressen som man inte redan är med i.
@@ -75,20 +94,20 @@ export function sendGroupMessage(id, content) {
 }
 
 export function createGroup(data) {
-  return apiPost('/groups/', data)
+  return changingMyGroups(apiPost('/groups/', data))
 }
 
 // Returnerar gruppen med uppdaterat antal medlemmar.
 export function joinGroup(id) {
-  return apiPut(`/groups/${id}/members/me`)
+  return changingMyGroups(apiPut(`/groups/${id}/members/me`))
 }
 
 export function leaveGroup(id) {
-  return apiDelete(`/groups/${id}/members/me`)
+  return changingMyGroups(apiDelete(`/groups/${id}/members/me`))
 }
 
 export function deleteGroup(id) {
-  return apiDelete(`/groups/${id}`)
+  return changingMyGroups(apiDelete(`/groups/${id}`))
 }
 
 // Klubbar man är inbjuden till (och inte redan med i), nyaste inbjudan först.

@@ -20,7 +20,8 @@ export const queryClient = new QueryClient({
   },
 })
 
-export const MINUTE = 60 * 1000
+export const SECOND = 1000
+export const MINUTE = 60 * SECOND
 export const HOUR = 60 * MINUTE
 
 // Hämtar `key` med `fetcher`, eller ger det som redan finns i minnet om det är
@@ -60,6 +61,12 @@ export function cachedInBrowser(key, fetcher, staleTime) {
     },
     staleTime,
   )
+}
+
+// Säger att det som ligger under `keys` kan ha ändrats. Det hämtas om direkt
+// om en sida visar det just nu, och annars nästa gång någon ber om det.
+export function invalidate(...keys) {
+  for (const key of keys) queryClient.invalidateQueries({ queryKey: key })
 }
 
 // Töms vid in- och utloggning. Det som sparats i webbläsaren är samma för alla

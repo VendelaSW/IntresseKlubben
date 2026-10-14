@@ -92,13 +92,25 @@ export async function updateProfile(data) {
 // En annan användares profil, skrivskyddat. null om personen inte har
 // skapat någon profil än (samma 404-hantering som getProfile). Också null för
 // en adress som inte är ett id (422), t.ex. en gammal länk med användarnamn.
-export async function getUserProfile(userId) {
-  try {
-    return await apiGet(`/users/${userId}/profile`)
-  } catch (err) {
-    if (err instanceof ApiError && (err.status === 404 || err.status === 422)) return null
-    throw err
+// Sparas i minnet en kort stund (se queryClient.js), så en profil man nyss
+// tittat på visas direkt.
+export function userProfileQuery(userId) {
+  return {
+    queryKey: ['user-profile', String(userId)],
+    queryFn: async () => {
+      try {
+        return await apiGet(`/users/${userId}/profile`)
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 404 || err.status === 422)) return null
+        throw err
+      }
+    },
+    staleTime: 15 * 1000,
   }
+}
+
+export function getUserProfile(userId) {
+  return queryClient.fetchQuery(userProfileQuery(userId))
 }
 
 // Profilbild: skala om (WebP, eller JPEG på iPhone), be backend om en
