@@ -9,7 +9,7 @@ import { useAuth } from '../hooks/useAuth'
 import { checkAvailability, getCurrentUser, updateAccount } from '../services/api'
 import { clearProfileDraft, loadProfileDraft, saveProfileDraft } from '../services/profileDraft'
 import { resizeProfileImage } from '../services/resizeProfileImage'
-import { addInterest, getMyInterests, removeInterest } from '../services/interests'
+import { addInterest, getMyInterests, getTopInterests, removeInterest } from '../services/interests'
 import {
   GENDER_OPTIONS,
   createProfile,
@@ -177,6 +177,8 @@ function ProfilePage() {
   useEffect(() => {
     // Själva inloggningskollen sköts redan av ProtectedRoute, så vi kan
     // anta att det finns en giltig token när den här sidan visas.
+    // Intresseväljaren visas först när profilen har laddat, men hämtar redan nu.
+    getTopInterests().catch(() => {})
     Promise.all([getProfile(), getMunicipalities(), getMyInterests(), getCurrentUser()])
       .then(([data, list, mine, me]) => {
         // Ingen profil än → intervjun, där profilen skapas. Med ?lista=1 visas formuläret i stället.
@@ -570,7 +572,7 @@ function ProfilePage() {
   return (
     <div className="profile-layout">
     <div className="card card-wide content-stack">
-      <h1>Min profil</h1>
+      <h1 className="app-title">Min profil</h1>
       {imageNotice && (
         <p className="form-error">{withPeriod(imageNotice)} Försök igen under Redigera profil.</p>
       )}

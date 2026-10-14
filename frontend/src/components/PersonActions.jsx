@@ -1,15 +1,16 @@
 // Åtgärdsknapparna under ett personkort i Personer-flikarna Förslag/
 // Förfrågningar/Kontakter. `relation` beskriver läget mellan den inloggade
 // användaren och personen på kortet: null (inget), 'outgoing' (väntar på
-// svar), 'incoming' (väntar på mitt svar) eller 'contact'.
+// svar), 'incoming' (väntar på mitt svar) eller 'contact'. Knapparna är små
+// (button-small), som "Gå med" på klubbkorten, så att korten håller sig kompakta.
 function PersonActions({ relation, busy, onSend, onAccept, onDecline, onCancel, onRemove, onDismiss }) {
   if (relation === 'incoming') {
     return (
       <div className="card-actions">
-        <button type="button" className="primary-button" disabled={busy} onClick={onAccept}>
+        <button type="button" className="primary-button button-small" disabled={busy} onClick={onAccept}>
           Acceptera
         </button>
-        <button type="button" className="secondary-button" disabled={busy} onClick={onDecline}>
+        <button type="button" className="secondary-button button-small" disabled={busy} onClick={onDecline}>
           Avböj
         </button>
       </div>
@@ -19,7 +20,7 @@ function PersonActions({ relation, busy, onSend, onAccept, onDecline, onCancel, 
   if (relation === 'outgoing') {
     return (
       <div className="card-actions">
-        <button type="button" className="secondary-button" disabled={busy} onClick={onCancel}>
+        <button type="button" className="secondary-button button-small" disabled={busy} onClick={onCancel}>
           Ångra förfrågan
         </button>
       </div>
@@ -39,7 +40,7 @@ function PersonActions({ relation, busy, onSend, onAccept, onDecline, onCancel, 
 
   return (
     <div className="card-actions">
-      <button type="button" className="primary-button" disabled={busy} onClick={onSend}>
+      <button type="button" className="primary-button button-small" disabled={busy} onClick={onSend}>
         Skicka förfrågan
       </button>
       <button type="button" className="text-button" disabled={busy} onClick={onDismiss}>

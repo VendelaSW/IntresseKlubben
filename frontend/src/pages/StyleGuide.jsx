@@ -6,6 +6,7 @@ import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import Avatar from '../components/Avatar'
+import Intressekompis from '../components/Intressekompis'
 import BackButton from '../components/BackButton'
 import ConversationCard from '../components/ConversationCard'
 import Modal from '../components/Modal'
@@ -228,6 +229,20 @@ function StyleGuide() {
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Intressekompisen (components/Intressekompis.jsx)
+        </p>
+        <p className="hint-text">
+          Maskoten, med pupiller som följer muspekaren. Fyller bredden på sin förälder och behåller proportionerna, så
+          storleken ges med `width` (till exempel "200px") eller genom förälderns bredd. Rent dekorativ: ge den alt=""
+          där den bara pryder. Pupillerna står stilla för den som valt mindre rörelse i systemet. Ingen egen CSS, allt
+          ligger i komponenten.
+        </p>
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-end', marginTop: '0.5rem' }}>
+          <Intressekompis width="200px" />
+          <Intressekompis width="90px" alt="" />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Klickbart kort (.card .card-interactive), t.ex. en tumnagel i personlistan
         </p>
         <p className="hint-text">
@@ -260,7 +275,8 @@ function StyleGuide() {
         <h2>Brev</h2>
         <p className="swatch-label">Kuvert (.envelopes med ConversationCard)</p>
         <p className="hint-text">
-          Fyra per rad på dator, tre på mobil. Klickbara som andra kort (.card-interactive): lyfts och
+          Fem per rad på dator, från vänster i linje med rubriken och flikarna, och tre i mitten på
+          mobil. Klickbara som andra kort (.card-interactive): lyfts och
           får gul kant vid hover. Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret; ett
           nytt (.envelope-new) förblir stängt och har ett gult sigill. Avståndet mellan raderna följer
           kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför. Personens bild står
@@ -330,7 +346,7 @@ function StyleGuide() {
           På dator ligger rubrik och flikar till vänster på alla sidor, på mobil centrerade (Brev,
           Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
           .app-section för sidor med kort i rutnät (Klubbar och Events): "+"-knappen direkt efter
-          rubriken, tätare avstånd, högst tre kort per rad, och på mobil centreras även korten.
+          rubriken och tätare avstånd.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
           <div className="page-header">
@@ -356,7 +372,11 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Hela övre delen (.list-card-link) är klickbar. Knappar och märken ligger utanför den, i
-          .card-actions. Beskrivningen kortas av efter tre rader (.list-card-description).
+          .card-actions. Korten i .card-grid-compact är minst --card-height höga och lika höga i varje
+          rad (de växer om innehållet kräver det), och på dator fyller de bredden kant i kant med
+          rubriken, så många per rad som får plats. Namnet kortas
+          av efter två rader och beskrivningen efter tre, med "…". På personkorten scrollar
+          intressena, så att bild, namn, plats och knappar alltid syns.
         </p>
         <div className="card-grid card-grid-compact" style={{ marginTop: '1rem' }}>
           <article className="card card-interactive list-card">
