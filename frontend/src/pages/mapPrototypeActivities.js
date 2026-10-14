@@ -11,7 +11,8 @@
 //
 // Klubbar är vita och events rosa. Ens bokade events (samma som "Mina events"
 // i appen: de man skapat eller svarat Ja eller Kanske på) är det viktigaste
-// kartan visar, så de är starkt rosa, visar alltid namnet och ligger överst.
+// kartan visar, så de är starkt rosa, lite större och ligger överst. Utzoomat
+// blir de en ikon som alla andra lappar.
 
 import eventIcon from '../assets/event.png'
 import klubbarIcon from '../assets/klubbar.png'
@@ -126,8 +127,7 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick }) {
       if (item.kommun !== kommun) continue
       const { x, y } = map.project(item.lngLat)
       if (x < -200 || x > width + 200 || y < -200 || y > height + 200) continue
-      // Bokade events visar alltid namnet, även utzoomat.
-      placed.push({ item, x, y, el: markerEl(item, compact && !item.booked) })
+      placed.push({ item, x, y, el: markerEl(item, compact) })
     }
     // Lägg ut lapparna för att kunna mäta dem, och knuffa sedan isär dem som
     // överlappar (uppifrån och ner, några varv).

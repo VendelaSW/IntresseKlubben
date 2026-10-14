@@ -466,6 +466,12 @@
   height: 26px;
 }
 
+/* Utzoomat är även bokade events bara ikonen (se is-compact), med samma luft
+   runt om som de andra. */
+.map-activity.is-event.is-booked.is-compact {
+  padding: 0.25rem;
+}
+
 .map-activity.is-booked .map-activity-sub {
   color: #3a2f25;
   font-weight: 700;
