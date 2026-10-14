@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import ServiceInfo from './pages/ServiceInfo'
 import StyleGuide from './pages/StyleGuide'
+import KompisTest from './pages/KompisTest'
 import ProfilePage from './pages/ProfilePage'
 import ProfileInterview from './pages/ProfileInterview'
 import GroupsPage from './pages/GroupsPage'
@@ -39,6 +40,8 @@ function App() {
         <Route path="/logga-in" element={<Navigate to="/" replace />} />
         <Route path="/registrera" element={<Navigate to="/" replace />} />
         <Route path="/stilguide" element={<StyleGuide />} />
+        {/* TEST: intressekompisen med pupiller som följer muspekaren. */}
+        <Route path="/kompis-test" element={<KompisTest />} />
 
         <Route element={<ProtectedRoute />}>
           {/* Bara för inloggade med klar profil, och utanför AppShell eftersom
