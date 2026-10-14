@@ -10,7 +10,7 @@ Den här guiden beskriver hur en feature går från ticket till merge, hur koden
 
 Backend (FastAPI) och frontend (React + Vite) ligger i samma repo men deployas som två separata Vercel-projekt.
 
-Bara `main` och `dev` deployas automatiskt (`git.deploymentEnabled` i `frontend/vercel.json` och `backend/vercel.json`). Gratisplanen tillåter 100 deployer per dag, och varje push till en branch kostade två (ett per projekt), så feature-branches, `pre-dev` och PR:er får ingen egen förhandsvisning. Testa lokalt innan du öppnar en PR, och samla gärna ändringarna så att du pushar mer sällan. Behöver en PR ändå en förhandsvisning går det att starta en deploy för branchen manuellt i Vercel.
+Bara `main` och `dev` deployas automatiskt (`git.deploymentEnabled` i `frontend/vercel.json` och `backend/vercel.json`). Gratisplanen tillåter 100 deployer per dag, och varje push till en branch kostade två (ett per projekt), så feature-branches, `pre-dev` och PR:er får ingen egen förhandsvisning. Testa lokalt innan du öppnar en PR (på mobilen också, se [testa-pa-mobilen.md](testa-pa-mobilen.md)), och samla gärna ändringarna så att du pushar mer sällan. Behöver en PR ändå en förhandsvisning går det att starta en deploy för branchen manuellt i Vercel.
 
 ### Från feature till produktion
 

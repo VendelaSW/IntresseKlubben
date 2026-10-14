@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
+from app.api.people import to_person_response
 from app.auth.security import get_current_user, require_profile
 from app.core import storage
 from app.crud import contact as contact_crud
@@ -34,7 +35,7 @@ def _to_contact_user(other: User) -> ContactUser:
 def _to_list_item(contact, other: User) -> ContactListItem:
     return ContactListItem(
         **ContactResponse.model_validate(contact).model_dump(),
-        user=_to_contact_user(other),
+        user=to_person_response(other),
     )
 
 

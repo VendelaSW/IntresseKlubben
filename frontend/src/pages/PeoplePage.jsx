@@ -161,13 +161,18 @@ function PeoplePage() {
   const matches = suggested.filter(({ person }) => sharedCount(person) > 0)
   const others = suggested.filter(({ person }) => sharedCount(person) === 0)
 
+  // Gemensamma intressen markerade och förklarade på alla personkort (förslag,
+  // förfrågningar och kontakter), så att korten ser likadana ut.
+  function sharedProps(person) {
+    return { sharedInterestIds: myInterestIds, reason: sharedInterestsText(person, myInterestIds) }
+  }
+
   function suggestionCard({ person, outgoing }) {
     return (
       <PersonCard
         key={person.id}
         person={person}
-        sharedInterestIds={myInterestIds}
-        reason={sharedInterestsText(person, myInterestIds)}
+        {...sharedProps(person)}
         actions={
           <PersonActions
             relation={outgoing ? 'outgoing' : null}
@@ -328,6 +333,7 @@ function PeoplePage() {
                 <PersonCard
                   key={request.id}
                   person={request.user}
+                  {...sharedProps(request.user)}
                   actions={
                     <PersonActions
                       relation="incoming"
@@ -350,6 +356,7 @@ function PeoplePage() {
                 <PersonCard
                   key={request.id}
                   person={request.user}
+                  {...sharedProps(request.user)}
                   actions={
                     <PersonActions
                       relation="outgoing"
@@ -387,6 +394,7 @@ function PeoplePage() {
               <PersonCard
                 key={contact.id}
                 person={contact.user}
+                {...sharedProps(contact.user)}
                 actions={
                   <PersonActions
                     relation="contact"
