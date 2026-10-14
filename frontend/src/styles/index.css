@@ -874,8 +874,11 @@ span.tag-selected:hover {
 /* Kort med en maxbredd i stället för att sträcka ut sig över hela raden
    (card-grids 1fr) när det bara är något enstaka kort. Ligger kvar i samma
    vänsterställda ram som resten av sidan. Lägg till utöver card-grid. */
+/* Kort i fast bredd (Personer, Klubbar och Events), centrerade: auto-fit tar
+   bort tomma kolumner, så att några få kort hamnar i mitten. */
 .card-grid-compact {
-  grid-template-columns: repeat(auto-fill, minmax(260px, 300px));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
+  justify-content: center;
 }
 
 /* Layouten för personkort och brevkort. Hover-effekten kommer från
@@ -1064,8 +1067,13 @@ span.tag-selected:hover {
   padding: calc(var(--envelope-reach) - 0.25rem) 0 0;
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: calc(var(--envelope-reach) + 1.1rem) 1.75rem;
+  /* Fyra lika breda kolumner. auto-fit tar bort de tomma, så att ett eller två
+     brev hamnar i mitten i stället för till vänster; fylls raden blir det som
+     förut. */
+  --envelope-gap: 1.75rem;
+  grid-template-columns: repeat(auto-fit, calc((100% - 3 * var(--envelope-gap)) / 4));
+  justify-content: center;
+  gap: calc(var(--envelope-reach) + 1.1rem) var(--envelope-gap);
 }
 
 /* Kuvertet man pekar på läggs överst, så att dess öppna flik och papper syns
@@ -1414,8 +1422,9 @@ span.tag-selected:hover {
    kuvertet), och pappret i chatten ligger längst ner på skärmen, där man skriver. */
 @media (max-width: 767px) {
   .envelopes {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1.4rem 0.75rem;
+    --envelope-gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, calc((100% - 2 * var(--envelope-gap)) / 3));
+    gap: 1.4rem var(--envelope-gap);
     padding-top: 0.25rem;
   }
 
@@ -1564,29 +1573,23 @@ span.tag-selected:hover {
   margin: 0;
 }
 
-/* Centrerad sida: lägg på <section className="app-section app-section-centered">.
-   Rubriken med "+"-knappen alldeles bredvid, flikarna, kortrutnätet och arken
-   centreras, och avstånden blir tätare. Personer och Brev är inte centrerade. */
+/* Sida med kort i rutnät: lägg på <section className="app-section app-section-centered">
+   (Klubbar och Events). På dator ligger allt till vänster, som på Personer och
+   Brev: rubriken med "+"-knappen alldeles bredvid och flikarna, med tätare
+   avstånd. Korten ligger i mitten. På mobil centreras sidan (se nedan). */
 .app-section-centered {
-  align-items: center;
   gap: 0.75rem;
 }
 
-/* Lite luft mellan rubriken och "+"-knappen. */
+/* Lite luft mellan rubriken och "+"-knappen, som ligger direkt efter rubriken. */
 .app-section-centered .page-header {
-  justify-content: center;
+  justify-content: flex-start;
   gap: 1.5rem;
 }
 
-.app-section-centered .filter-tabs {
-  justify-content: center;
-}
-
-/* Rutnätet och filtren fyller hela bredden (annars krymper de till sitt
-   innehåll i den centrerade kolumnen) och centrerar sina kolumner. */
+/* Rutnätet och filtren fyller hela bredden. */
 .app-section-centered .card-grid {
   width: 100%;
-  justify-content: center;
 }
 
 /* En rad luft mellan flikarna och listan (korten, eller texten när den är tom). */
@@ -1595,23 +1598,41 @@ span.tag-selected:hover {
   margin-top: 1.5rem;
 }
 
-/* Högst tre kort per rad (tre kortbredder plus två mellanrum). auto-fit
-   tar bort tomma kolumner, så att ett enstaka kort hamnar mitt på sidan. På
-   smala skärmar får bara en eller två kolumner plats, så korten lägger sig
+/* Högst tre kort per rad (tre kortbredder plus två mellanrum), mitt på sidan.
+   På smala skärmar får bara en eller två kolumner plats, så korten lägger sig
    under varandra av sig själva. */
 .app-section-centered .card-grid-compact {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
   max-width: calc(3 * 300px + 2 * 1rem);
+  margin-inline: auto;
 }
 
 .app-section-centered .filter-select-row {
   width: 100%;
 }
 
-/* Bara sidans egna texter (tom lista, fel) centreras, inte texter inne i ett ark. */
-.app-section-centered > .hint-text,
-.app-section-centered > .status-error {
-  text-align: center;
+/* Mobil: rubriken och flikarna centreras på alla sidorna (Brev, Personer,
+   Klubbar och Events, också i kartans block), så att flikarna går lika lätt
+   att nå med höger och vänster tumme. Klubbar och Events centrerar även sina
+   egna texter (tom lista, fel), men inte texter inne i ett ark. Korten och
+   breven är centrerade på alla skärmar (se .card-grid-compact och .envelopes). */
+@media (max-width: 767px) {
+  .app-section > .app-title {
+    text-align: center;
+  }
+
+  .app-section .page-header,
+  .app-section .filter-tabs {
+    justify-content: center;
+  }
+
+  .app-section-centered {
+    align-items: center;
+  }
+
+  .app-section-centered > .hint-text,
+  .app-section-centered > .status-error {
+    text-align: center;
+  }
 }
 
 /* Ett ark: ett vitt kort lika brett som profilkorten, vänsterställt som resten
