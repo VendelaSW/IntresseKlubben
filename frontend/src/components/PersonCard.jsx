@@ -1,6 +1,79 @@
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from './Avatar'
 import InterestTags from './InterestTags'
+
+// Högst så många intressen syns på kortet (på en rad). Fler fälls ut med ⋯.
+const MAX_TAGS = 3
+
+// Intressena på ett personkort: på en rad, de gemensamma först, och bara så
+// många som får plats hela (högst MAX_TAGS). Har personen fler visar en
+// ⋯-tagg alla i en ruta som fälls ut över kortet, så att man slipper gå in på
+// profilen. Rutan stängs med ⋯ igen, ett klick utanför eller Esc.
+function CardInterests({ interests, sharedIds }) {
+  const [open, setOpen] = useState(false)
+  // Hur många taggar som får plats på raden. Räknas ner tills raden inte är
+  // för bred, och börjar om när kortet ändrar bredd.
+  const [count, setCount] = useState(MAX_TAGS)
+  const boxRef = useRef(null)
+  const rowRef = useRef(null)
+  const panelId = useId()
+  const isShared = (interest) => sharedIds?.has(interest.id) ?? false
+  const ordered = [...interests.filter(isShared), ...interests.filter((interest) => !isShared(interest))]
+
+  useLayoutEffect(() => {
+    const row = rowRef.current
+    if (count > 1 && row && row.scrollWidth > row.clientWidth + 1) setCount(count - 1)
+  }, [count, interests])
+
+  useEffect(() => {
+    let width = boxRef.current?.offsetWidth
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width === width) return
+      width = entry.contentRect.width
+      setCount(MAX_TAGS)
+    })
+    observer.observe(boxRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!open) return undefined
+    const close = (event) => {
+      if (event.type === 'keydown' ? event.key === 'Escape' : !boxRef.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', close)
+    return () => {
+      document.removeEventListener('pointerdown', close)
+      document.removeEventListener('keydown', close)
+    }
+  }, [open])
+
+  return (
+    <div className={`person-card-interests${open ? ' is-open' : ''}${count === 1 ? ' is-tight' : ''}`} ref={boxRef}>
+      <InterestTags listRef={rowRef} interests={ordered.slice(0, count)} highlight={sharedIds}>
+        {ordered.length > count && (
+          <button
+            type="button"
+            className="tag person-card-more"
+            aria-expanded={open}
+            aria-controls={panelId}
+            aria-label={open ? 'Dölj alla intressen' : `Visa alla ${ordered.length} intressen`}
+            onClick={() => setOpen(!open)}
+          >
+            ⋯
+          </button>
+        )}
+      </InterestTags>
+      {open && (
+        <div id={panelId} className="person-card-interests-all">
+          <InterestTags interests={ordered} highlight={sharedIds} />
+        </div>
+      )}
+    </div>
+  )
+}
 
 // Ett kort för en annan användare. Avatar, namn och plats länkar till
 // personens skrivskyddade profil. Åtgärdsknapparna (skicka/acceptera/ta
@@ -8,7 +81,8 @@ import InterestTags from './InterestTags'
 // hamnar nästlade i en <a> (ogiltig HTML och krockande klick).
 // `sharedInterestIds` är valfri (en Set) och markerar gemensamma intressen.
 // `reason` är valfri: en kort förklaring till varför personen föreslås,
-// t.ex. "Ni har 2 gemensamma intressen" (text eller JSX).
+// t.ex. "Ni har 2 gemensamma intressen" (text eller JSX). Intressena visas
+// på en rad, se CardInterests.
 function PersonCard({ person, sharedInterestIds, reason, actions }) {
   // Kontakter/förfrågningar har bara username garanterat (inget namn valt än).
   const displayName = person.name ?? person.username
@@ -25,9 +99,7 @@ function PersonCard({ person, sharedInterestIds, reason, actions }) {
         {place && <p className="card-subheading">{place}</p>}
       </Link>
       {reason && <p className="hint-text">{reason}</p>}
-      {person.interests?.length > 0 && (
-        <InterestTags interests={person.interests} highlight={sharedInterestIds} />
-      )}
+      {person.interests?.length > 0 && <CardInterests interests={person.interests} sharedIds={sharedInterestIds} />}
       {actions}
     </article>
   )

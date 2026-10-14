@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.profile import PersonResponse
+
 
 class ContactRequest(BaseModel):
     # Mottagaren anges med id. Användarnamn används aldrig för att peka ut
@@ -35,7 +37,9 @@ class ContactUser(BaseModel):
 
 
 class ContactListItem(ContactResponse):
-    user: ContactUser
+    # Den andra personen som på ett personkort (ålder, kommun, intressen), så att
+    # kontakter och förfrågningar visas som förslagen på Personer.
+    user: PersonResponse
 
 
 class ContactListResponse(BaseModel):
