@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 // Finns det en tidigare sida i appen att gå tillbaka till med navigate(-1)?
 // Används av "Tillbaka" på sidor som kan öppnas direkt via en länk (då finns
@@ -13,4 +14,13 @@ export const CanGoBackContext = createContext(null)
 export function useCanGoBack() {
   const fromPad = useContext(CanGoBackContext)
   return () => (fromPad ? fromPad() : Boolean(window.history.state && window.history.state.idx > 0))
+}
+
+// "Tillbaka": till sidan innan, i appen och i kartans block. Finns ingen (sidan
+// öppnades direkt via en länk) anropas `fallback` i stället, t.ex. för att visa
+// listan.
+export function useGoBack(fallback) {
+  const navigate = useNavigate()
+  const canGoBack = useCanGoBack()
+  return () => (canGoBack() ? navigate(-1) : fallback())
 }
