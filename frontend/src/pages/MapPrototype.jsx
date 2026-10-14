@@ -17,7 +17,7 @@ import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from '.
 import { getEvents } from '../services/events'
 import { getGroups, getMyGroups } from '../services/groups'
 import { getProfile } from '../services/profile'
-import { activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
+import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
 import {
   ZOOM_LEVELS,
   allKommuner,
@@ -117,8 +117,10 @@ const TILT = 45
 const DISTRICT_CLASSES = ['city', 'town', 'village', 'suburb', 'quarter', 'neighbourhood', 'hamlet', 'island']
 // Zoomen för en kommun eller stadsdel: där de skissade husen har vuxit upp.
 const DISTRICT_ZOOM = 15
-// Zoomen för "Visa på kartan": lappen med sin omgivning.
-const ACTIVITY_ZOOM = 11
+// Zoomen när kartan flyger till en klubb eller ett event med nål (exakt
+// plats): ända ner till gatorna och husen. Utan nål flygs det till FULL_ZOOM
+// (se mapPrototypeActivities.js), där lappen visas hel.
+const ACTIVITY_PLACE_ZOOM = 16
 // Längst in man kan zooma: kvarter med husen tydliga. Kartdatan har ingen
 // mer detalj längre in (den förstoras bara), och husen blir bara större.
 const MAX_ZOOM = 17
@@ -799,6 +801,10 @@ function MapPrototype() {
 
   // Hämtar klubbar och events som syns för användaren (samma som listorna i
   // appen) och lägger dem på kartan.
+  // Kommunerna (se allKommuner), när de har laddats: för att kunna placera en
+  // klubb eller ett event som inte finns bland lapparna än (se findActivity).
+  const kommunerRef = useRef(null)
+
   async function loadActivities() {
     try {
       const [publicGroups, myGroups, events, kommuner] = await Promise.all([
@@ -808,6 +814,7 @@ function MapPrototype() {
         allKommuner(),
       ])
       const groups = [...new Map([...publicGroups, ...myGroups].map((g) => [g.id, g])).values()]
+      kommunerRef.current = kommuner
       activitiesRef.current?.setItems(activitiesFrom({ groups, events, kommuner }))
     } catch {
       // Kartan fungerar utan lapparna.
@@ -823,19 +830,53 @@ function MapPrototype() {
   const openActivityRef = useRef(openActivity)
   openActivityRef.current = openActivity
 
+  // Flyg till en lapp och markera den: till gatunivån om den har en nål,
+  // annars så nära att lappen visas hel (den står då mitt i kommunen).
+  function flyToActivity(item) {
+    const map = mapRef.current
+    if (!map) return
+    setMode('free', null, item.lan, item.kommun)
+    const zoom = item.exact ? ACTIVITY_PLACE_ZOOM : FULL_ZOOM
+    map.easeTo({ center: item.lngLat, zoom, duration: 1400 })
+    setLevelName(item.name)
+    map.once('moveend', () => activitiesRef.current?.highlight(`${item.type}:${item.id}`))
+  }
+
+  // Klick på en lapp på kartan: är den hopfälld till en ikon flygs det dit
+  // först, och är den hel (man är redan där) öppnas klubben eller eventet.
+  function pickActivity(item, compact) {
+    if (compact) flyToActivity(item)
+    else openActivity(item)
+  }
+  const pickActivityRef = useRef(pickActivity)
+  pickActivityRef.current = pickActivity
+
   // "Visa på kartan" från Klubbar och Events: stäng blocket, gå till länet
   // där klubben eller eventet finns och flyg till lappen, som markeras.
+  // Lappen för en klubb eller ett event. Finns den inte bland lapparna än (t.ex.
+  // ett event som nyss skapats i blocket; lapparna hämtas om först när blocket
+  // stängs) räknas platsen ut från klubbens eller eventets egna uppgifter, `data`.
+  function findActivity(type, id, data) {
+    const existing = activitiesRef.current?.getItem(type, id)
+    if (existing || !data || !kommunerRef.current) return existing ?? null
+    const [item] = activitiesFrom({
+      groups: type === 'klubb' ? [data] : [],
+      events: type === 'event' ? [data] : [],
+      kommuner: kommunerRef.current,
+    })
+    return item ?? null
+  }
+
   const mapActions = {
-    hasLocation: (type, id) => Boolean(activitiesRef.current?.getItem(type, id)),
-    showOnMap(type, id) {
-      const item = activitiesRef.current?.getItem(type, id)
+    hasLocation: (type, id, data) => Boolean(findActivity(type, id, data)),
+    showOnMap(type, id, data) {
+      const item = findActivity(type, id, data)
       const map = mapRef.current
       if (!item || !map) return
+      // Ny lapp: lägg ut den, så att den syns och kan markeras.
+      if (!activitiesRef.current?.getItem(type, id)) activitiesRef.current?.putItem(item)
       setOpenPage(null)
-      setMode('free', null, item.lan, item.kommun)
-      map.easeTo({ center: item.lngLat, zoom: ACTIVITY_ZOOM, duration: 1400 })
-      setLevelName(item.name)
-      map.once('moveend', () => activitiesRef.current?.highlight(`${type}:${id}`))
+      flyToActivity(item)
     },
   }
 
@@ -1184,7 +1225,7 @@ function MapPrototype() {
     startAtHome(map)
     activitiesRef.current = attachActivityMarkers(map, activitiesLayerRef.current, {
       getKommun: () => selectedKommunRef.current,
-      onPick: (item) => openActivityRef.current(item),
+      onPick: (item, compact) => pickActivityRef.current(item, compact),
     })
     loadActivities()
     labelsApiRef.current = labelsApi

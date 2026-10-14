@@ -50,6 +50,8 @@ def _to_response(event: Event, user_id: int) -> EventOut:
         ends_at=event.ends_at,
         place_name=event.place_name,
         address=event.address,
+        latitude=event.latitude,
+        longitude=event.longitude,
         visibility=event.visibility,
         group_id=event.group_id,
         group_name=event.group.name if event.group else None,

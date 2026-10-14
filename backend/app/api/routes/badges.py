@@ -3,7 +3,7 @@ Siffrorna för appens märken.
 
 GET /users/me/badges - kontaktförfrågningar, klubbinbjudningar och
   eventinbjudningar att svara på, plus det som behövs för att räkna nya brev
-  (se schemas/badges.py). Frontend räknar om dem ofta (var 30:e sekund och vid
+  och nya events i ens klubbar (se schemas/badges.py). Frontend räknar om dem ofta (var 30:e sekund och vid
   sidbyte), så allt kommer i ett anrop i stället för fyra listor. Siffrorna
   räknas med samma regler som listorna på Personer, Klubbar, Events och Brev.
 
@@ -16,12 +16,12 @@ from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user, require_profile
 from app.crud.contact import blocked_user_ids, incoming_request_count
-from app.crud.event import unanswered_invitation_count
+from app.crud.event import unanswered_club_events, unanswered_invitation_count
 from app.crud.group import invitation_count
 from app.crud.message import list_conversations
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.badges import BadgeCounts, ConversationActivity
+from app.schemas.badges import BadgeCounts, ClubEventActivity, ConversationActivity
 
 router = APIRouter(prefix="/users", tags=["badges"], dependencies=[Depends(require_profile)])
 
@@ -50,5 +50,9 @@ def read_my_badges(current_user: User = Depends(get_current_user), db: Session =
                 last_message_from_me=message.sender_id == user_id,
             )
             for other_id, message in list_conversations(db, user_id, hidden)
+        ],
+        club_events=[
+            ClubEventActivity(id=event_id, created_at=created_at)
+            for event_id, created_at in unanswered_club_events(db, user_id, hidden)
         ],
     )

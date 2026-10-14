@@ -10,6 +10,8 @@ import { contactsQuery } from '../../services/contacts'
 import { eventsQuery } from '../../services/events'
 import { myGroupsQuery } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
+import { useAuth } from '../../hooks/useAuth'
+import { markEventsSeen } from '../../services/eventsSeen'
 
 const TABS = [
   { id: 'mine', label: 'Mina events' },
@@ -71,6 +73,12 @@ function EventsPanel() {
   const goBack = useGoBack(() =>
     fromGroupId ? navigate(`/klubbar?klubb=${fromGroupId}`, { replace: true }) : setView('list', { replace: true }),
   )
+  // Har man öppnat Events har man sett klubbarnas nya events, så de räknas
+  // inte längre i märket (se services/eventsSeen.js).
+  const { user } = useAuth()
+  useEffect(() => {
+    if (user) markEventsSeen(user.id)
+  }, [user?.id])
   // Alla events man får se, ens klubbar (formuläret) och ens kontakter (för att
   // bjuda in), ur det delade minnet (se services/queryClient.js): har man varit
   // här nyss visas de direkt och hämtas om i bakgrunden. Det som ändrar ett event

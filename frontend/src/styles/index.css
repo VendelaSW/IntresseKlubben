@@ -2166,6 +2166,45 @@ span.tag-selected:hover {
   gap: 0.5rem;
 }
 
+/* Var på kartan (components/LocationPicker.jsx): sök fram adressen, välj en
+   träff och justera nålen på en liten karta. */
+.location-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.location-picker-label {
+  margin: 0;
+  font-weight: 600;
+}
+
+.location-picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.location-picker-results {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.location-picker-map {
+  width: 100%;
+  height: 240px;
+  border: 1.5px solid var(--color-text);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-accent-soft);
+}
+
 /* Knapparna längst ner i ett formulär, sida vid sida. */
 .form-actions {
   display: flex;

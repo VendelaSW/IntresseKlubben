@@ -1,24 +1,28 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from './useAuth'
 import { getBadges } from '../services/badges'
+import { EVENTS_SEEN, eventsSeenAt } from '../services/eventsSeen'
 import { INVITATIONS_CHANGED } from '../services/groups'
 import { countUnseenConversations } from '../services/messages'
 
 // Hur ofta siffrorna räknas om medan man står kvar.
 const POLL_MS = 30000
 
-export const EMPTY_COUNTS = { contactRequests: 0, clubInvitations: 0, eventInvitations: 0, unseenMessages: 0 }
+export const EMPTY_COUNTS = { contactRequests: 0, clubInvitations: 0, eventNews: 0, unseenMessages: 0 }
 
 // Siffrorna för appens märken (menyn i AppShell och lapparna på kartan):
 //   contactRequests: obesvarade kontaktförfrågningar (Personer)
 //   clubInvitations: klubbar man är inbjuden till (Klubbar)
-//   eventInvitations: events man är inbjuden till och inte har svarat på (Events)
+//   eventNews: events man inte har svarat på som antingen är en inbjudan, eller
+//     är nya i en av ens klubbar sedan man senast tittade på Events (se
+//     services/eventsSeen.js). Ens egna och de som redan är slut räknas inte.
+//     (Events)
 //   unseenMessages: konversationer med nya brev, samma som fliken Nya på Brev
 //     (Brev). `openConversationId` är konversationen man har öppen; den räknas
 //     inte, eftersom chatten själv markerar den som sedd.
 //
 // Räknas om när `refreshKey` ändras (t.ex. vid sidbyte), när man har gått med
-// i eller avböjt en klubb, och var POLL_MS, så att något nytt syns utan att
+// i eller avböjt en klubb, när man har tittat på Events, och var POLL_MS, så att något nytt syns utan att
 // man gör något. Pausar när fliken inte syns och räknar om direkt när man
 // kommer tillbaka. Anropen är låsta tills profilen är klar (require_profile i
 // backend), så inget hämtas innan dess.
@@ -26,12 +30,17 @@ export const EMPTY_COUNTS = { contactRequests: 0, clubInvitations: 0, eventInvit
 // Alla fyra kommer i ett anrop (GET /users/me/badges), så att en omräkning
 // inte blir fyra anrop som var och en kan råka ut för en kallstart.
 //
+// Hur många av klubbarnas events ([{ id, created_at }]) som har skapats sedan
+// `seenAt`, när man senast tittade på Events.
+const countNew = (clubEvents, seenAt) => clubEvents.filter((e) => new Date(e.created_at).getTime() > seenAt).length
+
 // Ger null tills första hämtningen är klar, så att den som jämför siffror
 // (kartans lappar studsar när en går upp) inte tar de första riktiga
 // siffrorna för en ökning från noll. Alla fyra sätts på en gång.
 export function useBadgeCounts({ refreshKey = null, openConversationId = null } = {}) {
   const { user } = useAuth()
   const profileDone = Boolean(user?.profile_completed)
+  const userId = user?.id
   const [counts, setCounts] = useState(null)
 
   useEffect(() => {
@@ -56,7 +65,9 @@ export function useBadgeCounts({ refreshKey = null, openConversationId = null } 
       const next = {
         contactRequests: badges.contact_requests,
         clubInvitations: badges.club_invitations,
-        eventInvitations: badges.event_invitations,
+        // Klubbarnas events kommer utan inbjudningarna (de räknas redan), så
+        // inget räknas två gånger.
+        eventNews: badges.event_invitations + countNew(badges.club_events, eventsSeenAt(userId)),
         unseenMessages: countUnseenConversations(badges.conversations.filter((c) => c.id !== openConversationId)),
       }
       setCounts((current) => {
@@ -73,13 +84,15 @@ export function useBadgeCounts({ refreshKey = null, openConversationId = null } 
     const timer = setInterval(refresh, POLL_MS)
     document.addEventListener('visibilitychange', onVisibilityChange)
     window.addEventListener(INVITATIONS_CHANGED, refresh)
+    window.addEventListener(EVENTS_SEEN, refresh)
     return () => {
       cancelled = true
       clearInterval(timer)
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener(INVITATIONS_CHANGED, refresh)
+      window.removeEventListener(EVENTS_SEEN, refresh)
     }
-  }, [refreshKey, openConversationId, profileDone])
+  }, [refreshKey, openConversationId, profileDone, userId])
 
   return counts
 }

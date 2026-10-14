@@ -7,6 +7,7 @@ import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import Avatar from '../components/Avatar'
 import Intressekompis from '../components/Intressekompis'
+import LocationPicker from '../components/LocationPicker'
 import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
@@ -59,6 +60,7 @@ function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  const [examplePosition, setExamplePosition] = useState(null)
 
   return (
     <div className="page">
@@ -227,6 +229,26 @@ function StyleGuide() {
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
           <Avatar name="Emmy" className="person-list-avatar" />
           <Avatar name="Emmy Lund" className="card-avatar" maxLetters={2} />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Platsväljare (components/LocationPicker.jsx)
+        </p>
+        <p className="hint-text">
+          Var på kartan ett event eller en klubbs träffplats är. "Hitta adressen på kartan" söker på queries i tur och
+          ordning (GET /geocode, kräver inloggning) och sätter en nål; nålen går att dra eller flytta med ett klick.
+          Utan nål visas kommunCode:s kommun, annars hela Sverige. value är {'{ latitude, longitude }'} eller null.
+          Kartan laddas först när komponenten visas.
+        </p>
+        <div className="auth-form form-wide" style={{ marginTop: '0.5rem' }}>
+          <LocationPicker
+            id="styleguide-position"
+            queries={['Odelbergs väg 2, Värmdö']}
+            value={examplePosition}
+            onChange={setExamplePosition}
+            saveLabel="Spara"
+            kommunCode="0120"
+          />
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
