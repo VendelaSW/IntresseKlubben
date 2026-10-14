@@ -1431,7 +1431,10 @@ span.tag-selected:hover {
   --notepad-top: calc(3.6rem + var(--line-gap));
   --line-offset: calc(var(--notepad-top) - 0.28rem);
   position: relative;
-  padding: var(--notepad-top) 1.2rem var(--line-gap) calc(var(--paper-margin) + 0.8rem);
+  /* Luften till höger och mellan den röda linjen och texten (se .notepad-messages). */
+  --notepad-right: 1.2rem;
+  --notepad-indent: 0.8rem;
+  padding: var(--notepad-top) var(--notepad-right) var(--line-gap) calc(var(--paper-margin) + var(--notepad-indent));
   border: 2px solid var(--color-line);
   border-radius: 4px;
   box-shadow: 0 6px 0 var(--color-line);
@@ -1539,13 +1542,41 @@ span.tag-selected:hover {
   line-height: 1.05;
 }
 
+/* Meddelandena (brevtråden och klubbchatten) scrollar i sin ruta, högst 15
+   linjer hög, så att sidan inte blir hur lång som helst. Rutan har egna
+   linjer som följer med när man scrollar (background-attachment: local), på
+   samma höjd som pappret runt omkring, så att texten står kvar på linjerna.
+   Rutan går från den röda linjen ända ut till papperets kant (texten ligger
+   kvar på samma ställe), så att dess kanter inte syns. Se useChatScroll. */
 .notepad-messages {
   list-style: none;
-  margin: 0;
-  padding: 0;
+  margin: 0 calc(-1 * var(--notepad-right)) 0 calc(1px - var(--notepad-indent));
+  padding: 0 var(--notepad-right) 0 calc(var(--notepad-indent) - 1px);
   display: flex;
   flex-direction: column;
   gap: var(--line-gap);
+  max-height: calc(15 * var(--line-gap));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background-color: var(--color-paper);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--line-gap) - 1px),
+    var(--color-line) calc(var(--line-gap) - 1px) var(--line-gap)
+  );
+  background-position: 0 -0.28rem;
+  background-attachment: local;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+.notepad-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notepad-messages::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 3px;
 }
 
 /* Långa ord och länkar bryts, så att de inte sticker ut ur pappret. */
@@ -1615,8 +1646,8 @@ span.tag-selected:hover {
 
   .notepad {
     --paper-margin: 2.2rem;
-    padding-right: 0.8rem;
-    padding-left: calc(var(--paper-margin) + 0.6rem);
+    --notepad-right: 0.8rem;
+    --notepad-indent: 0.6rem;
   }
 
   .notepad-title {
@@ -1801,6 +1832,31 @@ span.tag-selected:hover {
   .app-section-centered > .hint-text,
   .app-section-centered > .status-error {
     text-align: center;
+  }
+}
+
+/* En klubbs egen vy: klubbens ruta och klubbchatten. På mobil ligger chatten
+   under rutan, på dator bredvid till höger (också i kartans block). */
+.group-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .group-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .group-layout > .sheet {
+    flex: 0 1 480px;
+  }
+
+  .group-layout > .notepad {
+    flex: 1 1 0;
+    min-width: 0;
   }
 }
 

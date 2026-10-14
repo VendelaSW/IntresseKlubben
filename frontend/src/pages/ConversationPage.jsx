@@ -6,6 +6,7 @@ import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
+import { useChatScroll } from '../hooks/useChatScroll'
 import { conversationQuery, markConversationSeen, sendMessage } from '../services/messages'
 import { getProfile } from '../services/profile'
 import { formatSentAt } from '../utils/formatSentAt'
@@ -49,6 +50,9 @@ function ConversationPage() {
       .catch(() => {})
   }, [])
 
+  // Brevlistan scrollar i sin ruta och öppnas vid det senaste brevet (se useChatScroll).
+  const { listRef, onScroll, stickToBottom } = useChatScroll(messages.length)
+
   // Mobil: pappret ligger längst ner, så skrolla dit när brev tillkommer (även
   // när sidan öppnas), så att de senaste breven och svarsraden syns.
   useEffect(() => {
@@ -76,6 +80,7 @@ function ConversationPage() {
 
   async function handleSubmit(event) {
     event.preventDefault()
+    stickToBottom()
     setSending(true)
     setError('')
     try {
@@ -117,7 +122,7 @@ function ConversationPage() {
         )}
         {status === 'ready' && messages.length === 0 && <p className="hint-text">Inga brev än.</p>}
         {status === 'ready' && messages.length > 0 && (
-          <ol className="notepad-messages">
+          <ol className="notepad-messages" ref={listRef} onScroll={onScroll}>
             {/* Namn och tid som en rad överst, meddelandet under (som i de flesta chattar). */}
             {messages.map((m) => (
               <li key={m.id} className="notepad-message">
