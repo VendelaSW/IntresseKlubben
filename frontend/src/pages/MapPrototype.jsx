@@ -7,6 +7,8 @@ import { attachPlaceNotes } from './mapPrototypeNotes'
 import { attachSketchedBuildings } from './mapPrototypeBuildings'
 import { attachPinsAndThread } from './mapPrototypeRoute'
 import { attachPlaceSigns } from './mapPrototypeSigns'
+import logo from '../assets/intresseklubben.png'
+import Intressekompis from '../components/Intressekompis'
 import MapCalmPage from './MapCalmPage'
 import MapPagePad, { MAP_PAGES } from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
@@ -1306,6 +1308,11 @@ function MapPrototype() {
           </button>
         )}
       </div>
+      {/* TEST: dator: kompisen nere i högra hörnet. Mobil: den vanliga loggan uppe i vänstra hörnet. */}
+      <div className="map-kompis">
+        <Intressekompis alt="" />
+      </div>
+      <img src={logo} alt="Intresseklubben" className="map-logo" />
       <div className="map-top-widgets">
         <MapPageWidgets openPage={openPage} onOpen={(page) => (page ? openPad(page) : setOpenPage(null))} />
         <MapProfileWidget onOpen={openPad} calm={calm} onToggleCalm={toggleCalm} />

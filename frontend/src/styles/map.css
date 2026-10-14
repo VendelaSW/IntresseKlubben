@@ -948,6 +948,22 @@
   gap: 0.6rem;
 }
 
+/* TEST: intressekompisen nere i högra hörnet, ovanför kartans källhänvisning. Rent dekorativ, så klick går igenom
+   till kartan. Under blocken (z-index 5), så att han inte hamnar ovanpå ett öppet block. */
+.map-kompis {
+  position: absolute;
+  right: 10px;
+  bottom: 2.2rem;
+  z-index: 4;
+  width: 130px;
+  pointer-events: none;
+}
+
+/* TEST: den vanliga loggan, bara på mobil (se media-blocket nedan), där kompisen inte syns. */
+.map-logo {
+  display: none;
+}
+
 .map-profile-wrap {
   position: relative;
   display: flex;
@@ -1406,6 +1422,23 @@
     top: calc(10px + env(safe-area-inset-top));
     right: 54px;
     z-index: 6;
+  }
+
+  /* TEST: på mobil syns inte kompisen. Den vanliga loggan sitter i stället uppe i vänstra hörnet, som en fast logga
+     (verktygsknapparna börjar 84 px in). */
+  .map-kompis {
+    display: none;
+  }
+
+  .map-logo {
+    display: block;
+    position: absolute;
+    left: 0.2rem;
+    top: calc(10px + env(safe-area-inset-top));
+    z-index: 4;
+    width: 56px;
+    height: auto;
+    pointer-events: none;
   }
 
   .map-page-widgets {
