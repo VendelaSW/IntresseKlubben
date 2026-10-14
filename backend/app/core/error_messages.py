@@ -56,6 +56,16 @@ EVENT_TIME_NEEDS_TIMEZONE = "Ange tiden med tidszon"
 EVENT_INVITE_NOBODY = "Välj minst en person eller klubb att bjuda in"
 EVENT_GUESTS_CAN_INVITE_EMPTY = "Välj om gäster får bjuda in"
 
+# ---------- Position på kartan (schemas/position.py, routes/geocode.py) ----------
+POSITION_INCOMPLETE = "Ange både latitud och longitud, eller ingen av dem"
+POSITION_OUTSIDE_SWEDEN = "Platsen måste ligga i Sverige"
+GEOCODE_QUERY_TOO_SHORT = "Skriv minst tre tecken"
+GEOCODE_QUERY_TOO_LONG = "Sökningen får max vara 200 tecken"
+GEOCODE_UNAVAILABLE = "Adressökningen fungerar inte just nu. Sätt ut nålen på kartan själv."
+GEOCODE_TOO_MANY_REQUESTS = "För många sökningar. Vänta en stund"
+GROUP_PLACE_NAME_TOO_LONG = "Platsnamn får max vara 100 tecken"
+GROUP_ADDRESS_TOO_LONG = "Adress får max vara 100 tecken"
+
 # ---------- Events (routes/events.py, crud/event.py) ----------
 EVENT_NOT_FOUND = "Eventet finns inte"
 EVENT_ONLY_CREATOR = "Bara den som skapat eventet kan ändra det"

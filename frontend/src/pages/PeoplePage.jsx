@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import PersonCard from '../components/PersonCard'
 import {
   answerContactRequest,
   cancelContactRequest,
-  getContacts,
+  contactsQuery,
   removeContact,
   sendContactRequest,
 } from '../services/contacts'
 import { getAllInterests, getMyInterests } from '../services/interests'
 import { GENDER_OPTIONS, getMunicipalities } from '../services/profile'
-import { dismissSuggestion, getPeople, resetDismissedSuggestions } from '../services/people'
+import { dismissSuggestion, peopleQuery, resetDismissedSuggestions } from '../services/people'
 
 const TABS = [
   { id: 'suggested', label: 'Förslag' },
@@ -58,15 +59,13 @@ function sharedInterestsText(person, myInterestIds) {
 // för smala centrerade sidor och krymper annars hela sidan efter innehållet,
 // vilket flyttar om allt vid varje fliksbyte). Förslag kan filtreras på
 // intresse, kommun, kön och ålder.
+const NO_PEOPLE = []
+const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: [] }
+
 function PeoplePage() {
-  const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
+  // Intressena och kommunerna (för filtren) och ens egna intressen kommer ur minnet.
+  const [filterDataFailed, setFilterDataFailed] = useState(false)
   const [tab, setTab] = useState('suggested')
-  const [people, setPeople] = useState([])
-  const [contactsData, setContactsData] = useState({
-    contacts: [],
-    incoming_requests: [],
-    outgoing_requests: [],
-  })
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [filters, setFilters] = useState({
     interestId: '',
@@ -87,7 +86,7 @@ function PeoplePage() {
         setMunicipalities(m)
         setMyInterestIds(new Set(mine.map((interest) => interest.id)))
       })
-      .catch(() => setStatus('error'))
+      .catch(() => setFilterDataFailed(true))
   }, [])
 
   // Åldrarna skickas bara när de går ihop, så att en halvskriven ålder inte
@@ -112,20 +111,22 @@ function PeoplePage() {
     [interestId, municipalityCode, gender, minAge, maxAge, ageError],
   )
 
-  const loadAll = useCallback(
-    () =>
-      Promise.all([getPeople(query), getContacts()]).then(([p, c]) => {
-        setPeople(p)
-        setContactsData(c)
-      }),
-    [query],
-  )
-
-  useEffect(() => {
-    loadAll()
-      .then(() => setStatus('ready'))
-      .catch(() => setStatus('error'))
-  }, [loadAll])
+  // Personerna och ens kontakter ur det delade minnet (se services/queryClient.js):
+  // har man varit här nyss visas de direkt och hämtas om i bakgrunden. När
+  // filtren ändras ligger den förra listan kvar tills den nya har kommit.
+  const peopleResult = useQuery({ ...peopleQuery(query), placeholderData: keepPreviousData })
+  const contactsResult = useQuery(contactsQuery)
+  const people = peopleResult.data ?? NO_PEOPLE
+  const contactsData = contactsResult.data ?? NO_CONTACTS
+  const failed = (result) => result.isError && result.data === undefined
+  const status =
+    filterDataFailed || failed(peopleResult) || failed(contactsResult)
+      ? 'error'
+      : peopleResult.data && contactsResult.data
+        ? 'ready'
+        : 'loading'
+  // Efter en åtgärd (förfrågan, ta bort förslag...): hämta om, så att listorna stämmer.
+  const loadAll = () => Promise.all([peopleResult.refetch(), contactsResult.refetch()])
 
   if (status === 'error') {
     return (
@@ -160,13 +161,18 @@ function PeoplePage() {
   const matches = suggested.filter(({ person }) => sharedCount(person) > 0)
   const others = suggested.filter(({ person }) => sharedCount(person) === 0)
 
+  // Gemensamma intressen markerade och förklarade på alla personkort (förslag,
+  // förfrågningar och kontakter), så att korten ser likadana ut.
+  function sharedProps(person) {
+    return { sharedInterestIds: myInterestIds, reason: sharedInterestsText(person, myInterestIds) }
+  }
+
   function suggestionCard({ person, outgoing }) {
     return (
       <PersonCard
         key={person.id}
         person={person}
-        sharedInterestIds={myInterestIds}
-        reason={sharedInterestsText(person, myInterestIds)}
+        {...sharedProps(person)}
         actions={
           <PersonActions
             relation={outgoing ? 'outgoing' : null}
@@ -327,6 +333,7 @@ function PeoplePage() {
                 <PersonCard
                   key={request.id}
                   person={request.user}
+                  {...sharedProps(request.user)}
                   actions={
                     <PersonActions
                       relation="incoming"
@@ -349,6 +356,7 @@ function PeoplePage() {
                 <PersonCard
                   key={request.id}
                   person={request.user}
+                  {...sharedProps(request.user)}
                   actions={
                     <PersonActions
                       relation="outgoing"
@@ -386,6 +394,7 @@ function PeoplePage() {
               <PersonCard
                 key={contact.id}
                 person={contact.user}
+                {...sharedProps(contact.user)}
                 actions={
                   <PersonActions
                     relation="contact"

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core import error_messages as msg
@@ -43,6 +43,8 @@ def create_event(db: Session, user_id: int, data: EventCreate) -> Event:
         ends_at=data.ends_at,
         place_name=data.place_name,
         address=data.address,
+        latitude=data.latitude,
+        longitude=data.longitude,
         visibility=data.visibility,
         guests_can_invite=data.guests_can_invite,
         created_by=user_id,
@@ -86,8 +88,9 @@ def get_event(db: Session, event_id: int) -> Event | None:
     return _event_query(db).filter(Event.id == event_id).first()
 
 
-def _can_see(db: Session, user_id: int):
-    """Villkoret för vilka events användaren får se (utan tidsgräns)."""
+def _can_see(db: Session, user_id: int, hidden: set[int] | None = None):
+    """Villkoret för vilka events användaren får se (utan tidsgräns). `hidden`
+    är blocked_user_ids för användaren, om anroparen redan har hämtat dem."""
     invited = db.query(EventInvitation.event_id).filter(EventInvitation.user_id == user_id)
     my_groups = db.query(GroupMember.group_id).filter(GroupMember.user_id == user_id)
     return and_(
@@ -97,8 +100,52 @@ def _can_see(db: Session, user_id: int):
             Event.id.in_(invited),
             Event.group_id.in_(my_groups),
         ),
-        Event.created_by.notin_(blocked_user_ids(db, user_id)),
+        Event.created_by.notin_(blocked_user_ids(db, user_id) if hidden is None else hidden),
     )
+
+
+def _not_over(now: datetime):
+    """Villkoret för events som inte har passerat."""
+    return or_(
+        and_(Event.ends_at.isnot(None), Event.ends_at >= now),
+        and_(Event.ends_at.is_(None), Event.starts_at >= now - OPEN_ENDED_EVENT_LENGTH),
+    )
+
+
+def unanswered_invitation_count(db: Session, user_id: int, hidden: set[int] | None = None, now: datetime | None = None):
+    """Frågan efter antalet kommande events som användaren ser (som i
+    list_visible_events), är inbjuden till och inte har svarat på, att ställa
+    ensam eller ihop med andra räkningar i samma anrop till databasen."""
+    now = now or datetime.now(timezone.utc)
+    invited = select(EventInvitation.event_id).where(EventInvitation.user_id == user_id)
+    answered = select(EventResponse.event_id).where(EventResponse.user_id == user_id)
+    return (
+        select(func.count())
+        .select_from(Event)
+        .where(_can_see(db, user_id, hidden), _not_over(now), Event.id.in_(invited), Event.id.not_in(answered))
+    )
+
+
+def unanswered_club_events(db: Session, user_id: int, hidden: set[int] | None = None, now: datetime | None = None):
+    """Kommande events i användarens klubbar som hen inte har skapat, inte är
+    inbjuden till (de räknas redan som inbjudningar) och inte har svarat på:
+    (id, created_at), för märket vid Events. Vilka som är nya avgörs i
+    webbläsaren, som minns när man senast tittade (frontend/src/services/
+    eventsSeen.js), på samma sätt som de nya breven."""
+    now = now or datetime.now(timezone.utc)
+    my_groups = select(GroupMember.group_id).where(GroupMember.user_id == user_id)
+    invited = select(EventInvitation.event_id).where(EventInvitation.user_id == user_id)
+    answered = select(EventResponse.event_id).where(EventResponse.user_id == user_id)
+    return db.execute(
+        select(Event.id, Event.created_at).where(
+            _can_see(db, user_id, hidden),
+            _not_over(now),
+            Event.group_id.in_(my_groups),
+            Event.created_by != user_id,
+            Event.id.not_in(invited),
+            Event.id.not_in(answered),
+        )
+    ).all()
 
 
 def get_visible_event(db: Session, event_id: int, user_id: int) -> Event | None:
@@ -119,11 +166,7 @@ def list_visible_events(
     Med group_id visas bara den klubbens events, men synlighetsreglerna är desamma.
     """
     now = now or datetime.now(timezone.utc)
-    not_over = or_(
-        and_(Event.ends_at.isnot(None), Event.ends_at >= now),
-        and_(Event.ends_at.is_(None), Event.starts_at >= now - OPEN_ENDED_EVENT_LENGTH),
-    )
-    query = _event_query(db).filter(_can_see(db, user_id), not_over)
+    query = _event_query(db).filter(_can_see(db, user_id), _not_over(now))
     if group_id is not None:
         query = query.filter(Event.group_id == group_id)
     return query.order_by(Event.starts_at, Event.id).all()

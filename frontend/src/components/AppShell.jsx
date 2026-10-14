@@ -28,7 +28,7 @@ function AppShell() {
   // Siffrorna i menyn (se useBadgeCounts). Konversationen man har öppen
   // (/meddelanden/:id) räknas inte som ny.
   const openMatch = location.pathname.match(/^\/meddelanden\/(\d+)/)
-  const { contactRequests, clubInvitations, eventInvitations, unseenMessages } =
+  const { contactRequests, clubInvitations, eventNews, unseenMessages } =
     useBadgeCounts({
       refreshKey: location.pathname,
       openConversationId: openMatch ? Number(openMatch[1]) : null,
@@ -75,9 +75,9 @@ function AppShell() {
                     {clubInvitations}
                   </span>
                 )}
-                {to === '/events' && eventInvitations > 0 && (
-                  <span className="nav-badge" aria-label={`${eventInvitations} eventinbjudningar`}>
-                    {eventInvitations}
+                {to === '/events' && eventNews > 0 && (
+                  <span className="nav-badge" aria-label={`${eventNews} nya events och inbjudningar`}>
+                    {eventNews}
                   </span>
                 )}
                 {to === '/meddelanden' && unseenMessages > 0 && (

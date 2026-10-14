@@ -5,6 +5,7 @@ varje test."""
 from dataclasses import dataclass, field
 
 from app.services.ai_clients import AIFailed, Deadline
+from app.services.geocoding import GeocodingFailed, Place
 
 
 @dataclass
@@ -56,3 +57,19 @@ class FakeModerator:
         if self.error is not None:
             raise self.error
         return [self.flag_all or text in self.flagged_texts for text in texts]
+
+
+@dataclass
+class FakeGeocoder:
+    """Fejkad adressökning (app/services/geocoding.py): svarar med `places` för varje sökning, eller
+    kastar GeocodingFailed om `fail` är satt. `queries` får varje söktext."""
+
+    places: list[Place] = field(default_factory=list)
+    fail: bool = False
+    queries: list[str] = field(default_factory=list)
+
+    def search(self, query):
+        self.queries.append(query)
+        if self.fail:
+            raise GeocodingFailed("fejkat fel")
+        return list(self.places)

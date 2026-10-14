@@ -4,7 +4,6 @@ import InvitePicker from '../events/InvitePicker'
 import Modal from '../Modal'
 import ShowOnMapButton from '../ShowOnMapButton'
 import GroupEvents from './GroupEvents'
-import GroupChat from './GroupChat'
 import GroupMembers from './GroupMembers'
 import { RoleBadge, memberCountText } from './GroupList'
 import { inviteToGroup } from '../../services/groups'
@@ -46,12 +45,15 @@ function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecl
       <p className="card-subheading">
         {group.municipality_name} · {memberCountText(group.member_count)}
       </p>
-      <ShowOnMapButton type="klubb" id={group.id} />
+      <ShowOnMapButton type="klubb" id={group.id} data={group} />
       {group.is_member && group.has_blocked_member && (
         <p className="soft-box soft-box-wide soft-box-text">Någon du har blockerat är med i den här klubben.</p>
       )}
       <p className="card-text">{group.description}</p>
       {group.meeting_info && <p className="hint-text">Träffas: {group.meeting_info}</p>}
+      {(group.place_name || group.address) && (
+        <p className="hint-text">Träffplats: {[group.place_name, group.address].filter(Boolean).join(', ')}</p>
+      )}
       <ul className="tags">
         <li>
           <span className="tag tag-selected tag-static">{group.interest_name}</span>
@@ -111,7 +113,6 @@ function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecl
         </Modal>
       )}
       <GroupEvents groupId={group.id} />
-      {group.is_member && <GroupChat key={group.id} groupId={group.id} />}
       <GroupMembers groupId={group.id} memberCount={group.member_count} />
       {group.is_member && (
         <div className="card-actions">

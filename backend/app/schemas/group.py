@@ -5,6 +5,7 @@ from pydantic import BaseModel, field_validator, model_validator
 from app.core import error_messages as msg
 from app.core.profanity import validate_clean_text
 from app.models.group import GroupRole, GroupVisibility
+from app.schemas.position import check_position
 
 
 def _required_text(value: str, field: str, max_length: int, empty_message: str) -> str:
@@ -20,6 +21,11 @@ class GroupCreate(BaseModel):
     name: str
     description: str
     meeting_info: str | None = None
+    # Valfri träffplats: namn, adress och var på kartan (se schemas/position.py).
+    place_name: str | None = None
+    address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     # Att intresset och kommunen finns kontrolleras i routen.
     interest_id: int
     municipality_code: str
@@ -52,12 +58,33 @@ class GroupCreate(BaseModel):
         validate_clean_text(value, "Mötesinformationen")
         return value
 
+    @field_validator("place_name", "address")
+    @classmethod
+    def place_empty_or_short(cls, v: str | None, info) -> str | None:
+        # Valfria fält: tom text sparas som inget värde.
+        if v is None or v.strip() == "":
+            return None
+        value = v.strip()
+        if len(value) > 100:
+            raise ValueError(msg.GROUP_PLACE_NAME_TOO_LONG if info.field_name == "place_name" else msg.GROUP_ADDRESS_TOO_LONG)
+        validate_clean_text(value, "Platsnamnet" if info.field_name == "place_name" else "Adressen")
+        return value
+
+    @model_validator(mode="after")
+    def position_valid(self):
+        check_position(self.latitude, self.longitude)
+        return self
+
 
 class GroupResponse(BaseModel):
     id: int
     name: str
     description: str
     meeting_info: str | None
+    place_name: str | None
+    address: str | None
+    latitude: float | None
+    longitude: float | None
     interest_id: int
     interest_name: str
     municipality_code: str
@@ -97,3 +124,12 @@ class GroupInvite(BaseModel):
         if not self.user_ids:
             raise ValueError(msg.GROUP_INVITE_NOBODY)
         return self
+
+
+class GroupsOverview(BaseModel):
+    """GET /groups/overview: klubbsidans tre listor i ett svar (samma som
+    /groups/mine, /groups/suggested och /groups/invitations)."""
+
+    mine: list[GroupResponse]
+    suggested: list[GroupResponse]
+    invitations: list[GroupResponse]

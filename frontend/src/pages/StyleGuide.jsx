@@ -7,7 +7,9 @@ import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import Avatar from '../components/Avatar'
 import Intressekompis from '../components/Intressekompis'
+import LocationPicker from '../components/LocationPicker'
 import BackButton from '../components/BackButton'
+import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
 import Modal from '../components/Modal'
 import FormField from '../components/FormField'
@@ -58,6 +60,7 @@ function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  const [examplePosition, setExamplePosition] = useState(null)
 
   return (
     <div className="page">
@@ -229,6 +232,26 @@ function StyleGuide() {
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Platsväljare (components/LocationPicker.jsx)
+        </p>
+        <p className="hint-text">
+          Var på kartan ett event eller en klubbs träffplats är. "Hitta adressen på kartan" söker på queries i tur och
+          ordning (GET /geocode, kräver inloggning) och sätter en nål; nålen går att dra eller flytta med ett klick.
+          Utan nål visas kommunCode:s kommun, annars hela Sverige. value är {'{ latitude, longitude }'} eller null.
+          Kartan laddas först när komponenten visas.
+        </p>
+        <div className="auth-form form-wide" style={{ marginTop: '0.5rem' }}>
+          <LocationPicker
+            id="styleguide-position"
+            queries={['Odelbergs väg 2, Värmdö']}
+            value={examplePosition}
+            onChange={setExamplePosition}
+            saveLabel="Spara"
+            kommunCode="0120"
+          />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Intressekompisen (components/Intressekompis.jsx)
         </p>
         <p className="hint-text">
@@ -295,27 +318,27 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Linjerat papper med röd marginal. Allt på pappret har radhöjden --line-gap, så att texten
-          står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
-          ner på skärmen. Samma papper används i klubbens chatt (GroupChat): rubriken Klubbchatt, medlemmarnas bilder
+          står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. Någon annans bild och namn (överst och vid breven, ChatSender) är länkar till profilen. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
+          ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och under på mobil: rubriken Klubbchatt, medlemmarnas bilder
           och namn vid varje meddelande, och en svarsrad.
         </p>
         <article className="notepad lined-paper" style={{ marginTop: '1rem' }}>
           <h3 className="notepad-title">
-            <Avatar name="Bob" className="person-list-avatar notepad-title-avatar" />
-            <span className="notepad-title-name">Bob</span>
+            <span className="notepad-title-link">
+              <Avatar name="Bob" className="person-list-avatar notepad-title-avatar" />
+              <span className="notepad-title-name">Bob</span>
+            </span>
           </h3>
           <ol className="notepad-messages">
             <li className="notepad-message">
               <p>
-                <Avatar name="Bob" className="person-list-avatar notepad-message-avatar" />
-                <strong>Bob</strong> <time className="hint-text">igår 12:05</time>
+                <ChatSender userId={2} name="Bob" /> <time className="hint-text">igår 12:05</time>
               </p>
               <p>Ska vi klättra på lördag?</p>
             </li>
             <li className="notepad-message">
               <p>
-                <Avatar name="Emmy" className="person-list-avatar notepad-message-avatar" />
-                <strong className="highlight">Du</strong> <time className="hint-text">11:35</time>
+                <ChatSender mine name="Emmy" /> <time className="hint-text">11:35</time>
               </p>
               <p>Ja gärna!</p>
             </li>
@@ -372,11 +395,11 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Hela övre delen (.list-card-link) är klickbar. Knappar och märken ligger utanför den, i
-          .card-actions. Korten i .card-grid-compact är minst --card-height höga och lika höga i varje
-          rad (de växer om innehållet kräver det), och på dator fyller de bredden kant i kant med
-          rubriken, så många per rad som får plats. Namnet kortas
-          av efter två rader och beskrivningen efter tre, med "…". På personkorten scrollar
-          intressena, så att bild, namn, plats och knappar alltid syns.
+          .card-actions. Korten i .card-grid-compact är lika höga i varje rad, och på dator fyller de
+          bredden kant i kant med rubriken, så många per rad som får plats. Klubb- och eventkort är
+          minst --card-height höga; namnet kortas av efter två rader och beskrivningen efter tre, med
+          "…". Personkorten är så höga som innehållet och visar högst tre intressen på en rad (så
+          många som får plats hela); fler fälls ut i en ruta med ⋯.
         </p>
         <div className="card-grid card-grid-compact" style={{ marginTop: '1rem' }}>
           <article className="card card-interactive list-card">

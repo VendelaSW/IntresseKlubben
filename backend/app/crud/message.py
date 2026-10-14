@@ -1,7 +1,8 @@
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session
 
 from app.core.profanity import censor_text
+from app.crud.contact import blocked_user_ids
 from app.models.message import Message
 
 
@@ -37,21 +38,34 @@ def get_conversation(db: Session, user_a_id: int, user_b_id: int) -> list[Messag
     )
 
 
-def list_conversations(db: Session, user_id: int) -> list[tuple[int, Message]]:
+def list_conversations(db: Session, user_id: int, hidden: set[int] | None = None) -> list[tuple[int, Message]]:
     """En rad per person användaren utbytt meddelanden med: den andras id
-    och det senaste meddelandet dem emellan, nyast konversation först."""
-    rows = (
-        db.query(Message)
+    och det senaste meddelandet dem emellan, nyast konversation först.
+    Konversationer med någon som har blockerat användaren, eller som
+    användaren har blockerat, kommer inte med (`hidden` är blocked_user_ids,
+    om anroparen redan har hämtat dem).
+
+    Det senaste meddelandet per person väljs i databasen (row_number per
+    person), så bara en rad per konversation hämtas, inte hela historiken.
+    Listan hämtas ofta (siffran på Brev räknas om var 30:e sekund)."""
+    other_id = case((Message.sender_id == user_id, Message.recipient_id), else_=Message.sender_id)
+    newest_first = (Message.created_at.desc(), Message.id.desc())
+    ranked = (
+        db.query(
+            Message.id.label("id"),
+            other_id.label("other_id"),
+            func.row_number().over(partition_by=other_id, order_by=newest_first).label("place"),
+        )
         .filter(or_(Message.sender_id == user_id, Message.recipient_id == user_id))
-        .order_by(Message.created_at.desc(), Message.id.desc())
+        .subquery()
+    )
+    rows = (
+        db.query(ranked.c.other_id, Message)
+        .join(Message, Message.id == ranked.c.id)
+        .filter(ranked.c.place == 1)
+        .order_by(*newest_first)
         .all()
     )
-    seen = set()
-    result = []
-    for message in rows:
-        other_id = message.recipient_id if message.sender_id == user_id else message.sender_id
-        if other_id in seen:
-            continue
-        seen.add(other_id)
-        result.append((other_id, message))
-    return result
+    if hidden is None:
+        hidden = blocked_user_ids(db, user_id)
+    return [(other, message) for other, message in rows if other not in hidden]

@@ -5,6 +5,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -36,6 +37,12 @@ class Group(Base):
     name = Column(String(30), nullable=False)
     description = Column(String(200), nullable=False)
     meeting_info = Column(String(100), nullable=True)  # "När och var vi träffas"
+    # Valfri träffplats: namn, adress och var på kartan (WGS84, grader). Utan
+    # position visas klubben mitt i sin kommun (se schemas/position.py).
+    place_name = Column(String(100), nullable=True)
+    address = Column(String(100), nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     interest_id = Column(Integer, ForeignKey("interests.id"), nullable=False, index=True)
     municipality_code = Column(String(4), ForeignKey("municipalities.code"), nullable=False, index=True)
     visibility = Column(Enum(GroupVisibility), nullable=False, default=GroupVisibility.public)
