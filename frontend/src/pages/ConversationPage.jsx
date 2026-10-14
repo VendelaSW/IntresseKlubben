@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import BackButton from '../components/BackButton'
+import ChatSender from '../components/ChatSender'
 import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
 import { getConversation, markConversationSeen, sendMessage } from '../services/messages'
@@ -134,10 +135,15 @@ function ConversationPage() {
           en linje. På mobil ligger pappret längst ner, där man skriver. */}
       <article className="notepad lined-paper">
         <h1 className="notepad-title">
-          {other && (
-            <Avatar name={otherName} imageUrl={other.image_url} className="person-list-avatar notepad-title-avatar" />
+          {/* Bild och namn länkar till personens profil. */}
+          {other ? (
+            <Link to={`/anvandare/${other.id}`} className="notepad-title-link">
+              <Avatar name={otherName} imageUrl={other.image_url} className="person-list-avatar notepad-title-avatar" />
+              <span className="notepad-title-name">{otherName}</span>
+            </Link>
+          ) : (
+            <span className="notepad-title-name">{otherName}</span>
           )}
-          <span className="notepad-title-name">{otherName}</span>
         </h1>
 
         {status === 'loading' && <p className="hint-text">Laddar...</p>}
@@ -151,15 +157,12 @@ function ConversationPage() {
             {messages.map((m) => (
               <li key={m.id} className="notepad-message">
                 <p>
-                  <Avatar
+                  <ChatSender
+                    userId={other?.id}
+                    mine={m.sender_id === user.id}
                     name={m.sender_id === user.id ? myProfile?.name : otherName}
                     imageUrl={m.sender_id === user.id ? myProfile?.image_url : other?.image_url}
-                    className="person-list-avatar notepad-message-avatar"
-                  />
-                  {/* Ditt namn med den gula överstrykningspennan, som namnet på startsidan. */}
-                  <strong className={m.sender_id === user.id ? 'highlight' : undefined}>
-                    {m.sender_id === user.id ? 'Du' : otherName}
-                  </strong>{' '}
+                  />{' '}
                   <time className="hint-text" dateTime={m.created_at}>
                     {formatSentAt(m.created_at)}
                   </time>
