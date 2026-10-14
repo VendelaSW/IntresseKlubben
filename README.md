@@ -37,6 +37,7 @@ roterar mellan Nicklas, Emmy och Leonard. Alla är lika delar utvecklare i proje
 
 - `backend/` – se `backend/README.md`
 - `frontend/` – se `frontend/README.md`
+- Testa på mobilen hemma – se `testa-pa-mobilen.md`
 
 Deploy: två separata Vercel-projekt (ett per mapp, `Root Directory` satt till
 `backend` respektive `frontend`) — se respektive README för miljövariabler.
