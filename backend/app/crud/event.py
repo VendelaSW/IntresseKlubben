@@ -43,6 +43,8 @@ def create_event(db: Session, user_id: int, data: EventCreate) -> Event:
         ends_at=data.ends_at,
         place_name=data.place_name,
         address=data.address,
+        latitude=data.latitude,
+        longitude=data.longitude,
         visibility=data.visibility,
         guests_can_invite=data.guests_can_invite,
         created_by=user_id,

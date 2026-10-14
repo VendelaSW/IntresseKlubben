@@ -6,6 +6,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -43,6 +44,10 @@ class Event(Base):
     ends_at = Column(DateTime(timezone=True), nullable=True)
     place_name = Column(String(100), nullable=False)
     address = Column(String(100), nullable=False)
+    # Var på kartan eventet är (WGS84, grader). Valfritt: utan position visas
+    # eventet mitt i sin kommun. Sätts bara tillsammans (se schemas/position.py).
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     visibility = Column(Enum(EventVisibility), nullable=False, default=EventVisibility.invite_only)
     # Av som standard: bara skaparen bjuder in. På: alla som ser eventet får bjuda in.
     guests_can_invite = Column(Boolean, nullable=False, default=False, server_default=false())
