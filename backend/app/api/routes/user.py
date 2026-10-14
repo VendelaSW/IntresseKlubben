@@ -57,6 +57,7 @@ förslag, så de kan dyka upp igen.
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
+from app.api.people import to_person_response
 from app.auth.security import create_access_token, get_current_user, require_profile, verify_password
 from app.core import storage
 from app.crud.contact import blocked_user_ids, is_blocked
@@ -186,19 +187,6 @@ def delete_account(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-def _to_person_response(profile) -> PersonResponse:
-    return PersonResponse(
-        id=profile.user.id,
-        username=profile.user.username,
-        name=profile.name,
-        age=calculate_age(profile.birth_date) if profile.birth_date else None,
-        municipality_name=profile.municipality.name if profile.municipality else None,
-        district=profile.district,
-        image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
-        interests=[ProfileInterest.model_validate(i) for i in sorted_interests(profile.user)],
-    )
-
-
 # Personer, förslag och andras profiler är låsta tills ens egen profil är klar
 # (se require_profile). /users/me och inloggningen är öppna.
 @router.get(
@@ -225,7 +213,7 @@ def read_people(
         db, current_user.id, interest_id, municipality_code, hidden_ids,
         gender=gender, min_age=min_age, max_age=max_age,
     )
-    return [_to_person_response(p) for p in profiles]
+    return [to_person_response(p.user) for p in profiles]
 
 
 @router.post(

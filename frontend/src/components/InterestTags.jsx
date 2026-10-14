@@ -1,12 +1,12 @@
 // Visar någons valda intressen som taggar, bara för visning (t.ex. på någon
 // annans profil eller i personlistan). Ange `highlight` (en Set av
 // intresse-id:n) för att markera vilka som är gemensamma med en själv -
-// annars visas alla som markerade, som tidigare. Med `label` blir listan en
-// egen ruta som går att nå med tangentbordet (t.ex. när den scrollar på
-// personkorten), och läses upp med den texten.
-function InterestTags({ interests, highlight, label }) {
+// annars visas alla som markerade, som tidigare. `children` läggs sist i
+// raden, t.ex. en knapp som visar fler, och `listRef` pekar på listan (för
+// att mäta den, se PersonCard).
+function InterestTags({ interests, highlight, children, listRef }) {
   return (
-    <ul className="tags" tabIndex={label ? 0 : undefined} aria-label={label}>
+    <ul className="tags" ref={listRef}>
       {interests.map((interest) => {
         const shared = highlight ? highlight.has(interest.id) : true
         return (
@@ -15,6 +15,7 @@ function InterestTags({ interests, highlight, label }) {
           </li>
         )
       })}
+      {children && <li>{children}</li>}
     </ul>
   )
 }

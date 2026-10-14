@@ -6,6 +6,7 @@ import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import personerIcon from '../assets/personer.png'
 import Avatar from '../components/Avatar'
+import Intressekompis from '../components/Intressekompis'
 import BackButton from '../components/BackButton'
 import ConversationCard from '../components/ConversationCard'
 import Modal from '../components/Modal'
@@ -228,6 +229,20 @@ function StyleGuide() {
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Intressekompisen (components/Intressekompis.jsx)
+        </p>
+        <p className="hint-text">
+          Maskoten, med pupiller som följer muspekaren. Fyller bredden på sin förälder och behåller proportionerna, så
+          storleken ges med `width` (till exempel "200px") eller genom förälderns bredd. Rent dekorativ: ge den alt=""
+          där den bara pryder. Pupillerna står stilla för den som valt mindre rörelse i systemet. Ingen egen CSS, allt
+          ligger i komponenten.
+        </p>
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-end', marginTop: '0.5rem' }}>
+          <Intressekompis width="200px" />
+          <Intressekompis width="90px" alt="" />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Klickbart kort (.card .card-interactive), t.ex. en tumnagel i personlistan
         </p>
         <p className="hint-text">
@@ -357,11 +372,11 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Hela övre delen (.list-card-link) är klickbar. Knappar och märken ligger utanför den, i
-          .card-actions. Korten i .card-grid-compact är minst --card-height höga och lika höga i varje
-          rad (de växer om innehållet kräver det), och på dator fyller de bredden kant i kant med
-          rubriken, så många per rad som får plats. Namnet kortas
-          av efter två rader och beskrivningen efter tre, med "…". På personkorten scrollar
-          intressena, så att bild, namn, plats och knappar alltid syns.
+          .card-actions. Korten i .card-grid-compact är lika höga i varje rad, och på dator fyller de
+          bredden kant i kant med rubriken, så många per rad som får plats. Klubb- och eventkort är
+          minst --card-height höga; namnet kortas av efter två rader och beskrivningen efter tre, med
+          "…". Personkorten är så höga som innehållet och visar högst tre intressen på en rad (så
+          många som får plats hela); fler fälls ut i en ruta med ⋯.
         </p>
         <div className="card-grid card-grid-compact" style={{ marginTop: '1rem' }}>
           <article className="card card-interactive list-card">
