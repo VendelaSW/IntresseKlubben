@@ -18,7 +18,7 @@ const WIDGETS = [
   { id: 'brev', label: 'Brev', icon: brevIcon, badge: ['unseenMessages', 'konversationer med nya brev'] },
   { id: 'personer', label: 'Personer', icon: personerIcon, badge: ['contactRequests', 'nya förfrågningar'] },
   { id: 'klubbar', label: 'Klubbar', icon: klubbarIcon, badge: ['clubInvitations', 'klubbinbjudningar'] },
-  { id: 'events', label: 'Events', icon: eventIcon, badge: ['eventInvitations', 'eventinbjudningar'] },
+  { id: 'events', label: 'Events', icon: eventIcon, badge: ['eventNews', 'nya events och inbjudningar'] },
 ]
 
 // Hur länge en lapp studsar (samma som animationen map-widget-ping).

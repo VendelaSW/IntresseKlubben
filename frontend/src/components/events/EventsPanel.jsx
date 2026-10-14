@@ -8,6 +8,8 @@ import { getContacts } from '../../services/contacts'
 import { getEvents } from '../../services/events'
 import { getMyGroups } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
+import { useAuth } from '../../hooks/useAuth'
+import { markEventsSeen } from '../../services/eventsSeen'
 
 const TABS = [
   { id: 'mine', label: 'Mina events' },
@@ -76,6 +78,12 @@ function EventsPanel() {
     // Adressen har gjort sitt, så en omladdning ska inte öppna samma vy igen.
     if (searchParams.toString()) setSearchParams({}, { replace: true })
   }, [])
+  // Har man öppnat Events har man sett klubbarnas nya events, så de räknas
+  // inte längre i märket (se services/eventsSeen.js).
+  const { user } = useAuth()
+  useEffect(() => {
+    if (user) markEventsSeen(user.id)
+  }, [user?.id])
   // Alla events man får se. Flikarna räknas ut ur den här listan, men ett event
   // man har svarat Nej på ligger inte i någon flik och måste ändå gå att visa.
   const [events, setEvents] = useState([])
