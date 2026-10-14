@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
 import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
@@ -9,7 +10,7 @@ import {
   answerContactRequest,
   blockUser,
   cancelContactRequest,
-  getContacts,
+  contactsQuery,
   removeContact,
   sendContactRequest,
   unblockUser,
@@ -67,25 +68,24 @@ function MessageForm({ userId }) {
 // GET /contacts och matchat på id. contactId pekar på själva
 // relations-raden (inte personen), behövs för att acceptera/avböja/ta
 // bort/svara på just den.
+// Kontakterna kommer ur det delade minnet (se services/queryClient.js), och
+// åtgärderna (förfrågan, blockera...) säger själva till minnet, så relationen
+// stämmer direkt efteråt.
 function useRelation(userId) {
-  const [relation, setRelation] = useState(null)
+  const { data, refetch } = useQuery(contactsQuery)
+  const relation = useMemo(() => {
+    if (!data) return null
+    const findIn = (list) => list.find((c) => c.user.id === userId)
+    const friend = findIn(data.contacts)
+    const outgoing = findIn(data.outgoing_requests)
+    const incoming = findIn(data.incoming_requests)
+    if (friend) return { type: 'friends', contactId: friend.id }
+    if (outgoing) return { type: 'outgoing', contactId: outgoing.id }
+    if (incoming) return { type: 'incoming', contactId: incoming.id }
+    return { type: 'none' }
+  }, [data, userId])
 
-  function refresh() {
-    getContacts().then((data) => {
-      const findIn = (list) => list.find((c) => c.user.id === userId)
-      const friend = findIn(data.contacts)
-      const outgoing = findIn(data.outgoing_requests)
-      const incoming = findIn(data.incoming_requests)
-      if (friend) setRelation({ type: 'friends', contactId: friend.id })
-      else if (outgoing) setRelation({ type: 'outgoing', contactId: outgoing.id })
-      else if (incoming) setRelation({ type: 'incoming', contactId: incoming.id })
-      else setRelation({ type: 'none' })
-    })
-  }
-
-  useEffect(refresh, [userId])
-
-  return [relation, refresh]
+  return [relation, refetch]
 }
 
 // Vänförfrågan/blockera-knapparna för en annan användares profil. Alla

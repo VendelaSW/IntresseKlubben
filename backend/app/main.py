@@ -3,6 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 import app.models  # noqa: F401 — laddar alla modeller innan något frågar databasen
+from app.api.routes.badges import router as badges_router
 from app.api.routes.contacts import router as contacts_router
 from app.api.routes.events import router as events_router
 from app.api.routes.groups import router as groups_router
@@ -42,4 +43,5 @@ app.include_router(municipalities_router)
 app.include_router(contacts_router)
 app.include_router(groups_router)
 app.include_router(messages_router)
+app.include_router(badges_router)
 app.include_router(events_router)

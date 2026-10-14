@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { getContacts } from '../services/contacts'
+import { getBadges } from '../services/badges'
 import { getEvents } from '../services/events'
-import { getGroupInvitationCount } from '../services/groups'
-import { countUnseenConversations, getConversations } from '../services/messages'
+import { countUnseenConversations } from '../services/messages'
 import { getProfile } from '../services/profile'
 
 const today = new Intl.DateTimeFormat('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -41,19 +40,19 @@ function MapCalmPage({ onOpen, onOpenEvent, onShowMap }) {
 
   useEffect(() => {
     let cancelled = false
-    Promise.allSettled([getProfile(), getEvents(), getConversations(), getGroupInvitationCount(), getContacts()]).then(
-      ([profile, events, conversations, invitations, contacts]) => {
-        if (cancelled) return
-        const value = (result, fallback) => (result.status === 'fulfilled' ? result.value : fallback)
-        setName(value(profile, null)?.name ?? null)
-        setTodo({
-          event: nextBookedEvent(value(events, [])),
-          letters: countUnseenConversations(value(conversations, [])),
-          invitations: value(invitations, 0),
-          requests: value(contacts, null)?.incoming_requests?.length ?? 0,
-        })
-      },
-    )
+    // Siffrorna kommer i ett anrop, samma som appens märken (se useBadgeCounts).
+    Promise.allSettled([getProfile(), getEvents(), getBadges()]).then(([profile, events, badges]) => {
+      if (cancelled) return
+      const value = (result, fallback) => (result.status === 'fulfilled' ? result.value : fallback)
+      const counts = value(badges, null)
+      setName(value(profile, null)?.name ?? null)
+      setTodo({
+        event: nextBookedEvent(value(events, [])),
+        letters: countUnseenConversations(counts?.conversations ?? []),
+        invitations: counts?.club_invitations ?? 0,
+        requests: counts?.contact_requests ?? 0,
+      })
+    })
     return () => {
       cancelled = true
     }

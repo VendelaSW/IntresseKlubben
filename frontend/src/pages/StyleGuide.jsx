@@ -8,6 +8,7 @@ import personerIcon from '../assets/personer.png'
 import Avatar from '../components/Avatar'
 import Intressekompis from '../components/Intressekompis'
 import BackButton from '../components/BackButton'
+import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
 import Modal from '../components/Modal'
 import FormField from '../components/FormField'
@@ -295,27 +296,27 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Linjerat papper med röd marginal. Allt på pappret har radhöjden --line-gap, så att texten
-          står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
+          står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. Någon annans bild och namn (överst och vid breven, ChatSender) är länkar till profilen. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
           ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och under på mobil: rubriken Klubbchatt, medlemmarnas bilder
           och namn vid varje meddelande, och en svarsrad.
         </p>
         <article className="notepad lined-paper" style={{ marginTop: '1rem' }}>
           <h3 className="notepad-title">
-            <Avatar name="Bob" className="person-list-avatar notepad-title-avatar" />
-            <span className="notepad-title-name">Bob</span>
+            <span className="notepad-title-link">
+              <Avatar name="Bob" className="person-list-avatar notepad-title-avatar" />
+              <span className="notepad-title-name">Bob</span>
+            </span>
           </h3>
           <ol className="notepad-messages">
             <li className="notepad-message">
               <p>
-                <Avatar name="Bob" className="person-list-avatar notepad-message-avatar" />
-                <strong>Bob</strong> <time className="hint-text">igår 12:05</time>
+                <ChatSender userId={2} name="Bob" /> <time className="hint-text">igår 12:05</time>
               </p>
               <p>Ska vi klättra på lördag?</p>
             </li>
             <li className="notepad-message">
               <p>
-                <Avatar name="Emmy" className="person-list-avatar notepad-message-avatar" />
-                <strong className="highlight">Du</strong> <time className="hint-text">11:35</time>
+                <ChatSender mine name="Emmy" /> <time className="hint-text">11:35</time>
               </p>
               <p>Ja gärna!</p>
             </li>
