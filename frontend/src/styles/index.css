@@ -969,10 +969,21 @@ span.tag-selected:hover {
   z-index: 3;
 }
 
+/* Intressena och knapparna ligger i botten av kortet. Korten i en rad är lika
+   höga, så intresseraden hamnar i samma höjd på alla kort i raden, också när
+   raden "Ni har … gemensamma intressen" saknas på något av dem. */
+.person-card > .person-card-interests {
+  margin-top: auto;
+}
+
+.person-card > .person-card-interests + .card-actions {
+  margin-top: 0;
+}
+
 /* Utan raden om gemensamma intressen kommer intressena direkt efter staden:
-   lite extra luft där. */
+   lite extra luft där (padding, eftersom marginalen ovan trycker ner raden). */
 .person-card-link + .person-card-interests {
-  margin-top: 0.5rem;
+  padding-top: 0.5rem;
 }
 
 /* Knapparna på personkorten: den första mot vänsterkanten och den andra mot
@@ -1014,8 +1025,18 @@ span.tag-selected:hover {
   color: inherit;
 }
 
+/* Bilden sitter alltid överst, så att den ligger på samma höjd på alla kort,
+   också när ett långt namn går på flera rader. Ett namn på en rad centreras
+   fortfarande bredvid bilden. */
+.person-card-link .card-avatar {
+  align-self: start;
+}
+
+/* Tätt radavstånd, så att åldern hamnar precis under ett långt namn som inte
+   får plats på en rad. */
 .person-card-link .card-title {
   margin: 0;
+  line-height: 1.05;
 }
 
 .person-card-link .card-subheading {
