@@ -1,4 +1,6 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './api'
+import { EVENTS_KEY } from './events'
+import { SECOND, invalidate, queryClient } from './queryClient'
 
 // Värdena måste matcha GroupVisibility i backend/app/models/group.py.
 export const VISIBILITY = { public: 'public', private: 'private' }
@@ -51,14 +53,35 @@ export function getGroups({ interestId, municipalityCode, q, sort, reverse, limi
   return apiGet(`/groups/${query ? `?${query}` : ''}`)
 }
 
-// Grupper man är med i, även privata.
-export function getMyGroups() {
-  return apiGet('/groups/mine')
+export const MY_GROUPS_KEY = ['groups', 'mine']
+
+// Grupper man är med i, även privata. Sparas i minnet en kort stund (se
+// queryClient.js), så Klubbar, Events och kartan delar samma hämtning.
+export const myGroupsQuery = {
+  queryKey: MY_GROUPS_KEY,
+  queryFn: () => apiGet('/groups/mine'),
+  staleTime: 15 * SECOND,
 }
 
-// Öppna grupper för ens intressen som man inte redan är med i.
-export function getSuggestedGroups() {
-  return apiGet('/groups/suggested')
+export function getMyGroups() {
+  return queryClient.fetchQuery(myGroupsQuery)
+}
+
+// Klubbsidans tre listor (mina, förslag och inbjudningar) i ett anrop. Sparas
+// i minnet som mina klubbar.
+export const groupsOverviewQuery = {
+  queryKey: ['groups', 'overview'],
+  queryFn: () => apiGet('/groups/overview'),
+  staleTime: 15 * SECOND,
+}
+
+// Kör ett anrop som ändrar vilka klubbar man är med i, och säger sedan till
+// minnet (alla klubblistor). Klubbens events syns bara för medlemmar, så events
+// hämtas också om.
+async function changingMyGroups(request) {
+  const result = await request
+  invalidate(['groups'], EVENTS_KEY)
+  return result
 }
 
 // Vilka som är med i gruppen, längst med först.
@@ -75,31 +98,20 @@ export function sendGroupMessage(id, content) {
 }
 
 export function createGroup(data) {
-  return apiPost('/groups/', data)
+  return changingMyGroups(apiPost('/groups/', data))
 }
 
 // Returnerar gruppen med uppdaterat antal medlemmar.
 export function joinGroup(id) {
-  return apiPut(`/groups/${id}/members/me`)
+  return changingMyGroups(apiPut(`/groups/${id}/members/me`))
 }
 
 export function leaveGroup(id) {
-  return apiDelete(`/groups/${id}/members/me`)
+  return changingMyGroups(apiDelete(`/groups/${id}/members/me`))
 }
 
 export function deleteGroup(id) {
-  return apiDelete(`/groups/${id}`)
-}
-
-// Klubbar man är inbjuden till (och inte redan med i), nyaste inbjudan först.
-export function getGroupInvitations() {
-  return apiGet('/groups/invitations')
-}
-
-// Bara antalet, för märket i headern.
-export async function getGroupInvitationCount() {
-  const data = await apiGet('/groups/invitations/count')
-  return data.count
+  return changingMyGroups(apiDelete(`/groups/${id}`))
 }
 
 // Bjuder in kontakter (userIds). Svaret är de som blev inbjudna den här gången.
@@ -108,8 +120,10 @@ export function inviteToGroup(id, userIds) {
 }
 
 // Avböjer en inbjudan.
-export function declineGroupInvitation(id) {
-  return apiDelete(`/groups/${id}/invitations/me`)
+export async function declineGroupInvitation(id) {
+  const result = await apiDelete(`/groups/${id}/invitations/me`)
+  invalidate(['groups'])
+  return result
 }
 
 // Märket i headern räknas om när man har gått med i eller avböjt en klubb.

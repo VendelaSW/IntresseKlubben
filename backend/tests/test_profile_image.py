@@ -72,6 +72,16 @@ def test_upload_link_is_signed_and_points_to_own_folder(client, s3, profile):
     assert "X-Amz-Expires=300" in body["upload_url"]
 
 
+def test_upload_link_makes_the_image_cacheable(client, s3, profile):
+    # Bilden får ett nytt namn vid varje uppladdning, så webbläsaren får spara
+    # den länge. Inställningen ingår i signaturen, och frontend får headrarna den
+    # måste skicka med.
+    body = client.post("/profile/image/upload-url").json()
+    assert "cache-control" in body["upload_url"].split("X-Amz-SignedHeaders=")[1].split("&")[0]
+    assert body["upload_headers"] == {"Content-Type": "image/webp", "Cache-Control": storage.IMAGE_CACHE_CONTROL}
+    assert "max-age=31536000" in storage.IMAGE_CACHE_CONTROL
+
+
 def test_confirmed_image_is_saved_and_shown_on_profile(client, s3, profile):
     key = _upload(client, s3)
 

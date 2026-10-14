@@ -16,6 +16,11 @@ MAX_IMAGE_BYTES = 2 * 1024 * 1024
 IMAGE_TYPES = {"image/webp": "webp", "image/jpeg": "jpg"}
 UPLOAD_LINK_SECONDS = 300
 
+# En uppladdad bild ändras aldrig: en ny bild får ett nytt namn (se
+# new_profile_image_key). Därför får webbläsare spara den i ett år utan att
+# fråga lagringen igen, vilket gör listor med många profilbilder snabbare.
+IMAGE_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
 
 def is_configured() -> bool:
     return all([
@@ -52,11 +57,24 @@ def content_type_for_key(key: str) -> str | None:
     return next((ct for ct, ext in IMAGE_TYPES.items() if ext == extension), None)
 
 
+def upload_headers(content_type: str) -> dict[str, str]:
+    """Headrarna webbläsaren ska skicka med uppladdningen. De ingår i
+    signaturen (se create_upload_url), så de måste stämma exakt."""
+    return {"Content-Type": content_type, "Cache-Control": IMAGE_CACHE_CONTROL}
+
+
 def create_upload_url(key: str, content_type: str) -> str:
-    # Filtypen ingår i signaturen, så uppladdningen måste skickas med just den.
+    # Filtypen och cache-inställningen ingår i signaturen, så uppladdningen
+    # måste skickas med just dem (se upload_headers). Lagringen sparar
+    # cache-inställningen med bilden och skickar den när bilden visas.
     return _client().generate_presigned_url(
         "put_object",
-        Params={"Bucket": settings.s3_bucket, "Key": key, "ContentType": content_type},
+        Params={
+            "Bucket": settings.s3_bucket,
+            "Key": key,
+            "ContentType": content_type,
+            "CacheControl": IMAGE_CACHE_CONTROL,
+        },
         ExpiresIn=UPLOAD_LINK_SECONDS,
     )
 

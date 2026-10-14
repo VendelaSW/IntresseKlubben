@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
 import ConversationCard from '../components/ConversationCard'
-import { getConversations, unseenConversationIds } from '../services/messages'
+import { conversationsQuery, unseenConversationIds } from '../services/messages'
 
 const TABS = [
   { id: 'new', label: 'Nya', empty: 'Inga nya brev just nu.' },
@@ -11,22 +12,14 @@ const TABS = [
 // inte har öppnat) och Öppnade. Finns det nya brev visas Nya först, annars
 // Öppnade. Flikarna är samma som på Klubbar och Events (.filter-tabs).
 function InboxPage() {
-  const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
-  const [conversations, setConversations] = useState([])
-  const [unseenIds, setUnseenIds] = useState(new Set())
-  const [tab, setTab] = useState('new')
-
-  useEffect(() => {
-    getConversations()
-      .then((data) => {
-        const unseen = unseenConversationIds(data)
-        setConversations(data)
-        setUnseenIds(unseen)
-        setTab(unseen.size > 0 ? 'new' : 'opened')
-        setStatus('ready')
-      })
-      .catch(() => setStatus('error'))
-  }, [])
+  // Konversationerna ur det delade minnet (se services/queryClient.js): har man
+  // varit här nyss visas listan direkt, och hämtas om i bakgrunden.
+  const { data: conversations = [], isSuccess, isError } = useQuery(conversationsQuery)
+  const status = isSuccess ? 'ready' : isError ? 'error' : 'loading'
+  const unseenIds = useMemo(() => unseenConversationIds(conversations), [conversations])
+  // Tills man har valt en flik själv: Nya om det finns nya brev, annars Öppnade.
+  const [chosenTab, setTab] = useState(null)
+  const tab = chosenTab ?? (unseenIds.size > 0 ? 'new' : 'opened')
 
   if (status === 'error') {
     return (

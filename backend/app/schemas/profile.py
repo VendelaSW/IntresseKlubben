@@ -209,6 +209,8 @@ class ProfileImageUploadUrl(BaseModel):
     upload_url: str
     # Filens namn i bucketen. Skickas tillbaka till PUT /profile/image efteråt.
     key: str
+    # Headrarna uppladdningen ska skickas med. De ingår i länkens signatur.
+    upload_headers: dict[str, str]
 
 
 class ProfileImageConfirm(BaseModel):

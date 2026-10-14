@@ -287,6 +287,22 @@ def list_user_invitations(db: Session, user_id: int) -> list[Group]:
     )
 
 
+def invitation_count(user_id: int):
+    """Frågan efter antalet klubbar i list_user_invitations, att ställa ensam
+    eller ihop med andra räkningar i samma anrop till databasen."""
+    my_group_ids = select(GroupMember.group_id).where(GroupMember.user_id == user_id)
+    return (
+        select(func.count())
+        .select_from(GroupInvitation)
+        .where(GroupInvitation.user_id == user_id, GroupInvitation.group_id.not_in(my_group_ids))
+    )
+
+
+def count_user_invitations(db: Session, user_id: int) -> int:
+    """Antalet klubbar i list_user_invitations, utan att hämta klubbarna."""
+    return db.scalar(invitation_count(user_id))
+
+
 def decline_invitation(db: Session, group: Group, user_id: int) -> None:
     """Avböjer inbjudan (tar bort den). Går att upprepa utan fel."""
     db.query(GroupInvitation).filter(

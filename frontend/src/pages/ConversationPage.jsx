@@ -1,10 +1,12 @@
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import BackButton from '../components/BackButton'
+import ChatSender from '../components/ChatSender'
 import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
-import { getConversation, markConversationSeen, sendMessage } from '../services/messages'
+import { conversationQuery, markConversationSeen, sendMessage } from '../services/messages'
 import { getProfile } from '../services/profile'
 import { formatSentAt } from '../utils/formatSentAt'
 
@@ -15,11 +17,7 @@ const POLL_MS = 5000
 // Samma brytpunkt som i index.css: under den ligger pappret längst ner.
 const MOBILE_QUERY = '(max-width: 767px)'
 
-// Samma meddelanden som vi redan visar? Meddelanden kan inte ändras eller
-// tas bort, så antal och sista id räcker.
-function sameMessages(a, b) {
-  return a.length === b.length && a.at(-1)?.id === b.at(-1)?.id
-}
+const NO_MESSAGES = []
 
 // Hela konversationen med en specifik person (/meddelanden/:userId) på ett
 // linjerat anteckningspapper (.notepad i stilguiden), och en rad för att svara.
@@ -28,12 +26,18 @@ function ConversationPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const canGoBack = useCanGoBack()
+  // Konversationen ur det delade minnet (se services/queryClient.js): har man
+  // haft den öppen förut visas den direkt. Den hämtas när sidan öppnas och sedan
+  // var POLL_MS, och direkt när man kommer tillbaka till fliken. När fliken inte
+  // syns frågar den inte servern. Misslyckas en senare hämtning ligger breven
+  // kvar och nästa försök kommer snart; bara den första visar fel.
+  const { data, isSuccess, isError } = useQuery({ ...conversationQuery(userId), refetchInterval: POLL_MS })
+  const status = isSuccess ? 'ready' : isError ? 'error' : 'loading'
   // Vem konversationen är med (från servern), för namnet överst och vid breven.
-  const [other, setOther] = useState(null)
+  const other = data?.user ?? null
+  const messages = data?.messages ?? NO_MESSAGES
   // Den egna profilen, för ens egen bild vid ens egna brev.
   const [myProfile, setMyProfile] = useState(null)
-  const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
-  const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
@@ -53,49 +57,11 @@ function ConversationPage() {
     }
   }, [messages.length])
 
-  // Hämtar konversationen när sidan öppnas och sedan var POLL_MS. Pausar när
-  // fliken inte syns (ingen idé att fråga servern då) och hämtar direkt när
-  // man kommer tillbaka. Bara den första hämtningen visar fel; misslyckas en
-  // senare hämtning ligger meddelandena kvar och nästa försök kommer snart.
+  // Det man ser i chatten räknas som läst, så att det inte blir en badge när man
+  // sedan lämnar sidan.
   useEffect(() => {
-    let cancelled = false // svar för en konversation man redan lämnat kastas
-    let fetching = false // ingen ny hämtning medan den förra pågår
-    setStatus('loading')
-    setMessages([])
-    setOther(null)
-
-    async function refresh() {
-      if (fetching || document.hidden) return
-      fetching = true
-      try {
-        const { user: person, messages: data } = await getConversation(userId)
-        if (cancelled) return
-        setOther(person)
-        setMessages((current) => (sameMessages(current, data) ? current : data))
-        setStatus('ready')
-        // Det man ser i chatten räknas som läst, så att det inte blir en
-        // badge när man sedan lämnar sidan.
-        if (data.length > 0) markConversationSeen(person.id, data.at(-1).created_at)
-      } catch {
-        if (!cancelled) setStatus((s) => (s === 'loading' ? 'error' : s))
-      } finally {
-        fetching = false
-      }
-    }
-
-    function onVisibilityChange() {
-      if (!document.hidden) refresh()
-    }
-
-    refresh()
-    const timer = setInterval(refresh, POLL_MS)
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => {
-      cancelled = true
-      clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-    }
-  }, [userId])
+    if (other && messages.length > 0) markConversationSeen(other.id, messages.at(-1).created_at)
+  }, [other, messages])
 
   // Tillbaka dit man kom ifrån (t.ex. någons profil), som på profilsidan.
   // Öppnades chatten direkt via en länk finns ingen tidigare sida i appen, och
@@ -113,10 +79,10 @@ function ConversationPage() {
     setSending(true)
     setError('')
     try {
-      const message = await sendMessage(Number(userId), text)
+      // sendMessage lägger brevet i konversationen direkt, i stället för att
+      // vänta på nästa hämtning.
+      await sendMessage(Number(userId), text)
       setText('')
-      // Visa det skickade brevet direkt, i stället för att vänta på nästa hämtning.
-      setMessages((current) => (current.some((m) => m.id === message.id) ? current : [...current, message]))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -134,10 +100,15 @@ function ConversationPage() {
           en linje. På mobil ligger pappret längst ner, där man skriver. */}
       <article className="notepad lined-paper">
         <h1 className="notepad-title">
-          {other && (
-            <Avatar name={otherName} imageUrl={other.image_url} className="person-list-avatar notepad-title-avatar" />
+          {/* Bild och namn länkar till personens profil. */}
+          {other ? (
+            <Link to={`/anvandare/${other.id}`} className="notepad-title-link">
+              <Avatar name={otherName} imageUrl={other.image_url} className="person-list-avatar notepad-title-avatar" />
+              <span className="notepad-title-name">{otherName}</span>
+            </Link>
+          ) : (
+            <span className="notepad-title-name">{otherName}</span>
           )}
-          <span className="notepad-title-name">{otherName}</span>
         </h1>
 
         {status === 'loading' && <p className="hint-text">Laddar...</p>}
@@ -151,15 +122,12 @@ function ConversationPage() {
             {messages.map((m) => (
               <li key={m.id} className="notepad-message">
                 <p>
-                  <Avatar
+                  <ChatSender
+                    userId={other?.id}
+                    mine={m.sender_id === user.id}
                     name={m.sender_id === user.id ? myProfile?.name : otherName}
                     imageUrl={m.sender_id === user.id ? myProfile?.image_url : other?.image_url}
-                    className="person-list-avatar notepad-message-avatar"
-                  />
-                  {/* Ditt namn med den gula överstrykningspennan, som namnet på startsidan. */}
-                  <strong className={m.sender_id === user.id ? 'highlight' : undefined}>
-                    {m.sender_id === user.id ? 'Du' : otherName}
-                  </strong>{' '}
+                  />{' '}
                   <time className="hint-text" dateTime={m.created_at}>
                     {formatSentAt(m.created_at)}
                   </time>
