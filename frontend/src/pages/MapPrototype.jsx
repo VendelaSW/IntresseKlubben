@@ -800,6 +800,10 @@ function MapPrototype() {
 
   // Hämtar klubbar och events som syns för användaren (samma som listorna i
   // appen) och lägger dem på kartan.
+  // Kommunerna (se allKommuner), när de har laddats: för att kunna placera en
+  // klubb eller ett event som inte finns bland lapparna än (se findActivity).
+  const kommunerRef = useRef(null)
+
   async function loadActivities() {
     try {
       const [publicGroups, myGroups, events, kommuner] = await Promise.all([
@@ -809,6 +813,7 @@ function MapPrototype() {
         allKommuner(),
       ])
       const groups = [...new Map([...publicGroups, ...myGroups].map((g) => [g.id, g])).values()]
+      kommunerRef.current = kommuner
       activitiesRef.current?.setItems(activitiesFrom({ groups, events, kommuner }))
     } catch {
       // Kartan fungerar utan lapparna.
@@ -826,12 +831,28 @@ function MapPrototype() {
 
   // "Visa på kartan" från Klubbar och Events: stäng blocket, gå till länet
   // där klubben eller eventet finns och flyg till lappen, som markeras.
+  // Lappen för en klubb eller ett event. Finns den inte bland lapparna än (t.ex.
+  // ett event som nyss skapats i blocket; lapparna hämtas om först när blocket
+  // stängs) räknas platsen ut från klubbens eller eventets egna uppgifter, `data`.
+  function findActivity(type, id, data) {
+    const existing = activitiesRef.current?.getItem(type, id)
+    if (existing || !data || !kommunerRef.current) return existing ?? null
+    const [item] = activitiesFrom({
+      groups: type === 'klubb' ? [data] : [],
+      events: type === 'event' ? [data] : [],
+      kommuner: kommunerRef.current,
+    })
+    return item ?? null
+  }
+
   const mapActions = {
-    hasLocation: (type, id) => Boolean(activitiesRef.current?.getItem(type, id)),
-    showOnMap(type, id) {
-      const item = activitiesRef.current?.getItem(type, id)
+    hasLocation: (type, id, data) => Boolean(findActivity(type, id, data)),
+    showOnMap(type, id, data) {
+      const item = findActivity(type, id, data)
       const map = mapRef.current
       if (!item || !map) return
+      // Ny lapp: lägg ut den, så att den syns och kan markeras.
+      if (!activitiesRef.current?.getItem(type, id)) activitiesRef.current?.putItem(item)
       setOpenPage(null)
       setMode('free', null, item.lan, item.kommun)
       // Med nål zoomas det in till platsen. Utan nål står lappen mitt i

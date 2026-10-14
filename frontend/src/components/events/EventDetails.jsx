@@ -97,7 +97,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
         {eventTimeText(event)} · {event.place_name}
       </p>
       <p className="hint-text">{event.address}</p>
-      <ShowOnMapButton type="event" id={event.id} />
+      <ShowOnMapButton type="event" id={event.id} data={event} />
       <p className="card-text">{event.description}</p>
       <div className="detail-view-section">
         <InterestTags

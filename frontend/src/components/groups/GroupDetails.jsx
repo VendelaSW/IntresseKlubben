@@ -46,7 +46,7 @@ function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecl
       <p className="card-subheading">
         {group.municipality_name} · {memberCountText(group.member_count)}
       </p>
-      <ShowOnMapButton type="klubb" id={group.id} />
+      <ShowOnMapButton type="klubb" id={group.id} data={group} />
       {group.is_member && group.has_blocked_member && (
         <p className="soft-box soft-box-wide soft-box-text">Någon du har blockerat är med i den här klubben.</p>
       )}

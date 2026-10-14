@@ -209,6 +209,11 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick }) {
       render()
     },
     getItem: (type, id) => items.find((i) => i.type === type && i.id === id) ?? null,
+    // Lägger till eller ersätter en lapp (t.ex. ett event som nyss skapats).
+    putItem(item) {
+      items = [...items.filter((i) => !(i.type === item.type && i.id === item.id)), item]
+      render()
+    },
     highlight,
     render,
   }
