@@ -9,6 +9,7 @@ from app.crud.group import (
     GroupRuleError,
     GroupSort,
     can_invite,
+    count_user_invitations,
     create_group,
     decline_invitation,
     delete_group,
@@ -160,7 +161,7 @@ def read_my_invitations(current_user=Depends(get_current_user), db: Session = De
 # Bara antalet, för märket i headern.
 @router.get("/invitations/count")
 def read_my_invitation_count(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return {"count": len(list_user_invitations(db, current_user.id))}
+    return {"count": count_user_invitations(db, current_user.id)}
 
 
 @router.get("/{group_id}", response_model=GroupResponse)

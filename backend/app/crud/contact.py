@@ -1,4 +1,4 @@
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -54,6 +54,14 @@ def list_contacts(db: Session, user_id: int) -> dict[str, list[tuple[Contact, Us
         else:
             result["outgoing_requests"].append((c, users[c.addressee_id]))
     return result
+
+
+def incoming_request_count(user_id: int):
+    """Frågan efter antalet obesvarade förfrågningar till user_id (samma som
+    incoming_requests i list_contacts), att ställa ensam eller ihop med andra
+    räkningar i samma anrop till databasen."""
+    return (select(func.count()).select_from(Contact)
+            .where(Contact.addressee_id == user_id, Contact.status == "PENDING"))
 
 
 def send_request(db: Session, requester_id: int, addressee_id: int) -> Contact:

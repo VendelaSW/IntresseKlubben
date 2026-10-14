@@ -96,12 +96,6 @@ export function getGroupInvitations() {
   return apiGet('/groups/invitations')
 }
 
-// Bara antalet, för märket i headern.
-export async function getGroupInvitationCount() {
-  const data = await apiGet('/groups/invitations/count')
-  return data.count
-}
-
 // Bjuder in kontakter (userIds). Svaret är de som blev inbjudna den här gången.
 export function inviteToGroup(id, userIds) {
   return apiPost(`/groups/${id}/invitations`, { user_ids: userIds })
