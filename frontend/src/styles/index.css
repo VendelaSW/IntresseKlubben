@@ -872,12 +872,12 @@ span.tag-selected:hover {
 }
 
 /* Kort i samma storlek (Personer, Klubbar och Events). Lägg till utöver
-   card-grid. Alla kort är minst --card-height höga och lika höga i varje rad
-   (grid-auto-rows), så att raderna blir jämna: längre text kortas med "…"
-   (se .list-card-link) och intressena på personkorten scrollar (se
-   .person-card > .tags). Kräver innehållet mer plats (t.ex. med större text i
-   webbläsaren) växer korten i stället för att klippas. På mobil ligger korten
-   i mitten, i fast bredd. */
+   card-grid. Korten är lika höga i varje rad (grid-auto-rows), så att raderna
+   blir jämna. Klubb- och eventkort är minst --card-height höga, och längre
+   text kortas med "…" (se .list-card-link). Personkorten är så höga som
+   innehållet, med intressena på en rad (se .person-card-interests). Kräver
+   innehållet mer plats (t.ex. med större text i webbläsaren) växer korten i
+   stället för att klippas. På mobil ligger korten i mitten, i fast bredd. */
 .card-grid-compact {
   --card-height: 340px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
@@ -885,7 +885,7 @@ span.tag-selected:hover {
   justify-content: center;
 }
 
-.card-grid-compact > .card {
+.card-grid-compact > .list-card {
   min-height: var(--card-height);
 }
 
@@ -919,40 +919,59 @@ span.tag-selected:hover {
   margin-bottom: 0;
 }
 
-/* Intressena på personkortet i en egen ruta som scrollar, så att bilden,
-   namnet, platsen, de gemensamma intressena och knapparna alltid syns. På
-   dator och mobil visas två och en halv rad taggar, så att man ser att det
-   finns fler att scrolla fram. */
-.person-card > .tags {
-  flex: none;
-  max-height: 6.5rem;
+/* Intressena på personkortet (se CardInterests i PersonCard): högst tre på en
+   rad, och bara så många som får plats hela. Raden bryts aldrig. Får inte ens
+   ett namn plats (is-tight) kortas det med "…". */
+.person-card-interests {
+  position: relative;
+}
+
+.person-card-interests > .tags {
+  flex-wrap: nowrap;
+}
+
+.person-card-interests > .tags > li {
+  flex-shrink: 0;
+}
+
+.person-card-interests.is-tight > .tags > li:first-child {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.person-card-interests.is-tight > .tags .tag-static {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Alla intressen, utfällda över kortet under raden (kortet ändrar inte storlek). */
+.person-card-interests-all {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: 0;
+  z-index: 3;
+  max-height: 12rem;
   overflow-y: auto;
-  align-content: flex-start;
-  padding-right: 0.25rem;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-line) transparent;
+  padding: 0.6rem;
+  background: var(--color-white);
+  border: 2px solid var(--color-line);
+  border-radius: 4px;
+  box-shadow: 2px 3px 0 var(--color-line);
 }
 
-/* Safari läser inte scrollbar-color, så där ritas scrollbaren så här. */
-.person-card > .tags::-webkit-scrollbar {
-  width: 6px;
-}
-
-.person-card > .tags::-webkit-scrollbar-thumb {
-  background: var(--color-line);
-  border-radius: 3px;
-}
-
-/* Rutan går att scrolla med tangentbordet (tabindex i PersonCard), och visar
-   då var fokus är. */
-.person-card > .tags:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+/* Kortet med en utfälld ruta ligger ovanpå korten under. */
+.person-card:has(.person-card-interests.is-open) {
+  position: relative;
+  z-index: 3;
 }
 
 /* Utan raden om gemensamma intressen kommer intressena direkt efter staden:
    lite extra luft där. */
-.person-card-link + .tags {
+.person-card-link + .person-card-interests {
   margin-top: 0.5rem;
 }
 
