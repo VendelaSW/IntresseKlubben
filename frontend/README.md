@@ -23,6 +23,7 @@ på nya hex-koder eller pixelvärden.
 | Knappar | `.primary-button`, `.account-choice-link`, `.button-small` (kombineras med de andra två) | `<button className="primary-button button-small">` |
 | Boxar | `.card`, `.card-avatar`, `.card-title`, `.card-subheading`, `.card-text` | Se Boxar-exemplet i stilguiden |
 | Profilbild | `Avatar` (bild, annars initial) med `.person-list-avatar` (liten) eller `.card-avatar` (stor) | `<Avatar name={user.name} imageUrl={user.image_url} className="person-list-avatar" />` |
+| Maskot | `Intressekompis` (pupiller som följer muspekaren). Storleken ges med `width` eller förälderns bredd; `alt=""` när den bara pryder | `<Intressekompis width="200px" />` |
 | Formulär | `.auth-form`, dess `input`/`label`/`button` | Se Formulärfält-exemplet i stilguiden |
 | Länkar | `.info-link` | `<a className="info-link">` |
 | Brev | `.envelopes` + `ConversationCard` (kuvert), `.lined-paper` (linjerat papper), `.notepad` (konversationen) | Se Brev-exemplet i stilguiden |
