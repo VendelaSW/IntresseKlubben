@@ -6,17 +6,19 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 // när någon öppnar ett formulär med en karta. En vanlig, platt karta från
 // OpenFreeMap (samma kartdata som den stora kartan, men utan skissen).
 // Klick på kartan flyttar nålen dit, och nålen går att dra.
+//
+// Utan nål visas `kommunCode`:s kommun (t.ex. klubbens eller ens egen), annars
+// hela Sverige. Kommunens yta kommer från den stora kartans data, som laddas
+// först när den behövs.
 const STYLE = 'https://tiles.openfreemap.org/styles/liberty'
-// Hela Sverige när ingen nål är satt, och hur nära nålen visas.
-const SWEDEN_CENTER = [16.5, 62.5]
-const SWEDEN_ZOOM = 3.6
+// Hur nära nålen visas, och Sverige (för att visa hela landet utan nål).
 const PIN_ZOOM = 15
 const SWEDEN_BOUNDS = [
-  [10.0, 54.8],
-  [25.0, 69.6],
+  [10.5, 55.0],
+  [24.5, 69.3],
 ]
 
-function LocationPickerMap({ value, onChange }) {
+function LocationPickerMap({ value, onChange, kommunCode }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
@@ -27,9 +29,9 @@ function LocationPickerMap({ value, onChange }) {
     const map = new MapLibreMap({
       container: containerRef.current,
       style: STYLE,
-      center: value ? [value.longitude, value.latitude] : SWEDEN_CENTER,
-      zoom: value ? PIN_ZOOM : SWEDEN_ZOOM,
-      maxBounds: SWEDEN_BOUNDS,
+      ...(value
+        ? { center: [value.longitude, value.latitude], zoom: PIN_ZOOM }
+        : { bounds: SWEDEN_BOUNDS, fitBoundsOptions: { padding: 10 } }),
       attributionControl: { compact: true },
     })
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right')
@@ -50,6 +52,24 @@ function LocationPickerMap({ value, onChange }) {
     }
     // Kartan skapas en gång; nålen följer `value` nedan.
   }, [])
+
+  // Utan nål: visa kommunen när den är känd (och när den byts i formuläret).
+  const hasPin = Boolean(value)
+  useEffect(() => {
+    if (!kommunCode || hasPin) return undefined
+    let cancelled = false
+    import('../pages/mapPrototypeZoomLevels')
+      .then(({ kommunByCode }) => kommunByCode(kommunCode))
+      .then((kommun) => {
+        if (!cancelled && kommun && mapRef.current) mapRef.current.fitBounds(kommun.bounds, { padding: 20 })
+      })
+      .catch(() => {
+        // Då visas hela Sverige, som utan kommun.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [kommunCode, hasPin])
 
   // Nålen följer värdet, och kartan flyger dit när den flyttas långt (t.ex.
   // när man väljer en träff i adressökningen).

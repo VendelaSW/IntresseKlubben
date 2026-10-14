@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import FormField from '../FormField'
 import LocationPicker from '../LocationPicker'
@@ -5,6 +6,7 @@ import Modal from '../Modal'
 import TextareaWithCount from '../TextareaWithCount'
 import InvitePicker from './InvitePicker'
 import { EVENT_VISIBILITY, createEvent, inviteToEvent } from '../../services/events'
+import { profileQuery } from '../../services/profile'
 
 // Värdet ett <input type="datetime-local"> vill ha: lokal tid utan tidszon.
 function localInputValue(date) {
@@ -36,6 +38,9 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
   const [address, setAddress] = useState('')
   // Var på kartan: { latitude, longitude } eller null (se LocationPicker).
   const [position, setPosition] = useState(null)
+  // Ens egen kommun, som kartan visar innan nålen är satt (profilen finns redan
+  // i det delade minnet, se services/queryClient.js).
+  const { data: profile } = useQuery(profileQuery)
   // Klubben kan vara vald från början (när man skapar ett event från en klubbs sida).
   const [groupId, setGroupId] = useState(initialGroupId ? String(initialGroupId) : '')
   const [isOpen, setIsOpen] = useState(false)
@@ -179,6 +184,7 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
         value={position}
         onChange={setPosition}
         saveLabel="Skapa event"
+        kommunCode={profile?.municipality_code}
       />
 
       <FormField id="event-group" label="Klubb (valfritt)">

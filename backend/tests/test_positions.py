@@ -219,9 +219,19 @@ def test_nominatim_labels_put_the_house_number_after_the_street(display_name, la
     assert geocoding._short_label(display_name) == label
 
 
-def test_nominatim_client_turns_network_errors_into_geocoding_failed(monkeypatch):
+@pytest.mark.parametrize(
+    "error",
+    [
+        geocoding.urllib.error.URLError("nere"),
+        TimeoutError(),
+        ConnectionResetError(),
+        geocoding.http.client.RemoteDisconnected("stängd"),
+        geocoding.http.client.IncompleteRead(b""),
+    ],
+)
+def test_nominatim_client_turns_network_errors_into_geocoding_failed(monkeypatch, error):
     def broken(request, timeout):
-        raise geocoding.urllib.error.URLError("nere")
+        raise error
 
     monkeypatch.setattr(geocoding.urllib.request, "urlopen", broken)
     monkeypatch.setattr(geocoding, "MIN_INTERVAL_SECONDS", 0)

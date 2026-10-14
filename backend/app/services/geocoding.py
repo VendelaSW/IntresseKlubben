@@ -13,6 +13,7 @@ sekund sedan det förra, och samma sökning svaras ur ett minne i stället för 
 spärren och minnet gäller per serverinstans. Bara söktexten skickas, aldrig vem som söker.
 """
 
+import http.client
 import json
 import threading
 import time
@@ -82,7 +83,10 @@ class NominatimGeocoder:
         try:
             with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
                 return json.load(response)
-        except (urllib.error.URLError, TimeoutError, ValueError) as err:
+        # OSError täcker URLError, tidsgränsen och brutna anslutningar, och
+        # HTTPException svar som inte går att läsa (t.ex. en anslutning som
+        # stängs mitt i svaret). Allt blir 503, inte 500.
+        except (OSError, http.client.HTTPException, ValueError) as err:
             raise GeocodingFailed(type(err).__name__) from None
 
     def search(self, query: str) -> list[Place]:

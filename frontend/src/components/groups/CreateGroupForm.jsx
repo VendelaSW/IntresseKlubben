@@ -135,6 +135,7 @@ function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCre
         value={position}
         onChange={setPosition}
         saveLabel="Skapa klubb"
+        kommunCode={municipalityCode}
       />
 
       <FormField id="group-description" label="Beskrivning">

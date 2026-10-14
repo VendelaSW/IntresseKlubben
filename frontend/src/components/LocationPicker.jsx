@@ -14,9 +14,10 @@ const LocationPickerMap = lazy(() => import('./LocationPickerMap'))
 // som "Pokémonkyrkan" finns inte på kartan och skulle annars stjälpa
 // sökningen). `value` är { latitude, longitude } eller null, `onChange` får
 // det nya värdet, och `saveLabel` är formulärets knapp ("Skapa klubb"), så att
-// det framgår när nålen sparas. Utan nål visas eventet eller klubben mitt i
-// sin kommun på kartan.
-function LocationPicker({ id, queries, value, onChange, saveLabel }) {
+// det framgår när nålen sparas. `kommunCode` är kommunen kartan visar innan
+// det finns en nål. Utan nål visas eventet eller klubben mitt i sin kommun på
+// kartan.
+function LocationPicker({ id, queries, value, onChange, saveLabel, kommunCode }) {
   const [results, setResults] = useState(null) // null = inte sökt än
   const [searched, setSearched] = useState('')
   const [searching, setSearching] = useState(false)
@@ -93,7 +94,7 @@ function LocationPicker({ id, queries, value, onChange, saveLabel }) {
       )}
 
       <Suspense fallback={<div className="location-picker-map" aria-hidden="true" />}>
-        <LocationPickerMap value={value} onChange={placePin} />
+        <LocationPickerMap value={value} onChange={placePin} kommunCode={kommunCode} />
       </Suspense>
       <p className="hint-text">
         {value
