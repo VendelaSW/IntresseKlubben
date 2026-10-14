@@ -58,7 +58,13 @@ def _event(db, creator_id, interest_id, title, starts_at=SOON):
 def test_no_badges_for_a_new_user(client, user):
     response = client.get(URL)
     assert response.status_code == 200
-    assert response.json() == {"contact_requests": 0, "club_invitations": 0, "event_invitations": 0, "conversations": []}
+    assert response.json() == {
+        "contact_requests": 0,
+        "club_invitations": 0,
+        "event_invitations": 0,
+        "conversations": [],
+        "club_events": [],
+    }
 
 
 def test_only_incoming_pending_requests_count(client, db, user, people):
@@ -103,6 +109,39 @@ def test_event_invitations_count_only_unanswered_upcoming_ones(client, db, user,
     assert client.get(URL).json()["event_invitations"] == 1
     events = client.get("/events/").json()
     assert client.get(URL).json()["event_invitations"] == sum(1 for e in events if e["is_invited"] and e["my_answer"] is None)
+
+
+def test_club_events_are_the_unanswered_upcoming_ones_in_my_clubs(client, db, user, people, interest, municipalities):
+    mine = _group(db, 2, interest.id, "Min klubb")
+    other = _group(db, 3, interest.id, "Inte min")
+    db.add(GroupMember(group_id=mine.id, user_id=1, role=GroupRole.member))
+    new = _event(db, 2, interest.id, "Nytt")
+    answered = _event(db, 2, interest.id, "Besvarat")
+    invited = _event(db, 2, interest.id, "Inbjuden")  # räknas redan som inbjudan
+    own = _event(db, 1, interest.id, "Mitt eget")
+    past = _event(db, 2, interest.id, "Passerat", starts_at=datetime.now(timezone.utc) - timedelta(days=3))
+    elsewhere = _event(db, 3, interest.id, "Annan klubb")
+    for item in (new, answered, invited, own, past):
+        item.group_id = mine.id
+    elsewhere.group_id = other.id
+    db.add_all([
+        EventResponse(event_id=answered.id, user_id=1, answer=EventAnswer.no),
+        EventInvitation(event_id=invited.id, user_id=1),
+    ])
+    db.commit()
+    club_events = client.get(URL).json()["club_events"]
+    assert [e["id"] for e in club_events] == [new.id]
+    assert club_events[0]["created_at"]
+
+
+def test_club_events_from_blocked_people_are_left_out(client, db, user, people, interest, municipalities):
+    club = _group(db, 2, interest.id, "Min klubb")
+    db.add(GroupMember(group_id=club.id, user_id=1, role=GroupRole.member))
+    blocked = _event(db, 2, interest.id, "Från blockerad")
+    blocked.group_id = club.id
+    db.add(Contact(requester_id=1, addressee_id=2, pair_key=_pair(1, 2), status="BLOCKED"))
+    db.commit()
+    assert client.get(URL).json()["club_events"] == []
 
 
 def test_conversations_give_the_latest_message_per_person(client, db, user, people):

@@ -181,7 +181,12 @@ export async function regionAt(level, [lng, lat]) {
 export async function allKommuner() {
   const { kommuner } = await loadRegions()
   return new Map(
-    kommuner.map((f) => [f.properties.kod, { kod: f.properties.kod, name: f.properties.namn, label: f.properties.label }]),
+    kommuner.map((f) => [
+      f.properties.kod,
+      // geometry och bbox: för att hitta kommunen en position ligger i (se
+      // mapPrototypeActivities.js).
+      { kod: f.properties.kod, name: f.properties.namn, label: f.properties.label, geometry: f.geometry, bbox: bboxOf(f.geometry) },
+    ]),
   )
 }
 

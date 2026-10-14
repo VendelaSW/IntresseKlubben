@@ -40,10 +40,25 @@ from sqlalchemy.pool import StaticPool  # noqa: E402
 
 from app.auth.security import get_current_user, require_profile  # noqa: E402
 from app.services.ai_clients import set_clients  # noqa: E402
+from app.services.geocoding import set_geocoder  # noqa: E402
+from tests.fakes import FakeGeocoder  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Municipality, User  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def fake_geocoder():
+    """Inget test ska anropa Nominatim: adressökningen är en fejkad version utan träffar, om inte
+    testet sätter in en egen. Spärren för antal sökningar nollställs också."""
+    from app.api.routes import geocode as geocode_route
+
+    set_geocoder(FakeGeocoder())
+    geocode_route._recent.clear()
+    yield
+    set_geocoder()
+    geocode_route._recent.clear()
 
 
 @pytest.fixture(autouse=True)

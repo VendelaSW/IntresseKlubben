@@ -43,6 +43,8 @@ def create_event(db: Session, user_id: int, data: EventCreate) -> Event:
         ends_at=data.ends_at,
         place_name=data.place_name,
         address=data.address,
+        latitude=data.latitude,
+        longitude=data.longitude,
         visibility=data.visibility,
         guests_can_invite=data.guests_can_invite,
         created_by=user_id,
@@ -122,6 +124,28 @@ def unanswered_invitation_count(db: Session, user_id: int, hidden: set[int] | No
         .select_from(Event)
         .where(_can_see(db, user_id, hidden), _not_over(now), Event.id.in_(invited), Event.id.not_in(answered))
     )
+
+
+def unanswered_club_events(db: Session, user_id: int, hidden: set[int] | None = None, now: datetime | None = None):
+    """Kommande events i användarens klubbar som hen inte har skapat, inte är
+    inbjuden till (de räknas redan som inbjudningar) och inte har svarat på:
+    (id, created_at), för märket vid Events. Vilka som är nya avgörs i
+    webbläsaren, som minns när man senast tittade (frontend/src/services/
+    eventsSeen.js), på samma sätt som de nya breven."""
+    now = now or datetime.now(timezone.utc)
+    my_groups = select(GroupMember.group_id).where(GroupMember.user_id == user_id)
+    invited = select(EventInvitation.event_id).where(EventInvitation.user_id == user_id)
+    answered = select(EventResponse.event_id).where(EventResponse.user_id == user_id)
+    return db.execute(
+        select(Event.id, Event.created_at).where(
+            _can_see(db, user_id, hidden),
+            _not_over(now),
+            Event.group_id.in_(my_groups),
+            Event.created_by != user_id,
+            Event.id.not_in(invited),
+            Event.id.not_in(answered),
+        )
+    ).all()
 
 
 def get_visible_event(db: Session, event_id: int, user_id: int) -> Event | None:
