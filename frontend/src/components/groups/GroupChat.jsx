@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { getGroupMembers, getGroupMessages, sendGroupMessage } from '../../services/groups'
 import { formatSentAt } from '../../utils/formatSentAt'
-import Avatar from '../Avatar'
+import ChatSender from '../ChatSender'
 
 // Hur ofta chatten hämtas igen medan den är öppen, så att nya meddelanden syns utan att man laddar om sidan.
 const POLL_MS = 5000
@@ -169,9 +169,7 @@ function GroupChat({ groupId }) {
             return (
               <li key={message.id} className="notepad-message">
                 <p>
-                  <Avatar name={name} imageUrl={sender?.image_url} className="person-list-avatar notepad-message-avatar" />
-                  {/* Ditt namn med den gula överstrykningspennan, som i brevtråden. */}
-                  <strong className={mine ? 'highlight' : undefined}>{mine ? 'Du' : name}</strong>{' '}
+                  <ChatSender userId={sender?.id} mine={mine} name={name} imageUrl={sender?.image_url} />{' '}
                   <time className="hint-text" dateTime={message.created_at}>
                     {formatSentAt(message.created_at)}
                   </time>
