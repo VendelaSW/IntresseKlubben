@@ -85,13 +85,25 @@ export async function updateProfile(data) {
 // En annan användares profil, skrivskyddat. null om personen inte har
 // skapat någon profil än (samma 404-hantering som getProfile). Också null för
 // en adress som inte är ett id (422), t.ex. en gammal länk med användarnamn.
-export async function getUserProfile(userId) {
-  try {
-    return await apiGet(`/users/${userId}/profile`)
-  } catch (err) {
-    if (err instanceof ApiError && (err.status === 404 || err.status === 422)) return null
-    throw err
+// Sparas i minnet en kort stund (se queryClient.js), så en profil man nyss
+// tittat på visas direkt.
+export function userProfileQuery(userId) {
+  return {
+    queryKey: ['user-profile', String(userId)],
+    queryFn: async () => {
+      try {
+        return await apiGet(`/users/${userId}/profile`)
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 404 || err.status === 422)) return null
+        throw err
+      }
+    },
+    staleTime: 15 * 1000,
   }
+}
+
+export function getUserProfile(userId) {
+  return queryClient.fetchQuery(userProfileQuery(userId))
 }
 
 // Profilbild: skala om (WebP, eller JPEG på iPhone), be backend om en
@@ -105,10 +117,13 @@ export async function uploadProfileImage(file) {
 // "Skapa din profil" och laddas upp först när profilen har sparats). Länken
 // gäller bara för bildens filtyp, så den skickas med.
 export async function uploadResizedImage(image) {
-  const { upload_url, key } = await apiPost('/profile/image/upload-url', { content_type: image.type })
+  const { upload_url, key, upload_headers } = await apiPost('/profile/image/upload-url', { content_type: image.type })
+  // Backend säger vilka headers som ingår i länkens signatur (filtyp och
+  // cache-inställning, så att bilden kan sparas i webbläsaren). En äldre backend
+  // skickar inga, och då räcker filtypen.
   const res = await fetch(upload_url, {
     method: 'PUT',
-    headers: { 'Content-Type': image.type },
+    headers: upload_headers ?? { 'Content-Type': image.type },
     body: image,
   })
   if (!res.ok) throw new Error('Uppladdningen misslyckades. Försök igen.')

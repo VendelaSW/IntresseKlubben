@@ -17,7 +17,7 @@ syns i några adresser.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.auth.security import get_current_user, require_profile
 from app.core import storage
@@ -47,10 +47,14 @@ def list_my_conversations(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[ConversationResponse]:
+    conversations = list_conversations(db, current_user.id)
+    # Alla personerna med profiler i en fråga, inte en per konversation.
+    other_ids = [other_id for other_id, _ in conversations]
+    users = {u.id: u for u in db.query(User).options(selectinload(User.profile)).filter(User.id.in_(other_ids))}
     result = []
-    for other_id, last_message in list_conversations(db, current_user.id):
-        other = db.get(User, other_id)
-        if other is None or is_blocked(db, current_user.id, other_id):
+    for other_id, last_message in conversations:
+        other = users.get(other_id)
+        if other is None:
             continue
         profile = other.profile
         image_key = profile.profile_image_url if profile else None
