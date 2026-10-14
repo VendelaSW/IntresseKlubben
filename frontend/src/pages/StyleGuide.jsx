@@ -357,8 +357,9 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Hela övre delen (.list-card-link) är klickbar. Knappar och märken ligger utanför den, i
-          .card-actions. Korten i .card-grid-compact har fast höjd: klubb- och eventkort --card-height,
-          personkort --person-card-height, och på dator ligger de tre per rad kant i kant med rubriken. Namnet kortas
+          .card-actions. Korten i .card-grid-compact är minst --card-height höga och lika höga i varje
+          rad (de växer om innehållet kräver det), och på dator fyller de bredden kant i kant med
+          rubriken, så många per rad som får plats. Namnet kortas
           av efter två rader och beskrivningen efter tre, med "…". På personkorten scrollar
           intressena, så att bild, namn, plats och knappar alltid syns.
         </p>

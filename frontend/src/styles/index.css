@@ -872,46 +872,35 @@ span.tag-selected:hover {
 }
 
 /* Kort i samma storlek (Personer, Klubbar och Events). Lägg till utöver
-   card-grid. Klubb- och eventkorten är lika höga (--card-height) och
-   personkorten har en egen höjd (--person-card-height), så att raderna blir
-   jämna: längre text kortas med "…" (se .list-card-link) och intressena på
-   personkorten scrollar (se .person-card > .tags). På mobil ligger korten i
-   mitten, i fast bredd. */
+   card-grid. Alla kort är minst --card-height höga och lika höga i varje rad
+   (grid-auto-rows), så att raderna blir jämna: längre text kortas med "…"
+   (se .list-card-link) och intressena på personkorten scrollar (se
+   .person-card > .tags). Kräver innehållet mer plats (t.ex. med större text i
+   webbläsaren) växer korten i stället för att klippas. På mobil ligger korten
+   i mitten, i fast bredd. */
 .card-grid-compact {
-  --card-height: 330px;
-  --person-card-height: 330px;
+  --card-height: 340px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
+  grid-auto-rows: 1fr;
   justify-content: center;
 }
 
-/* Klubb- och eventkort har samma höjd överallt. Personkorten får samma höjd
-   på dator (se nedan); på mobil bestämmer innehållet, och intressena scrollar. */
-.card-grid-compact > .list-card {
-  height: var(--card-height);
-  overflow: hidden;
+.card-grid-compact > .card {
+  min-height: var(--card-height);
 }
 
-/* Dator: korten fyller bredden kant i kant med rubriken och flikarna, tre per
-   rad (två på en smal skärm), och personkorten har en fast höjd. */
+/* Dator: korten fyller bredden kant i kant med rubriken och flikarna, med så
+   många kolumner som får plats (tre på en vanlig skärm, färre i ett smalare
+   fönster eller i kartans block). auto-fill behåller tomma kolumner, så att
+   ett eller två kort är lika breda som i en full rad och ligger till vänster. */
 @media (min-width: 768px) {
   .card-grid-compact {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     justify-content: stretch;
   }
 
   .card-grid-compact > .card {
     max-width: none;
-  }
-
-  .card-grid-compact > .person-card {
-    height: var(--person-card-height);
-    overflow: hidden;
-  }
-}
-
-@media (min-width: 900px) {
-  .card-grid-compact {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -952,6 +941,13 @@ span.tag-selected:hover {
 .person-card > .tags::-webkit-scrollbar-thumb {
   background: var(--color-line);
   border-radius: 3px;
+}
+
+/* Rutan går att scrolla med tangentbordet (tabindex i PersonCard), och visar
+   då var fokus är. */
+.person-card > .tags:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /* Utan raden om gemensamma intressen kommer intressena direkt efter staden:
@@ -1166,10 +1162,11 @@ span.tag-selected:hover {
   padding: calc(var(--envelope-reach) - 0.25rem) 0 0;
   width: 100%;
   display: grid;
-  /* Fem lika breda kolumner, från vänster i linje med rubriken och flikarna,
-     som fylls på åt höger när nya brev kommer. */
+  /* Lika breda kolumner från vänster, i linje med rubriken och flikarna, som
+     fylls på åt höger när nya brev kommer. Så många som får plats: fem på en
+     vanlig skärm, färre i ett smalare fönster eller i kartans block. */
   --envelope-gap: 1.25rem;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: calc(var(--envelope-reach) + 1.1rem) var(--envelope-gap);
 }
 
