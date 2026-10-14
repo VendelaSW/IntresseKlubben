@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import CreateGroupForm from './CreateGroupForm'
 import BackButton from '../BackButton'
+import GroupChat from './GroupChat'
 import GroupDetails from './GroupDetails'
 import GroupList from './GroupList'
 import GroupSortMenu from './GroupSortMenu'
@@ -316,16 +317,20 @@ function GroupsPanel() {
           {selected ? (
             <>
               <BackButton onClick={() => setView('list')} />
-              <div className="card sheet">
-                <GroupDetails
-                  group={selected}
-                  contacts={contacts ?? []}
-                  busy={busy}
-                  onJoin={handleJoin}
-                  onLeave={handleLeave}
-                  onDelete={handleDelete}
-                  onDecline={handleDecline}
-                />
+              {/* Klubben till vänster och chatten bredvid på dator, chatten under på mobil. */}
+              <div className="group-layout">
+                <div className="card sheet">
+                  <GroupDetails
+                    group={selected}
+                    contacts={contacts ?? []}
+                    busy={busy}
+                    onJoin={handleJoin}
+                    onLeave={handleLeave}
+                    onDelete={handleDelete}
+                    onDecline={handleDecline}
+                  />
+                </div>
+                {selected.is_member && <GroupChat key={selected.id} groupId={selected.id} />}
               </div>
             </>
           ) : (

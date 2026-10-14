@@ -4,7 +4,6 @@ import InvitePicker from '../events/InvitePicker'
 import Modal from '../Modal'
 import ShowOnMapButton from '../ShowOnMapButton'
 import GroupEvents from './GroupEvents'
-import GroupChat from './GroupChat'
 import GroupMembers from './GroupMembers'
 import { RoleBadge, memberCountText } from './GroupList'
 import { inviteToGroup } from '../../services/groups'
@@ -111,7 +110,6 @@ function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecl
         </Modal>
       )}
       <GroupEvents groupId={group.id} />
-      {group.is_member && <GroupChat key={group.id} groupId={group.id} />}
       <GroupMembers groupId={group.id} memberCount={group.member_count} />
       {group.is_member && (
         <div className="card-actions">

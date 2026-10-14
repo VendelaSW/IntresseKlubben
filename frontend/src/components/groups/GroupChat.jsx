@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
+import { useChatScroll } from '../../hooks/useChatScroll'
 import { getGroupMembers, getGroupMessages, sendGroupMessage } from '../../services/groups'
 import { formatSentAt } from '../../utils/formatSentAt'
 import Avatar from '../Avatar'
@@ -10,8 +11,9 @@ const POLL_MS = 5000
 // Samma brytpunkt som i index.css: under den vill man se det senaste och svarsraden.
 const MOBILE_QUERY = '(max-width: 767px)'
 
-// Klubbens chatt på ett linjerat anteckningspapper (.notepad i stilguiden), som brevtråden. Bara för medlemmar
-// (GroupDetails visar den inte annars), och servern kontrollerar medlemskapet.
+// Klubbens chatt på ett linjerat anteckningspapper (.notepad i stilguiden), som brevtråden. Ligger bredvid klubbens
+// ruta på dator och under den på mobil (se GroupsPanel). Bara för medlemmar, och servern kontrollerar medlemskapet.
+// Meddelandena scrollar i sin ruta och öppnas vid det senaste (se useChatScroll).
 function GroupChat({ groupId }) {
   const { user } = useAuth()
   const [messages, setMessages] = useState([])
@@ -32,6 +34,7 @@ function GroupChat({ groupId }) {
   const membersLoaded = useRef(false)
   // Första gången meddelandena läses in ska sidan inte flyttas, bara när det kommer fler.
   const loadedOnce = useRef(false)
+  const { listRef, onScroll, stickToBottom } = useChatScroll(messages.length)
 
   useEffect(() => {
     let cancelled = false
@@ -114,6 +117,7 @@ function GroupChat({ groupId }) {
     event.preventDefault()
     const text = content.trim()
     if (!text || submitting.current || status !== 'ready') return
+    stickToBottom()
     submitting.current = true
     revision.current += 1
     setSending(true)
@@ -160,7 +164,7 @@ function GroupChat({ groupId }) {
       )}
       {status === 'ready' && messages.length === 0 && <p className="hint-text">Inga meddelanden än.</p>}
       {messages.length > 0 && (
-        <ol className="notepad-messages">
+        <ol className="notepad-messages" ref={listRef} onScroll={onScroll}>
           {/* Namn och tid som en rad överst, meddelandet under, som i brevtråden. */}
           {messages.map((message) => {
             const mine = message.sender_id === user?.id
