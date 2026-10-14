@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useGoBack } from '../../hooks/useCanGoBack'
 import CreateGroupForm from './CreateGroupForm'
 import BackButton from '../BackButton'
 import GroupDetails from './GroupDetails'
@@ -53,13 +54,18 @@ function GroupsPanel() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [tab, setTab] = useState('mine')
   const [searchParams, setSearchParams] = useSearchParams()
-  // 'list', 'create' eller id för den grupp som visas. /klubbar?klubb=ID öppnar en
-  // klubb direkt (t.ex. efter att man har skapat ett event från den).
-  const [view, setView] = useState(() => Number(searchParams.get('klubb')) || 'list')
-  useEffect(() => {
-    // Adressen har gjort sitt, så en omladdning ska inte öppna samma klubb igen.
-    if (searchParams.toString()) setSearchParams({}, { replace: true })
-  }, [])
+  // 'list', 'create' eller id för den klubb som visas. Vyn står i adressen
+  // (/klubbar?klubb=ID, /klubbar?skapa=1), så att Tillbaka och webbläsarens bakåt
+  // går till sidan innan, och andra sidor kan öppna en klubb direkt.
+  const view = searchParams.get('skapa') ? 'create' : Number(searchParams.get('klubb')) || 'list'
+  // `replace` byter ut sidan i historiken i stället för att lägga till en, t.ex.
+  // efter att man har raderat klubben man tittade på.
+  function setView(next, { replace = false } = {}) {
+    if (next === view) return
+    setSearchParams(next === 'list' ? {} : next === 'create' ? { skapa: '1' } : { klubb: String(next) }, { replace })
+  }
+  // Tillbaka till sidan innan, eller till listan om klubben öppnades via en länk.
+  const goBack = useGoBack(() => setView('list', { replace: true }))
   // Sidorna av "Alla" som har hämtats (se loadAll).
   const [lists, setLists] = useState({ all: [] })
   // Finns det fler i "Alla" än de som hämtats?
@@ -212,19 +218,20 @@ function GroupsPanel() {
   async function handleDecline(group) {
     await runAction(group, declineGroupInvitation)
     // En privat klubb man har avböjt syns inte längre, så vi går tillbaka till listan.
-    if (group.visibility === 'private') setView('list')
+    if (group.visibility === 'private') setView('list', { replace: true })
   }
 
   async function handleDelete(group) {
     if (!window.confirm(`Radera ${group.name}? Det går inte att ångra.`)) return
     await runAction(group, deleteGroup)
-    setView('list')
+    setView('list', { replace: true })
   }
 
   async function handleCreated(group) {
     setTab('mine')
     await loadMineAndSuggested().catch(handleError)
-    setView(group.id)
+    // Formuläret byts ut mot den nya klubben, så att Tillbaka inte öppnar formuläret igen.
+    setView(group.id, { replace: true })
   }
 
   if (status === 'error' || overviewFailed) {
@@ -279,14 +286,14 @@ function GroupsPanel() {
         <p className="hint-text">Laddar klubbar...</p>
       ) : view === 'create' ? (
         <>
-          <BackButton onClick={() => setView('list')} />
+          <BackButton onClick={goBack} />
           <div className="card sheet">
             <CreateGroupForm
               interests={interests}
               municipalities={municipalities}
               defaultMunicipality={myMunicipality}
               onCreated={handleCreated}
-              onCancel={() => setView('list')}
+              onCancel={goBack}
             />
           </div>
         </>
@@ -315,7 +322,7 @@ function GroupsPanel() {
 
           {selected ? (
             <>
-              <BackButton onClick={() => setView('list')} />
+              <BackButton onClick={goBack} />
               <div className="card sheet">
                 <GroupDetails
                   group={selected}
