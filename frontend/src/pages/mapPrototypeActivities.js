@@ -65,6 +65,7 @@ export function activitiesFrom({ groups, events, kommuner }) {
       name: group.name,
       sub: group.place_name ?? kommun.name,
       lngLat: position ?? kommun.label,
+      exact: Boolean(position),
       kommun: kommun.kod,
     })
   }
@@ -87,6 +88,7 @@ export function activitiesFrom({ groups, events, kommuner }) {
       name: event.title,
       sub: shortDate.format(new Date(event.starts_at)),
       lngLat: position ?? kommun.label,
+      exact: Boolean(position),
       kommun: kommun.kod,
       booked: event.is_owner || event.my_answer === 'yes' || event.my_answer === 'maybe',
     })

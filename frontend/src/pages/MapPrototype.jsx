@@ -117,6 +117,9 @@ const DISTRICT_CLASSES = ['city', 'town', 'village', 'suburb', 'quarter', 'neigh
 const DISTRICT_ZOOM = 15
 // Zoomen för "Visa på kartan": lappen med sin omgivning.
 const ACTIVITY_ZOOM = 11
+// "Visa på kartan" för en klubb eller ett event med nål (exakt plats): ända
+// ner till gatorna och husen.
+const ACTIVITY_PLACE_ZOOM = 16
 // Längst in man kan zooma: kvarter med husen tydliga. Kartdatan har ingen
 // mer detalj längre in (den förstoras bara), och husen blir bara större.
 const MAX_ZOOM = 17
@@ -831,7 +834,10 @@ function MapPrototype() {
       if (!item || !map) return
       setOpenPage(null)
       setMode('free', null, item.lan, item.kommun)
-      map.easeTo({ center: item.lngLat, zoom: ACTIVITY_ZOOM, duration: 1400 })
+      // Med nål zoomas det in till platsen. Utan nål står lappen mitt i
+      // kommunen, och då visas kommunen.
+      const zoom = item.exact ? ACTIVITY_PLACE_ZOOM : ACTIVITY_ZOOM
+      map.easeTo({ center: item.lngLat, zoom, duration: 1400 })
       setLevelName(item.name)
       map.once('moveend', () => activitiesRef.current?.highlight(`${type}:${id}`))
     },
