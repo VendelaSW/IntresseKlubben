@@ -1340,62 +1340,6 @@
   cursor: pointer;
 }
 
-.map-pad-who {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 1rem 0;
-}
-
-.map-pad-avatar {
-  flex-shrink: 0;
-  width: 72px;
-  height: 72px;
-  border: 1.5px solid #3a2f25;
-  border-radius: 50%;
-  background: var(--color-line);
-  object-fit: cover;
-  font-size: 2.4rem;
-}
-
-.map-pad-name {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: 1.9rem;
-  line-height: 1.1;
-}
-
-.map-pad-where {
-  margin: 0.15rem 0 0;
-  color: var(--color-muted);
-}
-
-.map-pad-details {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.25rem 1rem;
-  margin: 0 0 1rem;
-}
-
-.map-pad-details dt {
-  font-weight: 700;
-}
-
-.map-pad-details dd {
-  margin: 0;
-}
-
-.map-pad-subheading {
-  margin: 1rem 0 0.4rem;
-  font-family: var(--font-heading);
-  font-size: 1.5rem;
-}
-
-.map-pad-edit {
-  margin-top: 1.25rem;
-  text-decoration: none;
-}
-
 /* Nålarna och deras verktyg är dolda utzoomat (se PIN_ZOOM i MapPrototype.jsx).
    Behövs eftersom display: flex annars vinner över hidden-attributet. */
 .map-sketch-tools[hidden],

@@ -1,4 +1,7 @@
 import { apiPost } from './api'
+import { MY_INTERESTS_KEY } from './interests'
+import { PROFILE_KEY } from './profile'
+import { queryClient } from './queryClient'
 
 // Intervjun när man skapar sin profil.
 //
@@ -20,6 +23,11 @@ export function analyzeInterests(text) {
 // activity? }] }]: ett sigill per analys, med nycklarna på de förslag användaren behöll. Förslag som inte
 // skickas med räknas som bortvalda. Fel: 400 om ett sigill har gått ut (analysera om), 429 för många egna
 // intressen i dag, 422 för sådant som inte får sparas.
-export function completeInterview(data) {
-  return apiPost('/profile/interview/complete', data)
+export async function completeInterview(data) {
+  const result = await apiPost('/profile/interview/complete', data)
+  // Profilen finns nu: sidorna som kollar den ska inte skicka tillbaka hit.
+  // Intressena hämtas om, eftersom de kommer i en annan form här.
+  queryClient.setQueryData(PROFILE_KEY, result.profile)
+  queryClient.invalidateQueries({ queryKey: MY_INTERESTS_KEY })
+  return result
 }

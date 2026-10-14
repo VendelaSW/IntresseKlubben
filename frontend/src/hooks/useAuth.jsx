@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getCurrentUser } from '../services/api'
 import { clearToken, isLoggedIn, setToken } from '../services/auth'
+import { clearCache } from '../services/queryClient'
 
 // Delad inloggningsstatus för hela appen. Vid start kollas om en sparad
 // token redan finns och fortfarande är giltig genom att hämta GET /users/me.
@@ -38,13 +39,17 @@ export function AuthProvider({ children }) {
 
   // POST /users/login ger redan tillbaka användaren i svaret, så inget extra
   // anrop till /users/me behövs här.
+  // Minnet med hämtad data (se services/queryClient.js) töms både vid in- och
+  // utloggning, så att ingen ser något som hämtades åt en annan användare.
   function login(token, user) {
+    clearCache()
     setToken(token)
     setUser(user)
   }
 
   function logout() {
     clearToken()
+    clearCache()
     setUser(null)
   }
 
