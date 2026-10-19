@@ -13,8 +13,8 @@ interest_matching.exact_match), aldrig en gissning:
    taggar, och användaren bekräftar förslagen som vanligt. Har granskningen eller moderationen tagit bort något
    körs inte skyddsnätet, så deras beslut gäller (se extract_interests, on_nothing).
 
-Texter som visar tvivel eller negation ("jag hatar fotboll", "jag drömmer om att prova klättring") används
-aldrig: då avgör modellen. Tvetydiga namn avgörs inte här heller (exact_match ger då inget svar).
+Texter som visar tvivel eller negation ("jag hatar fotboll", "jag drömmer om att prova klättring", "jag har slutat
+spela fotboll") används aldrig: då avgör modellen. Tvetydiga namn avgörs inte här heller (exact_match ger då inget svar).
 """
 
 import re
@@ -26,8 +26,11 @@ from app.services.interest_matching import LibraryIndex, LibraryItem, Tag, exact
 MAX_SHORTCUT_PARTS = 8
 MAX_SAFETY_NET = 5  # så många träffar tas högst med i skyddsnätet
 
-# Ord som gör att texten kan säga motsatsen eller något som inte är ett intresse man har.
-_DOUBT = re.compile(r"\b(?:hatar|hata|ogillar|inte|aldrig|tråkigt|tråkig|drömmer|kanske|vill lära)\b", re.IGNORECASE)
+# Ord som gör att texten kan säga motsatsen, något man slutat med eller något som inte är ett intresse man har.
+_DOUBT = re.compile(
+    r"\b(?:hatar|hata|ogillar|inte|aldrig|tråkigt|tråkig|drömmer|kanske|vill lära|slutat|slutade|slutar|lagt av|gav upp|brukade)\b",
+    re.IGNORECASE,
+)
 _SPLIT = re.compile(r",|;|/|\s+och\s+|\s+&\s+|\s+samt\s+", re.IGNORECASE)
 _WORD = re.compile(r"[\wåäöÅÄÖ-]+")
 
