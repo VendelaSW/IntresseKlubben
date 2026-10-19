@@ -49,6 +49,13 @@ const PAD_ROUTES = [
 
 const padRouteFor = (pathname) => PAD_ROUTES.find((r) => matchPath(r.path, pathname)) ?? null
 
+// Vilken lapp (MAP_PAGES) en adress hör till, t.ex. '/anvandare/3' → 'personer'.
+export function widgetFor(address) {
+  const { pathname = '' } = parsePath(address)
+  if (pathname.startsWith('/anvandare/')) return 'personer'
+  return Object.keys(MAP_PAGES).find((id) => pathname.startsWith(MAP_PAGES[id])) ?? null
+}
+
 // En adress (sträng eller { pathname, search, hash }) som en location.
 let nextKey = 0
 function toLocation(to) {
