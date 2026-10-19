@@ -99,13 +99,28 @@ def get_current_user(
     try:
         payload = jwt.decode(credentials.credentials, _require_secret(), algorithms=[TOKEN_ALGORITHM])
         user_id = int(payload["sub"])
-    except (jwt.InvalidTokenError, KeyError, ValueError):
+        issued_at = int(payload["iat"]) if "iat" in payload else None
+    except (jwt.InvalidTokenError, KeyError, ValueError, TypeError):
         raise _not_logged_in()
 
     user = db.get(User, user_id)
-    if user is None:
+    if user is None or _issued_before_password_change(issued_at, user):
         raise _not_logged_in()
     return user
+
+
+def _issued_before_password_change(issued_at: int | None, user: User) -> bool:
+    """Skapades inloggningen innan lösenordet senast byttes? Då gäller den inte längre, så att ett nytt lösenord
+    loggar ut andra enheter. Token anger tiden i hela sekunder, så bytet jämförs också i hela sekunder: en
+    inloggning direkt efter bytet, samma sekund, gäller. En token utan tid räknas som för gammal."""
+    changed = user.password_changed_at
+    if changed is None:
+        return False
+    if issued_at is None:
+        return True
+    if changed.tzinfo is None:  # SQLite sparar utan tidszon, alltid i UTC
+        changed = changed.replace(tzinfo=timezone.utc)
+    return issued_at < int(changed.timestamp())
 
 
 def require_profile(current_user: User = Depends(get_current_user)) -> None:

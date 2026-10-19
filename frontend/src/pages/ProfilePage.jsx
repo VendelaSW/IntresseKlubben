@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import BirthDatePicker from '../components/BirthDatePicker'
 import BlockedUsers from '../components/BlockedUsers'
+import ChangePassword from '../components/ChangePassword'
 import DeleteAccount from '../components/DeleteAccount'
 import EmailVerification from '../components/EmailVerification'
 import InterestExplorer from '../components/InterestExplorer'
@@ -550,6 +551,7 @@ function ProfilePage() {
         </form>
         {/* Utanför formuläret ovan: Radera konto har ett eget formulär, och formulär går inte att lägga i varandra.
             Bara för en befintlig profil, en ny har inget att radera än. */}
+        {!isNew && <ChangePassword email={account?.email} />}
         {!isNew && <DeleteAccount />}
       </div>
     )

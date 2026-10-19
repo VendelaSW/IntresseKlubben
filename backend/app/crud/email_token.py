@@ -19,9 +19,15 @@ from app.models.email_token import EmailToken, utc_now
 from app.models.user import User
 
 VERIFY_EMAIL = "verify_email"
+RESET_PASSWORD = "reset_password"
+CONFIRM_PASSWORD_CHANGE = "confirm_password_change"
 
-# Hur länge en länk gäller.
-LIFETIMES = {VERIFY_EMAIL: timedelta(hours=24)}
+# Hur länge en länk gäller. Länkar som ändrar lösenordet gäller kort tid.
+LIFETIMES = {
+    VERIFY_EMAIL: timedelta(hours=24),
+    RESET_PASSWORD: timedelta(hours=1),
+    CONFIRM_PASSWORD_CHANGE: timedelta(hours=1),
+}
 
 # Spärren: minst så här länge mellan två mejl av samma sort, och högst så här många per timme.
 MIN_INTERVAL = timedelta(seconds=60)
@@ -56,16 +62,23 @@ def check_rate_limit(db: Session, user: User, purpose: str) -> None:
         raise TooManyEmails()
 
 
-def create_token(db: Session, user: User, purpose: str) -> str:
-    """Skapar en ny länk för `purpose` till användarens nuvarande e-post och ger koden som ska stå i länken.
-    Tidigare oanvända länkar av samma sort slutar gälla. Sparar."""
+def expire_tokens(db: Session, user_id: int, purposes: list[str]) -> None:
+    """Gör användarens oanvända länkar av de här sorterna ogiltiga. Sparar inte."""
     now = utc_now()
     db.query(EmailToken).filter(
-        EmailToken.user_id == user.id,
-        EmailToken.purpose == purpose,
+        EmailToken.user_id == user_id,
+        EmailToken.purpose.in_(purposes),
         EmailToken.used_at.is_(None),
         EmailToken.expires_at > now,
     ).update({EmailToken.expires_at: now}, synchronize_session=False)
+
+
+def create_token(db: Session, user: User, purpose: str, new_password_hash: str | None = None) -> str:
+    """Skapar en ny länk för `purpose` till användarens nuvarande e-post och ger koden som ska stå i länken.
+    Tidigare oanvända länkar av samma sort slutar gälla. `new_password_hash` är det nya lösenordet för
+    CONFIRM_PASSWORD_CHANGE. Sparar."""
+    now = utc_now()
+    expire_tokens(db, user.id, [purpose])
     token = secrets.token_urlsafe(32)
     db.add(
         EmailToken(
@@ -73,6 +86,7 @@ def create_token(db: Session, user: User, purpose: str) -> str:
             purpose=purpose,
             token_hash=_hash(token),
             email=user.email,
+            new_password_hash=new_password_hash,
             created_at=now,
             expires_at=now + LIFETIMES[purpose],
         )
@@ -93,6 +107,18 @@ def find_token(db: Session, token: str, purpose: str) -> EmailToken | None:
 def is_usable(row: EmailToken) -> bool:
     """Inte använd och inte utgången."""
     return row.used_at is None and _utc(row.expires_at) > utc_now()
+
+
+def usable_token_user(db: Session, token: str, purpose: str) -> tuple[EmailToken, User] | None:
+    """Raden och användaren för en länk som går att använda nu: rätt sort, inte använd, inte utgången, och skickad
+    till den adress användaren har nu. Annars None."""
+    row = find_token(db, token, purpose)
+    if row is None or not is_usable(row):
+        return None
+    user = db.get(User, row.user_id)
+    if user is None or user.email is None or (row.email or "").lower() != user.email.lower():
+        return None
+    return row, user
 
 
 def delete_user_tokens(db: Session, user_id: int) -> None:
