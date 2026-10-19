@@ -128,6 +128,24 @@ def test_a_word_with_a_profane_alias_is_never_returned(index, monkeypatch):
     assert local_tree("Jag gillar keramik", index) == []
 
 
-@pytest.mark.parametrize("text, expected", [("Jag hatar fotboll", True), ("Det här är INTE bra", True), ("Jag gillar bastu", False), ("Kanske bada", True)])
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("Jag hatar fotboll", True),
+        ("Det här är INTE bra", True),
+        ("Jag gillar bastu", False),
+        ("Kanske bada", True),
+        ("Jag har slutat spela fotboll", True),
+        ("Jag slutade klättra i våras", True),
+        ("Jag har lagt av med yoga", True),
+        ("Jag brukade spela piano", True),
+        ("Jag gillar att spela slutspel i schack", False),  # "slutspel" är inte "slutat"
+    ],
+)
 def test_doubt_words(text, expected):
     assert has_doubt(text) is expected
+
+
+def test_a_text_about_something_the_person_stopped_doing_gives_no_shortcut_and_no_safety_net(index):
+    assert shortcut_tree("Jag har slutat med löpning", index) is None
+    assert local_tree("Jag har slutat med löpning", index) == []
