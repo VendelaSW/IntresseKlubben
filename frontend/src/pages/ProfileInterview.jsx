@@ -742,23 +742,27 @@ function ProfileInterview() {
                     Ändra mina svar
                   </button>
                 )}
-                {expired ? (
-                  <button type="button" className="primary-button" disabled={saving} onClick={reanalyze}>
-                    {saving ? 'Tolkar...' : 'Tolka om'}
+                {/* Huvudknappen störst, och "Börja om" liten och tätt under, så att
+                    man inte trycker på den av misstag. */}
+                <div className="interview-save-buttons">
+                  {expired ? (
+                    <button type="button" className="primary-button button-large" disabled={saving} onClick={reanalyze}>
+                      {saving ? 'Tolkar...' : 'Tolka om'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="primary-button button-large"
+                      disabled={saving || analysisStatus === 'pending' || visibleProposals.length === 0}
+                      onClick={handleSave}
+                    >
+                      {saving ? 'Sparar...' : 'Skapa min profil'}
+                    </button>
+                  )}
+                  <button type="button" className="secondary-button button-small" disabled={saving} onClick={restart}>
+                    Börja om
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="primary-button"
-                    disabled={saving || analysisStatus === 'pending' || visibleProposals.length === 0}
-                    onClick={handleSave}
-                  >
-                    {saving ? 'Sparar...' : 'Skapa min profil'}
-                  </button>
-                )}
-                <button type="button" className="secondary-button" disabled={saving} onClick={restart}>
-                  Börja om
-                </button>
+                </div>
               </div>
             </>
           ) : (

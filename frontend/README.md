@@ -20,13 +20,13 @@ på nya hex-koder eller pixelvärden.
 | Färger | `--color-bg`, `--color-text`, `--color-accent`, `--color-line`, `--color-white`, `--color-muted` | `background: var(--color-accent);` |
 | Typsnitt | `--font-heading` (Caveat), `--font-body` (Inter) | `font-family: var(--font-heading);` |
 | Textstorlekar | `--text-hero`, `--text-h1`, `--text-card-title`, `--text-h2`, `--text-subheading`, `--text-body`, `--text-small` | `font-size: var(--text-body);` |
-| Knappar | `.primary-button`, `.account-choice-link`, `.button-small` (kombineras med de andra två) | `<button className="primary-button button-small">` |
+| Knappar | `.primary-button`, `.account-choice-link`, `.button-small` och `.button-large` (kombineras med de andra två) | `<button className="primary-button button-small">` |
 | Boxar | `.card`, `.card-avatar`, `.card-title`, `.card-subheading`, `.card-text` | Se Boxar-exemplet i stilguiden |
 | Profilbild | `Avatar` (bild, annars initial) med `.person-list-avatar` (liten) eller `.card-avatar` (stor) | `<Avatar name={user.name} imageUrl={user.image_url} className="person-list-avatar" />` |
 | Maskot | `Intressekompis` (pupiller som följer muspekaren). Storleken ges med `width` eller förälderns bredd; `alt=""` när den bara pryder | `<Intressekompis width="200px" />` |
 | Formulär | `.auth-form`, dess `input`/`label`/`button` | Se Formulärfält-exemplet i stilguiden |
 | Plats på kartan | `LocationPicker` (sök adressen och sätt en nål på en liten karta), för events och klubbarnas träffplats | `<LocationPicker id="event-position" queries={[address, placeName]} value={position} onChange={setPosition} saveLabel="Skapa event" kommunCode={kod} />` |
-| Länkar | `.info-link` | `<a className="info-link">` |
+| Länkar | `.info-link` (fungerar även på en `<button>`, t.ex. något som fälls ut) | `<a className="info-link">` |
 | Brev | `.envelopes` + `ConversationCard` (kuvert), `.lined-paper` (linjerat papper), `.notepad` (konversationen) | Se Brev-exemplet i stilguiden |
 | Rubriker | Vanliga `<h1>`/`<h2>`-taggar, redan stylade automatiskt | `<h2>Min rubrik</h2>` |
 
