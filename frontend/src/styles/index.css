@@ -471,6 +471,12 @@ button.banner-button {
   max-width: none;
 }
 
+/* "Du är med i …!" när man har gått med i en klubb (GroupsPanel): texten och
+   "Se Mina klubbar" under varandra, vänsterställda. */
+.join-notice {
+  align-items: flex-start;
+}
+
 /* pre-line behåller radbrytningarna, anywhere bryter även mycket långa ord. */
 .soft-box-text {
   margin: 0;

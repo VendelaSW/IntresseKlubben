@@ -103,6 +103,8 @@ function GroupsPanel() {
   const [contacts, setContacts] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  // Klubben man nyss gick med i, för bekräftelsen "Du är med i …!" (tills nästa åtgärd eller flikbyte).
+  const [joined, setJoined] = useState(null)
 
   const handleError = (err) => setError(err.message)
 
@@ -196,11 +198,14 @@ function GroupsPanel() {
   async function runAction(group, action) {
     setBusy(true)
     setError('')
+    setJoined(null)
     try {
       await action(group.id)
       if (action === joinGroup) {
         setLists((current) => ({ ...current, all: current.all.filter((g) => g.id !== group.id) }))
         await loadMineAndSuggested()
+        // Kortet försvinner ur Förslag och Alla, så det ska synas att det gick.
+        setJoined(group)
       } else {
         await Promise.all([loadMineAndSuggested(), loadAll()])
       }
@@ -309,7 +314,10 @@ function GroupsPanel() {
                 role="tab"
                 aria-selected={tab === t.id}
                 className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-                onClick={() => setTab(t.id)}
+                onClick={() => {
+                  setJoined(null)
+                  setTab(t.id)
+                }}
               >
                 {t.label} ({shown[t.id].length}
                 {t.id === 'all' && hasMore ? '+' : ''})
@@ -318,6 +326,25 @@ function GroupsPanel() {
           </div>
 
           {error && <p className="status-error">{error}</p>}
+          {joined && (
+            <div className="soft-box join-notice" role="status">
+              <p className="soft-box-text">
+                <strong>Du är med i {joined.name}!</strong> Den finns nu under Mina klubbar.
+              </p>
+              {!(tab === 'mine' && !selected) && (
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => {
+                    setJoined(null)
+                    setTab('mine')
+                  }}
+                >
+                  Se Mina klubbar
+                </button>
+              )}
+            </div>
+          )}
 
           {selected ? (
             <>

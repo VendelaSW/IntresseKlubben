@@ -646,6 +646,7 @@ function StyleGuide() {
           som formulärfälten. Smal som standard, så den passar inne i ett profilkort. Som "Om
           mig" bevarar den radbrytningar (.soft-box-text) och visas bara om texten finns.
           Med .soft-box-wide fyller den hela bredden i ett ark, t.ex. "Kommer du?" på ett event.
+          Samma fält bekräftar att man har gått med i en klubb ("Du är med i …!", .join-notice).
         </p>
         <div className="card card-wide content-stack" style={{ marginTop: '1rem' }}>
           <p className="card-title">Emmy, 24</p>
