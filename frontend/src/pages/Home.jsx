@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import logo from '../assets/intresseklubben.png'
 import LoginFields from '../components/LoginFields'
 import ProblemStatement from '../components/ProblemStatement'
 import RegisterFields from '../components/RegisterFields'
+import ServiceDetails from '../components/ServiceDetails'
 import { useAuth } from '../hooks/useAuth'
 
 function Home() {
@@ -12,6 +13,8 @@ function Home() {
   // Har man precis skapat ett konto hamnar man direkt på inloggningen, med ett
   // meddelande om det. Byter man vy själv försvinner meddelandet.
   const [justRegistered, setJustRegistered] = useState(false)
+  // "Läs mer om tjänsten" fälls ut här på sidan, så att man inte lämnar den.
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   function show(next) {
     setJustRegistered(false)
@@ -34,7 +37,7 @@ function Home() {
         />
         {view === null && <p className="tagline">Vi antecknar, ni träffas.</p>}
       </section>
-      {view === null && <ProblemStatement />}
+      {view === null && <ProblemStatement centered />}
 
       {view === null && (
         <div className="account-choice-links">
@@ -74,9 +77,16 @@ function Home() {
         </>
       )}
 
-      <Link to="/om" className="info-link">
-        Läs mer om tjänsten
-      </Link>
+      <button
+        type="button"
+        className="info-link"
+        aria-expanded={aboutOpen}
+        aria-controls="service-details"
+        onClick={() => setAboutOpen((open) => !open)}
+      >
+        {aboutOpen ? 'Visa mindre' : 'Läs mer om tjänsten'}
+      </button>
+      {aboutOpen && <ServiceDetails id="service-details" />}
     </div>
   )
 }

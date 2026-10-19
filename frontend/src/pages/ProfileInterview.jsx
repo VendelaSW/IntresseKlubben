@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import FormField from '../components/FormField'
 import InterestTree, { descendantKeys, withoutDuplicates } from '../components/InterestTree'
 import TextareaWithCount from '../components/TextareaWithCount'
+import BirthDatePicker from '../components/BirthDatePicker'
+import MunicipalityPicker from '../components/MunicipalityPicker'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
@@ -740,23 +742,27 @@ function ProfileInterview() {
                     Ändra mina svar
                   </button>
                 )}
-                {expired ? (
-                  <button type="button" className="primary-button" disabled={saving} onClick={reanalyze}>
-                    {saving ? 'Tolkar...' : 'Tolka om'}
+                {/* Huvudknappen störst, och "Börja om" liten och tätt under, så att
+                    man inte trycker på den av misstag. */}
+                <div className="interview-save-buttons">
+                  {expired ? (
+                    <button type="button" className="primary-button button-large" disabled={saving} onClick={reanalyze}>
+                      {saving ? 'Tolkar...' : 'Tolka om'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="primary-button button-large"
+                      disabled={saving || analysisStatus === 'pending' || visibleProposals.length === 0}
+                      onClick={handleSave}
+                    >
+                      {saving ? 'Sparar...' : 'Skapa min profil'}
+                    </button>
+                  )}
+                  <button type="button" className="secondary-button button-small" disabled={saving} onClick={restart}>
+                    Börja om
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="primary-button"
-                    disabled={saving || analysisStatus === 'pending' || visibleProposals.length === 0}
-                    onClick={handleSave}
-                  >
-                    {saving ? 'Sparar...' : 'Skapa min profil'}
-                  </button>
-                )}
-                <button type="button" className="secondary-button" disabled={saving} onClick={restart}>
-                  Börja om
-                </button>
+                </div>
               </div>
             </>
           ) : (
@@ -788,12 +794,10 @@ function ProfileInterview() {
                   {step.id === 'fodelse' && (
                     <div className="form-row">
                       <FormField id="interview-birth" label="Födelsedatum">
-                        <input
+                        <BirthDatePicker
                           id="interview-birth"
-                          type="date"
                           value={answers.birthDate}
-                          onChange={setAnswer('birthDate')}
-                          max={new Date().toISOString().slice(0, 10)}
+                          onChange={(birthDate) => setAnswers((current) => ({ ...current, birthDate }))}
                           required
                           autoFocus
                         />
@@ -813,21 +817,16 @@ function ProfileInterview() {
 
                   {step.id === 'plats' && (
                     <div className="form-row">
-                      <FormField id="interview-municipality" label="Stad">
-                        <select
+                      <FormField id="interview-municipality" label="Kommun">
+                        <MunicipalityPicker
                           id="interview-municipality"
+                          municipalities={municipalities}
                           value={answers.municipality}
-                          onChange={setAnswer('municipality')}
+                          onChange={(code) => setAnswers((current) => ({ ...current, municipality: code }))}
                           required
                           autoFocus
-                        >
-                          <option value="">Välj...</option>
-                          {municipalities.map((m) => (
-                            <option key={m.code} value={m.code}>
-                              {m.name}
-                            </option>
-                          ))}
-                        </select>
+                        />
+                        <p className="hint-text">Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke.</p>
                       </FormField>
                       <FormField id="interview-district" label="Stadsdel (valfritt)">
                         <input

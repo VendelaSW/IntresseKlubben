@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
+import { useTabParam } from '../../hooks/useTabParam'
 import CreateGroupForm from './CreateGroupForm'
 import BackButton from '../BackButton'
 import GroupChat from './GroupChat'
@@ -9,6 +10,7 @@ import GroupDetails from './GroupDetails'
 import GroupList from './GroupList'
 import GroupPosts from './GroupPosts'
 import GroupSortMenu from './GroupSortMenu'
+import MunicipalityPicker from '../MunicipalityPicker'
 import { getContacts } from '../../services/contacts'
 import {
   declineGroupInvitation,
@@ -54,7 +56,9 @@ const NONE = []
 
 function GroupsPanel() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
-  const [tab, setTab] = useState('mine')
+  // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
+  const [urlTab, setTab] = useTabParam(TABS)
+  const tab = urlTab ?? 'mine'
   const [searchParams, setSearchParams] = useSearchParams()
   // 'list', 'create' eller id för den klubb som visas. Vyn står i adressen
   // (/klubbar?klubb=ID, /klubbar?skapa=1), så att Tillbaka och webbläsarens bakåt
@@ -219,8 +223,9 @@ function GroupsPanel() {
 
   async function handleDecline(group) {
     await runAction(group, declineGroupInvitation)
-    // En privat klubb man har avböjt syns inte längre, så vi går tillbaka till listan.
-    if (group.visibility === 'private') setView('list', { replace: true })
+    // En privat klubb man har avböjt syns inte längre, så vi går tillbaka till listan
+    // (till samma flik, t.ex. Inbjudningar).
+    if (group.visibility === 'private') goBack()
   }
 
   async function handleDelete(group) {
@@ -230,7 +235,6 @@ function GroupsPanel() {
   }
 
   async function handleCreated(group) {
-    setTab('mine')
     await loadMineAndSuggested().catch(handleError)
     // Formuläret byts ut mot den nya klubben, så att Tillbaka inte öppnar formuläret igen.
     setView(group.id, { replace: true })
@@ -309,10 +313,7 @@ function GroupsPanel() {
                 role="tab"
                 aria-selected={tab === t.id}
                 className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-                onClick={() => {
-                  setTab(t.id)
-                  setView('list')
-                }}
+                onClick={() => setTab(t.id)}
               >
                 {t.label} ({shown[t.id].length}
                 {t.id === 'all' && hasMore ? '+' : ''})
@@ -378,18 +379,13 @@ function GroupsPanel() {
                     </option>
                   ))}
                 </select>
-                <select
+                <MunicipalityPicker
                   aria-label="Filtrera på kommun"
+                  municipalities={municipalities}
                   value={filters.municipalityCode}
-                  onChange={(e) => setFilters({ ...filters, municipalityCode: e.target.value })}
-                >
-                  <option value="">Alla kommuner</option>
-                  {municipalities.map((m) => (
-                    <option key={m.code} value={m.code}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                  emptyLabel="Alla kommuner"
+                />
               </div>
               {shown[tab].length === 0 && filtering ? (
                 <div className="content-stack">

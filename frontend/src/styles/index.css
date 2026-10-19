@@ -203,6 +203,11 @@ h2 {
   text-align: left;
 }
 
+/* Centrerad variant, på startsidan (se ProblemStatement). */
+.problem-statement-centered {
+  text-align: center;
+}
+
 .info-link {
   display: inline-block;
   font-family: var(--font-body);
@@ -218,6 +223,44 @@ h2 {
 .info-link:hover,
 .info-link:focus-visible {
   opacity: 0.7;
+}
+
+/* .info-link på en knapp (t.ex. "Läs mer om tjänsten" som fälls ut): ser ut
+   som länken, utan knappens egen ram och bakgrund. */
+button.info-link {
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  padding: 0 0 2px;
+  cursor: pointer;
+}
+
+/* "Läs mer om tjänsten" (components/ServiceDetails.jsx): på startsidan och /om,
+   lika bred som texten ovanför. */
+.service-details {
+  max-width: var(--content-width);
+  width: 100%;
+  text-align: left;
+}
+
+.service-details-heading {
+  font-size: var(--text-body);
+  margin: 0 0 0.4rem;
+}
+
+.service-details ol {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+}
+
+.service-details li {
+  margin-bottom: 0.3rem;
+}
+
+.service-details p {
+  margin: 0;
 }
 
 .map-section {
@@ -390,13 +433,22 @@ button.banner-button {
 }
 
 /* Avsnittet Intressen på profilen. */
-.profile-interests {
+/* Intressena och personens events på en profil: en vänsterställd kolumn. */
+.profile-interests,
+.profile-events {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   width: 100%;
   max-width: 320px;
   text-align: left;
+}
+
+/* Personens events: titeln, och tid och plats på raden under. */
+.profile-events .person-list-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
 }
 
 /* Blek ruta: ett eget fält med samma rundning som formulärfälten, i blekt
@@ -709,6 +761,23 @@ span.tag-selected:hover {
 .button-small {
   padding: 0.1rem 0.4rem;
   font-size: var(--text-small);
+}
+
+/* Stor variant, för den knapp som ska synas mest i ett steg (t.ex. "Skapa min
+   profil"). Ligger efter .primary-button av samma skäl som .button-small. */
+.button-large {
+  padding: 0.7rem 1.6rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+/* Knapparna sist i intervjun (ProfileInterview): "Skapa min profil" stor och
+   "Börja om" liten tätt under, så att man inte trycker fel. */
+.interview-save-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 /* Rund "+"-knapp, t.ex. för att skapa något. Plusset är en bild (inget tecken
@@ -1986,6 +2055,68 @@ span.tag-selected:hover {
   background: var(--color-white);
   color: var(--color-text);
   width: 100%;
+}
+
+/* Födelsedatum med tre listor (BirthDatePicker): dag, månad och år på en rad.
+   Månaden får mest plats, eftersom den skrivs ut. */
+.birth-date-picker {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 1fr) minmax(7rem, 2fr) minmax(5rem, 1.3fr);
+  gap: 0.5rem;
+}
+
+.birth-date-picker select {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Sökbart kommunfält (MunicipalityPicker). Själva fältet får formulärets eller
+   filtrets vanliga stil; listan under ligger ovanpå det som kommer efter. */
+.municipality-picker {
+  position: relative;
+  min-width: 0;
+}
+
+.municipality-picker input {
+  width: 100%;
+}
+
+.municipality-picker-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 15rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: var(--color-white);
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+}
+
+.municipality-picker-option {
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.municipality-picker-option.is-active {
+  background: var(--color-accent-soft);
+}
+
+.municipality-picker-option[aria-selected='true'] {
+  font-weight: 700;
+}
+
+.municipality-picker-none {
+  padding: 0.4rem 0.75rem;
+  color: var(--color-muted);
 }
 
 /* "Ålder" följt av från- och till-ålder, i en av filtrens rutor. */
