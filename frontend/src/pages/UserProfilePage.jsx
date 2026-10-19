@@ -18,53 +18,7 @@ import {
 } from '../services/contacts'
 import { eventsQuery } from '../services/events'
 import { getMyInterests } from '../services/interests'
-import { sendMessage } from '../services/messages'
 import { getUserProfile } from '../services/profile'
-
-// Skickar ett meddelande till personen man tittar på. Visar bara
-// formuläret, själva konversationen läses på en egen sida senare.
-function MessageForm({ userId }) {
-  const [text, setText] = useState('')
-  const [sending, setSending] = useState(false)
-  const [error, setError] = useState('')
-  const [sent, setSent] = useState(false)
-
-  async function handleSubmit(event) {
-    event.preventDefault()
-    setSending(true)
-    setError('')
-    try {
-      await sendMessage(userId, text)
-      setText('')
-      setSent(true)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSending(false)
-    }
-  }
-
-  return (
-    <form className="auth-form" onSubmit={handleSubmit}>
-      <label htmlFor="message-text">Skicka ett brev</label>
-      <input
-        id="message-text"
-        type="text"
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value)
-          setSent(false)
-        }}
-        required
-      />
-      {error && <p className="form-error">{error}</p>}
-      {sent && <p className="form-success">Skickat!</p>}
-      <button type="submit" disabled={sending}>
-        {sending ? 'Skickar...' : 'Skicka'}
-      </button>
-    </form>
-  )
-}
 
 // Vem man är i förhållande till personen man tittar på, hämtat från
 // GET /contacts och matchat på id. contactId pekar på själva
@@ -346,13 +300,19 @@ function UserProfilePage() {
           <CreatedEvents userId={userId} isMe={isMe} />
           {!isMe && (
             <>
+              {/* Tydligast: att man kan skriva till personen, även innan ni är
+                  kontakter. Brevtråden visar tidigare brev och svarsraden. */}
+              {!blocked && (
+                <Link to={`/meddelanden/${userId}`} className="primary-button profile-write">
+                  Skriv ett brev
+                </Link>
+              )}
               <RelationButtons
                 userId={userId}
                 name={profile.name}
                 blocked={blocked}
                 onBlockedChange={setBlocked}
               />
-              {!blocked && <MessageForm userId={userId} />}
             </>
           )}
         </div>

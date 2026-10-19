@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import ConversationCard from '../components/ConversationCard'
 import { useTabParam } from '../hooks/useTabParam'
-import { conversationsQuery, unseenConversationIds } from '../services/messages'
+import { conversationsQuery } from '../services/messages'
 
 const TABS = [
   { id: 'new', label: 'Nya', empty: 'Inga nya brev just nu.' },
@@ -17,7 +17,8 @@ function InboxPage() {
   // varit här nyss visas listan direkt, och hämtas om i bakgrunden.
   const { data: conversations = [], isSuccess, isError } = useQuery(conversationsQuery)
   const status = isSuccess ? 'ready' : isError ? 'error' : 'loading'
-  const unseenIds = useMemo(() => unseenConversationIds(conversations), [conversations])
+  // Olästa konversationer, räknat på servern (se markConversationRead).
+  const unseenIds = useMemo(() => new Set(conversations.filter((c) => c.unread).map((c) => c.id)), [conversations])
   // Tills man har valt en flik själv: Nya om det finns nya brev, annars Öppnade.
   // Fliken står i adressen, så att Tillbaka från ett brev kommer hit igen (se useTabParam).
   const [chosenTab, setTab] = useTabParam(TABS)

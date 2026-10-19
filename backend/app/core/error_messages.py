@@ -78,6 +78,12 @@ PERSON_NOT_INVITED = "Personen är inte inbjuden"
 GROUP_INVITE_NOBODY = "Välj minst en person att bjuda in"
 GROUP_CANNOT_INVITE = "Du kan inte bjuda in till den här klubben"
 
+# ---------- Inlägg i klubbar (routes/groups.py, schemas/group_post.py) ----------
+GROUP_POST_EMPTY = "Inlägget får inte vara tomt"
+GROUP_POST_TOO_LONG = "Inlägget får max vara 2000 tecken"
+GROUP_POST_NOT_FOUND = "Inlägget finns inte"
+GROUP_POST_CANNOT_DELETE = "Bara den som skrev inlägget och klubbens ägare kan radera det"
+
 # Intervju: intressen ur fri text
 INTERVIEW_TEXT_EMPTY = "Skriv något om dina intressen"
 INTERVIEW_AI_NOT_CONFIGURED = "AI-tjänsten är inte inställd"
