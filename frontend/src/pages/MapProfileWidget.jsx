@@ -2,19 +2,17 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { setStartView } from '../hooks/useStartView'
 import { profileQuery } from '../services/profile'
 
-// Menyn: profilsidan, som läggs på kartan som ett block (via `onOpen`), lugnt
-// läge av/på (via `onToggleCalm`), Avsluta kartan (tillbaka till appens
-// vanliga startsida) och sist Logga ut. Appens övriga sidor har egna lappar
-// (se MapPageWidgets).
+// Menyn: profilsidan, som läggs på kartan som ett block (via `onOpen`), och
+// sist Logga ut. Appens övriga sidor har egna lappar (se MapPageWidgets), och
+// växeln Karta | Att göra sitter på kartan (se MapPrototype).
 const MENU = [{ id: 'profil', label: 'Profilsida' }]
 
 // Profillappen uppe till höger på kartan, bredvid zoomknapparna: namnet till
 // vänster och profilbilden till höger. Ett klick fäller ut menyn (MENU).
 // Kartan ligger bakom inloggningen, så användaren finns alltid här.
-function MapProfileWidget({ onOpen, calm, onToggleCalm }) {
+function MapProfileWidget({ onOpen }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   // Profilen ur det delade minnet (se services/queryClient.js), så att namnet
@@ -46,13 +44,6 @@ function MapProfileWidget({ onOpen, calm, onToggleCalm }) {
     navigate('/')
   }
 
-  // Appens vanliga startsida i stället för kartan, även nästa gång (se
-  // useStartView och HomeSwitch).
-  function exitMap() {
-    setStartView('klassisk')
-    navigate('/hem')
-  }
-
   const name = profile?.name ?? user.username
   return (
     <div ref={rootRef} className="map-profile-wrap">
@@ -64,7 +55,10 @@ function MapProfileWidget({ onOpen, calm, onToggleCalm }) {
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
-        <span className="map-profile-name">{name}</span>
+        {/* Ett långt namn kortas med "…", hela namnet syns när man håller över. */}
+        <span className="map-profile-name" title={name}>
+          {name}
+        </span>
         {profile?.image_url ? (
           <img src={profile.image_url} alt="" className="map-profile-avatar" />
         ) : (
@@ -89,23 +83,6 @@ function MapProfileWidget({ onOpen, calm, onToggleCalm }) {
               </button>
             </li>
           ))}
-          <li>
-            <button
-              type="button"
-              className="map-profile-menu-item"
-              onClick={() => {
-                setOpen(false)
-                onToggleCalm()
-              }}
-            >
-              {calm ? 'Visa kartan' : 'Lugnt läge'}
-            </button>
-          </li>
-          <li>
-            <button type="button" className="map-profile-menu-item" onClick={exitMap}>
-              Avsluta kartan
-            </button>
-          </li>
           <li>
             <button type="button" className="map-profile-menu-item" onClick={handleLogout}>
               Logga ut

@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 
-// Kartans åtgärder för sidor som visas som block på kartan (karta-prototypen):
+// Kartans åtgärder för sidor som visas som block på kartan (se MapPagePad):
 // { hasLocation(type, id, data), showOnMap(type, id, data) }, där type är
 // 'klubb' eller 'event' och data klubben eller eventet från API:t (så att
 // platsen kan räknas ut även för något som nyss skapats). Utanför kartan finns

@@ -52,7 +52,7 @@
 }
 
 
-/* Lugnt läge (se MapPrototype.jsx): kartan och allt som hör till den göms,
+/* Att göra-läget (se MapPrototype.jsx): kartan och allt som hör till den göms,
    och en sida i blocket (MapCalmPage) visas i stället. Widgetarna, profilen
    och blocken ligger kvar.
    visibility (inte display) så att kartan behåller sin storlek och kommer
@@ -85,7 +85,7 @@
   }
 }
 
-/* Lugnt läge: en sida i anteckningsblocket (se MapCalmPage.jsx), med egna
+/* Att göra-läget: en sida i anteckningsblocket (se MapCalmPage.jsx), med egna
    linjer så att handstilen står på dem (radhöjden är linjeavståndet, 32px)
    och samma röda marginallinje 64px in. Kartans papper göms under den. */
 .map-sketch.is-calm .map-sketch-paper {
@@ -139,17 +139,8 @@
   text-underline-offset: 4px;
 }
 
-.map-calm-muted,
-.map-calm-paused {
+.map-calm-muted {
   color: var(--color-muted);
-}
-
-.map-calm-paused {
-  margin-top: var(--calm-line) !important;
-}
-
-.map-calm-page .map-tool {
-  margin-top: 0.3rem;
 }
 
 .map-calm-todo {
@@ -827,7 +818,7 @@
 /* Tips om vad man kan göra med nålarna, handskrivet under knapparna. */
 .map-sketch-hint {
   position: absolute;
-  top: 3.4rem;
+  top: 5.6rem;
   left: 84px;
   z-index: 3;
   max-width: 320px;
@@ -843,9 +834,19 @@
 /* Knappar för nålar och trådens stil uppe till vänster. Som stilguidens
    knappar (Inter, versaler, gul när vald), men med bläckkant och hård skugga
    så att de syns på kartan. */
-.map-sketch-tools {
+/* Växeln Karta | Att göra uppe till vänster, efter marginallinjen. Syns i båda
+   lägena: ovanpå att göra-sidan (z-index 3) men under ett öppet block (5).
+   Nålknapparna (bara på kartan) ligger på raden under. */
+.map-view-toggle {
   position: absolute;
   top: 0.9rem;
+  left: 84px;
+  z-index: 4;
+}
+
+.map-sketch-tools {
+  position: absolute;
+  top: 3.3rem;
   left: 84px;
   z-index: 3;
   display: flex;
@@ -954,15 +955,15 @@
   gap: 0.6rem;
 }
 
-/* TEST: intressekompisen nere i högra hörnet, ovanför kartans källhänvisning. Rent dekorativ, så klick går igenom
-   till kartan. Under blocken (z-index 5), så att han inte hamnar ovanpå ett öppet block. */
+/* TEST: intressekompisen nere i högra hörnet, ovanför kartans källhänvisning. Rent dekorativ, men klick på honom
+   fångas här: annars gick de igenom till kartan, och på Sverige-nivån ligger Gotland under honom (klicket tog en dit).
+   Under blocken (z-index 5), så att han inte hamnar ovanpå ett öppet block. */
 .map-kompis {
   position: absolute;
   right: 10px;
   bottom: 2.2rem;
   z-index: 4;
   width: 130px;
-  pointer-events: none;
 }
 
 /* TEST: den vanliga loggan, bara på mobil (se media-blocket nedan), där kompisen inte syns. */
@@ -1165,8 +1166,13 @@
   border-top: 1.5px dashed #3a2f25;
 }
 
+/* Caveat lutar, så sista bokstaven och svansarna (g, j, y) sticker ut utanför
+   textens ruta. overflow: hidden (för "…") klipper dem, så texten får lite luft
+   till höger och upp och ner. Den negativa marginalen håller lappen lika hög. */
 .map-profile-name {
   overflow: hidden;
+  padding: 0.12em 0.15em 0.12em 0;
+  margin-block: -0.12em;
   font-family: var(--font-heading);
   font-size: 1.5rem;
   line-height: 1;
@@ -1408,8 +1414,18 @@
 @media (max-width: 600px) {
   /* Knapparna från kanten (inte efter marginallinjen), mindre, och utan att
      krocka med zoomknapparna uppe till höger. Tar hänsyn till skärmens hack. */
-  .map-sketch-tools {
+  .map-view-toggle {
     top: calc(0.6rem + env(safe-area-inset-top));
+    left: calc(0.6rem + env(safe-area-inset-left));
+  }
+
+  /* I att göra-läget syns loggan i hörnet, så växeln står bredvid den. */
+  .map-sketch.is-calm .map-view-toggle {
+    left: calc(4rem + env(safe-area-inset-left));
+  }
+
+  .map-sketch-tools {
+    top: calc(2.5rem + env(safe-area-inset-top));
     left: calc(0.6rem + env(safe-area-inset-left));
     /* Plats för zoomknapparna och profilbilden uppe till höger. */
     right: calc(3.4rem + 54px);
@@ -1430,7 +1446,7 @@
     z-index: 6;
   }
 
-  /* TEST: på mobil syns inte kompisen. Den vanliga loggan syns bara i lugnt läge, uppe i vänstra hörnet. När kartan är
+  /* TEST: på mobil syns inte kompisen. Den vanliga loggan syns bara i att göra-läget, uppe i vänstra hörnet. När kartan är
      aktiv syns ingen logga, eftersom verktygsknapparna ligger där. */
   .map-kompis {
     display: none;
