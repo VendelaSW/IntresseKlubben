@@ -744,7 +744,7 @@ function ProfileInterview() {
                 )}
                 {/* Huvudknappen störst, och "Börja om" liten och tätt under, så att
                     man inte trycker på den av misstag. */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                <div className="interview-save-buttons">
                   {expired ? (
                     <button type="button" className="primary-button button-large" disabled={saving} onClick={reanalyze}>
                       {saving ? 'Tolkar...' : 'Tolka om'}
