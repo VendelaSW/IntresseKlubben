@@ -179,6 +179,7 @@ function PeoplePage() {
         {...sharedProps(person)}
         actions={
           <PersonActions
+            userId={person.id}
             relation={outgoing ? 'outgoing' : null}
             busy={busy}
             onSend={() => runAction(() => sendContactRequest(person.id))}
@@ -335,6 +336,7 @@ function PeoplePage() {
                   {...sharedProps(request.user)}
                   actions={
                     <PersonActions
+                      userId={request.user.id}
                       relation="incoming"
                       busy={busy}
                       onAccept={() => runAction(() => answerContactRequest(request.id, 'accept'))}
@@ -358,6 +360,7 @@ function PeoplePage() {
                   {...sharedProps(request.user)}
                   actions={
                     <PersonActions
+                      userId={request.user.id}
                       relation="outgoing"
                       busy={busy}
                       onCancel={() => handleCancelRequest(request)}
@@ -396,6 +399,7 @@ function PeoplePage() {
                 {...sharedProps(contact.user)}
                 actions={
                   <PersonActions
+                    userId={contact.user.id}
                     relation="contact"
                     busy={busy}
                     onRemove={() => handleRemoveContact(contact)}

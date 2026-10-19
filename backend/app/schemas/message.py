@@ -42,9 +42,11 @@ class ConversationResponse(BaseModel):
     image_url: str | None
     last_message: str
     last_message_at: datetime
-    # True om den inloggade själv skrev senaste meddelandet. Då är det inget
-    # nytt brev, och siffran på brev-loggan ska inte räkna det.
+    # True om den inloggade själv skrev senaste meddelandet (Från/Till på kuvertet).
     last_message_from_me: bool
+    # True om den andra har skrivit något som den inloggade inte har läst än
+    # (se mark_conversation_read). Sparas på kontot, inte i webbläsaren.
+    unread: bool
 
 
 class ConversationDetail(BaseModel):

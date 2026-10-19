@@ -26,6 +26,7 @@ from app.crud.group import (
     list_user_invitations,
 )
 from app.crud.group_message import get_group_messages, send_group_message
+from app.crud.group_post import can_delete_post, create_group_post, delete_group_post, get_group_post, get_group_posts
 from app.crud.interest import get_active_interest
 from app.db.session import get_db
 from app.models.group import Group, GroupRole, GroupVisibility
@@ -34,6 +35,7 @@ from app.models.user import User
 from app.schemas.contact import ContactUser
 from app.schemas.group import GroupCreate, GroupInvite, GroupMemberResponse, GroupResponse, GroupsOverview
 from app.schemas.group_message import GroupMessageCreate, GroupMessageOut
+from app.schemas.group_post import GroupPostCreate, GroupPostOut
 
 # Låst tills profilen är klar (se require_profile).
 router = APIRouter(prefix="/groups", tags=["groups"], dependencies=[Depends(require_profile)])
@@ -284,6 +286,37 @@ def create_group_message(
 def read_group_messages(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     group = _member_group_or_403(db, group_id, current_user.id)
     return get_group_messages(db, group.id, current_user.id)
+
+
+# Inlägg (nyheter, regler) som ligger kvar, till skillnad från chatten. Bara för
+# medlemmar, som chatten. Den som skrev inlägget och klubbens ägare får radera det.
+@router.post("/{group_id}/posts", response_model=GroupPostOut, status_code=status.HTTP_201_CREATED)
+def create_post(
+    group_id: int,
+    post_in: GroupPostCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    group = _member_group_or_403(db, group_id, current_user.id)
+    return create_group_post(db, group.id, current_user.id, post_in.content)
+
+
+@router.get("/{group_id}/posts", response_model=list[GroupPostOut])
+def read_posts(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    group = _member_group_or_403(db, group_id, current_user.id)
+    return get_group_posts(db, group.id, current_user.id)
+
+
+@router.delete("/{group_id}/posts/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_post(group_id: int, post_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    group = _member_group_or_403(db, group_id, current_user.id)
+    post = get_group_post(db, group.id, post_id)
+    if post is None:
+        raise HTTPException(status_code=404, detail=msg.GROUP_POST_NOT_FOUND)
+    if not can_delete_post(group, post, current_user.id):
+        raise HTTPException(status_code=403, detail=msg.GROUP_POST_CANNOT_DELETE)
+    delete_group_post(db, post)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)

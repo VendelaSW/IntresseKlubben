@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { getBadges } from '../services/badges'
 import { getEvents } from '../services/events'
-import { countUnseenConversations } from '../services/messages'
 import { getProfile } from '../services/profile'
 
 const today = new Intl.DateTimeFormat('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -48,7 +47,7 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
       setName(value(profile, null)?.name ?? null)
       setTodo({
         event: nextBookedEvent(value(events, [])),
-        letters: countUnseenConversations(counts?.conversations ?? []),
+        letters: counts?.unread_conversations ?? 0,
         invitations: counts?.club_invitations ?? 0,
         requests: counts?.contact_requests ?? 0,
       })
