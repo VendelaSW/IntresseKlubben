@@ -42,8 +42,8 @@ const COLORS = [
 
 // Exempel för Brev-avsnittet: ett nytt och ett öppnat kuvert.
 const EXAMPLE_CONVERSATIONS = [
-  { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), isNew: true },
-  { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', isNew: false },
+  { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), last_message_from_me: false, isNew: true },
+  { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', last_message_from_me: true, isNew: false },
 ]
 
 const SIZES = [
@@ -303,7 +303,8 @@ function StyleGuide() {
           får gul kant vid hover. Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret; ett
           nytt (.envelope-new) förblir stängt och har ett gult sigill. Avståndet mellan raderna följer
           kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför. Personens bild står
-          bredvid namnet och växer med kuvertet.
+          bredvid namnet och växer med kuvertet. Före bilden står "Från" eller "Till", efter vem som
+          skrev det senaste brevet.
         </p>
         <ul className="envelopes" style={{ marginTop: '1rem' }}>
           {EXAMPLE_CONVERSATIONS.map(({ isNew, ...conversation }) => (
