@@ -64,7 +64,10 @@ function MapProfileWidget({ onOpen, calm, onToggleCalm }) {
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
-        <span className="map-profile-name">{name}</span>
+        {/* Ett långt namn kortas med "…", hela namnet syns när man håller över. */}
+        <span className="map-profile-name" title={name}>
+          {name}
+        </span>
         {profile?.image_url ? (
           <img src={profile.image_url} alt="" className="map-profile-avatar" />
         ) : (
