@@ -171,13 +171,18 @@ def followups(
 
 
 def _plan_with_rules(
-    matches: list[Match], index: LibraryIndex, catalog: dict[str, str], deadline: Deadline | None = None
+    matches: list[Match],
+    index: LibraryIndex,
+    catalog: dict[str, str],
+    deadline: Deadline | None = None,
+    use_model: bool = True,
 ) -> Plan:
     """Förslagen och frågorna till dem, med aktiviteter även för intressen där biblioteket saknar en lista: för
     dem väljer modellen ur `catalog` (slug -> namn), i ett enda anrop och bara om något behöver det.
     Biblioteket vinner när det har en lista. En aktivitet som texten sa för ett sådant intresse godtas om
     den finns i `catalog`, eftersom användaren själv sa den. Sades en aktivitet om något i en grupp (intresset
-    och dess subs) gäller den hela gruppen, där den är tillåten."""
+    och dess subs) gäller den hela gruppen, där den är tillåten. Med `use_model` False görs inget anrop alls:
+    intressen utan aktivitetslista får då inga aktiviteter."""
     live = [m for m in matches if m.kind != "none"]
     gaps = [m for m in live if not index.activities_defined(_target_id(m))]
 
@@ -191,7 +196,7 @@ def _plan_with_rules(
             subjects.append(Subject(m.tag.key, m.name or m.tag.name, (*parent.path, parent.name)))
         elif m.kind == "new":  # en sub under ett nytt intresse: samma lista som det intresset
             subjects.append(Subject(m.tag.key, m.name or m.tag.name, ()))
-    suggestions = suggest_activities(subjects, catalog, deadline)
+    suggestions = suggest_activities(subjects, catalog, deadline) if use_model else {}
 
     allowed: dict[str, list[str]] = {}
     result = list(matches)
@@ -375,10 +380,14 @@ def plan(
     catalog: dict[str, str],
     deadline: Deadline | None = None,
     text: str = "",
+    use_model: bool = True,
 ) -> Plan:
     """Förslagen och frågorna till dem. Ges `text` (det användaren skrev) läser modellen den och avgör vad som är
     oklart, läser ut aktiviteter och formulerar frågorna, med allt kontrollerat i kod. Går anropet fel, eller
-    ges ingen text, gäller reglerna (se _plan_with_rules)."""
+    ges ingen text, gäller reglerna (se _plan_with_rules). Med `use_model` False (följdfrågorna är av) anropas
+    modellen aldrig: bara reglerna gäller, och aktiviteter kommer bara från biblioteket."""
+    if not use_model:
+        return _plan_with_rules(matches, index, catalog, deadline, use_model=False)
     if text.strip():
         matches = drop_unsaid_areas(matches, index, text)
     live = [m for m in matches if m.kind != "none"]

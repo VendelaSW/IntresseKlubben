@@ -69,7 +69,8 @@ def analyze(client, text="Jag spelar hårdrock i ett band."):
 # ---------- Förslagen ----------
 
 
-def test_an_existing_interest_is_proposed_with_its_place_in_the_tree_and_the_activity_the_text_says(client, user, library):
+def test_an_existing_interest_is_proposed_with_its_place_in_the_tree_and_the_activity_the_text_says(client, user, library, monkeypatch):
+    monkeypatch.setattr(settings, "interest_followups", True)  # aktiviteten ur texten läses bara ut med följdfrågorna på
     ai(extract=tree(("hårdrock", [])), clarify=clarify_for(("t1", "spela", [], "none")))
     response = analyze(client)
     assert response.status_code == 200
@@ -161,7 +162,8 @@ def test_every_step_shares_one_deadline_so_the_analysis_fits_in_the_function(cli
 # ---------- Sigillet ----------
 
 
-def test_the_seal_covers_exactly_the_proposals_and_what_is_allowed_for_each(client, user, library):
+def test_the_seal_covers_exactly_the_proposals_and_what_is_allowed_for_each(client, user, library, monkeypatch):
+    monkeypatch.setattr(settings, "interest_followups", True)
     ai(extract=tree(("hårdrock", [])), clarify=clarify_for(("t1", "spela", [], "none")))
     body = analyze(client).json()
     assert read_token(body["token"], user.id) == [
@@ -202,6 +204,15 @@ def test_follow_up_questions_are_off_by_default_and_nothing_is_guessed(client, u
     assert settings.interest_followups is False
     assert body["followups"] == []
     assert body["proposals"][0]["activity"] == ""
+
+
+def test_with_follow_ups_off_the_model_is_asked_about_neither_activities_nor_questions(client, user, library):
+    llm, _ = ai(extract=tree(("hårdrock", []), ("katter", [])), clarify=clarify_for(("t1", "spela", [], "none")))
+    body = analyze(client, "Jag spelar hårdrock och har katter.").json()
+    assert {call.name for call in llm.calls} == {"interests", "judge"}  # inget anrop om följdfrågor eller aktiviteter
+    assert [p["activity"] for p in body["proposals"]] == ["", ""]  # aktiviteten ur texten läses inte ut
+    claims = read_token(body["token"], user.id)
+    assert [c["allowed"] for c in claims] == [["lyssna", "spela", "skapa", "besoka"], []]  # Katter har ingen lista i biblioteket
 
 
 def test_follow_up_questions_are_sent_when_they_are_switched_on(client, user, library, monkeypatch):

@@ -6,8 +6,9 @@ Stegen, med allt delad på en tidsgräns (se Deadline) så att analysen ryms i b
 1. Utläsning (interest_extractor): modellen gör texten till ett träd av taggar, med skydden mot olämpligt innehåll.
 2. Matchning (interest_matching): varje tagg blir ett intresse som finns, ett nytt intresse med en förälder, eller
    inget.
-3. Aktivitet (interest_followups.plan): modellen läser ut hur användaren håller på med intresset, men bara om texten
-   säger det. Gissas aldrig. Följdfrågor byggs men skickas bara om de är påslagna (settings.interest_followups).
+3. Aktivitet och följdfrågor (interest_followups.plan): bara om följdfrågorna är påslagna (settings.interest_followups)
+   läser modellen ut hur användaren håller på med intresset (bara om texten säger det, aldrig gissat) och formulerar
+   frågorna. Är de av görs inget anrop här, och aktiviteter kommer bara från biblioteket.
 4. Förslagen får nycklar (p1, p2...) och en kompakt form som sigillet täcker (analysis_token).
 
 Inget sparas. Förslagen sparas i ett senare steg, och bara de som har ett giltigt sigill godtas där.
@@ -82,7 +83,7 @@ def analyze(text: str, index: LibraryIndex, catalog: dict[str, str], followups_e
     tags = tags_from_tree(extract_interests(text, deadline))
     if not tags:
         return Analysis()
-    result = plan(match_tags(tags, index, deadline), index, catalog, deadline, text=text)
+    result = plan(match_tags(tags, index, deadline), index, catalog, deadline, text=text, use_model=followups_enabled)
 
     live = [m for m in result.matches if m.kind != "none"]
     keys = {m.tag.key: f"p{number}" for number, m in enumerate(live, 1)}
