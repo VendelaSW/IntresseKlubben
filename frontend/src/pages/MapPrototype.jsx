@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import '../styles/map.css'
 import { LngLat, Map as MapLibreMap, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -10,7 +11,7 @@ import { attachPlaceSigns } from './mapPrototypeSigns'
 import logo from '../assets/intresseklubben.png'
 import Intressekompis from '../components/Intressekompis'
 import MapCalmPage from './MapCalmPage'
-import MapPagePad, { MAP_PAGES } from './MapPagePad'
+import MapPagePad, { MAP_PAGES, widgetFor } from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
 import MapProfileWidget from './MapProfileWidget'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
@@ -731,8 +732,8 @@ function syncPlaceLabels(
   return { render }
 }
 
-// Lugnt läge sparas i webbläsaren. Går det inte (t.ex. privat läge) visas
-// kartan som vanligt.
+// Att göra-läget (växeln Karta | Att göra) sparas i webbläsaren. Går det inte
+// (t.ex. privat läge) visas kartan som vanligt.
 const CALM_KEY = 'karta-lugnt-lage'
 
 function readCalm() {
@@ -766,11 +767,11 @@ function MapPrototype() {
   // Sidan som ligger som block på kartan: 'profil' (Min profil, den egna sidan med
   // Lägg till intressen), 'brev', 'personer', 'klubbar', 'events' eller null.
   const [openPage, setOpenPage] = useState(null)
-  // Lugnt läge: kartan göms och bara pappret, widgetarna och blocken syns
-  // (för den som vill ha en lugnare bakgrund, eller en långsam dator). Valet
-  // sparas i webbläsaren.
+  // Att göra-läget (`calm`): kartan göms och en sida i blocket med dagens att
+  // göra visas i stället (MapCalmPage). Widgetarna och blocken ligger kvar. För
+  // den som vill ha en lugnare bakgrund, eller har en långsam dator. Byts med
+  // växeln Karta | Att göra, och valet sparas i webbläsaren.
   const [calm, setCalm] = useState(readCalm)
-  const toggleCalm = () => setCalm((was) => !was)
   useEffect(() => saveCalm(calm), [calm])
   // Adressen blocket öppnas på (se MapPagePad), t.ex. '/klubbar?klubb=3'.
   const [padStart, setPadStart] = useState(null)
@@ -780,6 +781,18 @@ function MapPrototype() {
     setOpenPage(page)
     setPadStart(start)
   }
+
+  // En gammal adress till en av sidorna (t.ex. /klubbar?klubb=3) skickas hit
+  // med sidan i `state.pad` (se OpenOnMap i App.jsx). Den öppnas i ett block,
+  // och tas sedan bort ur historiken så att den inte öppnas igen vid omladdning.
+  const location = useLocation()
+  const navigate = useNavigate()
+  useEffect(() => {
+    const pad = location.state?.pad
+    if (!pad) return
+    openPad(widgetFor(pad), pad)
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location])
   const mapRef = useRef(null)
   const labelsApiRef = useRef(null) // för att rita om namnen när nivån byts
   const outsideApiRef = useRef(null) // för att rita om papperet när nivån byts
@@ -1312,6 +1325,25 @@ function MapPrototype() {
         ))}
         {levelName && <p className="map-level-name">{levelName}</p>}
       </div>
+      {/* Kartan eller dagens att göra (se `calm`). Den valda är nedtryckt. */}
+      <div className="map-view-toggle map-tool-group" role="group" aria-label="Visa">
+        <button
+          type="button"
+          className={`map-tool${calm ? '' : ' is-on'}`}
+          aria-pressed={!calm}
+          onClick={() => setCalm(false)}
+        >
+          Karta
+        </button>
+        <button
+          type="button"
+          className={`map-tool${calm ? ' is-on' : ''}`}
+          aria-pressed={calm}
+          onClick={() => setCalm(true)}
+        >
+          Att göra
+        </button>
+      </div>
       <div className="map-sketch-tools" role="toolbar" aria-label="Nålar och väg" hidden={!pinsShown}>
         <button
           type="button"
@@ -1356,13 +1388,12 @@ function MapPrototype() {
       <img src={logo} alt="Intresseklubben" className="map-logo" />
       <div className="map-top-widgets">
         <MapPageWidgets openPage={openPage} onOpen={(page) => (page ? openPad(page) : setOpenPage(null))} />
-        <MapProfileWidget onOpen={openPad} calm={calm} onToggleCalm={toggleCalm} />
+        <MapProfileWidget onOpen={openPad} />
       </div>
       {calm && (
         <MapCalmPage
           onOpen={openPad}
           onOpenEvent={(id) => openActivityRef.current({ type: 'event', id })}
-          onShowMap={toggleCalm}
         />
       )}
       {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}

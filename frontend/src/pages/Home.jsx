@@ -18,7 +18,7 @@ function Home() {
     setView(next)
   }
 
-  // Redan inloggad: inget att göra här, skicka vidare till hubben.
+  // Redan inloggad: inget att göra här, skicka vidare till kartan.
   if (loading) return null
   if (user) return <Navigate to="/hem" replace />
 
