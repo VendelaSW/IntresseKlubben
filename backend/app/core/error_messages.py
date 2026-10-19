@@ -108,6 +108,11 @@ EMAIL_LINK_INVALID = "Länken är ogiltig eller har gått ut. Skicka en ny från
 EMAIL_TOO_MANY_REQUESTS = "Vi har nyss skickat ett mejl. Vänta en stund innan du skickar ett nytt"
 EMAIL_SEND_FAILED = "Vi kunde inte skicka mejlet just nu. Försök igen om en stund"
 
+# ---------- Lösenord via e-post (routes/user.py, schemas/user.py) ----------
+PASSWORD_TOO_LONG = "Lösenordet får max vara 72 tecken"
+PASSWORD_LINK_INVALID = "Länken är ogiltig eller har gått ut. Be om en ny."
+PASSWORD_CHANGE_NEEDS_EMAIL = "Lägg till en e-postadress först, så att vi kan bekräfta bytet"
+
 # ---------- Texter för standardfel (används längst ner) ----------
 FIELD_REQUIRED = "Fältet är obligatoriskt"
 INVALID_VALUE = "Ogiltigt värde"

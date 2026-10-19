@@ -1,35 +1,31 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import logo from '../assets/intresseklubben.png'
 import { useAuth } from '../hooks/useAuth'
+import { useLinkToken } from '../hooks/useLinkToken'
 import { verifyEmail } from '../services/api'
 
 // Hit leder länken i bekräftelsemejlet (/verifiera?token=...). Koden skickas
 // till backend härifrån och inte direkt via länken, eftersom e-postprogram ofta
-// öppnar länkar i förväg och då skulle förbruka den. Koden tas bort ur
-// adressfältet direkt, så att den inte ligger kvar i historiken. Fungerar både
-// inloggad och utloggad, t.ex. om mejlet öppnas på en annan enhet.
+// öppnar länkar i förväg och då skulle förbruka den. Fungerar både inloggad och
+// utloggad, t.ex. om mejlet öppnas på en annan enhet.
 function VerifyEmailPage() {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
   const { user } = useAuth()
-  // Läses en gång: adressen töms nedan, och StrictMode kör effekten två gånger i utvecklingsläget.
-  const token = useRef(searchParams.get('token'))
+  const token = useLinkToken()
   const started = useRef(false)
-  const [status, setStatus] = useState(token.current ? 'verifying' : 'error') // 'verifying' | 'done' | 'error'
-  const [error, setError] = useState(token.current ? '' : 'Länken saknar kod. Öppna länken i mejlet igen.')
+  const [status, setStatus] = useState(token ? 'verifying' : 'error') // 'verifying' | 'done' | 'error'
+  const [error, setError] = useState(token ? '' : 'Länken saknar kod. Öppna länken i mejlet igen.')
 
   useEffect(() => {
-    if (!token.current || started.current) return
+    if (!token || started.current) return
     started.current = true
-    navigate('/verifiera', { replace: true })
-    verifyEmail(token.current)
+    verifyEmail(token)
       .then(() => setStatus('done'))
       .catch((err) => {
         setError(err.message)
         setStatus('error')
       })
-  }, [navigate])
+  }, [token])
 
   return (
     <div className="page service-page">

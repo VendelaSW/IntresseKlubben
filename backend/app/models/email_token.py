@@ -11,7 +11,8 @@ def utc_now() -> datetime:
 
 class EmailToken(Base):
     """
-    En engångslänk som skickats i ett mejl, t.ex. för att bekräfta e-posten.
+    En engångslänk som skickats i ett mejl: bekräfta e-posten, återställa ett
+    glömt lösenord eller bekräfta ett byte av lösenord.
 
     Själva koden i länken sparas aldrig, bara dess hash (token_hash), så att en
     läckt databas inte går att använda för att logga in eller byta lösenord.
@@ -27,6 +28,8 @@ class EmailToken(Base):
     purpose = Column(String(30), nullable=False)  # se PURPOSES i crud/email_token.py
     token_hash = Column(String(64), nullable=False, unique=True)
     email = Column(String, nullable=True)
+    # Bara för byte av lösenord: det nya lösenordet (hashat) tills bytet bekräftas via länken.
+    new_password_hash = Column(String, nullable=True)
     # I Python och inte i databasen, så att tiden har tidszon även i testerna (SQLite).
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
     expires_at = Column(DateTime(timezone=True), nullable=False)
