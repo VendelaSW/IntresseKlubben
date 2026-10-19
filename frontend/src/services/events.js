@@ -10,7 +10,7 @@ export const EVENT_VISIBILITY = { open: 'open', inviteOnly: 'invite_only' }
 export const EVENTS_KEY = ['events']
 
 // Alla events (utan groupId) sparas i minnet en kort stund (se queryClient.js),
-// så Events, kartan och lugnt läge delar samma hämtning. Allt nedan som ändrar
+// så Events, kartan och att göra-läget delar samma hämtning. Allt nedan som ändrar
 // ett event säger till minnet.
 export const eventsQuery = {
   queryKey: EVENTS_KEY,

@@ -10,9 +10,7 @@ import { countUnseenConversations } from '../services/messages'
 // varje sidbyte, så de behöver inte hämtas oftare än så här.
 const POLL_MS = 60000
 
-export const EMPTY_COUNTS = { contactRequests: 0, clubInvitations: 0, eventNews: 0, unseenMessages: 0 }
-
-// Siffrorna för appens märken (menyn i AppShell och lapparna på kartan):
+// Siffrorna för appens märken (lapparna på kartan):
 //   contactRequests: obesvarade kontaktförfrågningar (Personer)
 //   clubInvitations: klubbar man är inbjuden till (Klubbar)
 //   eventNews: events man inte har svarat på som antingen är en inbjudan, eller
