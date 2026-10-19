@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import PersonCard from '../components/PersonCard'
+import { useTabParam } from '../hooks/useTabParam'
 import {
   answerContactRequest,
   cancelContactRequest,
@@ -66,7 +67,9 @@ const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: []
 function PeoplePage() {
   // Intressena och kommunerna (för filtren) och ens egna intressen kommer ur minnet.
   const [filterDataFailed, setFilterDataFailed] = useState(false)
-  const [tab, setTab] = useState('suggested')
+  // Fliken står i adressen, så att Tillbaka från en profil kommer hit igen (se useTabParam).
+  const [urlTab, setTab] = useTabParam(TABS)
+  const tab = urlTab ?? 'suggested'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [filters, setFilters] = useState({
     interestId: '',
@@ -176,6 +179,7 @@ function PeoplePage() {
         {...sharedProps(person)}
         actions={
           <PersonActions
+            userId={person.id}
             relation={outgoing ? 'outgoing' : null}
             busy={busy}
             onSend={() => runAction(() => sendContactRequest(person.id))}
@@ -332,6 +336,7 @@ function PeoplePage() {
                   {...sharedProps(request.user)}
                   actions={
                     <PersonActions
+                      userId={request.user.id}
                       relation="incoming"
                       busy={busy}
                       onAccept={() => runAction(() => answerContactRequest(request.id, 'accept'))}
@@ -355,6 +360,7 @@ function PeoplePage() {
                   {...sharedProps(request.user)}
                   actions={
                     <PersonActions
+                      userId={request.user.id}
                       relation="outgoing"
                       busy={busy}
                       onCancel={() => handleCancelRequest(request)}
@@ -393,6 +399,7 @@ function PeoplePage() {
                 {...sharedProps(contact.user)}
                 actions={
                   <PersonActions
+                    userId={contact.user.id}
                     relation="contact"
                     busy={busy}
                     onRemove={() => handleRemoveContact(contact)}

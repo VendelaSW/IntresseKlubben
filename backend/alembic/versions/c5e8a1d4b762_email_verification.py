@@ -1,14 +1,14 @@
 """email verification
 
 Revision ID: c5e8a1d4b762
-Revises: a7c2e4f9b1d3
+Revises: e9a4c2b6f1d8
 """
 from alembic import op
 import sqlalchemy as sa
 
 
 revision = 'c5e8a1d4b762'
-down_revision = 'a7c2e4f9b1d3'
+down_revision = 'e9a4c2b6f1d8'
 branch_labels = None
 depends_on = None
 

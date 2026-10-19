@@ -59,9 +59,14 @@ class ResendSender:
 
 
 class LogSender:
-    """Skickar inget, skriver mejlet i loggen (när RESEND_API_KEY saknas, t.ex. lokalt)."""
+    """Skickar inget, skriver mejlet i loggen (när RESEND_API_KEY saknas, t.ex. lokalt), så att länken går att
+    klicka på. Inte i produktion: där ska länkarna (som ger tillgång till konton) aldrig hamna i loggen, och den som
+    väntar på mejlet ska få veta att det inte gick iväg. Därför ger den EmailFailed där i stället."""
 
     def send(self, to: str, subject: str, text: str, html: str) -> None:
+        if settings.vercel_env == "production":
+            logger.error("Mejl kunde inte skickas: RESEND_API_KEY saknas i Production. Ämne: %s.", subject)
+            raise EmailFailed("RESEND_API_KEY saknas")
         logger.warning("Mejl skickades inte (RESEND_API_KEY saknas). Till: %s. Ämne: %s.\n%s", to, subject, text)
 
 
