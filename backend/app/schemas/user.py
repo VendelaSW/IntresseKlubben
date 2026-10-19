@@ -110,6 +110,12 @@ class UserLogin(BaseModel):
     password: str
 
 
+class VerifyEmail(BaseModel):
+    """Koden från länken i bekräftelsemejlet (POST /users/verify-email)."""
+
+    token: str = Field(min_length=1, max_length=200)
+
+
 class AccountDelete(BaseModel):
     """Lösenordet krävs för att radera kontot, så att en inloggad dator som
     någon annan sitter vid inte räcker."""
@@ -133,6 +139,8 @@ class CurrentUserOut(UserOut):
     Används också i inloggningssvaret, som bara går till användaren själv."""
 
     email: str | None
+    # Har man bekräftat e-postadressen via länken i mejlet? (Se POST /users/me/email-verification.)
+    email_verified: bool
     profile_completed: bool
 
 

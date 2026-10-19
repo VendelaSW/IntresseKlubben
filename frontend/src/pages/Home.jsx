@@ -54,7 +54,11 @@ function Home() {
         <>
           <LoginFields
             onSwitchToRegister={() => show('register')}
-            notice={justRegistered ? 'Kontot är skapat! Logga in med ditt användarnamn eller din e-post.' : null}
+            notice={
+              justRegistered
+                ? 'Kontot är skapat! Vi har skickat ett mejl för att bekräfta din e-post. Logga in med ditt användarnamn eller din e-post.'
+                : null
+            }
           />
           <button type="button" className="text-button" onClick={() => show(null)}>
             ← Tillbaka

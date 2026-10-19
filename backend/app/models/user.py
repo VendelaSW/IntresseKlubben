@@ -13,6 +13,9 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=True)
+    # När e-postadressen bekräftades via länken i mejlet. None = inte bekräftad,
+    # t.ex. konton från innan bekräftelsen fanns, eller efter att man bytt adress.
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     # När intervjun blev klar eller hoppades över. None = ska erbjudas intervjun.
     onboarding_completed_at = Column(DateTime(timezone=True), nullable=True)
@@ -29,6 +32,11 @@ class User(Base):
         "interest_links", "interest", creator=lambda interest: UserInterest(interest=interest)
     )
     profile = relationship("Profile", back_populates="user", uselist=False)
+
+    @property
+    def email_verified(self) -> bool:
+        """Har användaren bekräftat sin nuvarande e-postadress via länken i mejlet?"""
+        return self.email is not None and self.email_verified_at is not None
 
     @property
     def profile_completed(self) -> bool:
