@@ -10,8 +10,11 @@ from app.models.interest import Interest, InterestSource, InterestStatus
 from app.models.profile import Profile
 from app.models.user import User
 from app.models.user_interest import UserInterest
+from app.models.interest_embedding import EMBEDDING_DIMENSIONS, InterestEmbedding
+from app.services.ai_clients import AIFailed, set_clients
 from app.services.analysis_token import create_token
 from app.services.interest_confirm import OWN_INTEREST_LIMIT
+from tests.fakes import FakeEmbedder
 from tests.helpers import make_profile
 
 CONFIRM = "/profile/interests/confirm"
@@ -254,6 +257,33 @@ def test_an_answer_cannot_narrow_a_new_interest(client, user, profile, library):
 def new_interests(db, user_id=None):
     query = db.query(Interest).filter(Interest.source == InterestSource.ai.value)
     return query.all() if user_id is None else query.filter(Interest.created_by_user_id == user_id).all()
+
+
+def test_new_interests_get_their_vectors_in_one_call_and_an_existing_one_gets_none(client, user, profile, library, db):
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    claims = [
+        claim_same("p1", library["musik"]),
+        claim_new("p2", "Modellbygge", library["skapande"]),
+        claim_new("p3", "Fyrmodeller", parent_key="p2"),
+    ]
+    response = confirm(client, batch(user, claims, [{"key": "p1"}, {"key": "p2"}, {"key": "p3"}]))
+    assert response.status_code == 200
+    assert embedder.calls == [["Modellbygge", "Fyrmodeller"]]  # ett anrop, och inte för Musik som redan fanns
+    created = new_interests(db, user.id)
+    assert len(created) == 2
+    for interest in created:
+        row = db.get(InterestEmbedding, interest.id)
+        assert len(row.embedding) == EMBEDDING_DIMENSIONS and row.embedding_hash
+
+
+def test_a_new_interest_is_saved_even_when_its_vector_cannot_be_calculated(client, user, profile, library, db):
+    set_clients(embedder=FakeEmbedder(error=AIFailed("URLError")))
+    response = confirm(client, batch(user, [claim_new("p1", "Modellbygge", library["skapande"])], [{"key": "p1"}]))
+    assert response.status_code == 200
+    (interest,) = new_interests(db, user.id)
+    assert interest.name == "Modellbygge" and db.get(InterestEmbedding, interest.id) is None  # nästa synk fyller i den
+    assert len(rows(db, user.id)) == 1  # och det ligger på profilen
 
 
 def test_a_new_interest_is_created_under_its_parent_with_its_creator_and_shows_on_the_profile(client, user, profile, library, db):
