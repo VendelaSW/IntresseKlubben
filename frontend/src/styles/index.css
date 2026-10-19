@@ -203,6 +203,11 @@ h2 {
   text-align: left;
 }
 
+/* Centrerad variant, på startsidan (se ProblemStatement). */
+.problem-statement-centered {
+  text-align: center;
+}
+
 .info-link {
   display: inline-block;
   font-family: var(--font-body);
@@ -218,6 +223,44 @@ h2 {
 .info-link:hover,
 .info-link:focus-visible {
   opacity: 0.7;
+}
+
+/* .info-link på en knapp (t.ex. "Läs mer om tjänsten" som fälls ut): ser ut
+   som länken, utan knappens egen ram och bakgrund. */
+button.info-link {
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  padding: 0 0 2px;
+  cursor: pointer;
+}
+
+/* "Läs mer om tjänsten" (components/ServiceDetails.jsx): på startsidan och /om,
+   lika bred som texten ovanför. */
+.service-details {
+  max-width: var(--content-width);
+  width: 100%;
+  text-align: left;
+}
+
+.service-details-heading {
+  font-size: var(--text-body);
+  margin: 0 0 0.4rem;
+}
+
+.service-details ol {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+}
+
+.service-details li {
+  margin-bottom: 0.3rem;
+}
+
+.service-details p {
+  margin: 0;
 }
 
 .map-section {
