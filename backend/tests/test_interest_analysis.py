@@ -194,6 +194,90 @@ def test_the_seal_belongs_to_the_user_who_got_it(client, user, library):
         read_token(token, user.id + 1)
 
 
+# ---------- Alias först: kända intressen utan AI ----------
+
+
+def test_a_list_of_known_interests_is_answered_without_any_ai_call(client, user, library):
+    llm, moderator = ai()
+    body = analyze(client, "Hårdrock och katter").json()
+    assert llm.calls == [] and moderator.batches == []
+    assert [p["interest"]["name"] for p in body["proposals"]] == ["Metal", "Katter"]
+    assert [claim["interest_id"] for claim in read_token(body["token"], user.id)] == [library["metal"].id, library["katter"].id]
+
+
+def test_a_text_that_shows_doubt_is_not_a_shortcut_and_goes_to_the_model(client, user, library):
+    llm, _ = ai(extract=tree(("katter", [])))
+    proposals = analyze(client, "Katter, men jag hatar hårdrock").json()["proposals"]
+    assert len(llm.calls_named("interests")) == 1
+    assert [p["interest"]["name"] for p in proposals] == ["Katter"]
+
+
+def test_a_part_that_is_not_in_the_library_sends_the_whole_text_to_the_model(client, user, library):
+    llm, _ = ai(extract=tree(("hårdrock", [])))
+    proposals = analyze(client, "Hårdrock och kaktusar").json()["proposals"]
+    assert len(llm.calls_named("interests")) == 1
+    assert [p["interest"]["name"] for p in proposals] == ["Metal"]
+
+
+def test_when_the_model_finds_nothing_a_known_alias_in_the_text_is_used(client, user, library):
+    llm, moderator = ai(extract=tree())
+    proposals = analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"]
+    assert [p["interest"]["name"] for p in proposals] == ["Metal"]
+    assert [call.name for call in llm.calls] == ["interests"]  # inget mer anrop till modellen
+    assert moderator.batches == [["Jag är intresserad av Metal."]]  # men träffen modereras som modellens taggar
+
+
+def test_the_safety_net_finds_a_simple_form_of_a_word(client, user, library):
+    ai(extract=tree())
+    proposals = analyze(client, "Jag älskar katterna, mest på kvällarna").json()["proposals"]
+    assert [p["interest"]["name"] for p in proposals] == ["Katter"]
+
+
+def test_the_models_own_tags_are_never_added_to_by_the_safety_net(client, user, library):
+    ai(extract=tree(("katter", [])))
+    proposals = analyze(client, "Jag gillar katter och hårdrock, mest på kvällarna").json()["proposals"]
+    assert [p["interest"]["name"] for p in proposals] == ["Katter"]
+
+
+def test_the_safety_net_leaves_out_an_area_when_something_more_specific_was_found(client, user, library):
+    ai(extract=tree())
+    proposals = analyze(client, "Jag lyssnar på musik och hårdrock, mest på kvällarna").json()["proposals"]
+    assert [p["interest"]["name"] for p in proposals] == ["Metal"]
+
+
+def test_the_safety_net_is_not_used_for_a_text_that_shows_doubt(client, user, library):
+    ai(extract=tree())
+    assert analyze(client, "Jag hatar hårdrock, mest på kvällarna").json()["proposals"] == []
+
+
+def test_the_safety_net_is_not_used_when_the_judge_removed_the_models_tag(client, user, library):
+    ai(extract=tree(("hårdrock", [])), judge={"remove": ["hårdrock"]})
+    assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"] == []
+
+
+def test_the_safety_net_is_not_used_when_moderation_removed_the_models_tag(client, user, library):
+    ai(extract=tree(("hårdrock", [])), flagged=["Jag är intresserad av hårdrock."])
+    assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"] == []
+
+
+def test_a_hit_from_the_safety_net_that_moderation_flags_is_removed(client, user, library):
+    ai(extract=tree(), flagged=["Jag är intresserad av Metal."])
+    assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"] == []
+
+
+def test_moderation_that_cannot_run_for_a_safety_net_hit_gives_503(client, user, library):
+    _, moderator = ai(extract=tree())
+    moderator.error = AIFailed("URLError")
+    assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").status_code == 503
+
+
+def test_a_shortcut_does_not_write_anything_to_the_database(client, user, library, db):
+    before = db.query(Interest).count()
+    ai()
+    assert analyze(client, "Hårdrock och katter").status_code == 200
+    assert db.query(Interest).count() == before
+
+
 # ---------- Följdfrågor: byggda men av ----------
 
 
