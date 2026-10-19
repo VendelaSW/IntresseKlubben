@@ -7,6 +7,7 @@ import ChatSender from '../components/ChatSender'
 import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
 import { useChatScroll } from '../hooks/useChatScroll'
+import { isIdle, onUserActive } from '../services/activity'
 import { conversationQuery, markConversationSeen, sendMessage } from '../services/messages'
 import { getProfile } from '../services/profile'
 import { formatSentAt } from '../utils/formatSentAt'
@@ -30,9 +31,14 @@ function ConversationPage() {
   // Konversationen ur det delade minnet (se services/queryClient.js): har man
   // haft den öppen förut visas den direkt. Den hämtas när sidan öppnas och sedan
   // var POLL_MS, och direkt när man kommer tillbaka till fliken. När fliken inte
-  // syns frågar den inte servern. Misslyckas en senare hämtning ligger breven
-  // kvar och nästa försök kommer snart; bara den första visar fel.
-  const { data, isSuccess, isError } = useQuery({ ...conversationQuery(userId), refetchInterval: POLL_MS })
+  // syns, eller ingen har rört appen på ett tag (se services/activity.js),
+  // frågar den inte servern. Misslyckas en senare hämtning ligger breven kvar
+  // och nästa försök kommer snart; bara den första visar fel.
+  const { data, isSuccess, isError, refetch } = useQuery({
+    ...conversationQuery(userId),
+    refetchInterval: () => (isIdle() ? false : POLL_MS),
+  })
+  useEffect(() => onUserActive(() => refetch()), [refetch])
   const status = isSuccess ? 'ready' : isError ? 'error' : 'loading'
   // Vem konversationen är med (från servern), för namnet överst och vid breven.
   const other = data?.user ?? null

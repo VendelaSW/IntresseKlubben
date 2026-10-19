@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useChatScroll } from '../../hooks/useChatScroll'
+import { isIdle, onUserActive } from '../../services/activity'
 import { getGroupMembers, getGroupMessages, sendGroupMessage } from '../../services/groups'
 import { formatSentAt } from '../../utils/formatSentAt'
 import ChatSender from '../ChatSender'
 
 // Hur ofta chatten hämtas igen medan den är öppen, så att nya meddelanden syns utan att man laddar om sidan.
+// Inte när ingen har rört appen på ett tag (se services/activity.js).
 const POLL_MS = 5000
 
 // Samma brytpunkt som i index.css: under den vill man se det senaste och svarsraden.
@@ -90,12 +92,14 @@ function GroupChat({ groupId }) {
     }
 
     refresh()
-    const timer = setInterval(refresh, POLL_MS)
+    const timer = setInterval(() => isIdle() || refresh(), POLL_MS)
+    const stopListening = onUserActive(refresh)
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       cancelled = true
       mounted.current = false
       clearInterval(timer)
+      stopListening()
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [groupId])
