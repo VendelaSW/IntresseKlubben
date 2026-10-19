@@ -575,6 +575,7 @@ def analyze_with_fakes(client, library):
 def test_the_whole_chain_from_analysis_to_a_saved_profile(client, user, municipalities, library, db, monkeypatch):
     monkeypatch.setattr(settings, "openai_api_key", "test-nyckel")
     monkeypatch.setattr(settings, "openai_model", "test-modell")
+    monkeypatch.setattr(settings, "interest_followups", True)  # aktiviteten ("spela") läses bara ut med följdfrågorna på
     library["metal"].aliases = "hårdrock"
     db.commit()
     analysis = analyze_with_fakes(client, library)

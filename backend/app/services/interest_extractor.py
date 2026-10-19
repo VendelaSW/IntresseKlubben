@@ -378,12 +378,13 @@ def judge_tags(text: str, tags: list[str], deadline: Deadline | None = None) -> 
     return {tag for tag in remove if isinstance(tag, str) and tag in tags}
 
 
-def extract_interests(text: str, deadline: Deadline | None = None) -> list[dict]:
+def extract_interests(text: str, deadline: Deadline | None = None, on_nothing=None) -> list[dict]:
     """Intressena modellen hittar i texten, som ett träd: [{"name": intresse, "aliases", "subtags":
     [{"name": sub, "aliases"}]}]. Kastar AINotConfigured om nyckel eller modell saknas, och AIFailed
     om något anrop eller svar är trasigt eller om tiden tar slut. Hela utläsningen delar på en
     tidsgräns (se Deadline), så att den ryms i backendens funktionstid. Ges en `deadline` delar utläsningen
-    den med resten av analysen (se interest_analysis.py)."""
+    den med resten av analysen (se interest_analysis.py). Ger modellen ingen tagg alls (inte när granskningen
+    eller moderationen tagit bort något) anropas `on_nothing` om den är satt, och dess svar blir resultatet."""
     llm = get_llm()
     deadline = deadline or Deadline()
 
@@ -400,6 +401,6 @@ def extract_interests(text: str, deadline: Deadline | None = None) -> list[dict]
     interests = clean_interests(picked)
     tags = _all_tags(interests)
     if not tags:
-        return []
+        return on_nothing() if on_nothing is not None else []
     interests = drop_tags(interests, judge_tags(text, tags, deadline))
     return remove_flagged(interests, deadline)

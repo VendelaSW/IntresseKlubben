@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from app.core.config import settings
+from app.core.config import Settings, settings
 from app.services import ai_clients
 from app.services.ai_clients import (
     MODERATION_BATCH,
@@ -32,6 +32,7 @@ SCHEMA = {"type": "object", "properties": {"x": {"type": "string"}}, "required":
 def configured(monkeypatch):
     monkeypatch.setattr(settings, "openai_api_key", "test-nyckel")
     monkeypatch.setattr(settings, "openai_model", "test-modell")
+    monkeypatch.setattr(settings, "openai_temperature", None)  # en riktig .env ska inte påverka testerna
 
 
 @pytest.fixture
@@ -86,6 +87,45 @@ def test_the_llm_call_goes_to_openai_with_the_key_as_a_bearer_token(configured, 
         "messages": [{"role": "system", "content": "regler"}, {"role": "user", "content": "text"}],
         "response_format": {"type": "json_schema", "json_schema": {"name": "svar", "strict": True, "schema": SCHEMA}},
     }
+
+
+def test_without_a_temperature_the_parameter_is_left_out_so_every_model_works(configured, monkeypatch):
+    seen = urlopen_returns(monkeypatch, reply(json.dumps({"x": "hej"})))
+    OpenAILLM().complete_json(system="s", user="u", name="n", schema=SCHEMA)
+    assert "temperature" not in seen[0]["body"]
+
+
+@pytest.mark.parametrize("temperature", [0, 0.2])
+def test_a_set_temperature_goes_with_the_llm_call(configured, monkeypatch, temperature):
+    monkeypatch.setattr(settings, "openai_temperature", temperature)
+    seen = urlopen_returns(monkeypatch, reply(json.dumps({"x": "hej"})))
+    OpenAILLM().complete_json(system="s", user="u", name="n", schema=SCHEMA)
+    assert seen[0]["body"]["temperature"] == temperature
+
+
+def test_the_temperature_is_never_sent_to_the_moderation(configured, monkeypatch):
+    monkeypatch.setattr(settings, "openai_temperature", 0)
+    seen = urlopen_returns(monkeypatch, {"results": [{"flagged": False}]})
+    OpenAIModerator().flagged(["a"])
+    assert "temperature" not in seen[0]["body"]
+
+
+def test_an_empty_temperature_setting_means_the_models_default_and_does_not_crash(monkeypatch):
+    monkeypatch.setenv("OPENAI_TEMPERATURE", "")
+    assert Settings(_env_file=None).openai_temperature is None
+
+
+@pytest.mark.parametrize(("value", "expected"), [("0", 0.0), ("0.3", 0.3), ("2", 2.0)])
+def test_the_temperature_setting_reads_numbers(monkeypatch, value, expected):
+    monkeypatch.setenv("OPENAI_TEMPERATURE", value)
+    assert Settings(_env_file=None).openai_temperature == expected
+
+
+@pytest.mark.parametrize("value", ["-1", "3", "varm"])
+def test_a_temperature_that_is_out_of_range_or_not_a_number_stops_the_start(monkeypatch, value):
+    monkeypatch.setenv("OPENAI_TEMPERATURE", value)
+    with pytest.raises(ValueError):
+        Settings(_env_file=None)
 
 
 @pytest.mark.parametrize(
