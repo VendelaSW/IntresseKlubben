@@ -2,17 +2,29 @@
 Registrerings- och inloggningsendpoints för User.
 
 POST /users/register - tar emot UserCreate (username, email, password),
-skapar en ny User via crud.user.create_user, returnerar UserOut.
+skapar en ny User via crud.user.create_user, returnerar UserOut. Skickar ett
+mejl med en länk för att bekräfta e-posten; går det inte skapas kontot ändå.
 
 POST /users/login - tar emot UserLogin (username_or_email, password):
 användarnamn eller e-post i samma fält. Verifierar mot
 get_user_by_username_or_email + verify_password, returnerar en
 inloggningstoken och UserOut vid korrekta uppgifter. Ger ett generiskt
 401-fel annars - avslöjar medvetet inte om det var användarnamnet,
-e-posten eller lösenordet som var fel (standard säkerhetspraxis).
+e-posten eller lösenordet som var fel (standard säkerhetspraxis). Är
+REQUIRE_EMAIL_VERIFICATION påslaget ger rätt uppgifter med obekräftad e-post
+403 EMAIL_NOT_VERIFIED (av tills vidare).
 
 GET /users/me - den inloggade användaren (kräver token), med sin egen e-post
-(None för konton som skapades innan e-post krävdes).
+(None för konton som skapades innan e-post krävdes) och om den är bekräftad.
+
+POST /users/me/email-verification - skickar en ny bekräftelselänk till den
+inloggades e-post ("Bekräfta din e-post" på profilen). 400 utan e-post eller
+om den redan är bekräftad, 429 om ett mejl skickades nyss, 503 om mejlet inte
+gick att skicka.
+
+POST /users/verify-email - tar emot koden från länken (via frontendens sida
+/verifiera) och bekräftar e-posten. Kräver ingen inloggning: länken ska fungera
+även i en annan webbläsare. 400 om länken är okänd, använd eller har gått ut.
 
 GET /users/me/availability?username=&email= - om ett användarnamn och/eller en
 e-post redan används av någon annan, för att formuläret ska kunna säga till
@@ -23,7 +35,8 @@ PATCH /users/me - ändrar användarnamn och/eller e-post (AccountUpdate), även
 för att lägga till e-post på ett konto som saknar det. Samma regler som vid
 registrering. Kräver lösenordet; fel lösenord ger 403, som DELETE nedan. 409
 om användarnamnet eller e-posten redan används av någon annan. Man förblir
-inloggad, eftersom token bygger på användarens id.
+inloggad, eftersom token bygger på användarens id. En ny e-post är inte
+bekräftad, och en bekräftelselänk skickas till den.
 
 DELETE /users/me - raderar kontot och allt som hör till det (se
 crud.user.delete_user). Kräver lösenordet i AccountDelete. Fel lösenord ger
@@ -59,7 +72,10 @@ from sqlalchemy.orm import Session
 
 from app.api.people import to_person_response
 from app.auth.security import create_access_token, get_current_user, require_profile, verify_password
+from app.core import error_messages as msg
 from app.core import storage
+from app.core.config import settings
+from app.crud.email_token import TooManyEmails
 from app.crud.contact import blocked_user_ids, is_blocked
 from app.crud.dismissed_suggestion import (
     dismiss_suggestion,
@@ -92,7 +108,10 @@ from app.schemas.user import (
     UserCreate,
     UserLogin,
     UserOut,
+    VerifyEmail,
 )
+from app.services.email import EmailFailed
+from app.services.email_verification import send_verification_email, try_send_verification_email, verify_email
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -122,9 +141,11 @@ def _taken(exc: UsernameTakenError | EmailTakenError) -> HTTPException:
 )
 def register_user(user_in: UserCreate, db: Session = Depends(get_db)) -> UserOut:
     try:
-        return create_user(db, user_in)
+        user = create_user(db, user_in)
     except (UsernameTakenError, EmailTakenError) as exc:
         raise _taken(exc) from exc
+    try_send_verification_email(db, user)
+    return user
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -135,12 +156,40 @@ def login_user(credentials: UserLogin, db: Session = Depends(get_db)) -> LoginRe
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Fel användarnamn, e-post eller lösenord.",
         )
+    # Först efter lösenordet, så att svaret inte avslöjar något om konton man inte har lösenordet till.
+    if settings.require_email_verification and not user.email_verified:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg.EMAIL_NOT_VERIFIED)
     return LoginResponse(access_token=create_access_token(user.id), user=user)
 
 
 @router.get("/me", response_model=CurrentUserOut)
 def read_current_user(current_user: User = Depends(get_current_user)) -> CurrentUserOut:
     return current_user
+
+
+@router.post("/me/email-verification", status_code=status.HTTP_204_NO_CONTENT)
+def send_my_verification_email(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    if current_user.email is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg.EMAIL_MISSING)
+    if current_user.email_verified:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg.EMAIL_ALREADY_VERIFIED)
+    try:
+        send_verification_email(db, current_user)
+    except TooManyEmails:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=msg.EMAIL_TOO_MANY_REQUESTS) from None
+    except EmailFailed:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=msg.EMAIL_SEND_FAILED) from None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/verify-email", status_code=status.HTTP_204_NO_CONTENT)
+def confirm_email(data: VerifyEmail, db: Session = Depends(get_db)) -> Response:
+    if not verify_email(db, data.token):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg.EMAIL_LINK_INVALID)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/me/availability", response_model=AvailabilityOut)
@@ -166,10 +215,14 @@ def update_my_account(
     db: Session = Depends(get_db),
 ) -> CurrentUserOut:
     _require_password(current_user, data.password)
+    old_email = current_user.email
     try:
-        return update_account(db, current_user, username=data.username, email=data.email)
+        user = update_account(db, current_user, username=data.username, email=data.email)
     except (UsernameTakenError, EmailTakenError) as exc:
         raise _taken(exc) from exc
+    if user.email != old_email:
+        try_send_verification_email(db, user)
+    return user
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)

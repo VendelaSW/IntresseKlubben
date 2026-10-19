@@ -23,6 +23,8 @@ OPEN_WITHOUT_PROFILE = {
     ("PATCH", "/users/me"),
     ("DELETE", "/users/me"),
     ("GET", "/users/me/availability"),
+    ("POST", "/users/me/email-verification"),
+    ("POST", "/users/verify-email"),
 }
 OPEN_PATH_PREFIXES = ("/health", "/profile", "/interests", "/municipalities")
 

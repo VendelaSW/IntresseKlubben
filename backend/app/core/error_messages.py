@@ -94,6 +94,14 @@ CONFIRM_TOO_MANY_OWN_INTERESTS = "Du har lagt till många egna intressen i dag. 
 CONFIRM_NO_INTERESTS = "Välj minst ett intresse"
 CONFIRM_UNAVAILABLE = "Vi kunde inte spara just nu. Försök igen om en stund."
 
+# ---------- Verifiering av e-post (routes/user.py) ----------
+EMAIL_NOT_VERIFIED = "Bekräfta din e-postadress först. Länken finns i mejlet vi skickade."
+EMAIL_MISSING = "Lägg till en e-postadress först"
+EMAIL_ALREADY_VERIFIED = "E-postadressen är redan bekräftad"
+EMAIL_LINK_INVALID = "Länken är ogiltig eller har gått ut. Skicka en ny från din profil."
+EMAIL_TOO_MANY_REQUESTS = "Vi har nyss skickat ett mejl. Vänta en stund innan du skickar ett nytt"
+EMAIL_SEND_FAILED = "Vi kunde inte skicka mejlet just nu. Försök igen om en stund"
+
 # ---------- Texter för standardfel (används längst ner) ----------
 FIELD_REQUIRED = "Fältet är obligatoriskt"
 INVALID_VALUE = "Ogiltigt värde"

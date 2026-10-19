@@ -5,6 +5,7 @@ varje test."""
 from dataclasses import dataclass, field
 
 from app.services.ai_clients import AIFailed, Deadline
+from app.services.email import EmailFailed
 from app.services.geocoding import GeocodingFailed, Place
 
 
@@ -57,6 +58,20 @@ class FakeModerator:
         if self.error is not None:
             raise self.error
         return [self.flag_all or text in self.flagged_texts for text in texts]
+
+
+@dataclass
+class FakeEmailSender:
+    """Fejkat mejlutskick (app/services/email.py): sparar varje mejl i `sent` som (till, ämne, text, html), eller
+    kastar EmailFailed om `fail` är satt."""
+
+    sent: list[tuple[str, str, str, str]] = field(default_factory=list)
+    fail: bool = False
+
+    def send(self, to, subject, text, html):
+        if self.fail:
+            raise EmailFailed("fejkat fel")
+        self.sent.append((to, subject, text, html))
 
 
 @dataclass

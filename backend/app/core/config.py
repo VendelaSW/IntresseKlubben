@@ -30,7 +30,18 @@ class Settings(BaseSettings):
     # men inte aktiverade, så analysen sätter bara en aktivitet när texten säger den och gissar aldrig.
     interest_followups: bool = False
 
-    @field_validator("interest_followups", mode="before")
+    # Mejl från appen (se app/services/email.py), via Resend. Utan nyckel skickas inget: mejlet skrivs i loggen i
+    # stället, så att länkarna går att testa lokalt. Utan egen domän i Resend går mejl från onboarding@resend.dev bara
+    # till kontots egen adress. RESEND_API_KEY skapas av Resends integration i Vercel.
+    resend_api_key: str = ""
+    email_from: str = "Intresseklubben <onboarding@resend.dev>"
+    # Frontendens adress i den här miljön, för länkarna i mejlen (t.ex. https://intresse-klubben.vercel.app).
+    # Tom: första adressen i CORS_ORIGINS.
+    frontend_url: str = ""
+    # Måste e-posten vara bekräftad för att logga in? Av tills vidare: befintliga konton bekräftar själva från profilen.
+    require_email_verification: bool = False
+
+    @field_validator("interest_followups", "require_email_verification", mode="before")
     @classmethod
     def _empty_means_off(cls, value):
         # En tom rad (INTEREST_FOLLOWUPS=) i .env eller Vercel ska inte stoppa starten. Tomma textvärden
@@ -40,6 +51,12 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def frontend_base_url(self) -> str:
+        """Adressen som länkarna i mejlen börjar med, utan / på slutet."""
+        url = self.frontend_url.strip() or next(iter(self.cors_origins_list), "http://localhost:5173")
+        return url.rstrip("/")
 
 
 settings = Settings()

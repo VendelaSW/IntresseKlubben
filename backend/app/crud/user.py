@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.security import hash_password
+from app.crud.email_token import delete_user_tokens
 from app.crud.group import list_user_groups, remove_member
 from app.models.contact import Contact
 from app.models.dismissed_suggestion import DismissedSuggestion
@@ -108,7 +109,8 @@ def update_account(db: Session, user: User, username: str | None = None, email: 
     schemas/user.py), e-posten med små bokstäver. Lösenordet kontrolleras i
     routen. Ett användarnamn eller en e-post som någon annan har ger samma fel
     som vid registrering; att byta skiftläge på sitt eget namn går bra.
-    Inloggningen bygger på användarens id, så man förblir inloggad.
+    Inloggningen bygger på användarens id, så man förblir inloggad. En ny
+    e-postadress är inte bekräftad (email_verified_at töms).
     """
     if username is not None:
         other = get_user_by_username(db, username)
@@ -121,8 +123,9 @@ def update_account(db: Session, user: User, username: str | None = None, email: 
 
     if username is not None:
         user.username = username
-    if email is not None:
+    if email is not None and email != user.email:
         user.email = email
+        user.email_verified_at = None
     _commit_or_raise_taken(db, username=username, email=email, own_id=user.id)
     db.refresh(user)
     return user
@@ -211,6 +214,7 @@ def delete_user(db: Session, user: User) -> str | None:
     db.query(DismissedSuggestion).filter(
         or_(DismissedSuggestion.user_id == user_id, DismissedSuggestion.dismissed_user_id == user_id)
     ).delete(synchronize_session=False)
+    delete_user_tokens(db, user_id)
 
     # Egna intressen som kontot skapat finns kvar för andra som har dem, utan skapare.
     db.query(Interest).filter(Interest.created_by_user_id == user_id).update(

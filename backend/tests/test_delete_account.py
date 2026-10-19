@@ -195,6 +195,7 @@ def test_every_column_pointing_at_users_is_handled():
         "contacts.requester_id",
         "dismissed_suggestions.dismissed_user_id",
         "dismissed_suggestions.user_id",
+        "email_tokens.user_id",
         "event_invitations.user_id",
         "event_responses.user_id",
         "events.created_by",

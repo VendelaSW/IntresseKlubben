@@ -12,3 +12,4 @@ from app.models.group import Group, GroupInvitation, GroupMember  # noqa: F401
 from app.models.group_message import GroupMessage  # noqa: F401
 from app.models.dismissed_suggestion import DismissedSuggestion  # noqa: F401
 from app.models.event import Event, EventInvitation, EventResponse  # noqa: F401
+from app.models.email_token import EmailToken  # noqa: F401

@@ -121,6 +121,19 @@ export async function updateAccount(changes) {
   return queryClient.setQueryData(CURRENT_USER_KEY, await apiPatch('/users/me', changes))
 }
 
+// Skickar en ny länk för att bekräfta e-postadressen till den inloggades e-post.
+// 429 om ett mejl skickades nyss.
+export function sendVerificationEmail() {
+  return apiPost('/users/me/email-verification')
+}
+
+// Bekräftar e-postadressen med koden från länken i mejlet. Kräver ingen
+// inloggning. Är man inloggad hämtas kontot om, så att profilen visar det.
+export async function verifyEmail(token) {
+  await apiPost('/users/verify-email', { token })
+  queryClient.invalidateQueries({ queryKey: CURRENT_USER_KEY })
+}
+
 // Om ett användarnamn och/eller en e-post redan används av någon annan:
 // { username, email } med samma meddelanden som när man sparar, null = ledigt.
 export function checkAvailability({ username = '', email = '' }) {

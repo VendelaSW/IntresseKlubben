@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import ServiceInfo from './pages/ServiceInfo'
 import StyleGuide from './pages/StyleGuide'
+import VerifyEmailPage from './pages/VerifyEmailPage'
 import ProfilePage from './pages/ProfilePage'
 import ProfileInterview from './pages/ProfileInterview'
 import AppShell from './components/AppShell'
@@ -44,6 +45,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/om" element={<ServiceInfo />} />
+        {/* Länken i bekräftelsemejlet. Utanför inloggningen: den ska fungera även utloggad. */}
+        <Route path="/verifiera" element={<VerifyEmailPage />} />
         {/* Ersatta av inloggning/registrering inline på /, kvar som omdirigering
             ifall någon har ett gammalt bokmärke eller en gammal länk. */}
         <Route path="/konto" element={<Navigate to="/" replace />} />
