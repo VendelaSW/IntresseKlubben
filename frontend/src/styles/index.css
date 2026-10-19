@@ -780,41 +780,37 @@ span.tag-selected:hover {
   gap: 0.75rem;
 }
 
-/* Rund "+"-knapp, t.ex. för att skapa något. Plusset är en bild (inget tecken
-   i knappen), så det blir exakt centrerat. Läggs på .primary-button, och måste
-   ligga efter den av samma skäl som .button-small. */
-.round-button {
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  border-radius: 50%;
+/* "+ Skapa klubb" och "+ Skapa event" (components/CreateButton.jsx): det
+   handritade plusset (assets/plus.png) före texten. Lyfts vid hover och fokus.
+   Läggs på .primary-button, och måste ligga efter den av samma skäl som
+   .button-small. */
+.create-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Det handritade "+" är en bild (assets/plus.png, genomskinlig) ovanpå den gula
-   cirkeln. Bara bildlagret sätts här, så att primary-buttons färg och
-   hover-lägen gäller som vanligt. */
-.round-button {
-  background-image: url('../assets/plus.png');
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 55%;
+.create-button img {
+  width: 1rem;
+  height: 1rem;
 }
 
-.round-button:hover,
-.round-button:focus-visible {
+.create-button:hover,
+.create-button:focus-visible {
   opacity: 1;
   transform: translateY(-2px);
   box-shadow: 0 3px 0 var(--color-line);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .round-button {
+  .create-button {
     transition: none;
   }
 
-  .round-button:hover,
-  .round-button:focus-visible {
+  .create-button:hover,
+  .create-button:focus-visible {
     transform: none;
   }
 }
@@ -1764,10 +1760,47 @@ span.tag-selected:hover {
   gap: 0.5rem 1rem;
 }
 
+/* Flikarna (Klubbar, Events, Personer och Brev): sammanhängande knappar med
+   en ram runt, som växeln Karta | Att göra på kartan, så att de syns som
+   flikar och inte som taggar. Den valda är gul och fet. Linjerna mellan
+   flikarna är ramens färg som syns mellan dem (gap), så att de stämmer även
+   när flikarna bryts till flera rader på mobil. */
 .filter-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 2px;
+  width: fit-content;
+  max-width: 100%;
+  background: var(--color-text);
+  border: 2px solid var(--color-text);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.filter-tabs > .tag {
+  flex: 1 1 auto;
+  justify-content: center;
+  border: none;
+  border-radius: 0;
+  background: var(--color-white);
+  font-size: 0.95rem;
+  padding: 0.45rem 0.9rem;
+}
+
+.filter-tabs > .tag:hover {
+  background: var(--color-accent-soft);
+}
+
+.filter-tabs > .tag:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: -5px;
+}
+
+.filter-tabs > .tag-selected,
+.filter-tabs > .tag-selected:hover {
+  background: var(--color-accent);
+  font-weight: 700;
+  opacity: 1;
 }
 
 .demo-create-form {
@@ -1889,9 +1922,12 @@ span.tag-selected:hover {
     text-align: center;
   }
 
-  .app-section .page-header,
-  .app-section .filter-tabs {
+  .app-section .page-header {
     justify-content: center;
+  }
+
+  .app-section .filter-tabs {
+    margin-inline: auto;
   }
 
   .app-section-centered {

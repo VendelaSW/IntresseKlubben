@@ -5,6 +5,7 @@ import { useGoBack } from '../../hooks/useCanGoBack'
 import { useTabParam } from '../../hooks/useTabParam'
 import CreateGroupForm from './CreateGroupForm'
 import BackButton from '../BackButton'
+import CreateButton from '../CreateButton'
 import GroupChat from './GroupChat'
 import GroupDetails from './GroupDetails'
 import GroupList from './GroupList'
@@ -32,6 +33,7 @@ const TABS = [
   { id: 'invitations', label: 'Inbjudningar' },
 ]
 
+// Tomma flikar har en knapp vidare (se emptyAction nedan).
 const EMPTY_TEXT = {
   mine: 'Du är inte med i någon klubb än.',
   suggested: 'Inga förslag just nu. Lägg till fler intressen på din profil för att få fler.',
@@ -57,7 +59,6 @@ function GroupsPanel() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
-  const tab = urlTab ?? 'mine'
   const [searchParams, setSearchParams] = useSearchParams()
   // 'list', 'create' eller id för den klubb som visas. Vyn står i adressen
   // (/klubbar?klubb=ID, /klubbar?skapa=1), så att Tillbaka och webbläsarens bakåt
@@ -138,6 +139,9 @@ function GroupsPanel() {
   // inbjudningar innehåller redan bara klubbar man inte är med i.
   const overview = useQuery(groupsOverviewQuery)
   const { mine = NONE, suggested = NONE, invitations = NONE } = overview.data ?? {}
+  // Utan vald flik: Mina klubbar, eller Förslag för den som inte är med i någon
+  // klubb än (en tom flik är ingen bra början).
+  const tab = urlTab ?? (overview.data && mine.length === 0 ? 'suggested' : 'mine')
   const overviewFailed = overview.isError && overview.data === undefined
   const { refetch: refetchOverview } = overview
   const loadMineAndSuggested = useCallback(() => refetchOverview(), [refetchOverview])
@@ -276,14 +280,7 @@ function GroupsPanel() {
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Klubbar</h1>
-        {view !== 'create' && (
-          <button
-            type="button"
-            className="primary-button round-button"
-            aria-label="Skapa klubb"
-            onClick={() => setView('create')}
-          />
-        )}
+        {view !== 'create' && <CreateButton label="Skapa klubb" onClick={() => setView('create')} />}
       </div>
 
       {/* Finns Mina klubbar redan i minnet visas sidan direkt, och "Alla" fylls i när den kommer. */}
@@ -393,6 +390,17 @@ function GroupsPanel() {
                 <GroupList
                   groups={shown[tab]}
                   emptyText={EMPTY_TEXT[tab]}
+                  // En tom flik leder vidare: till Alla, eller till att skapa en
+                  // klubb när det inte finns några alls.
+                  emptyAction={
+                    tab === 'all' ? (
+                      <CreateButton label="Skapa klubb" onClick={() => setView('create')} />
+                    ) : (
+                      <button type="button" className="secondary-button" onClick={() => setTab('all')}>
+                        Se alla klubbar
+                      </button>
+                    )
+                  }
                   myInterestIds={myInterestIds}
                   busy={busy}
                   onSelect={(g) => setView(g.id)}
