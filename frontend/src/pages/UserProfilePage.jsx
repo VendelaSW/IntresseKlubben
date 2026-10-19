@@ -208,8 +208,6 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
   )
 }
 
-// Visar en annan användares profil, skrivskyddat. Ingen redigering och
-// ingen bilduppladdning här - det är bara ägaren som kan ändra sin profil.
 // Kommande events som personen har skapat. Listan är alla events man själv får se
 // (samma delade hämtning som Events och kartan, se services/events.js), så ett
 // event bara för inbjudna eller för en klubb man inte är med i syns inte här
@@ -247,6 +245,8 @@ function CreatedEvents({ userId, isMe }) {
   )
 }
 
+// Visar en annan användares profil, skrivskyddat. Ingen redigering och
+// ingen bilduppladdning här - det är bara ägaren som kan ändra sin profil.
 function UserProfilePage() {
   // Id:t från adressen (/anvandare/:userId) är text, men id:n från API:t är tal.
   const userId = Number(useParams().userId)
