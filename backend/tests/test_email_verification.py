@@ -231,6 +231,23 @@ def test_wrong_password_still_gives_the_usual_error_when_turned_on(client, requi
     assert response.status_code == 401
 
 
+def test_without_a_key_the_link_is_logged_locally_but_never_in_production(monkeypatch, caplog):
+    # Utan RESEND_API_KEY skrivs mejlet i loggen, så att länken går att testa lokalt. I produktion får länken
+    # aldrig hamna i loggen (den ger tillgång till kontot), och den som väntar ska få veta att mejlet inte gick iväg.
+    from app.services.email import EmailFailed, LogSender
+
+    link = "http://localhost:5173/verifiera?token=hemlig-kod"
+    LogSender().send("vendela@example.com", "Ämne", f"Klicka: {link}", "")
+    assert link in caplog.text
+
+    caplog.clear()
+    monkeypatch.setattr(settings, "vercel_env", "production")
+    with pytest.raises(EmailFailed):
+        LogSender().send("vendela@example.com", "Ämne", f"Klicka: {link}", "")
+    assert "hemlig-kod" not in caplog.text
+    assert "RESEND_API_KEY saknas" in caplog.text
+
+
 def test_deleting_the_account_removes_its_links(client, db, sent_emails):
     auth = _register(client)
 

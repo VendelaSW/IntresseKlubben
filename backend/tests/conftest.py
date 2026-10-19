@@ -32,6 +32,7 @@ os.environ["OPENAI_MODEL"] = ""
 # Samma sak för mejlen: ingen riktig Resend-nyckel, och kravet på bekräftad e-post av som standard.
 os.environ["RESEND_API_KEY"] = ""
 os.environ["REQUIRE_EMAIL_VERIFICATION"] = ""
+os.environ["VERCEL_ENV"] = ""
 
 # Egen nyckel för inloggningstoken i tester, aldrig den riktiga från .env.
 os.environ["JWT_SECRET"] = "test-secret-only-for-tests-0123456789"

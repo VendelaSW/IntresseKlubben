@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     frontend_url: str = ""
     # Måste e-posten vara bekräftad för att logga in? Av tills vidare: befintliga konton bekräftar själva från profilen.
     require_email_verification: bool = False
+    # Vilken miljö koden kör i. Sätts av Vercel själv ("production", "preview" eller "development"); tom lokalt.
+    vercel_env: str = ""
 
     @field_validator("interest_followups", "require_email_verification", mode="before")
     @classmethod
