@@ -27,8 +27,9 @@ POST /users/verify-email - tar emot koden från länken (via frontendens sida
 även i en annan webbläsare. 400 om länken är okänd, använd eller har gått ut.
 
 POST /users/forgot-password - "Glömt lösenord": skickar en länk för att välja
-ett nytt lösenord till kontots e-post. Samma svar (204) oavsett om kontot finns,
-så att det inte går att ta reda på vilka konton som finns.
+ett nytt lösenord till kontots e-post. Samma svar (204), och minst lika lång
+svarstid, oavsett om kontot finns, så att det inte går att ta reda på vilka
+konton som finns.
 
 POST /users/reset-password - nytt lösenord med koden från länken (via sidan
 /aterstall). Andra inloggningar slutar gälla. 400 om länken inte går att använda.
@@ -82,6 +83,8 @@ POST /users/{user_id}/dismiss - tar bort en person från dina Förslag
 DELETE /users/dismissed-suggestions - nollställer alla dina borttagna
 förslag, så de kan dyka upp igen.
 """
+
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
@@ -217,9 +220,19 @@ def confirm_email(data: VerifyEmail, db: Session = Depends(get_db)) -> Response:
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+# "Glömt lösenord" tar alltid minst så här lång tid. Annars avslöjar svarstiden om kontot finns: med konto skapas en
+# länk och ett mejl skickas (hundratals millisekunder), utan konto görs inget. Svaret skickas inte före mejlet (t.ex.
+# med BackgroundTasks), eftersom Vercel kan pausa funktionen direkt efter svaret och mejlet då inte hinner iväg.
+FORGOT_PASSWORD_MIN_SECONDS = 1.5
+
+
 @router.post("/forgot-password", status_code=status.HTTP_204_NO_CONTENT)
 def forgot_password(data: ForgotPassword, db: Session = Depends(get_db)) -> Response:
+    started = time.monotonic()
     send_reset_email(db, get_user_by_username_or_email(db, data.username_or_email))
+    remaining = FORGOT_PASSWORD_MIN_SECONDS - (time.monotonic() - started)
+    if remaining > 0:
+        time.sleep(remaining)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

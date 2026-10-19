@@ -5,8 +5,12 @@ utskickaren i conftest.py (fixturen `sent_emails`).
 """
 
 import re
+import time
 from datetime import timedelta
 
+import pytest
+
+from app.api.routes import user as user_routes
 from app.auth.security import hash_password
 from app.core import error_messages as msg
 from app.models.email_token import EmailToken, utc_now
@@ -14,6 +18,13 @@ from app.models.user import User
 
 PASSWORD = "hemligt123"
 NEW_PASSWORD = "nytt-losen-456"
+
+
+@pytest.fixture(autouse=True)
+def no_forgot_password_wait(monkeypatch):
+    """"Glömt lösenord" väntar annars minst 1,5 sekund per anrop (se FORGOT_PASSWORD_MIN_SECONDS). Testet för själva
+    väntan sätter en egen tid."""
+    monkeypatch.setattr(user_routes, "FORGOT_PASSWORD_MIN_SECONDS", 0)
 
 
 def _register(client, username="vendela"):
@@ -74,6 +85,24 @@ def test_forgot_password_gives_the_same_answer_for_unknown_accounts(client, sent
     response = client.post("/users/forgot-password", json={"username_or_email": "finns-inte@example.com"})
     assert response.status_code == 204
     assert sent_emails.sent == []
+
+
+def test_forgot_password_takes_as_long_with_and_without_an_account(client, sent_emails, monkeypatch):
+    # Annars avslöjar svarstiden vilka konton som finns: med konto skickas ett mejl, utan konto görs inget.
+    monkeypatch.setattr(user_routes, "FORGOT_PASSWORD_MIN_SECONDS", 0.3)
+    _register(client)
+
+    def timed(username_or_email):
+        started = time.monotonic()
+        response = client.post("/users/forgot-password", json={"username_or_email": username_or_email})
+        return response.status_code, time.monotonic() - started
+
+    with_account = timed("vendela")
+    without_account = timed("finns-inte")
+
+    assert with_account[0] == without_account[0] == 204
+    assert with_account[1] >= 0.3
+    assert without_account[1] >= 0.3
 
 
 def test_forgot_password_is_rate_limited_but_answers_the_same(client, db, sent_emails):
