@@ -6,7 +6,8 @@ import { loginUser } from '../services/api'
 // Inloggningsfälten, tänkta att visas inline på Home (se LoginFields/
 // RegisterFields-paret) istället för på en egen sida.
 // `notice` är ett meddelande överst, t.ex. att kontot just har skapats.
-function LoginFields({ onSwitchToRegister, notice }) {
+// `onForgotPassword` visar "Glömt lösenord?" (se ForgotPasswordFields).
+function LoginFields({ onSwitchToRegister, onForgotPassword, notice }) {
   // Användarnamn eller e-post, i samma fält.
   const [usernameOrEmail, setUsernameOrEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -61,6 +62,11 @@ function LoginFields({ onSwitchToRegister, notice }) {
           {submitting ? 'Loggar in…' : 'Logga in'}
         </button>
       </form>
+      {onForgotPassword && (
+        <button type="button" className="text-button" onClick={onForgotPassword}>
+          Glömt lösenord?
+        </button>
+      )}
       <button type="button" className="text-button" onClick={onSwitchToRegister}>
         Har du inget konto? Registrera dig
       </button>

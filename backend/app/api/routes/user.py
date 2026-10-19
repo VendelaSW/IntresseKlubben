@@ -26,6 +26,23 @@ POST /users/verify-email - tar emot koden från länken (via frontendens sida
 /verifiera) och bekräftar e-posten. Kräver ingen inloggning: länken ska fungera
 även i en annan webbläsare. 400 om länken är okänd, använd eller har gått ut.
 
+POST /users/forgot-password - "Glömt lösenord": skickar en länk för att välja
+ett nytt lösenord till kontots e-post. Samma svar (204), och minst lika lång
+svarstid, oavsett om kontot finns, så att det inte går att ta reda på vilka
+konton som finns.
+
+POST /users/reset-password - nytt lösenord med koden från länken (via sidan
+/aterstall). Andra inloggningar slutar gälla. 400 om länken inte går att använda.
+
+POST /users/me/password - byt lösenord: kräver det nuvarande (fel ger 403, som
+PATCH ovan) och skickar en bekräftelselänk till e-posten. Det nya gäller först
+när länken används; fram till dess gäller det gamla. 400 utan e-post, 429 om
+ett mejl skickades nyss, 503 om mejlet inte gick att skicka.
+
+POST /users/confirm-password-change - bekräftar bytet med koden från länken (via
+sidan /bekrafta-losenord). Andra inloggningar slutar gälla. 400 om länken inte
+går att använda.
+
 GET /users/me/availability?username=&email= - om ett användarnamn och/eller en
 e-post redan används av någon annan, för att formuläret ska kunna säga till
 direkt medan man skriver. Svarar med samma meddelanden som PATCH nedan ger
@@ -67,6 +84,8 @@ DELETE /users/dismissed-suggestions - nollställer alla dina borttagna
 förslag, så de kan dyka upp igen.
 """
 
+import time
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
@@ -104,7 +123,10 @@ from app.schemas.user import (
     CurrentUserOut,
     AccountUpdate,
     AvailabilityOut,
+    ForgotPassword,
     LoginResponse,
+    PasswordChange,
+    ResetPassword,
     UserCreate,
     UserLogin,
     UserOut,
@@ -112,6 +134,12 @@ from app.schemas.user import (
 )
 from app.services.email import EmailFailed
 from app.services.email_verification import send_verification_email, try_send_verification_email, verify_email
+from app.services.password_emails import (
+    confirm_password_change,
+    request_password_change,
+    reset_password,
+    send_reset_email,
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -189,6 +217,54 @@ def send_my_verification_email(
 def confirm_email(data: VerifyEmail, db: Session = Depends(get_db)) -> Response:
     if not verify_email(db, data.token):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg.EMAIL_LINK_INVALID)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# "Glömt lösenord" tar alltid minst så här lång tid. Annars avslöjar svarstiden om kontot finns: med konto skapas en
+# länk och ett mejl skickas (hundratals millisekunder), utan konto görs inget. Svaret skickas inte före mejlet (t.ex.
+# med BackgroundTasks), eftersom Vercel kan pausa funktionen direkt efter svaret och mejlet då inte hinner iväg.
+FORGOT_PASSWORD_MIN_SECONDS = 1.5
+
+
+@router.post("/forgot-password", status_code=status.HTTP_204_NO_CONTENT)
+def forgot_password(data: ForgotPassword, db: Session = Depends(get_db)) -> Response:
+    started = time.monotonic()
+    send_reset_email(db, get_user_by_username_or_email(db, data.username_or_email))
+    remaining = FORGOT_PASSWORD_MIN_SECONDS - (time.monotonic() - started)
+    if remaining > 0:
+        time.sleep(remaining)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+def reset_forgotten_password(data: ResetPassword, db: Session = Depends(get_db)) -> Response:
+    if not reset_password(db, data.token, data.new_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg.PASSWORD_LINK_INVALID)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+def change_my_password(
+    data: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    _require_password(current_user, data.current_password)
+    if current_user.email is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg.PASSWORD_CHANGE_NEEDS_EMAIL)
+    try:
+        request_password_change(db, current_user, data.new_password)
+    except TooManyEmails:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=msg.EMAIL_TOO_MANY_REQUESTS) from None
+    except EmailFailed:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=msg.EMAIL_SEND_FAILED) from None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/confirm-password-change", status_code=status.HTTP_204_NO_CONTENT)
+def confirm_my_password_change(data: VerifyEmail, db: Session = Depends(get_db)) -> Response:
+    if not confirm_password_change(db, data.token):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg.PASSWORD_LINK_INVALID)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
