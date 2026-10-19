@@ -8,17 +8,22 @@ from pathlib import Path
 import pytest
 
 from app.core.config import settings
+from app.models.interest_embedding import EMBEDDING_DIMENSIONS
 from app.services import ai_clients
 from app.services.ai_clients import (
+    EMBEDDING_BATCH,
+    EMBEDDING_MODEL,
     MODERATION_BATCH,
     PER_CALL_TIMEOUT_SECONDS,
     WORK_BUDGET_SECONDS,
     AIFailed,
     AINotConfigured,
     Deadline,
+    OpenAIEmbedder,
     OpenAILLM,
     OpenAIModerator,
     ai_configured,
+    get_embedder,
     get_llm,
     get_moderator,
     set_clients,
@@ -237,3 +242,92 @@ def test_the_fakes_never_reach_openai(not_configured, monkeypatch):
     set_clients(llm=FakeLLM({"n": {"x": "a"}}), moderator=FakeModerator())
     assert get_llm().complete_json(system="s", user="u", name="n", schema=SCHEMA) == {"x": "a"}
     assert get_moderator().flagged(["a"]) == [False]
+
+
+# ---------- Embeddings ----------
+
+
+def vec(first):
+    """En vektor i rätt storlek, med `first` som första tal."""
+    return [float(first)] + [0.0] * (EMBEDDING_DIMENSIONS - 1)
+
+
+def embeddings_reply(*firsts):
+    return {"data": [{"index": i, "embedding": vec(f)} for i, f in enumerate(firsts)]}
+
+
+def test_the_embeddings_call_goes_to_openai_with_the_model_constant_and_the_texts(configured, monkeypatch):
+    seen = urlopen_returns(monkeypatch, embeddings_reply(1, 2))
+    vectors = OpenAIEmbedder().embed(["Löpning", "Bouldering"])
+    assert [v[0] for v in vectors] == [1.0, 2.0]
+    (call,) = seen
+    assert call["url"] == "https://api.openai.com/v1/embeddings"
+    assert call["auth"] == "Bearer test-nyckel"
+    assert call["body"] == {"model": EMBEDDING_MODEL, "input": ["Löpning", "Bouldering"]}
+
+
+def test_the_vectors_come_back_in_the_order_of_the_texts_even_if_openai_answers_out_of_order(configured, monkeypatch):
+    shuffled = {"data": [{"index": 1, "embedding": vec(2)}, {"index": 0, "embedding": vec(1)}]}
+    urlopen_returns(monkeypatch, shuffled)
+    assert [v[0] for v in OpenAIEmbedder().embed(["a", "b"])] == [1.0, 2.0]
+
+
+def test_many_texts_are_sent_in_several_calls(configured, monkeypatch):
+    texts = [f"text{i}" for i in range(EMBEDDING_BATCH + 5)]
+    seen = urlopen_returns(monkeypatch, embeddings_reply(*range(EMBEDDING_BATCH)), embeddings_reply(*range(5)))
+    vectors = OpenAIEmbedder().embed(texts)
+    assert [len(call["body"]["input"]) for call in seen] == [EMBEDDING_BATCH, 5]
+    assert len(vectors) == len(texts)
+
+
+def test_embedding_nothing_makes_no_call(configured, monkeypatch):
+    seen = urlopen_returns(monkeypatch)
+    assert OpenAIEmbedder().embed([]) == []
+    assert seen == []
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        {"data": []},
+        {"nope": 1},
+        {"data": None},
+        {"data": [{"index": 0}]},
+        {"data": [{"index": 0, "embedding": [0.1, 0.2]}]},  # fel storlek
+        {"data": [{"index": 0, "embedding": vec(1)}, {"index": 1, "embedding": vec(2)}]},  # fler än texterna
+        {"data": [{"index": 0, "embedding": ["x"] * EMBEDDING_DIMENSIONS}]},
+    ],
+)
+def test_an_embeddings_answer_that_cannot_be_used_is_a_failure(configured, monkeypatch, response):
+    urlopen_returns(monkeypatch, response)
+    with pytest.raises(AIFailed):
+        OpenAIEmbedder().embed(["Löpning"])
+
+
+def test_an_embeddings_call_that_fails_is_a_failure_without_the_key_in_the_message(configured, monkeypatch):
+    def fail(request, timeout):
+        raise urllib.error.URLError("nätverket nere")
+
+    monkeypatch.setattr(ai_clients.urllib.request, "urlopen", fail)
+    with pytest.raises(AIFailed) as error:
+        OpenAIEmbedder().embed(["Löpning"])
+    assert "test-nyckel" not in str(error.value)
+
+
+def test_the_embedder_needs_a_key_but_no_model_setting(monkeypatch):
+    monkeypatch.setattr(settings, "openai_model", "")
+    monkeypatch.setattr(settings, "openai_api_key", "")
+    set_clients()
+    with pytest.raises(AINotConfigured):
+        get_embedder()
+    monkeypatch.setattr(settings, "openai_api_key", "test-nyckel")
+    assert isinstance(get_embedder(), OpenAIEmbedder)
+
+
+def test_a_fake_embedder_replaces_the_real_one_in_tests():
+    from tests.fakes import FakeEmbedder
+
+    fake = FakeEmbedder()
+    set_clients(embedder=fake)
+    assert get_embedder() is fake
+    set_clients()

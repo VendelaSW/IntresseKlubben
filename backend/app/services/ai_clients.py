@@ -1,7 +1,7 @@
 """
-Klienter mot OpenAI: en språkmodell (get_llm) och OpenAI:s modererings-API (get_moderator).
+Klienter mot OpenAI: en språkmodell (get_llm), OpenAI:s modererings-API (get_moderator) och embeddings (get_embedder).
 
-Resten av backenden pratar bara med de två gränssnitten LLM och Moderator, aldrig med OpenAI
+Resten av backenden pratar bara med gränssnitten LLM, Moderator och Embedder, aldrig med OpenAI
 direkt. Då kan testerna byta ut dem mot fejkade versioner (tests/fakes.py, via set_clients) och
 fler delar av appen kan använda dem. Anropen görs med urllib, så att backend inte får ett nytt
 beroende. Nyckeln läses ur inställningarna och hamnar aldrig i fel, loggar eller svar.
@@ -18,11 +18,18 @@ import urllib.request
 from typing import Protocol
 
 from app.core.config import settings
+from app.models.interest_embedding import EMBEDDING_DIMENSIONS
 
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 MODERATION_URL = "https://api.openai.com/v1/moderations"
 MODERATION_MODEL = "omni-moderation-latest"
 MODERATION_BATCH = 30  # så många texter skickas till modereringen åt gången
+EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings"
+# Modellen är en konstant, inte en inställning: vektorer från olika modeller går inte att jämföra, och en
+# miljövariabel som skiljer sig mellan Vercel och en lokal körning skulle blanda dem i samma tabell. Modellnamnet och
+# storleken ingår i hashen på varje intresse (services/interest_embeddings.py), så byter vi modell räknas allt om.
+EMBEDDING_MODEL = "text-embedding-3-small"
+EMBEDDING_BATCH = 256  # så många texter skickas till embeddings åt gången
 
 # Funktionen får köra i 30 sekunder. Ett enskilt anrop får ta högst så här länge, och ett arbete med
 # flera anrop i rad får ta högst så här länge tillsammans (se Deadline). Lämnar marginal för resten.
@@ -71,6 +78,12 @@ class Moderator(Protocol):
     def flagged(self, texts: list[str], deadline: Deadline | None = None) -> list[bool]:
         """Om varje text flaggas (hat, våld, sexuellt, självskada osv.), i samma ordning som
         `texts`. Kastar AIFailed om anropet misslyckas eller svaret inte går att använda."""
+
+
+class Embedder(Protocol):
+    def embed(self, texts: list[str], deadline: Deadline | None = None) -> list[list[float]]:
+        """En vektor per text, i samma ordning som `texts`, med EMBEDDING_DIMENSIONS tal vardera. Kastar AIFailed om
+        anropet misslyckas eller svaret inte går att använda."""
 
 
 def _post_json(url: str, payload: dict, timeout: float) -> dict:
@@ -123,15 +136,33 @@ class OpenAIModerator:
         return flags
 
 
+class OpenAIEmbedder:
+    def embed(self, texts: list[str], deadline: Deadline | None = None) -> list[list[float]]:
+        vectors: list[list[float]] = []
+        for start in range(0, len(texts), EMBEDDING_BATCH):
+            batch = texts[start : start + EMBEDDING_BATCH]
+            response = _post_json(EMBEDDINGS_URL, {"model": EMBEDDING_MODEL, "input": batch}, _timeout(deadline))
+            try:
+                ordered = sorted(response["data"], key=lambda item: item["index"])
+                chunk = [[float(x) for x in item["embedding"]] for item in ordered]
+            except (KeyError, TypeError, ValueError):
+                raise AIFailed("Oväntat svar från embeddings") from None
+            if len(chunk) != len(batch) or any(len(vector) != EMBEDDING_DIMENSIONS for vector in chunk):
+                raise AIFailed("Oväntat svar från embeddings")
+            vectors.extend(chunk)
+        return vectors
+
+
 # Fejkade versioner som testerna sätter in (set_clients). Är något satt används det i stället för OpenAI.
 _llm_override: LLM | None = None
 _moderator_override: Moderator | None = None
+_embedder_override: Embedder | None = None
 
 
-def set_clients(llm: LLM | None = None, moderator: Moderator | None = None) -> None:
+def set_clients(llm: LLM | None = None, moderator: Moderator | None = None, embedder: Embedder | None = None) -> None:
     """Byter ut klienterna (bara för tester). Utan argument återställs de."""
-    global _llm_override, _moderator_override
-    _llm_override, _moderator_override = llm, moderator
+    global _llm_override, _moderator_override, _embedder_override
+    _llm_override, _moderator_override, _embedder_override = llm, moderator, embedder
 
 
 def ai_configured() -> bool:
@@ -156,3 +187,12 @@ def get_moderator() -> Moderator:
     if not settings.openai_api_key:
         raise AINotConfigured()
     return OpenAIModerator()
+
+
+def get_embedder() -> Embedder:
+    """Embeddings. Kastar AINotConfigured om nyckeln saknas."""
+    if _embedder_override is not None:
+        return _embedder_override
+    if not settings.openai_api_key:
+        raise AINotConfigured()
+    return OpenAIEmbedder()
