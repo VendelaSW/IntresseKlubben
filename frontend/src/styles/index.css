@@ -390,13 +390,22 @@ button.banner-button {
 }
 
 /* Avsnittet Intressen på profilen. */
-.profile-interests {
+/* Intressena och personens events på en profil: en vänsterställd kolumn. */
+.profile-interests,
+.profile-events {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   width: 100%;
   max-width: 320px;
   text-align: left;
+}
+
+/* Personens events: titeln, och tid och plats på raden under. */
+.profile-events .person-list-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
 }
 
 /* Blek ruta: ett eget fält med samma rundning som formulärfälten, i blekt
@@ -1886,6 +1895,68 @@ span.tag-selected:hover {
   background: var(--color-white);
   color: var(--color-text);
   width: 100%;
+}
+
+/* Födelsedatum med tre listor (BirthDatePicker): dag, månad och år på en rad.
+   Månaden får mest plats, eftersom den skrivs ut. */
+.birth-date-picker {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 1fr) minmax(7rem, 2fr) minmax(5rem, 1.3fr);
+  gap: 0.5rem;
+}
+
+.birth-date-picker select {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Sökbart kommunfält (MunicipalityPicker). Själva fältet får formulärets eller
+   filtrets vanliga stil; listan under ligger ovanpå det som kommer efter. */
+.municipality-picker {
+  position: relative;
+  min-width: 0;
+}
+
+.municipality-picker input {
+  width: 100%;
+}
+
+.municipality-picker-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 15rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: var(--color-white);
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+}
+
+.municipality-picker-option {
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.municipality-picker-option.is-active {
+  background: var(--color-accent-soft);
+}
+
+.municipality-picker-option[aria-selected='true'] {
+  font-weight: 700;
+}
+
+.municipality-picker-none {
+  padding: 0.4rem 0.75rem;
+  color: var(--color-muted);
 }
 
 /* "Ålder" följt av från- och till-ålder, i en av filtrens rutor. */
