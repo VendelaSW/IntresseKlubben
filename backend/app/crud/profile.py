@@ -91,7 +91,9 @@ def update_profile(db: Session, user_id: int, data: ProfileUpdate) -> Profile:
         profile.gender = data.gender
     if data.municipality_code is not None:
         profile.municipality_code = data.municipality_code
-    if data.district is not None:
+    # Stadsdel är valfri: skickas den med som null tas den bort. Skickas den
+    # inte med alls lämnas den orörd, som de andra fälten.
+    if "district" in data.model_fields_set:
         profile.district = data.district
     if data.profile_text is not None:
         profile.profile_text = data.profile_text

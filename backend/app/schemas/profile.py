@@ -116,7 +116,8 @@ class ProfileCreate(BaseModel):
 
 class ProfileUpdate(BaseModel):
     """Ändra en befintlig profil (PATCH /profile/). Bara fält som skickas med
-    ändras, och de obligatoriska fälten kan ändras men aldrig tas bort."""
+    ändras, och de obligatoriska fälten kan ändras men aldrig tas bort. Den
+    valfria stadsdelen tas bort med district: null."""
 
     name: str | None = None
     birth_date: date | None = None
