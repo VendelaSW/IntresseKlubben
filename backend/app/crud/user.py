@@ -18,6 +18,7 @@ from app.models.dismissed_suggestion import DismissedSuggestion
 from app.models.event import Event, EventInvitation, EventResponse
 from app.models.group import GroupInvitation
 from app.models.group_message import GroupMessage
+from app.models.group_post import GroupPost
 from app.models.interest import Interest
 from app.models.message import Message
 from app.models.user import User
@@ -205,6 +206,7 @@ def delete_user(db: Session, user: User) -> str | None:
         or_(Message.sender_id == user_id, Message.recipient_id == user_id)
     ).delete(synchronize_session=False)
     db.query(GroupMessage).filter(GroupMessage.sender_id == user_id).delete(synchronize_session=False)
+    db.query(GroupPost).filter(GroupPost.author_id == user_id).delete(synchronize_session=False)
     db.query(Contact).filter(
         or_(Contact.requester_id == user_id, Contact.addressee_id == user_id)
     ).delete(synchronize_session=False)

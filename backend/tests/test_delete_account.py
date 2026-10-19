@@ -17,6 +17,7 @@ from app.models import (
     Group,
     GroupMember,
     GroupMessage,
+    GroupPost,
     Interest,
     Message,
     Profile,
@@ -164,6 +165,21 @@ def test_own_group_messages_are_removed_but_others_stay(client, db, me, other):
     assert [m.content for m in db.query(GroupMessage).all()] == ["Från Bertil"]
 
 
+def test_own_group_posts_are_removed_but_others_stay(client, db, me, other):
+    user, headers = me
+    group = add_group(db, user.id, members=[other.id])
+    db.add_all([
+        GroupPost(group_id=group.id, author_id=user.id, content="Från Anna"),
+        GroupPost(group_id=group.id, author_id=other.id, content="Från Bertil"),
+    ])
+    db.commit()
+
+    assert _delete(client, headers).status_code == 204
+
+    db.expire_all()
+    assert [p.content for p in db.query(GroupPost).all()] == ["Från Bertil"]
+
+
 def test_other_users_keep_their_own_data(client, db, me, other):
     user, headers = me
     third, _ = _register(client, db, "cecilia")
@@ -202,6 +218,7 @@ def test_every_column_pointing_at_users_is_handled():
         "group_invitations.user_id",
         "group_members.user_id",
         "group_messages.sender_id",
+        "group_posts.author_id",
         "groups.created_by",  # ON DELETE SET NULL: klubben finns kvar utan skapare
         "interests.created_by_user_id",  # sätts till tomt: ett eget intresse finns kvar för andra
         "messages.recipient_id",

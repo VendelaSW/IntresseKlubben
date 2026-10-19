@@ -1850,7 +1850,7 @@ span.tag-selected:hover {
     align-items: flex-start;
   }
 
-  .group-layout > .sheet {
+  .group-layout > .group-layout-main {
     flex: 0 1 480px;
   }
 
@@ -1858,6 +1858,70 @@ span.tag-selected:hover {
     flex: 1 1 0;
     min-width: 0;
   }
+}
+
+/* Klubbens ruta med inläggen under (vänster kolumn i .group-layout). */
+.group-layout-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+/* Klubbens inlägg (components/groups/GroupPosts.jsx): skrivfält överst och
+   inläggen under, nyaste först, med en linje emellan. */
+.group-posts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.group-posts .card-subheading {
+  margin: 0;
+}
+
+/* Läggs på .auth-form: Publicera till höger under fältet. */
+.group-post-form {
+  align-items: flex-end;
+}
+
+.group-post-form .textarea-count {
+  width: 100%;
+}
+
+.group-post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.group-post {
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.group-post-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+}
+
+.group-post-head .person-list-avatar {
+  width: 1.6rem;
+  height: 1.6rem;
+  font-size: 0.75rem;
+}
+
+/* "Radera" längst till höger på raden. */
+.group-post-delete {
+  margin-left: auto;
+}
+
+.group-post-content {
+  margin: 0.4rem 0 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 /* Ett ark: ett vitt kort lika brett som profilkorten, vänsterställt som resten

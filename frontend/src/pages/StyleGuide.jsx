@@ -320,7 +320,9 @@ function StyleGuide() {
           Linjerat papper med röd marginal. Allt på pappret har radhöjden --line-gap, så att texten
           står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. Någon annans bild och namn (överst och vid breven, ChatSender) är länkar till profilen. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
           ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och under på mobil: rubriken Klubbchatt, medlemmarnas bilder
-          och namn vid varje meddelande, och en svarsrad.
+          och namn vid varje meddelande, och en svarsrad. Klubbens inlägg (GroupPosts) är inte chatt
+          utan ett vitt kort under klubbens ruta: ett skrivfält (.form-compact) och inläggen nyaste
+          först, med ChatSender och tid, och "Radera" för den som skrev inlägget och klubbens ägare.
         </p>
         <article className="notepad lined-paper" style={{ marginTop: '1rem' }}>
           <h3 className="notepad-title">
