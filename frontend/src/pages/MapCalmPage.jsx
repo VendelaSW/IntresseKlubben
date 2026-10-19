@@ -28,12 +28,12 @@ function nextBookedEvent(events) {
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 
-// Lugnt läge (se MapPrototype.jsx): i stället för kartan en sida i ett
+// Att göra-läget (se MapPrototype.jsx): i stället för kartan en sida i ett
 // anteckningsblock. Överst en hälsning och dagens datum, och på linjerna
 // dagens att göra: nästa bokade event, nya brev, klubbinbjudningar och
 // kontaktförfrågningar. Varje rad öppnar rätt block (`onOpen(sida)` eller
 // `onOpenEvent(id)`). Runt omkring några klotter i marginalen.
-function MapCalmPage({ onOpen, onOpenEvent, onShowMap }) {
+function MapCalmPage({ onOpen, onOpenEvent }) {
   const { user } = useAuth()
   const [name, setName] = useState(null)
   const [todo, setTodo] = useState(null) // null = laddar
@@ -96,11 +96,6 @@ function MapCalmPage({ onOpen, onOpenEvent, onShowMap }) {
             )}
           </ul>
         )}
-
-        <p className="map-calm-paused">Kartan är pausad.</p>
-        <button type="button" className="map-tool" onClick={onShowMap}>
-          Visa kartan
-        </button>
       </div>
     </div>
   )
