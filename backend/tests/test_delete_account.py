@@ -10,6 +10,7 @@ from app.core import storage
 from app.db.base import Base
 from app.models import (
     Contact,
+    ConversationRead,
     DismissedSuggestion,
     Event,
     EventInvitation,
@@ -165,6 +166,20 @@ def test_own_group_messages_are_removed_but_others_stay(client, db, me, other):
     assert [m.content for m in db.query(GroupMessage).all()] == ["Från Bertil"]
 
 
+def test_conversation_reads_are_removed_both_ways(client, db, me, other):
+    user, headers = me
+    db.add_all([
+        ConversationRead(user_id=user.id, other_user_id=other.id, last_read_message_id=1),
+        ConversationRead(user_id=other.id, other_user_id=user.id, last_read_message_id=1),
+    ])
+    db.commit()
+
+    assert _delete(client, headers).status_code == 204
+
+    db.expire_all()
+    assert db.query(ConversationRead).count() == 0
+
+
 def test_own_group_posts_are_removed_but_others_stay(client, db, me, other):
     user, headers = me
     group = add_group(db, user.id, members=[other.id])
@@ -209,6 +224,8 @@ def test_every_column_pointing_at_users_is_handled():
     assert pointing == [
         "contacts.addressee_id",
         "contacts.requester_id",
+        "conversation_reads.other_user_id",
+        "conversation_reads.user_id",
         "dismissed_suggestions.dismissed_user_id",
         "dismissed_suggestions.user_id",
         "event_invitations.user_id",

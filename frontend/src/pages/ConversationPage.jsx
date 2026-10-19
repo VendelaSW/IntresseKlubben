@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import BackButton from '../components/BackButton'
@@ -8,7 +8,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
 import { useChatScroll } from '../hooks/useChatScroll'
 import { isIdle, onUserActive } from '../services/activity'
-import { conversationQuery, markConversationSeen, sendMessage } from '../services/messages'
+import { conversationQuery, markConversationRead, sendMessage } from '../services/messages'
 import { getProfile } from '../services/profile'
 import { formatSentAt } from '../utils/formatSentAt'
 
@@ -67,10 +67,17 @@ function ConversationPage() {
     }
   }, [messages.length])
 
-  // Det man ser i chatten räknas som läst, så att det inte blir en badge när man
-  // sedan lämnar sidan.
+  // Det man ser i chatten räknas som läst, och sparas på kontot (se
+  // markConversationRead): när man öppnar konversationen och när ett nytt brev
+  // kommer medan den är öppen. Bara en gång per nytt brev, inte vid varje
+  // hämtning.
+  const markedReadUpTo = useRef(null)
   useEffect(() => {
-    if (other && messages.length > 0) markConversationSeen(other.id, messages.at(-1).created_at)
+    const newest = messages.at(-1)
+    if (!other || !newest || markedReadUpTo.current === newest.id) return
+    markedReadUpTo.current = newest.id
+    // Misslyckas det står brevet kvar som nytt, och nästa nya brev försöker igen.
+    markConversationRead(other.id).catch(() => {})
   }, [other, messages])
 
   // Tillbaka dit man kom ifrån (t.ex. någons profil), som på profilsidan.
