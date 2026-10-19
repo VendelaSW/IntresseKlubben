@@ -955,15 +955,15 @@
   gap: 0.6rem;
 }
 
-/* TEST: intressekompisen nere i högra hörnet, ovanför kartans källhänvisning. Rent dekorativ, så klick går igenom
-   till kartan. Under blocken (z-index 5), så att han inte hamnar ovanpå ett öppet block. */
+/* TEST: intressekompisen nere i högra hörnet, ovanför kartans källhänvisning. Rent dekorativ, men klick på honom
+   fångas här: annars gick de igenom till kartan, och på Sverige-nivån ligger Gotland under honom (klicket tog en dit).
+   Under blocken (z-index 5), så att han inte hamnar ovanpå ett öppet block. */
 .map-kompis {
   position: absolute;
   right: 10px;
   bottom: 2.2rem;
   z-index: 4;
   width: 130px;
-  pointer-events: none;
 }
 
 /* TEST: den vanliga loggan, bara på mobil (se media-blocket nedan), där kompisen inte syns. */
