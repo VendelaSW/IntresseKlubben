@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import BlockedUsers from '../components/BlockedUsers'
 import DeleteAccount from '../components/DeleteAccount'
 import InterestExplorer from '../components/InterestExplorer'
+import MunicipalityPicker from '../components/MunicipalityPicker'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { useAuth } from '../hooks/useAuth'
@@ -464,19 +465,14 @@ function ProfilePage() {
           </label>
 
           <label htmlFor="profile-municipality">Kommun</label>
-          <select
+          <MunicipalityPicker
             id="profile-municipality"
+            municipalities={municipalities}
             value={municipalityCode}
-            onChange={(e) => setMunicipalityCode(e.target.value)}
+            onChange={setMunicipalityCode}
             required
-          >
-            <option value="">Välj...</option>
-            {municipalities.map((m) => (
-              <option key={m.code} value={m.code}>
-                {m.name}
-              </option>
-            ))}
-          </select>
+          />
+          <p className="hint-text">Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke.</p>
 
           <label htmlFor="profile-district">Stadsdel (valfritt)</label>
           <input

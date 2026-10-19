@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import FormField from '../FormField'
 import LocationPicker from '../LocationPicker'
+import MunicipalityPicker from '../MunicipalityPicker'
 import { VISIBILITY, createGroup } from '../../services/groups'
 
 function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCreated, onCancel }) {
@@ -73,19 +74,13 @@ function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCre
           </select>
         </FormField>
         <FormField id="group-municipality" label="Kommun">
-          <select
+          <MunicipalityPicker
             id="group-municipality"
+            municipalities={municipalities}
             value={municipalityCode}
-            onChange={(e) => setMunicipalityCode(e.target.value)}
+            onChange={setMunicipalityCode}
             required
-          >
-            <option value="">Välj...</option>
-            {municipalities.map((m) => (
-              <option key={m.code} value={m.code}>
-                {m.name}
-              </option>
-            ))}
-          </select>
+          />
         </FormField>
       </div>
 
