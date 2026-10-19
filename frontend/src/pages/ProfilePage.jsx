@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import BirthDatePicker from '../components/BirthDatePicker'
 import BlockedUsers from '../components/BlockedUsers'
 import DeleteAccount from '../components/DeleteAccount'
 import InterestExplorer from '../components/InterestExplorer'
@@ -25,14 +26,6 @@ import {
 // Så länge kontrollen av användarnamn/e-post väntar efter senaste
 // tangenttrycket, så att inte varje bokstav blir ett anrop.
 const AVAILABILITY_DELAY_MS = 400
-
-// Dagens datum som YYYY-MM-DD i lokal tid (toISOString ger UTC och kan
-// visa fel dag runt midnatt).
-function todayString() {
-  const d = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
 
 // Felmeddelanden från servern saknar ibland punkt i slutet, och då skulle en
 // mening som läggs efter dem gå ihop med dem.
@@ -437,14 +430,7 @@ function ProfilePage() {
           />
 
           <label htmlFor="profile-birth-date">Födelsedatum</label>
-          <input
-            id="profile-birth-date"
-            type="date"
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            max={todayString()}
-            required
-          />
+          <BirthDatePicker id="profile-birth-date" value={birthDate} onChange={setBirthDate} required />
 
           <label htmlFor="profile-gender">Kön</label>
           <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)} required>

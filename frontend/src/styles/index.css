@@ -1888,6 +1888,19 @@ span.tag-selected:hover {
   width: 100%;
 }
 
+/* Födelsedatum med tre listor (BirthDatePicker): dag, månad och år på en rad.
+   Månaden får mest plats, eftersom den skrivs ut. */
+.birth-date-picker {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 1fr) minmax(7rem, 2fr) minmax(5rem, 1.3fr);
+  gap: 0.5rem;
+}
+
+.birth-date-picker select {
+  min-width: 0;
+  width: 100%;
+}
+
 /* Sökbart kommunfält (MunicipalityPicker). Själva fältet får formulärets eller
    filtrets vanliga stil; listan under ligger ovanpå det som kommer efter. */
 .municipality-picker {
