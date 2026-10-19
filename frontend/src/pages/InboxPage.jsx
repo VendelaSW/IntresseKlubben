@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import ConversationCard from '../components/ConversationCard'
+import { useTabParam } from '../hooks/useTabParam'
 import { conversationsQuery, unseenConversationIds } from '../services/messages'
 
 const TABS = [
@@ -18,7 +19,8 @@ function InboxPage() {
   const status = isSuccess ? 'ready' : isError ? 'error' : 'loading'
   const unseenIds = useMemo(() => unseenConversationIds(conversations), [conversations])
   // Tills man har valt en flik själv: Nya om det finns nya brev, annars Öppnade.
-  const [chosenTab, setTab] = useState(null)
+  // Fliken står i adressen, så att Tillbaka från ett brev kommer hit igen (se useTabParam).
+  const [chosenTab, setTab] = useTabParam(TABS)
   const tab = chosenTab ?? (unseenIds.size > 0 ? 'new' : 'opened')
 
   if (status === 'error') {

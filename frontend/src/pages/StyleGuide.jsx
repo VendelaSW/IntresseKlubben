@@ -369,7 +369,8 @@ function StyleGuide() {
           På dator ligger rubrik och flikar till vänster på alla sidor, på mobil centrerade (Brev,
           Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
           .app-section för sidor med kort i rutnät (Klubbar och Events): "+"-knappen direkt efter
-          rubriken och tätare avstånd.
+          rubriken och tätare avstånd. Vald flik sparas i adressen med useTabParam (?flik=kontakter),
+          så att Tillbaka kommer tillbaka till samma flik.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
           <div className="page-header">
