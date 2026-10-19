@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
 import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
+import { eventTimeText } from '../components/events/EventList'
 import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
 import {
@@ -15,6 +16,7 @@ import {
   sendContactRequest,
   unblockUser,
 } from '../services/contacts'
+import { eventsQuery } from '../services/events'
 import { getMyInterests } from '../services/interests'
 import { sendMessage } from '../services/messages'
 import { getUserProfile } from '../services/profile'
@@ -208,6 +210,43 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
 
 // Visar en annan användares profil, skrivskyddat. Ingen redigering och
 // ingen bilduppladdning här - det är bara ägaren som kan ändra sin profil.
+// Kommande events som personen har skapat. Listan är alla events man själv får se
+// (samma delade hämtning som Events och kartan, se services/events.js), så ett
+// event bara för inbjudna eller för en klubb man inte är med i syns inte här
+// heller. Ett klick öppnar eventet, och Tillbaka går hit igen.
+function CreatedEvents({ userId, isMe }) {
+  const { data: events, isError } = useQuery(eventsQuery)
+  const created = (events ?? []).filter((event) => event.creator_id === userId)
+
+  return (
+    <section className="profile-events">
+      <h2>{isMe ? 'Mina events' : 'Events hen ordnar'}</h2>
+      {isError ? (
+        <p className="hint-text">Kunde inte hämta events.</p>
+      ) : events === undefined ? (
+        <p className="hint-text">Laddar events...</p>
+      ) : created.length === 0 ? (
+        <p className="hint-text">Inga kommande events.</p>
+      ) : (
+        <div className="person-list person-list-compact person-list-marker">
+          <ul>
+            {created.map((event) => (
+              <li key={event.id}>
+                <Link to={`/events?event=${event.id}`} className="person-list-item">
+                  <span>{event.title}</span>
+                  <span className="hint-text">
+                    {eventTimeText(event)} · {event.place_name}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  )
+}
+
 function UserProfilePage() {
   // Id:t från adressen (/anvandare/:userId) är text, men id:n från API:t är tal.
   const userId = Number(useParams().userId)
@@ -304,6 +343,7 @@ function UserProfilePage() {
               <p className="hint-text">Inga intressen valda än.</p>
             )}
           </section>
+          <CreatedEvents userId={userId} isMe={isMe} />
           {!isMe && (
             <>
               <RelationButtons
