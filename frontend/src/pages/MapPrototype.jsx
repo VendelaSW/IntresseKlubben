@@ -16,8 +16,10 @@ import MapPageWidgets from './MapPageWidgets'
 import MapProfileWidget from './MapProfileWidget'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
 import { getEvents } from '../services/events'
+import { searchPlaces } from '../services/geocode'
 import { getGroups, getMyGroups } from '../services/groups'
 import { getProfile } from '../services/profile'
+import { HOUR, cachedInBrowser } from '../services/queryClient'
 import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
 import {
   ZOOM_LEVELS,
@@ -135,6 +137,26 @@ const normalizePlace = (text) =>
     .replace(/[^a-zåäöéü0-9 ]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+
+// Stadsdelen via adressökningen (GET /geocode), när kartans egna ortnamn inte
+// räcker: i översikten av en stor kommun finns bara de största orterna i
+// kartans data, så t.ex. Hägersten i Stockholm hittas inte där. Bara en träff
+// inom kommunen räknas. Svaret sparas i webbläsaren en vecka, så det söks inte
+// varje gång kartan öppnas. Ger [lng, lat] eller null.
+async function findDistrict(district, kommun) {
+  try {
+    const places = await cachedInBrowser(
+      ['stadsdel', kommun.kod, normalizePlace(district)],
+      () => searchPlaces(`${district}, ${kommun.name}`),
+      7 * 24 * HOUR,
+    )
+    const hit = places.find((p) => isInside(kommun.geometry, [p.longitude, p.latitude]))
+    return hit ? [hit.longitude, hit.latitude] : null
+  } catch {
+    // Sökningen gick inte (t.ex. för många sökningar): kartan stannar på kommunen.
+    return null
+  }
+}
 
 // Kartans nivåer. På 'sverige' och 'landskap' är zoomen låst: man tar sig
 // vidare genom att klicka (på ett landskap, eller i landskapet för att komma
@@ -1000,26 +1022,38 @@ function MapPrototype() {
   }
 
   // Från översikten av en kommun ner till husnivå: till stadsdelen om den
-  // finns och hittas, annars till centralorten (en stad eller tätort med
-  // kommunens namn, annars den största i kommunen), annars till kommunens
-  // mittpunkt. Ortnamnen finns först när kartrutorna har laddats, så det
-  // görs när översikten är klar.
+  // finns och hittas (i kartans data, annars via adressökningen), annars till
+  // centralorten (en stad eller tätort med kommunens namn, annars den största
+  // i kommunen), annars till kommunens mittpunkt. Ortnamnen finns först när
+  // kartrutorna har laddats, så det görs när översikten är klar. `district`
+  // är stadsdelen som den står i profilen.
   function flyToPlaceIn(map, kommun, district = null) {
     const token = (flyTokenRef.current += 1)
-    map.once('idle', () => {
-      if (mapRef.current !== map || flyTokenRef.current !== token) return
+    const stale = () => mapRef.current !== map || flyTokenRef.current !== token
+    map.once('idle', async () => {
+      if (stale()) return
       const places = map
         .querySourceFeatures('openmaptiles', { sourceLayer: 'place' })
         .filter((f) => f.properties.name && kommun.geometry && isInside(kommun.geometry, f.geometry.coordinates))
       const name = (f) => normalizePlace(f.properties['name:sv'] ?? f.properties.name)
       let match = null
       if (district) {
+        const wanted = normalizePlace(district)
         const candidates = places.filter((f) => DISTRICT_CLASSES.includes(f.properties.class))
         // Helst exakt samma namn, annars ett namn som börjar med texten (eller
         // tvärtom, t.ex. "Gustavsberg centrum" -> Gustavsberg).
         match =
-          candidates.find((f) => name(f) === district) ??
-          candidates.find((f) => name(f).startsWith(district) || district.startsWith(name(f)))
+          candidates.find((f) => name(f) === wanted) ??
+          candidates.find((f) => name(f).startsWith(wanted) || wanted.startsWith(name(f)))
+        if (!match) {
+          const found = await findDistrict(district, kommun)
+          if (stale()) return
+          if (found) {
+            map.easeTo({ center: found, zoom: DISTRICT_ZOOM, duration: 1600 })
+            setLevelName(`${district.trim()}, ${kommun.name}`)
+            return
+          }
+        }
       }
       if (!match) {
         const kommunName = normalizePlace(kommun.name.replace(/ kommun$/, ''))
@@ -1071,7 +1105,7 @@ function MapPrototype() {
     const camera = map.cameraForBounds(kommun.bounds, { padding: LEVEL_PADDING, pitch: TILT })
     if (camera) map.jumpTo({ center: camera.center, zoom: camera.zoom })
     setLevelName(kommun.name)
-    flyToPlaceIn(map, kommun, profile.district ? normalizePlace(profile.district) : null)
+    flyToPlaceIn(map, kommun, profile.district?.trim() || null)
   }
 
   const zoomToLevelRef = useRef(zoomToLevel)
