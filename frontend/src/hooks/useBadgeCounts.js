@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from './useAuth'
+import { isIdle, onUserActive } from '../services/activity'
 import { getBadges } from '../services/badges'
 import { EVENTS_SEEN, eventsSeenAt } from '../services/eventsSeen'
 import { INVITATIONS_CHANGED } from '../services/groups'
 import { countUnseenConversations } from '../services/messages'
 
-// Hur ofta siffrorna räknas om medan man står kvar.
-const POLL_MS = 30000
+// Hur ofta siffrorna räknas om medan man står kvar. De räknas också om vid
+// varje sidbyte, så de behöver inte hämtas oftare än så här.
+const POLL_MS = 60000
 
 export const EMPTY_COUNTS = { contactRequests: 0, clubInvitations: 0, eventNews: 0, unseenMessages: 0 }
 
@@ -23,8 +25,9 @@ export const EMPTY_COUNTS = { contactRequests: 0, clubInvitations: 0, eventNews:
 //
 // Räknas om när `refreshKey` ändras (t.ex. vid sidbyte), när man har gått med
 // i eller avböjt en klubb, när man har tittat på Events, och var POLL_MS, så att något nytt syns utan att
-// man gör något. Pausar när fliken inte syns och räknar om direkt när man
-// kommer tillbaka. Anropen är låsta tills profilen är klar (require_profile i
+// man gör något. Pausar när fliken inte syns eller ingen har rört appen på
+// ett tag (se services/activity.js), och räknar om direkt när man kommer
+// tillbaka. Anropen är låsta tills profilen är klar (require_profile i
 // backend), så inget hämtas innan dess.
 //
 // Alla fyra kommer i ett anrop (GET /users/me/badges), så att en omräkning
@@ -81,13 +84,15 @@ export function useBadgeCounts({ refreshKey = null, openConversationId = null } 
     }
 
     refresh()
-    const timer = setInterval(refresh, POLL_MS)
+    const timer = setInterval(() => isIdle() || refresh(), POLL_MS)
+    const stopListening = onUserActive(refresh)
     document.addEventListener('visibilitychange', onVisibilityChange)
     window.addEventListener(INVITATIONS_CHANGED, refresh)
     window.addEventListener(EVENTS_SEEN, refresh)
     return () => {
       cancelled = true
       clearInterval(timer)
+      stopListening()
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener(INVITATIONS_CHANGED, refresh)
       window.removeEventListener(EVENTS_SEEN, refresh)
