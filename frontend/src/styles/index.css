@@ -390,13 +390,22 @@ button.banner-button {
 }
 
 /* Avsnittet Intressen på profilen. */
-.profile-interests {
+/* Intressena och personens events på en profil: en vänsterställd kolumn. */
+.profile-interests,
+.profile-events {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   width: 100%;
   max-width: 320px;
   text-align: left;
+}
+
+/* Personens events: titeln, och tid och plats på raden under. */
+.profile-events .person-list-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
 }
 
 /* Blek ruta: ett eget fält med samma rundning som formulärfälten, i blekt
