@@ -149,6 +149,16 @@ function StyleGuide() {
             Primär
           </button>
         </div>
+        <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Stor variant (.button-large)</p>
+        <p className="hint-text">
+          För den knapp som ska synas mest i ett steg, t.ex. "Skapa min profil". Andra val bredvid
+          blir små (.button-small), så att man inte trycker fel.
+        </p>
+        <div className="account-choice-links" style={{ marginTop: '1rem' }}>
+          <button className="primary-button button-large" type="button">
+            Primär
+          </button>
+        </div>
         <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Rund knapp (.round-button)</p>
         <div className="account-choice-links" style={{ marginTop: '1rem' }}>
           <button className="primary-button round-button" type="button" aria-label="Exempel" />

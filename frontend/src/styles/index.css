@@ -711,6 +711,14 @@ span.tag-selected:hover {
   font-size: var(--text-small);
 }
 
+/* Stor variant, för den knapp som ska synas mest i ett steg (t.ex. "Skapa min
+   profil"). Ligger efter .primary-button av samma skäl som .button-small. */
+.button-large {
+  padding: 0.7rem 1.6rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
 /* Rund "+"-knapp, t.ex. för att skapa något. Plusset är en bild (inget tecken
    i knappen), så det blir exakt centrerat. Läggs på .primary-button, och måste
    ligga efter den av samma skäl som .button-small. */
