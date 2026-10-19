@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import FormField from '../components/FormField'
 import InterestTree, { descendantKeys, withoutDuplicates } from '../components/InterestTree'
 import TextareaWithCount from '../components/TextareaWithCount'
+import BirthDatePicker from '../components/BirthDatePicker'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
@@ -789,12 +790,10 @@ function ProfileInterview() {
                   {step.id === 'fodelse' && (
                     <div className="form-row">
                       <FormField id="interview-birth" label="Födelsedatum">
-                        <input
+                        <BirthDatePicker
                           id="interview-birth"
-                          type="date"
                           value={answers.birthDate}
-                          onChange={setAnswer('birthDate')}
-                          max={new Date().toISOString().slice(0, 10)}
+                          onChange={(birthDate) => setAnswers((current) => ({ ...current, birthDate }))}
                           required
                           autoFocus
                         />

@@ -13,6 +13,7 @@ import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
+import BirthDatePicker from '../components/BirthDatePicker'
 import FormField from '../components/FormField'
 import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
@@ -71,6 +72,7 @@ const EXAMPLE_MUNICIPALITIES = [
 function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
   const [exampleMunicipality, setExampleMunicipality] = useState('')
+  const [exampleBirthDate, setExampleBirthDate] = useState('')
   const [filterMunicipality, setFilterMunicipality] = useState('')
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
@@ -663,6 +665,13 @@ function StyleGuide() {
             placeholder="Berätta lite om dig själv..."
           />
           <p className="hint-text">Teckenräknaren ligger inne i fältet, nere till höger.</p>
+          <label htmlFor="style-guide-birth-date">Födelsedatum (BirthDatePicker)</label>
+          <BirthDatePicker id="style-guide-birth-date" value={exampleBirthDate} onChange={setExampleBirthDate} />
+          <p className="hint-text">
+            Dag, månad och år i tre listor. Värdet är ÅÅÅÅ-MM-DD när alla tre är valda
+            {exampleBirthDate ? ` (nu ${exampleBirthDate})` : ''}. Dagarna följer månaden, och datum i framtiden
+            går inte att välja.
+          </p>
           <label htmlFor="style-guide-municipality">Sökbart kommunfält (MunicipalityPicker)</label>
           <MunicipalityPicker
             id="style-guide-municipality"
