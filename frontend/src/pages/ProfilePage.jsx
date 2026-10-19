@@ -311,7 +311,9 @@ function ProfilePage() {
     setSaving(true)
 
     // Namn, födelsedatum, kön, kommun och Om mig är obligatoriska och skickas
-    // alltid med. Stadsdel är valfri och skickas bara om den är ifylld.
+    // alltid med. Stadsdel är valfri: en ny profil får den bara om den är
+    // ifylld, och en befintlig får null när fältet är tomt, så att en gammal
+    // stadsdel tas bort.
     const data = {
       name,
       birth_date: birthDate,
@@ -321,6 +323,7 @@ function ProfilePage() {
       profile_text: aboutText,
     }
     if (district.trim()) data.district = district
+    else if (!isNew) data.district = null
 
     // 0. Kontouppgifterna, om de ändrats. De sparas först, så att fel lösenord
     //    eller ett upptaget namn (de vanligaste felen) stoppar allt innan
