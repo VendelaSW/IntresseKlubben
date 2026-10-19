@@ -1181,9 +1181,16 @@ function MapPrototype() {
       map.easeTo({ center: fit.center, zoom: fit.zoom, duration: 500 })
     })
     mapRef.current = map
-    // Klick på kartan på en låst nivå: ett steg in, där man klickade.
+    // Klick på kartan på en låst nivå: ett steg in, där man klickade. Bara i
+    // Sverige, och på landskapsnivån bara i det valda landskapet: runt om ligger
+    // bara papper, och landskapet närmast klicket (se landskapAt) är inte det
+    // man menade.
     map.on('click', (event) => {
-      if (modeRef.current !== 'free') stepLevelRef.current(1, event.lngLat.toArray())
+      if (modeRef.current === 'free') return
+      const point = event.lngLat.toArray()
+      if (!inSweden(...point)) return
+      if (modeRef.current === 'landskap' && landskapAt(point).name !== selectedLandskapRef.current) return
+      stepLevelRef.current(1, point)
     })
     // + och − stegar mellan nivåerna när zoomen är låst (fångas innan
     // MapLibres egna knappar hinner zooma).
