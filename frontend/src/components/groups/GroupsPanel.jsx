@@ -9,6 +9,7 @@ import GroupChat from './GroupChat'
 import GroupDetails from './GroupDetails'
 import GroupList from './GroupList'
 import GroupSortMenu from './GroupSortMenu'
+import MunicipalityPicker from '../MunicipalityPicker'
 import { getContacts } from '../../services/contacts'
 import {
   declineGroupInvitation,
@@ -371,18 +372,13 @@ function GroupsPanel() {
                     </option>
                   ))}
                 </select>
-                <select
+                <MunicipalityPicker
                   aria-label="Filtrera på kommun"
+                  municipalities={municipalities}
                   value={filters.municipalityCode}
-                  onChange={(e) => setFilters({ ...filters, municipalityCode: e.target.value })}
-                >
-                  <option value="">Alla kommuner</option>
-                  {municipalities.map((m) => (
-                    <option key={m.code} value={m.code}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                  emptyLabel="Alla kommuner"
+                />
               </div>
               {shown[tab].length === 0 && filtering ? (
                 <div className="content-stack">

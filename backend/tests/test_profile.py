@@ -179,6 +179,19 @@ def test_patch_only_changes_fields_that_are_sent(client, user, municipalities, y
     assert body["district"] == "Majorna"
 
 
+def test_patch_with_district_null_removes_it(client, user, municipalities, yoga):
+    _create_profile(client, yoga, district="Majorna")
+    body = client.patch("/profile/", json={"district": None}).json()
+    assert body["district"] is None
+    assert client.get("/profile/").json()["district"] is None
+
+
+def test_patch_without_district_leaves_it(client, user, municipalities, yoga):
+    _create_profile(client, yoga, district="Majorna")
+    body = client.patch("/profile/", json={"name": "Ny"}).json()
+    assert body["district"] == "Majorna"
+
+
 def test_patch_can_change_the_mandatory_fields(client, user, municipalities, yoga):
     _create_profile(client, yoga)
     body = client.patch("/profile/", json={

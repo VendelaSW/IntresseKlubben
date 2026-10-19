@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
+import MunicipalityPicker from '../components/MunicipalityPicker'
 import PersonCard from '../components/PersonCard'
 import { useTabParam } from '../hooks/useTabParam'
 import {
@@ -263,18 +264,13 @@ function PeoplePage() {
                 </option>
               ))}
             </select>
-            <select
+            <MunicipalityPicker
               aria-label="Filtrera på kommun"
+              municipalities={municipalities}
               value={filters.municipalityCode}
-              onChange={(e) => setFilters({ ...filters, municipalityCode: e.target.value })}
-            >
-              <option value="">Alla kommuner</option>
-              {municipalities.map((m) => (
-                <option key={m.code} value={m.code}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
+              onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+              emptyLabel="Alla kommuner"
+            />
             <select
               aria-label="Filtrera på kön"
               value={filters.gender}
