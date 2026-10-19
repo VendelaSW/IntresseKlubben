@@ -113,6 +113,8 @@ class OpenAILLM:
             ],
             "response_format": {"type": "json_schema", "json_schema": {"name": name, "strict": True, "schema": schema}},
         }
+        if settings.openai_temperature is not None:  # bara när den är satt: alla modeller tillåter inte parametern
+            payload["temperature"] = settings.openai_temperature
         response = _post_json(OPENAI_URL, payload, _timeout(deadline))
         try:
             return json.loads(response["choices"][0]["message"]["content"])
