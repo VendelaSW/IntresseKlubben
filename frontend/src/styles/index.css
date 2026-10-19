@@ -1628,11 +1628,18 @@ span.tag-selected:hover {
 
 /* Raden med bild, namn och tid är exakt en linje hög, så att bilden inte gör
    raden högre och texten glider av linjerna längre ner. */
-.notepad-message p:first-child {
+.notepad-message-head {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   height: var(--line-gap);
+}
+
+/* Ett meddelande i följd från samma person (se utils/messageGroups.js): utan
+   namnrad och direkt på linjen under det förra, i stället för en tom linje
+   emellan. Tiden syns när man håller över texten. */
+.notepad-message-continued {
+  margin-top: calc(-1 * var(--line-gap));
 }
 
 .notepad .notepad-message-avatar {

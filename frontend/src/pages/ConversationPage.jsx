@@ -11,6 +11,7 @@ import { isIdle, onUserActive } from '../services/activity'
 import { conversationQuery, markConversationRead, sendMessage } from '../services/messages'
 import { getProfile } from '../services/profile'
 import { formatSentAt } from '../utils/formatSentAt'
+import { startsGroup } from '../utils/messageGroups'
 
 // Hur ofta konversationen hämtas igen medan den är öppen, så att nya brev
 // syns utan att man laddar om sidan.
@@ -136,23 +137,29 @@ function ConversationPage() {
         {status === 'ready' && messages.length === 0 && <p className="hint-text">Inga brev än.</p>}
         {status === 'ready' && messages.length > 0 && (
           <ol className="notepad-messages" ref={listRef} onScroll={onScroll}>
-            {/* Namn och tid som en rad överst, meddelandet under (som i de flesta chattar). */}
-            {messages.map((m) => (
-              <li key={m.id} className="notepad-message">
-                <p>
-                  <ChatSender
-                    userId={other?.id}
-                    mine={m.sender_id === user.id}
-                    name={m.sender_id === user.id ? myProfile?.name : otherName}
-                    imageUrl={m.sender_id === user.id ? myProfile?.image_url : other?.image_url}
-                  />{' '}
-                  <time className="hint-text" dateTime={m.created_at}>
-                    {formatSentAt(m.created_at)}
-                  </time>
-                </p>
-                <p>{m.text}</p>
-              </li>
-            ))}
+            {/* Namn och tid som en rad överst, meddelandet under (som i de flesta chattar).
+                Brev i följd från samma person hamnar under samma namn (se startsGroup). */}
+            {messages.map((m, index) => {
+              const first = startsGroup(messages, index)
+              return (
+                <li key={m.id} className={`notepad-message${first ? '' : ' notepad-message-continued'}`}>
+                  {first && (
+                    <p className="notepad-message-head">
+                      <ChatSender
+                        userId={other?.id}
+                        mine={m.sender_id === user.id}
+                        name={m.sender_id === user.id ? myProfile?.name : otherName}
+                        imageUrl={m.sender_id === user.id ? myProfile?.image_url : other?.image_url}
+                      />{' '}
+                      <time className="hint-text" dateTime={m.created_at}>
+                        {formatSentAt(m.created_at)}
+                      </time>
+                    </p>
+                  )}
+                  <p title={first ? undefined : formatSentAt(m.created_at)}>{m.text}</p>
+                </li>
+              )
+            })}
           </ol>
         )}
 
