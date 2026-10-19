@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import PersonCard from '../components/PersonCard'
+import { useTabParam } from '../hooks/useTabParam'
 import {
   answerContactRequest,
   cancelContactRequest,
@@ -66,7 +67,9 @@ const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: []
 function PeoplePage() {
   // Intressena och kommunerna (för filtren) och ens egna intressen kommer ur minnet.
   const [filterDataFailed, setFilterDataFailed] = useState(false)
-  const [tab, setTab] = useState('suggested')
+  // Fliken står i adressen, så att Tillbaka från en profil kommer hit igen (se useTabParam).
+  const [urlTab, setTab] = useTabParam(TABS)
+  const tab = urlTab ?? 'suggested'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [filters, setFilters] = useState({
     interestId: '',

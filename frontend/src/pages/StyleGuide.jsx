@@ -165,6 +165,16 @@ function StyleGuide() {
             Primär
           </button>
         </div>
+        <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Stor variant (.button-large)</p>
+        <p className="hint-text">
+          För den knapp som ska synas mest i ett steg, t.ex. "Skapa min profil". Andra val bredvid
+          blir små (.button-small), så att man inte trycker fel.
+        </p>
+        <div className="account-choice-links" style={{ marginTop: '1rem' }}>
+          <button className="primary-button button-large" type="button">
+            Primär
+          </button>
+        </div>
         <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Rund knapp (.round-button)</p>
         <div className="account-choice-links" style={{ marginTop: '1rem' }}>
           <button className="primary-button round-button" type="button" aria-label="Exempel" />
@@ -385,7 +395,8 @@ function StyleGuide() {
           På dator ligger rubrik och flikar till vänster på alla sidor, på mobil centrerade (Brev,
           Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
           .app-section för sidor med kort i rutnät (Klubbar och Events): "+"-knappen direkt efter
-          rubriken och tätare avstånd.
+          rubriken och tätare avstånd. Vald flik sparas i adressen med useTabParam (?flik=kontakter),
+          så att Tillbaka kommer tillbaka till samma flik.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
           <div className="page-header">
