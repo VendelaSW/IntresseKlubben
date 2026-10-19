@@ -1,4 +1,4 @@
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     # Saknas nyckeln eller modellen är funktionen avstängd. Nyckeln hör hemma i .env och i Vercel, aldrig i Git.
     openai_api_key: str = ""
     openai_model: str = ""
+    # Hur mycket svaren får variera (0 till 2). Tom: modellens standard. 0 ger nästan samma svar varje gång på samma
+    # text (mätt: 10 % av texterna fick olika taggar mellan två körningar, mot 24 % utan). Sätts bara för modeller
+    # som tillåter det: resonemangsmodeller (o-serien, gpt-5) godtar inget annat än standard, så lämna den tom då.
+    openai_temperature: float | None = Field(default=None, ge=0, le=2)
     # Ska analysen av intressen skicka följdfrågor (POST /interests/analyze)? Av som standard: frågorna är byggda
     # men inte aktiverade, så analysen sätter bara en aktivitet när texten säger den och gissar aldrig.
     interest_followups: bool = False
@@ -49,6 +53,12 @@ class Settings(BaseSettings):
         # En tom rad (INTEREST_FOLLOWUPS=) i .env eller Vercel ska inte stoppa starten. Tomma textvärden
         # lämnas som de är: testerna tömmer dem med flit för att inte läsa riktiga nycklar ur .env.
         return False if isinstance(value, str) and not value.strip() else value
+
+    @field_validator("openai_temperature", mode="before")
+    @classmethod
+    def _empty_means_default(cls, value):
+        # OPENAI_TEMPERATURE= (en tom rad) i .env eller Vercel ska inte stoppa starten, utan betyda modellens standard.
+        return None if isinstance(value, str) and not value.strip() else value
 
     @property
     def cors_origins_list(self) -> list[str]:
