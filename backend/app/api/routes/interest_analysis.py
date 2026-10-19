@@ -25,6 +25,7 @@ from app.schemas.analysis import AnalyzeRequest, AnalyzeResponse
 from app.services.ai_clients import AIFailed, AINotConfigured
 from app.services.analysis_token import AnalysisTokenUnavailable, create_token
 from app.services.interest_analysis import analyze
+from app.services.interest_candidates import CandidateFinder
 
 router = APIRouter(tags=["interests"])
 
@@ -53,7 +54,7 @@ def analyze_interests(
 ):
     _check_rate_limit(current_user.id)
     try:
-        result = analyze(data.text, load_library_index(db), load_activities(), settings.interest_followups)
+        result = analyze(data.text, load_library_index(db), load_activities(), settings.interest_followups, CandidateFinder(db))
         token = create_token(current_user.id, result.sealed)
     except (AIFailed, AINotConfigured, AnalysisTokenUnavailable, LibraryError):
         # Att AI:n inte svarar, inte är inställd eller att sigillet inte går att skapa ger samma svar: användaren

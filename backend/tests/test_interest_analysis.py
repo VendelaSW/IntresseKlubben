@@ -6,9 +6,11 @@ import pytest
 from app.api.routes import interest_analysis as route
 from app.core.config import settings
 from app.models.interest import Interest
+from app.models.interest_embedding import InterestEmbedding
 from app.services.ai_clients import AIFailed, set_clients
 from app.services.analysis_token import InvalidAnalysisToken, read_token
-from tests.fakes import FakeLLM, FakeModerator
+from app.services.interest_candidates import CandidateFinder
+from tests.fakes import FakeEmbedder, FakeLLM, FakeModerator
 
 URL = "/interests/analyze"
 UNAVAILABLE = "Vi kunde inte tolka texten just nu. Välj dina intressen i listan i stället."
@@ -276,6 +278,70 @@ def test_a_shortcut_does_not_write_anything_to_the_database(client, user, librar
     ai()
     assert analyze(client, "Hårdrock och katter").status_code == 200
     assert db.query(Interest).count() == before
+
+
+# ---------- Kandidatfilter: AI:n ser bara det som kan vara rätt ----------
+
+NEW_MATCH = {"decisions": [{"key": "t1", "decision": "new", "interest_id": None, "parent_id": None, "new_name": "modellbygge"}]}
+
+
+def with_vectors(db, library):
+    """Vektorer i tre dimensioner: Skapande nära "modellbygge", musiken och katterna långt därifrån."""
+    placed = {"skapande": [1.0, 0.0, 0.0], "musik": [0.0, 1.0, 0.0], "metal": [0.0, 1.0, 0.0], "jazz": [0.0, 1.0, 0.0],
+              "djur": [0.0, 0.0, 1.0], "katter": [0.0, 0.0, 1.0]}
+    for key, vector in placed.items():
+        db.add(InterestEmbedding(interest_id=library[key].id, embedding=vector, embedding_hash="x"))
+    db.commit()
+
+
+def analyze_with_candidates(client, monkeypatch, db, embedder):
+    monkeypatch.setattr(route, "CandidateFinder", lambda session: CandidateFinder(session, embedder=embedder, per_tag=1, for_text=1))
+    llm, _ = ai(extract=tree(("modellbygge", [])), match=NEW_MATCH)
+    response = analyze(client, "Jag bygger modeller.")
+    assert response.status_code == 200
+    (call,) = llm.calls_named("match")
+    return call.user.split("\n\nTaggar:\n")[0]
+
+
+def test_the_model_only_sees_the_nearest_interests_and_the_areas_not_the_whole_library(client, user, library, db, monkeypatch):
+    with_vectors(db, library)
+    embedder = FakeEmbedder(vectors={"modellbygge": [1.0, 0.0, 0.0], "Jag bygger modeller.": [1.0, 0.0, 0.0]})
+    listing = analyze_with_candidates(client, monkeypatch, db, embedder)
+    assert "Skapande" in listing  # det närmaste, och ett huvudområde
+    assert "Musik" in listing and "Djur och natur" in listing  # alla huvudområden, alltid
+    assert "Metal" not in listing and "Jazz" not in listing and "Katter" not in listing  # det som ligger långt bort
+
+
+def test_without_vectors_the_model_gets_the_whole_library_as_before(client, user, library, db, monkeypatch):
+    embedder = FakeEmbedder(vectors={"modellbygge": [1.0, 0.0, 0.0], "Jag bygger modeller.": [1.0, 0.0, 0.0]})
+    listing = analyze_with_candidates(client, monkeypatch, db, embedder)  # tabellen är tom: synken är inte körd
+    assert all(name in listing for name in ("Metal", "Jazz", "Katter", "Skapande"))
+
+
+def test_when_the_embedding_call_fails_the_model_gets_the_whole_library_and_the_analysis_works(client, user, library, db, monkeypatch):
+    with_vectors(db, library)
+    listing = analyze_with_candidates(client, monkeypatch, db, FakeEmbedder(error=AIFailed("URLError")))
+    assert all(name in listing for name in ("Metal", "Jazz", "Katter", "Skapande"))
+
+
+def test_no_embedding_call_is_made_when_every_tag_is_an_exact_match(client, user, library, db, monkeypatch):
+    with_vectors(db, library)
+    embedder = FakeEmbedder()
+    monkeypatch.setattr(route, "CandidateFinder", lambda session: CandidateFinder(session, embedder=embedder))
+    llm, _ = ai(extract=tree(("hårdrock", [])))
+    assert analyze(client, "Jag spelar hårdrock i ett band.").status_code == 200
+    assert embedder.calls == [] and llm.calls_named("match") == []
+
+
+def test_the_proposals_are_the_same_with_the_filter_as_without_it(client, user, library, db, monkeypatch):
+    # Filtret ändrar vad modellen ser, inte vad som blir ett förslag: "modellbygge" blir ett nytt intresse under Skapande.
+    match = {"decisions": [{"key": "t1", "decision": "new", "interest_id": None, "parent_id": library["skapande"].id, "new_name": "modellbygge"}]}
+    with_vectors(db, library)
+    embedder = FakeEmbedder(vectors={"modellbygge": [1.0, 0.0, 0.0], "Jag bygger modeller.": [1.0, 0.0, 0.0]})
+    monkeypatch.setattr(route, "CandidateFinder", lambda session: CandidateFinder(session, embedder=embedder, per_tag=1, for_text=1))
+    ai(extract=tree(("modellbygge", [])), match=match)
+    (proposal,) = analyze(client, "Jag bygger modeller.").json()["proposals"]
+    assert proposal["interest"] == {"id": None, "name": "Modellbygge", "path": ["Skapande"], "is_new": True, "parent_key": None}
 
 
 # ---------- Följdfrågor: byggda men av ----------

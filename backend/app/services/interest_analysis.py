@@ -7,7 +7,7 @@ Stegen, med allt delad på en tidsgräns (se Deadline) så att analysen ryms i b
    alls i steg 1 och 2. Och hittar utläsningen ingen tagg alls letar vi namn och alias i texten som skyddsnät.
 1. Utläsning (interest_extractor): modellen gör texten till ett träd av taggar, med skydden mot olämpligt innehåll.
 2. Matchning (interest_matching): varje tagg blir ett intresse som finns, ett nytt intresse med en förälder, eller
-   inget.
+   inget. Är taggen inte en exakt träff visas bara kandidaterna för modellen (interest_candidates), inte hela biblioteket.
 3. Aktivitet och följdfrågor (interest_followups.plan): bara om följdfrågorna är påslagna (settings.interest_followups)
    läser modellen ut hur användaren håller på med intresset (bara om texten säger det, aldrig gissat) och formulerar
    frågorna. Är de av görs inget anrop här, och aktiviteter kommer bara från biblioteket.
@@ -79,7 +79,9 @@ def _followup(question: FollowUp, keys: dict[str, str]) -> dict | None:
     }
 
 
-def analyze(text: str, index: LibraryIndex, catalog: dict[str, str], followups_enabled: bool = False) -> Analysis:
+def analyze(
+    text: str, index: LibraryIndex, catalog: dict[str, str], followups_enabled: bool = False, finder=None
+) -> Analysis:
     """Förslagen på intressen i `text`, mot biblioteket i `index` och aktiviteterna i `catalog` (slug -> namn).
     Kastar AINotConfigured om AI-tjänsten inte är inställd, och AIFailed om ett steg misslyckas eller tiden tar slut."""
     deadline = Deadline()
@@ -91,7 +93,10 @@ def analyze(text: str, index: LibraryIndex, catalog: dict[str, str], followups_e
     tags = tags_from_tree(tree)
     if not tags:
         return Analysis()
-    result = plan(match_tags(tags, index, deadline), index, catalog, deadline, text=text, use_model=followups_enabled)
+    # Med en kandidatfunktion (interest_candidates.CandidateFinder) ser matchningens modell bara de intressen som kan vara
+    # rätt, i stället för hela biblioteket.
+    candidates = None if finder is None else lambda unresolved: finder(unresolved, text, index, deadline)
+    result = plan(match_tags(tags, index, deadline, candidates), index, catalog, deadline, text=text, use_model=followups_enabled)
 
     live = [m for m in result.matches if m.kind != "none"]
     keys = {m.tag.key: f"p{number}" for number, m in enumerate(live, 1)}
