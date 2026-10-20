@@ -262,6 +262,11 @@ def test_the_safety_net_is_not_used_when_moderation_removed_the_models_tag(clien
     assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"] == []
 
 
+def test_the_safety_net_is_not_used_for_something_the_person_stopped_doing(client, user, library):
+    ai(extract=tree())
+    assert analyze(client, "Jag har slutat med hårdrock, mest på kvällarna").json()["proposals"] == []
+
+
 def test_a_hit_from_the_safety_net_that_moderation_flags_is_removed(client, user, library):
     ai(extract=tree(), flagged=["Jag är intresserad av Metal."])
     assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"] == []
