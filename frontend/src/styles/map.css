@@ -662,21 +662,10 @@
 }
 
 
-/* Lapp för en plats, platt ovanpå kartan. Vit (stilguidens färg för
-   kort och boxar) med ojämna hörn, bläckkant och en hård bläckskugga, så att
-   den ser ritad ut och inte fotograferad. */
+/* Lapp för en plats, platt ovanpå kartan. Utseendet (vit, ojämna hörn,
+   bläckkant, tejp) delas med anslagstavlans lappar, se .paper-note i index.css. */
 .map-note {
-  position: relative;
   width: 240px;
-  padding: 1.1rem 0.9rem 0.7rem;
-  background: var(--color-white);
-  color: #3a2f25;
-  font-family: var(--font-body);
-  font-size: 0.78rem;
-  line-height: 1.35;
-  border: 1.5px solid #3a2f25;
-  border-radius: 255px 12px 225px 12px / 12px 225px 12px 255px;
-  box-shadow: 3px 3px 0 #3a2f25;
 }
 
 /* Förhandslappen när man bara hovrar: lite genomskinlig. */
@@ -701,18 +690,6 @@
 .map-note-close:hover,
 .map-note-close:focus-visible {
   color: #d0352f;
-}
-
-/* Tejpbit överst. */
-.map-note::before {
-  content: "";
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  width: 70px;
-  height: 18px;
-  transform: translateX(-50%) rotate(3deg);
-  background: rgba(244, 196, 48, 0.55);
 }
 
 .map-note p {

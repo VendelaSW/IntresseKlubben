@@ -5,6 +5,7 @@ import { useGoBack } from '../../hooks/useCanGoBack'
 import { useTabParam } from '../../hooks/useTabParam'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
+import CreateButton from '../CreateButton'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
 import { contactsQuery } from '../../services/contacts'
@@ -140,10 +141,8 @@ function EventsPanel() {
       <div className="page-header">
         <h1 className="app-title">Events</h1>
         {view !== 'create' && (
-          <button
-            type="button"
-            className="primary-button round-button"
-            aria-label="Skapa event"
+          <CreateButton
+            label="Skapa event"
             onClick={() => {
               setInviteProblem('')
               setView('create')
