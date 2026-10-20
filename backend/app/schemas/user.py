@@ -120,6 +120,13 @@ class AvailabilityOut(BaseModel):
     email: str | None
 
 
+class DismissedSuggestionsOut(BaseModel):
+    """Svar från GET /users/dismissed-suggestions: hur många personer man har
+    tagit bort från sina Förslag (så att "Visa dem igen" bara syns när det finns några)."""
+
+    count: int
+
+
 class UserLogin(BaseModel):
     username_or_email: str
     password: str

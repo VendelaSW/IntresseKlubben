@@ -13,7 +13,13 @@ import {
 } from '../services/contacts'
 import { getAllInterests, getMyInterests } from '../services/interests'
 import { GENDER_OPTIONS, getMunicipalities } from '../services/profile'
-import { dismissSuggestion, peopleQuery, resetDismissedSuggestions } from '../services/people'
+import {
+  dismissSuggestion,
+  dismissedCountQuery,
+  peopleQuery,
+  resetDismissedSuggestions,
+  undoDismissSuggestion,
+} from '../services/people'
 
 const TABS = [
   { id: 'suggested', label: 'Förslag' },
@@ -32,6 +38,9 @@ function parseAge(value) {
   return Number.isInteger(age) && age >= 0 && age <= 120 ? age : NaN
 }
 
+// Så länge "Ångra" syns efter att man tagit bort ett förslag.
+const UNDO_MS = 8000
+
 const EMPTY_TEXT = {
   suggested: 'Inga fler förslag just nu. Lägg till fler intressen på din profil för fler träffar.',
   incoming: 'Inga förfrågningar att svara på just nu.',
@@ -39,23 +48,33 @@ const EMPTY_TEXT = {
   contacts: 'Inga kontakter än. Skicka en förfrågan till någon under Förslag.',
 }
 
-// Varför någon föreslås: hur många intressen man har gemensamt, med siffran
-// framhävd. Vilka det är syns redan på kortet (gula taggar), så texten
-// behöver inte räkna upp dem. null om inget är gemensamt.
-function sharedInterestsText(person, myInterestIds) {
-  const count = (person.interests ?? []).filter((interest) => myInterestIds.has(interest.id)).length
-  if (count === 0) return null
+function sharedCountOf(person, myInterestIds) {
+  return (person.interests ?? []).filter((interest) => myInterestIds.has(interest.id)).length
+}
+
+// "3 gemensamma intressen", med siffran framhävd. Vilka det är syns redan på
+// kortet (gula taggar), så texten behöver inte räkna upp dem.
+function sharedCountText(count) {
   return (
     <>
-      Ni har <strong className="shared-count">{count}</strong>{' '}
-      {count === 1 ? 'gemensamt intresse' : 'gemensamma intressen'}
+      <strong className="shared-count">{count}</strong> {count === 1 ? 'gemensamt intresse' : 'gemensamma intressen'}
     </>
   )
 }
 
+// Varför någon står under Förfrågningar eller Kontakter: hur många intressen
+// man har gemensamt. null om inget är gemensamt.
+function sharedInterestsText(person, myInterestIds) {
+  const count = sharedCountOf(person, myInterestIds)
+  return count === 0 ? null : <>Ni har {sharedCountText(count)}</>
+}
+
 // Personer-sidan: bläddra och filtrera andra användare (Förslag), svara på
 // inkommande kontaktförfrågningar och ångra skickade (Förfrågningar) och se
-// sina kontakter (Kontakter).
+// sina kontakter (Kontakter). Under Förslag står de man har intressen
+// gemensamt med under "Personer med liknande intressen", i grupper efter hur
+// många intressen man har gemensamt (rubriken ovanför varje grupp, så att det
+// syns utan att läsa korten), och resten under "Fler i Intresseklubben".
 // Sidan är ett <section className="app-section"> rakt av, precis som
 // pages/demo/DemoPeople.jsx - INTE inslaget i content-stack (den är byggd
 // för smala centrerade sidor och krymper annars hela sidan efter innehållet,
@@ -82,6 +101,14 @@ function PeoplePage() {
   const [municipalities, setMunicipalities] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  // Den man nyss tog bort från Förslag ({ id, name }), med "Ångra" en stund.
+  const [removed, setRemoved] = useState(null)
+
+  useEffect(() => {
+    if (!removed) return undefined
+    const timer = setTimeout(() => setRemoved(null), UNDO_MS)
+    return () => clearTimeout(timer)
+  }, [removed])
 
   useEffect(() => {
     Promise.all([getAllInterests(), getMunicipalities(), getMyInterests()])
@@ -120,6 +147,8 @@ function PeoplePage() {
   // filtren ändras ligger den förra listan kvar tills den nya har kommit.
   const peopleResult = useQuery({ ...peopleQuery(query), placeholderData: keepPreviousData })
   const contactsResult = useQuery(contactsQuery)
+  // Hur många man har tagit bort från Förslag. "Visa dem igen" syns bara då.
+  const dismissedCount = useQuery(dismissedCountQuery).data?.count ?? 0
   const people = peopleResult.data ?? NO_PEOPLE
   const contactsData = contactsResult.data ?? NO_CONTACTS
   const failed = (result) => result.isError && result.data === undefined
@@ -152,9 +181,7 @@ function PeoplePage() {
     ...contactsData.incoming_requests.map((r) => r.user.id),
   ])
 
-  function sharedCount(person) {
-    return (person.interests ?? []).filter((interest) => myInterestIds.has(interest.id)).length
-  }
+  const sharedCount = (person) => sharedCountOf(person, myInterestIds)
 
   const suggested = people
     .filter((person) => !excludedUserIds.has(person.id))
@@ -162,11 +189,18 @@ function PeoplePage() {
     .sort((a, b) => sharedCount(b.person) - sharedCount(a.person))
 
   // Förslag delas i två: de man har minst ett intresse gemensamt med, och alla andra.
-  const matches = suggested.filter(({ person }) => sharedCount(person) > 0)
+  // De gemensamma grupperas efter antal, flest först (listan är redan sorterad).
+  const matchGroups = []
+  for (const item of suggested) {
+    const count = sharedCount(item.person)
+    if (count === 0) continue
+    if (matchGroups.at(-1)?.count !== count) matchGroups.push({ count, items: [] })
+    matchGroups.at(-1).items.push(item)
+  }
   const others = suggested.filter(({ person }) => sharedCount(person) === 0)
 
-  // Gemensamma intressen markerade och förklarade på alla personkort (förslag,
-  // förfrågningar och kontakter), så att korten ser likadana ut.
+  // Gemensamma intressen markerade och förklarade på korten under
+  // Förfrågningar och Kontakter. Under Förslag står antalet i gruppens rubrik.
   function sharedProps(person) {
     return { sharedInterestIds: myInterestIds, reason: sharedInterestsText(person, myInterestIds) }
   }
@@ -176,7 +210,8 @@ function PeoplePage() {
       <PersonCard
         key={person.id}
         person={person}
-        {...sharedProps(person)}
+        // Antalet gemensamma står i gruppens rubrik, inte på kortet.
+        sharedInterestIds={myInterestIds}
         actions={
           <PersonActions
             userId={person.id}
@@ -222,11 +257,20 @@ function PeoplePage() {
   }
 
   function handleDismiss(person) {
-    runAction(() => dismissSuggestion(person.id))
+    runAction(async () => {
+      await dismissSuggestion(person.id)
+      setRemoved({ id: person.id, name: person.name ?? person.username })
+    })
+  }
+
+  function handleUndoDismiss() {
+    const { id } = removed
+    setRemoved(null)
+    runAction(() => undoDismissSuggestion(id))
   }
 
   function handleResetDismissed() {
-    if (!window.confirm('Visa alla borttagna förslag igen?')) return
+    if (!window.confirm('Visa alla du har tagit bort från förslagen igen?')) return
     runAction(() => resetDismissedSuggestions())
   }
 
@@ -251,7 +295,6 @@ function PeoplePage() {
 
       {tab === 'suggested' && (
         <>
-          <p className="hint-text">Sorterat efter flest gemensamma intressen.</p>
           <div className="filter-select-row filter-select-row-compact">
             <select
               aria-label="Filtrera på intresse"
@@ -312,9 +355,14 @@ function PeoplePage() {
           {filters.gender && (
             <p className="hint-text">Visar bara dem som valt att synas när man filtrerar på kön.</p>
           )}
-          <button type="button" className="text-button" disabled={busy} onClick={handleResetDismissed}>
-            Visa borttagna förslag igen
-          </button>
+          {dismissedCount > 0 && (
+            <p className="hint-text">
+              {dismissedCount === 1 ? '1 person borttagen' : `${dismissedCount} personer borttagna`} från förslagen ·{' '}
+              <button type="button" className="text-button" disabled={busy} onClick={handleResetDismissed}>
+                Visa dem igen
+              </button>
+            </p>
+          )}
         </>
       )}
 
@@ -374,12 +422,21 @@ function PeoplePage() {
       ) : lists[tab].length === 0 ? (
         <p className="hint-text">{EMPTY_TEXT[tab]}</p>
       ) : tab === 'suggested' ? (
-        // Riktiga förslag (minst ett gemensamt intresse) först, med förklaring.
-        // Övriga visas under en egen rubrik, så att det inte ser ut som att
-        // systemet föreslår dem utan anledning.
+        // Riktiga förslag (minst ett gemensamt intresse) först, i grupper efter
+        // antal. Övriga visas under en egen rubrik, så att det inte ser ut som
+        // att systemet föreslår dem utan anledning.
         <>
-          {matches.length > 0 && (
-            <div className="card-grid card-grid-compact">{matches.map(suggestionCard)}</div>
+          {matchGroups.length > 0 && (
+            <>
+              <h2>Personer med liknande intressen</h2>
+              <p className="hint-text">Flest gemensamma intressen först.</p>
+              {matchGroups.map((group) => (
+                <section key={group.count} className="match-group">
+                  <h3 className="match-group-title">{sharedCountText(group.count)}</h3>
+                  <div className="card-grid card-grid-compact">{group.items.map(suggestionCard)}</div>
+                </section>
+              ))}
+            </>
           )}
           {others.length > 0 && (
             <>
@@ -408,6 +465,17 @@ function PeoplePage() {
               />
             ))}
         </div>
+      )}
+
+      {/* Ligger kvar längst ner i blocket när man scrollar (position: sticky), så
+          att den syns vid kortet man nyss tog bort. */}
+      {removed && (
+        <p className="undo-notice" role="status">
+          {removed.name} är borttagen från förslagen.{' '}
+          <button type="button" className="text-button" disabled={busy} onClick={handleUndoDismiss}>
+            Ångra
+          </button>
+        </p>
       )}
     </section>
   )
