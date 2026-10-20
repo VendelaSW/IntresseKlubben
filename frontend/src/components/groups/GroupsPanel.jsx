@@ -350,24 +350,22 @@ function GroupsPanel() {
           {selected ? (
             <>
               <BackButton onClick={goBack} />
-              {/* Klubben och inläggen under den till vänster och chatten bredvid på dator. På mobil
-                  klubben, inläggen och sist chatten. */}
+              {/* Anslagstavlan överst, bara för medlemmar. Under den klubben till vänster och
+                  chatten bredvid på dator, chatten under på mobil. */}
+              {selected.is_member && (
+                <GroupPosts key={selected.id} groupId={selected.id} isOwner={selected.is_owner} />
+              )}
               <div className="group-layout">
-                <div className="group-layout-main">
-                  <div className="card sheet">
-                    <GroupDetails
-                      group={selected}
-                      contacts={contacts ?? []}
-                      busy={busy}
-                      onJoin={handleJoin}
-                      onLeave={handleLeave}
-                      onDelete={handleDelete}
-                      onDecline={handleDecline}
-                    />
-                  </div>
-                  {selected.is_member && (
-                    <GroupPosts key={selected.id} groupId={selected.id} isOwner={selected.is_owner} />
-                  )}
+                <div className="card sheet">
+                  <GroupDetails
+                    group={selected}
+                    contacts={contacts ?? []}
+                    busy={busy}
+                    onJoin={handleJoin}
+                    onLeave={handleLeave}
+                    onDelete={handleDelete}
+                    onDecline={handleDecline}
+                  />
                 </div>
                 {selected.is_member && <GroupChat key={selected.id} groupId={selected.id} />}
               </div>

@@ -29,3 +29,4 @@ class GroupPostOut(BaseModel):
     author_id: int
     content: str
     created_at: datetime
+    pinned_at: datetime | None = None
