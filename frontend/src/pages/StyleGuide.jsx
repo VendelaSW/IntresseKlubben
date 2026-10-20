@@ -329,7 +329,7 @@ function StyleGuide() {
           får gul kant vid hover. Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret; ett
           nytt (.envelope-new) förblir stängt och har ett gult sigill. Avståndet mellan raderna följer
           kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför. Personens bild står
-          bredvid namnet och växer med kuvertet. Före bilden står "Från" eller "Till", efter vem som
+          bredvid namnet och växer med kuvertet. Över bilden och namnet står "Från" eller "Till", efter vem som
           skrev det senaste brevet.
         </p>
         <ul className="envelopes" style={{ marginTop: '1rem' }}>
