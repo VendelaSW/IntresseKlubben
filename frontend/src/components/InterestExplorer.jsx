@@ -33,6 +33,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
   const [level, setLevel] = useState([])
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null) // null = ingen sökning
+  const [resultsFor, setResultsFor] = useState('') // texten som träfflistan gäller
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
   const [open, setOpen] = useState(!card)
@@ -99,7 +100,11 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
     const timer = setTimeout(() => {
       const request = ++searchRequest.current
       searchInterests(text)
-        .then((items) => request === searchRequest.current && setResults(items))
+        .then((items) => {
+          if (request !== searchRequest.current) return
+          setResults(items)
+          setResultsFor(text)
+        })
         .catch(() => request === searchRequest.current && setError('Sökningen misslyckades.'))
     }, SEARCH_DELAY_MS)
     return () => clearTimeout(timer)
@@ -238,7 +243,10 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
             <div className="explorer-box">
               {results.length === 0 ? (
                 onAddNew ? (
-                  <NewInterestOffer text={query.trim()} onAddNew={onAddNew} onDone={() => setQuery('')} boxed={false} />
+                  // Först när träfflistan gäller texten som står i rutan, annars skulle man kunna lägga till något som har träffar.
+                  resultsFor === query.trim() && (
+                    <NewInterestOffer text={resultsFor} onAddNew={onAddNew} onDone={() => setQuery('')} boxed={false} />
+                  )
                 ) : (
                   <p className="hint-text">Inget intresse matchar "{query.trim()}" än.</p>
                 )

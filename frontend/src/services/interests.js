@@ -71,3 +71,10 @@ export async function confirmInterests(result) {
   return cached(MY_INTERESTS_KEY, () => apiGet('/profile/interests'), 0)
 }
 
+// Ett befintligt intresse som valts ur sökningen får ett sigill utifrån sitt id (inte sitt namn, eftersom flera intressen kan
+// heta samma sak), utan några AI-anrop. Intervjun behöver det, eftersom den bara sparar förslag med sigill. Svaret har samma
+// form som suggestInterest. Fel: 422 om intresset inte finns.
+export function sealInterest(interest) {
+  return apiPost('/interests/suggest', { interest_id: interest.id })
+}
+

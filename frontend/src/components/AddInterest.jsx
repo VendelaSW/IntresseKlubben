@@ -19,10 +19,16 @@ export const MAX_INTEREST_LENGTH = 40
 // Så länge sökningen väntar efter senaste tangenttrycket, så att inte varje bokstav blir ett anrop.
 const SEARCH_DELAY_MS = 300
 
+// Ett fel med ett meddelande som ska visas som det är (t.ex. att intresset redan finns bland de valda), från sidan som tar
+// emot ett nytt intresse i onAddNew.
+export class AddInterestError extends Error {}
+
 // Backendens svenska meddelande när det finns (godkänns inte, för många försök, går inte att kontrollera), annars ett
 // allmänt.
 function messageOf(error) {
-  return error instanceof ApiError ? error.message : 'Något gick fel. Kontrollera anslutningen och försök igen.'
+  return error instanceof ApiError || error instanceof AddInterestError
+    ? error.message
+    : 'Något gick fel. Kontrollera anslutningen och försök igen.'
 }
 
 // Frågan innan intresset läggs till. Bara utseende: `proposals` är förslagen från backend (oftast ett), som visas med var
@@ -58,7 +64,7 @@ export function InterestPrompt({ proposals, busy = false, error = '', boxed = tr
   )
 }
 
-// Kärnan: erbjudandet för en text som inte gav någon träff. `onAddNew(result)` får { token, proposals } och returnerar ett
+// Kärnan: erbjudandet för en text som inte gav någon träff. `onAddNew(result)` får { token, proposals, text } och returnerar ett
 // promise (misslyckas det visas felet här). `onDone` anropas när intresset är tillagt. `boxed` = egen ruta (utforskaren har
 // redan en runt träfflistan och visar den utan).
 export function NewInterestOffer({ text, onAddNew, onDone, boxed = true }) {
@@ -82,7 +88,7 @@ export function NewInterestOffer({ text, onAddNew, onDone, boxed = true }) {
     try {
       const data = await suggestInterest(text)
       if (mine !== request.current) return
-      setResult(data)
+      setResult({ ...data, text }) // med texten, så att sidan kan tolka om det när sigillet gått ut
       setPhase('ask')
     } catch (err) {
       if (mine !== request.current) return
@@ -140,7 +146,7 @@ export function NewInterestOffer({ text, onAddNew, onDone, boxed = true }) {
 // anropas när man väljer ett befintligt, och `onAddNew(result)` när man lägger till ett nytt. Båda får returnera ett promise.
 function AddInterest({ selectedIds = [], onPickExisting, onAddNew }) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState(null) // null = ingen sökning
+  const [results, setResults] = useState(null) // null = ingen sökning, annars { text, items } för texten som söktes
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
   const searchRequest = useRef(0)
@@ -156,7 +162,7 @@ function AddInterest({ selectedIds = [], onPickExisting, onAddNew }) {
     const timer = setTimeout(() => {
       const request = ++searchRequest.current
       searchInterests(text)
-        .then((items) => request === searchRequest.current && setResults(items))
+        .then((items) => request === searchRequest.current && setResults({ text, items }))
         .catch(() => request === searchRequest.current && setError('Sökningen misslyckades.'))
     }, SEARCH_DELAY_MS)
     return () => clearTimeout(timer)
@@ -187,13 +193,16 @@ function AddInterest({ selectedIds = [], onPickExisting, onAddNew }) {
         onChange={(event) => setQuery(event.target.value)}
       />
       {error && <p className="form-error">{error}</p>}
+      {/* Träfflistan (och erbjudandet) visas först när sökningen gäller texten som står i rutan, annars skulle man kunna
+          trycka på "Lägg till" för något som har träffar. */}
       {results &&
-        (results.length === 0 ? (
-          <NewInterestOffer text={query.trim()} onAddNew={onAddNew} onDone={() => setQuery('')} />
+        results.text === query.trim() &&
+        (results.items.length === 0 ? (
+          <NewInterestOffer text={results.text} onAddNew={onAddNew} onDone={() => setQuery('')} />
         ) : (
           <div className="explorer-box">
             <ul className="explorer-rows">
-              {results.map((item) => (
+              {results.items.map((item) => (
                 <li key={item.id} className="explorer-row">
                   <span className="explorer-name">
                     {item.name}
