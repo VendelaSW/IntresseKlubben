@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { InterestPrompt } from '../components/AddInterest'
 import brevIcon from '../assets/brev.png'
 import eventIcon from '../assets/event.png'
 import hemIcon from '../assets/hem.png'
@@ -212,6 +213,23 @@ function StyleGuide() {
           maxSubs={PROFILE_MAX_SUBS}
           highlight={new Set(['id:1', 'id:2', 'id:3', 'id:4', 'id:5', 'id:6'])}
         />
+
+        <h3>Lägg till ett intresse (components/AddInterest.jsx)</h3>
+        <p className="hint-text">
+          Finns intresset inte i biblioteket erbjuds man att lägga till det med egna ord (högst 40 tecken). Backend
+          kontrollerar det och väljer en förälder, och godkänns det visas den här frågan. Godkänns det inte visas bara
+          ett felmeddelande. Samma kärna används på profilen (i utforskaren) och i intervjun (en egen ruta).
+        </p>
+        <InterestPrompt
+          proposals={[
+            { key: 'p1', label: null, activity: '', interest: { id: null, name: 'Bananskalning', path: ['Mat och dryck'], is_new: true, parent_key: null } },
+          ]}
+          onConfirm={() => {}}
+          onCancel={() => {}}
+        />
+        <p className="form-error" style={{ marginTop: '0.75rem' }}>
+          Detta intresse godkänns inte, försök med ett annat.
+        </p>
       </section>
 
       <section className="style-section">
