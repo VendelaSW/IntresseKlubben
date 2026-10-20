@@ -3,17 +3,20 @@ import Avatar from './Avatar'
 import { formatSentAt } from '../utils/formatSentAt'
 
 // En konversation i inkorgen, som ett kuvert med personens bild, namn och när
-// det senaste brevet kom. Hela kuvertet länkar till tråden (ConversationPage).
+// det senaste brevet kom. Före namnet står "Från" eller "Till" (vem som skrev
+// det senaste brevet), så att ett brev man själv har skickat inte ser ut att
+// vara till en själv. Hela kuvertet länkar till tråden (ConversationPage).
 // Klickbart som andra kort (.card-interactive): lyfts och får gul kant vid hover.
 // Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret vid hover; ett
 // nytt (`isNew`) förblir stängt och har ett gult sigill. Se Brev i stilguiden.
 function ConversationCard({ conversation, isNew = false }) {
   const name = conversation.name ?? conversation.username
+  const direction = conversation.last_message_from_me ? 'Till' : 'Från'
   return (
     <Link
       to={`/meddelanden/${conversation.id}`}
       className={`envelope card-interactive${isNew ? ' envelope-new' : ''}`}
-      aria-label={isNew ? `Brev med ${name}, nya brev` : `Brev med ${name}`}
+      aria-label={isNew ? `Brev ${direction.toLowerCase()} ${name}, nya brev` : `Brev ${direction.toLowerCase()} ${name}`}
     >
       <span className="envelope-inside" aria-hidden="true" />
       <span className="envelope-letter lined-paper" aria-hidden="true" />
@@ -21,6 +24,7 @@ function ConversationCard({ conversation, isNew = false }) {
         {/* Bild och namn, och datumet under, nertill som en adress på ett kuvert. */}
         <span className="envelope-address">
           <span className="envelope-addressee">
+            <span className="envelope-direction">{direction}</span>
             <Avatar name={name} imageUrl={conversation.image_url} className="person-list-avatar envelope-avatar" />
             <span className="envelope-name">{name}</span>
           </span>

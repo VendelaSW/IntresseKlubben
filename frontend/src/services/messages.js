@@ -1,68 +1,37 @@
-import { apiGet, apiPost } from './api'
+import { apiGet, apiPost, apiPut } from './api'
 import { SECOND, invalidate, queryClient } from './queryClient'
 
-// "Sett" per konversation: användarens id → tidpunkt för senaste meddelandet
-// man har sett. Tiderna kommer från servern (last_message_at/created_at),
-// så en felställd klocka i webbläsaren påverkar inte. Sparas i webbläsaren,
-// så på en annan enhet börjar det om. Riktig läst/oläst kräver ändring i
-// backend.
-const SEEN_KEY = 'intresseklubben.messagesSeen'
+// Vilka brev man har läst sparas på kontot (PUT /messages/{id}/read), så att
+// ett läst brev är läst i alla webbläsare och på alla enheter. Inkorgen
+// (`unread` per konversation) och märket på Brev (unread_conversations i
+// GET /users/me/badges) räknas på servern.
 
-function readSeen() {
-  try {
-    return JSON.parse(localStorage.getItem(SEEN_KEY)) ?? {}
-  } catch {
-    return {}
-  }
+// Förut sparades "sett" i webbläsaren under den här nyckeln. Den används inte
+// längre, så den städas bort.
+try {
+  localStorage.removeItem('intresseklubben.messagesSeen')
+} catch {
+  // Lagringen kan vara blockerad (t.ex. privat läge); då finns inget att städa.
 }
 
-function writeSeen(seen) {
-  try {
-    localStorage.setItem(SEEN_KEY, JSON.stringify(seen))
-  } catch {
-    // Går inte att spara: badgen kan då visas igen efter omladdning.
-  }
+// Skickas när en konversation har markerats som läst, så att märket räknas om
+// direkt (se useBadgeCounts).
+export const MESSAGES_READ = 'messages-read'
+
+// Markerar konversationen med userId som läst fram till det senaste brevet
+// (görs när man har den öppen, se ConversationPage). Inkorgen hämtas om, så
+// att kuvertet inte längre står under Nya.
+export async function markConversationRead(userId) {
+  await apiPut(`/messages/${userId}/read`)
+  invalidate(CONVERSATIONS_KEY)
+  window.dispatchEvent(new Event(MESSAGES_READ))
 }
 
-function markSeen(userId, timestamp) {
-  writeSeen({ ...readSeen(), [userId]: timestamp })
-}
-
-// Markerar en konversation som sedd fram till timestamp (t.ex. när nya brev
-// visas i den öppna chatten).
-export function markConversationSeen(userId, timestamp) {
-  markSeen(userId, timestamp)
-}
-
-// Id:n för konversationerna med brev som är nyare än det man senast såg, dvs.
-// nya brev som man inte har öppnat. Har man själv skrivit det senaste är det
-// inget nytt brev, även om det skrevs på en annan enhet (där "sett" inte är
-// sparat). En konversation räknas som sedd först när man öppnar den (se
-// markConversationSeen i ConversationPage).
-export function unseenConversationIds(conversations) {
-  const seen = readSeen()
-  return new Set(
-    conversations
-      .filter(
-        (c) =>
-          !c.last_message_from_me &&
-          (!seen[c.id] || new Date(c.last_message_at) > new Date(seen[c.id])),
-      )
-      .map((c) => c.id),
-  )
-}
-
-// Antal konversationer med nya brev, för siffran på brev-loggan.
-export function countUnseenConversations(conversations) {
-  return unseenConversationIds(conversations).size
-}
-
-// Ens eget meddelande räknas som sett, så att det inte ger en badge.
 // Det skickade brevet läggs direkt i den sparade konversationen, och listan
-// på Brev hämtas om (det senaste brevet har ändrats).
+// på Brev hämtas om (det senaste brevet har ändrats). Ens egna brev är aldrig
+// nya, så de ger inget märke.
 export async function sendMessage(userId, text) {
   const message = await apiPost('/messages', { recipient_id: userId, text })
-  markSeen(userId, message.created_at)
   queryClient.setQueryData(conversationQuery(userId).queryKey, (current) =>
     current && !current.messages.some((m) => m.id === message.id)
       ? { ...current, messages: [...current.messages, message] }

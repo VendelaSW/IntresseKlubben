@@ -29,6 +29,7 @@ from datetime import datetime
 from email_validator import EmailNotValidError, validate_email
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.core import error_messages as msg
 from app.core.profanity import validate_clean_text
 
 
@@ -55,6 +56,15 @@ def validate_username(value: str) -> str:
     return value
 
 
+def validate_password(value: str) -> str:
+    """Reglerna för ett nytt lösenord (utöver minsta längden, som sätts med Field). bcrypt tar högst 72 byte och
+    ger annars ett fel, så längre lösenord stoppas här med ett tydligt meddelande. Delas av registreringen,
+    återställningen och bytet av lösenord."""
+    if len(value.encode("utf-8")) > 72:
+        raise ValueError(msg.PASSWORD_TOO_LONG)
+    return value
+
+
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     email: str
@@ -64,6 +74,11 @@ class UserCreate(BaseModel):
     @classmethod
     def username_is_valid(cls, value: str) -> str:
         return validate_username(value)
+
+    @field_validator("password")
+    @classmethod
+    def password_is_valid(cls, value: str) -> str:
+        return validate_password(value)
 
     @field_validator("email")
     @classmethod
@@ -110,6 +125,44 @@ class UserLogin(BaseModel):
     password: str
 
 
+class VerifyEmail(BaseModel):
+    """Koden från länken i bekräftelsemejlet (POST /users/verify-email), och i
+    mejlet som bekräftar ett byte av lösenord (POST /users/confirm-password-change)."""
+
+    token: str = Field(min_length=1, max_length=200)
+
+
+class ForgotPassword(BaseModel):
+    """Glömt lösenord (POST /users/forgot-password): användarnamn eller e-post, som vid inloggningen."""
+
+    username_or_email: str = Field(min_length=1, max_length=320)
+
+
+class ResetPassword(BaseModel):
+    """Nytt lösenord med koden från återställningsmejlet (POST /users/reset-password)."""
+
+    token: str = Field(min_length=1, max_length=200)
+    new_password: str = Field(min_length=8)
+
+    @field_validator("new_password")
+    @classmethod
+    def password_is_valid(cls, value: str) -> str:
+        return validate_password(value)
+
+
+class PasswordChange(BaseModel):
+    """Byt lösenord (POST /users/me/password). Det nuvarande krävs, och det nya gäller först när
+    bytet bekräftats via mejlet."""
+
+    current_password: str
+    new_password: str = Field(min_length=8)
+
+    @field_validator("new_password")
+    @classmethod
+    def password_is_valid(cls, value: str) -> str:
+        return validate_password(value)
+
+
 class AccountDelete(BaseModel):
     """Lösenordet krävs för att radera kontot, så att en inloggad dator som
     någon annan sitter vid inte räcker."""
@@ -133,6 +186,8 @@ class CurrentUserOut(UserOut):
     Används också i inloggningssvaret, som bara går till användaren själv."""
 
     email: str | None
+    # Har man bekräftat e-postadressen via länken i mejlet? (Se POST /users/me/email-verification.)
+    email_verified: bool
     profile_completed: bool
 
 

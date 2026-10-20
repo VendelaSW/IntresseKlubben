@@ -1088,6 +1088,30 @@ span.tag-selected:hover {
   padding-inline: 0.9rem;
 }
 
+/* Brevikonen (PersonActions, "Skriv ett brev"): direkt efter den första
+   knappen, och resten av raden skjuts till höger. Lika hög som de andra
+   små knapparna. */
+.person-card .card-actions > .card-write {
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+  flex-shrink: 0;
+  margin-right: auto;
+  padding-inline: 0.35rem;
+}
+
+.card-write img {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* "Skriv ett brev" på någons profil (UserProfilePage): en länk som ser ut som
+   en primärknapp. */
+.profile-write {
+  display: inline-block;
+  text-decoration: none;
+}
+
 /* Textknappen ("Ta bort förslag") en bit in från högerkanten. */
 .person-card .card-actions > .text-button {
   margin-right: 0.4rem;
@@ -1414,6 +1438,18 @@ span.tag-selected:hover {
   color: var(--color-muted);
 }
 
+/* "Från" eller "Till" före bilden och namnet (vem som skrev det senaste
+   brevet), som på ett riktigt kuvert. Lika liten som datumet, och på samma rad
+   som namnet så att sigillet på ett nytt kuvert inte täcker den. */
+.envelope-direction {
+  flex-shrink: 0;
+  font-size: clamp(0.5rem, 4.9cqi, 0.7rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+
 /* Fliken: en blå triangel med en vit triangel inuti, så att kanten syns. Blir
    gul vid hover, som kuvertets kant. Vänds upp och hamnar bakom brevet när
    kuvertet öppnas. */
@@ -1611,11 +1647,18 @@ span.tag-selected:hover {
 
 /* Raden med bild, namn och tid är exakt en linje hög, så att bilden inte gör
    raden högre och texten glider av linjerna längre ner. */
-.notepad-message p:first-child {
+.notepad-message-head {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   height: var(--line-gap);
+}
+
+/* Ett meddelande i följd från samma person (se utils/messageGroups.js): utan
+   namnrad och direkt på linjen under det förra, i stället för en tom linje
+   emellan. Tiden syns när man håller över texten. */
+.notepad-message-continued {
+  margin-top: calc(-1 * var(--line-gap));
 }
 
 .notepad .notepad-message-avatar {
@@ -1978,7 +2021,7 @@ span.tag-selected:hover {
     align-items: flex-start;
   }
 
-  .group-layout > .sheet {
+  .group-layout > .group-layout-main {
     flex: 0 1 480px;
   }
 
@@ -1986,6 +2029,70 @@ span.tag-selected:hover {
     flex: 1 1 0;
     min-width: 0;
   }
+}
+
+/* Klubbens ruta med inläggen under (vänster kolumn i .group-layout). */
+.group-layout-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+/* Klubbens inlägg (components/groups/GroupPosts.jsx): skrivfält överst och
+   inläggen under, nyaste först, med en linje emellan. */
+.group-posts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.group-posts .card-subheading {
+  margin: 0;
+}
+
+/* Läggs på .auth-form: Publicera till höger under fältet. */
+.group-post-form {
+  align-items: flex-end;
+}
+
+.group-post-form .textarea-count {
+  width: 100%;
+}
+
+.group-post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.group-post {
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.group-post-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+}
+
+.group-post-head .person-list-avatar {
+  width: 1.6rem;
+  height: 1.6rem;
+  font-size: 0.75rem;
+}
+
+/* "Radera" längst till höger på raden. */
+.group-post-delete {
+  margin-left: auto;
+}
+
+.group-post-content {
+  margin: 0.4rem 0 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 /* Ett ark: ett vitt kort lika brett som profilkorten, vänsterställt som resten

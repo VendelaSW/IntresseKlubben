@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import logo from '../assets/intresseklubben.png'
+import ForgotPasswordFields from '../components/ForgotPasswordFields'
 import LoginFields from '../components/LoginFields'
 import ProblemStatement from '../components/ProblemStatement'
 import RegisterFields from '../components/RegisterFields'
@@ -9,7 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 
 function Home() {
   const { user, loading } = useAuth()
-  const [view, setView] = useState(null) // null | 'login' | 'register'
+  const [view, setView] = useState(null) // null | 'login' | 'register' | 'forgot'
   // Har man precis skapat ett konto hamnar man direkt på inloggningen, med ett
   // meddelande om det. Byter man vy själv försvinner meddelandet.
   const [justRegistered, setJustRegistered] = useState(false)
@@ -54,8 +55,22 @@ function Home() {
         <>
           <LoginFields
             onSwitchToRegister={() => show('register')}
-            notice={justRegistered ? 'Kontot är skapat! Logga in med ditt användarnamn eller din e-post.' : null}
+            onForgotPassword={() => show('forgot')}
+            notice={
+              justRegistered
+                ? 'Kontot är skapat! Vi har skickat ett mejl för att bekräfta din e-post. Logga in med ditt användarnamn eller din e-post.'
+                : null
+            }
           />
+          <button type="button" className="text-button" onClick={() => show(null)}>
+            ← Tillbaka
+          </button>
+        </>
+      )}
+
+      {view === 'forgot' && (
+        <>
+          <ForgotPasswordFields onSwitchToLogin={() => show('login')} />
           <button type="button" className="text-button" onClick={() => show(null)}>
             ← Tillbaka
           </button>

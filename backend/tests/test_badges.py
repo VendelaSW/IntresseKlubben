@@ -62,7 +62,7 @@ def test_no_badges_for_a_new_user(client, user):
         "contact_requests": 0,
         "club_invitations": 0,
         "event_invitations": 0,
-        "conversations": [],
+        "unread_conversations": 0,
         "club_events": [],
     }
 
@@ -144,28 +144,30 @@ def test_club_events_from_blocked_people_are_left_out(client, db, user, people, 
     assert client.get(URL).json()["club_events"] == []
 
 
-def test_conversations_give_the_latest_message_per_person(client, db, user, people):
+def test_unread_conversations_count_only_unread_letters_from_others(client, db, user, people):
     db.add_all([
         Message(sender_id=2, recipient_id=1, text="hej", created_at=datetime(2026, 1, 1, 10, tzinfo=timezone.utc)),
         Message(sender_id=1, recipient_id=2, text="hej själv", created_at=datetime(2026, 1, 1, 11, tzinfo=timezone.utc)),
         Message(sender_id=3, recipient_id=1, text="tjena", created_at=datetime(2026, 1, 2, 9, tzinfo=timezone.utc)),
+        Message(sender_id=4, recipient_id=1, text="halloj", created_at=datetime(2026, 1, 2, 10, tzinfo=timezone.utc)),
     ])
     db.commit()
-    conversations = client.get(URL).json()["conversations"]
-    # Nyast först, och vem som skrev det senaste brevet.
-    assert [(c["id"], c["last_message_from_me"]) for c in conversations] == [(3, False), (2, True)]
-    # Samma konversationer, i samma ordning, som på Brev.
-    assert [c["id"] for c in client.get("/messages").json()] == [3, 2]
+    # Med 2 skrev jag senast, så bara 3 och 4 är nya.
+    assert client.get(URL).json()["unread_conversations"] == 2
+    assert client.put("/messages/3/read").status_code == 204
+    assert client.get(URL).json()["unread_conversations"] == 1
+    # Samma som fliken Nya på Brev.
+    assert [c["id"] for c in client.get("/messages").json() if c["unread"]] == [4]
 
 
-def test_conversations_with_blocked_people_are_left_out(client, db, user, people):
+def test_conversations_with_blocked_people_are_not_counted(client, db, user, people):
     db.add_all([
         Message(sender_id=2, recipient_id=1, text="hej"),
         Message(sender_id=3, recipient_id=1, text="hej"),
         Contact(requester_id=3, addressee_id=1, pair_key=_pair(1, 3), status="BLOCKED"),
     ])
     db.commit()
-    assert [c["id"] for c in client.get(URL).json()["conversations"]] == [2]
+    assert client.get(URL).json()["unread_conversations"] == 1
     assert [c["id"] for c in client.get("/messages").json()] == [2]
 
 

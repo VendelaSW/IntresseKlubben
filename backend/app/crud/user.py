@@ -12,12 +12,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.security import hash_password
+from app.crud.email_token import delete_user_tokens
 from app.crud.group import list_user_groups, remove_member
 from app.models.contact import Contact
+from app.models.conversation_read import ConversationRead
 from app.models.dismissed_suggestion import DismissedSuggestion
 from app.models.event import Event, EventInvitation, EventResponse
 from app.models.group import GroupInvitation
 from app.models.group_message import GroupMessage
+from app.models.group_post import GroupPost
 from app.models.interest import Interest
 from app.models.message import Message
 from app.models.user import User
@@ -108,7 +111,8 @@ def update_account(db: Session, user: User, username: str | None = None, email: 
     schemas/user.py), e-posten med små bokstäver. Lösenordet kontrolleras i
     routen. Ett användarnamn eller en e-post som någon annan har ger samma fel
     som vid registrering; att byta skiftläge på sitt eget namn går bra.
-    Inloggningen bygger på användarens id, så man förblir inloggad.
+    Inloggningen bygger på användarens id, så man förblir inloggad. En ny
+    e-postadress är inte bekräftad (email_verified_at töms).
     """
     if username is not None:
         other = get_user_by_username(db, username)
@@ -121,8 +125,9 @@ def update_account(db: Session, user: User, username: str | None = None, email: 
 
     if username is not None:
         user.username = username
-    if email is not None:
+    if email is not None and email != user.email:
         user.email = email
+        user.email_verified_at = None
     _commit_or_raise_taken(db, username=username, email=email, own_id=user.id)
     db.refresh(user)
     return user
@@ -204,13 +209,18 @@ def delete_user(db: Session, user: User) -> str | None:
     db.query(Message).filter(
         or_(Message.sender_id == user_id, Message.recipient_id == user_id)
     ).delete(synchronize_session=False)
+    db.query(ConversationRead).filter(
+        or_(ConversationRead.user_id == user_id, ConversationRead.other_user_id == user_id)
+    ).delete(synchronize_session=False)
     db.query(GroupMessage).filter(GroupMessage.sender_id == user_id).delete(synchronize_session=False)
+    db.query(GroupPost).filter(GroupPost.author_id == user_id).delete(synchronize_session=False)
     db.query(Contact).filter(
         or_(Contact.requester_id == user_id, Contact.addressee_id == user_id)
     ).delete(synchronize_session=False)
     db.query(DismissedSuggestion).filter(
         or_(DismissedSuggestion.user_id == user_id, DismissedSuggestion.dismissed_user_id == user_id)
     ).delete(synchronize_session=False)
+    delete_user_tokens(db, user_id)
 
     # Egna intressen som kontot skapat finns kvar för andra som har dem, utan skapare.
     db.query(Interest).filter(Interest.created_by_user_id == user_id).update(

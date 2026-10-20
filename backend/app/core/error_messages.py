@@ -78,6 +78,12 @@ PERSON_NOT_INVITED = "Personen är inte inbjuden"
 GROUP_INVITE_NOBODY = "Välj minst en person att bjuda in"
 GROUP_CANNOT_INVITE = "Du kan inte bjuda in till den här klubben"
 
+# ---------- Inlägg i klubbar (routes/groups.py, schemas/group_post.py) ----------
+GROUP_POST_EMPTY = "Inlägget får inte vara tomt"
+GROUP_POST_TOO_LONG = "Inlägget får max vara 2000 tecken"
+GROUP_POST_NOT_FOUND = "Inlägget finns inte"
+GROUP_POST_CANNOT_DELETE = "Bara den som skrev inlägget och klubbens ägare kan radera det"
+
 # Intervju: intressen ur fri text
 INTERVIEW_TEXT_EMPTY = "Skriv något om dina intressen"
 INTERVIEW_AI_NOT_CONFIGURED = "AI-tjänsten är inte inställd"
@@ -93,6 +99,19 @@ CONFIRM_OWN_INTEREST_NAME = "Namnet på det nya intresset är inte tillåtet"
 CONFIRM_TOO_MANY_OWN_INTERESTS = "Du har lagt till många egna intressen i dag. Försök igen i morgon."
 CONFIRM_NO_INTERESTS = "Välj minst ett intresse"
 CONFIRM_UNAVAILABLE = "Vi kunde inte spara just nu. Försök igen om en stund."
+
+# ---------- Verifiering av e-post (routes/user.py) ----------
+EMAIL_NOT_VERIFIED = "Bekräfta din e-postadress först. Länken finns i mejlet vi skickade."
+EMAIL_MISSING = "Lägg till en e-postadress först"
+EMAIL_ALREADY_VERIFIED = "E-postadressen är redan bekräftad"
+EMAIL_LINK_INVALID = "Länken är ogiltig eller har gått ut. Skicka en ny från din profil."
+EMAIL_TOO_MANY_REQUESTS = "Vi har nyss skickat ett mejl. Vänta en stund innan du skickar ett nytt"
+EMAIL_SEND_FAILED = "Vi kunde inte skicka mejlet just nu. Försök igen om en stund"
+
+# ---------- Lösenord via e-post (routes/user.py, schemas/user.py) ----------
+PASSWORD_TOO_LONG = "Lösenordet får max vara 72 tecken"
+PASSWORD_LINK_INVALID = "Länken är ogiltig eller har gått ut. Be om en ny."
+PASSWORD_CHANGE_NEEDS_EMAIL = "Lägg till en e-postadress först, så att vi kan bekräfta bytet"
 
 # ---------- Texter för standardfel (används längst ner) ----------
 FIELD_REQUIRED = "Fältet är obligatoriskt"

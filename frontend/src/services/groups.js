@@ -108,6 +108,20 @@ export function sendGroupMessage(id, content) {
   return apiPost(`/groups/${id}/messages`, { content })
 }
 
+// Klubbens inlägg (nyheter, regler), nyaste först. Bara för medlemmar.
+export function getGroupPosts(id) {
+  return apiGet(`/groups/${id}/posts`)
+}
+
+export function createGroupPost(id, content) {
+  return apiPost(`/groups/${id}/posts`, { content })
+}
+
+// Bara den som skrev inlägget och klubbens ägare får radera det.
+export function deleteGroupPost(id, postId) {
+  return apiDelete(`/groups/${id}/posts/${postId}`)
+}
+
 export function createGroup(data) {
   return changingMyGroups(apiPost('/groups/', data))
 }

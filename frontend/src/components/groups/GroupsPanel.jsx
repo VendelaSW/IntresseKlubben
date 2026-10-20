@@ -9,6 +9,7 @@ import CreateButton from '../CreateButton'
 import GroupChat from './GroupChat'
 import GroupDetails from './GroupDetails'
 import GroupList from './GroupList'
+import GroupPosts from './GroupPosts'
 import GroupSortMenu from './GroupSortMenu'
 import MunicipalityPicker from '../MunicipalityPicker'
 import { getContacts } from '../../services/contacts'
@@ -349,18 +350,24 @@ function GroupsPanel() {
           {selected ? (
             <>
               <BackButton onClick={goBack} />
-              {/* Klubben till vänster och chatten bredvid på dator, chatten under på mobil. */}
+              {/* Klubben och inläggen under den till vänster och chatten bredvid på dator. På mobil
+                  klubben, inläggen och sist chatten. */}
               <div className="group-layout">
-                <div className="card sheet">
-                  <GroupDetails
-                    group={selected}
-                    contacts={contacts ?? []}
-                    busy={busy}
-                    onJoin={handleJoin}
-                    onLeave={handleLeave}
-                    onDelete={handleDelete}
-                    onDecline={handleDecline}
-                  />
+                <div className="group-layout-main">
+                  <div className="card sheet">
+                    <GroupDetails
+                      group={selected}
+                      contacts={contacts ?? []}
+                      busy={busy}
+                      onJoin={handleJoin}
+                      onLeave={handleLeave}
+                      onDelete={handleDelete}
+                      onDecline={handleDecline}
+                    />
+                  </div>
+                  {selected.is_member && (
+                    <GroupPosts key={selected.id} groupId={selected.id} isOwner={selected.is_owner} />
+                  )}
                 </div>
                 {selected.is_member && <GroupChat key={selected.id} groupId={selected.id} />}
               </div>
