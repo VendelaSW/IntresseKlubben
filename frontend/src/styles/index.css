@@ -1672,7 +1672,9 @@ span.tag-selected:hover {
    linjer hög, så att sidan inte blir hur lång som helst. Rutan har egna
    linjer som följer med när man scrollar (background-attachment: local), på
    samma höjd som pappret runt omkring, så att texten står kvar på linjerna.
-   På mobil är den lägre och släpper scrollen vidare till sidan (se nedan).
+   När rutan inte har något att scrolla, eller är scrollad till toppen eller
+   botten, går scrollen vidare till sidan, så att man aldrig fastnar i rutan
+   (därför ingen overscroll-behavior: contain). På mobil är den lägre (se nedan).
    Rutan går från den röda linjen ända ut till papperets kant (texten ligger
    kvar på samma ställe), så att dess kanter inte syns. Se useChatScroll. */
 .notepad-messages {
@@ -1684,7 +1686,6 @@ span.tag-selected:hover {
   gap: var(--line-gap);
   max-height: calc(15 * var(--line-gap));
   overflow-y: auto;
-  overscroll-behavior: contain;
   background-color: var(--color-paper);
   background-image: repeating-linear-gradient(
     to bottom,
@@ -1777,12 +1778,9 @@ span.tag-selected:hover {
     --notepad-indent: 0.6rem;
   }
 
-  /* Lägre chatt, så att det alltid finns sida att dra i ovanför eller nedanför
-     den, och när chatten är scrollad till toppen eller botten tar sidan över
-     scrollen i stället för att fastna i rutan. */
+  /* Lägre chatt, så att det alltid finns sida att dra i ovanför eller nedanför den. */
   .notepad-messages {
     max-height: calc(10 * var(--line-gap));
-    overscroll-behavior: auto;
   }
 
   .notepad-title {
