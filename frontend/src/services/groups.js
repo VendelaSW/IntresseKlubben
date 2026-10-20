@@ -67,6 +67,17 @@ export function getMyGroups() {
   return queryClient.fetchQuery(myGroupsQuery)
 }
 
+// Klubbarna en person är med i, som man själv får se (öppna, och privata man
+// själv är med i), för personens profil. Ligger under ['groups'], så den hämtas
+// om när man går med i eller lämnar en klubb (se changingMyGroups).
+export function memberGroupsQuery(userId) {
+  return {
+    queryKey: ['groups', 'member', String(userId)],
+    queryFn: () => apiGet(`/groups/member/${userId}`),
+    staleTime: 15 * SECOND,
+  }
+}
+
 // Klubbsidans tre listor (mina, förslag och inbjudningar) i ett anrop. Sparas
 // i minnet som mina klubbar.
 export const groupsOverviewQuery = {

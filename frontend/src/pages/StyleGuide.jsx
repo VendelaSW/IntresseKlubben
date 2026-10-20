@@ -11,6 +11,7 @@ import LocationPicker from '../components/LocationPicker'
 import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
+import CreateButton from '../components/CreateButton'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
@@ -175,9 +176,9 @@ function StyleGuide() {
             Primär
           </button>
         </div>
-        <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Rund knapp (.round-button)</p>
+        <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Skapa-knapp (CreateButton, .create-button)</p>
         <div className="account-choice-links" style={{ marginTop: '1rem' }}>
-          <button className="primary-button round-button" type="button" aria-label="Exempel" />
+          <CreateButton label="Skapa klubb" onClick={() => {}} />
         </div>
       </section>
 
@@ -400,23 +401,25 @@ function StyleGuide() {
         </p>
 
         <p className="swatch-label" style={{ marginTop: '1.5rem' }}>
-          Rubrikrad (.page-header) med rund knapp, och flikar (.filter-tabs)
+          Rubrikrad (.page-header) med skapa-knapp, och flikar (.filter-tabs)
         </p>
         <p className="hint-text">
           På dator ligger rubrik och flikar till vänster på alla sidor, på mobil centrerade (Brev,
           Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
-          .app-section för sidor med kort i rutnät (Klubbar och Events): "+"-knappen direkt efter
-          rubriken och tätare avstånd. Vald flik sparas i adressen med useTabParam (?flik=kontakter),
+          .app-section för sidor med kort i rutnät (Klubbar och Events): "+ Skapa"-knappen direkt efter
+          rubriken och tätare avstånd. Flikarna är sammanhängande knappar med en ram runt, och den
+          valda är gul; på mobil bryts de till flera rader. En tom flik har en knapp vidare. Vald flik sparas i adressen med useTabParam (?flik=kontakter),
           så att Tillbaka kommer tillbaka till samma flik.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
           <div className="page-header">
             <h1 className="app-title">Exempel</h1>
-            <button className="primary-button round-button" type="button" aria-label="Skapa" />
+            <CreateButton label="Skapa" onClick={() => {}} />
           </div>
           <div className="filter-tabs" role="tablist">
             <button type="button" role="tab" aria-selected="true" className="tag tag-selected">Första (2)</button>
             <button type="button" role="tab" aria-selected="false" className="tag">Andra (0)</button>
+            <button type="button" role="tab" aria-selected="false" className="tag">Tredje (5)</button>
           </div>
         </section>
 
@@ -654,6 +657,7 @@ function StyleGuide() {
           som formulärfälten. Smal som standard, så den passar inne i ett profilkort. Som "Om
           mig" bevarar den radbrytningar (.soft-box-text) och visas bara om texten finns.
           Med .soft-box-wide fyller den hela bredden i ett ark, t.ex. "Kommer du?" på ett event.
+          Samma fält bekräftar att man har gått med i en klubb ("Du är med i …!", .join-notice).
         </p>
         <div className="card card-wide content-stack" style={{ marginTop: '1rem' }}>
           <p className="card-title">Emmy, 24</p>

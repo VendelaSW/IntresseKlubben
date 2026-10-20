@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.auth.security import get_current_user, require_profile
 from app.core import error_messages as msg
 from app.core import storage
-from app.crud.contact import blocked_by_me_ids, blocked_user_ids
+from app.crud.contact import blocked_by_me_ids, blocked_user_ids, is_blocked
 from app.crud.group import (
     GroupRuleError,
     GroupSort,
@@ -19,6 +19,7 @@ from app.crud.group import (
     is_invited,
     join_group,
     leave_group,
+    list_member_groups_visible_to,
     list_members,
     list_public_groups,
     list_suggested_groups,
@@ -184,6 +185,17 @@ def read_groups_overview(current_user=Depends(get_current_user), db: Session = D
         suggested=[_to_response(g, user_id, *blocks) for g in list_suggested_groups(db, current_user)],
         invitations=[_to_response(g, user_id, *blocks) for g in list_user_invitations(db, user_id)],
     )
+
+
+# Klubbarna en person är med i, för personens profil: alla öppna, och privata
+# bara om man själv är med i dem. Har någon av dem blockerat den andra ges samma
+# 404 som för en person som inte finns, som profilen (se AGENTS.md).
+@router.get("/member/{user_id}", response_model=list[GroupResponse])
+def read_member_groups(user_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    if db.get(User, user_id) is None or is_blocked(db, current_user.id, user_id):
+        raise HTTPException(status_code=404, detail="Användaren finns inte")
+    blocks = _blocks(db, current_user.id)
+    return [_to_response(g, current_user.id, *blocks) for g in list_member_groups_visible_to(db, user_id, current_user.id)]
 
 
 # Bara antalet, för märket i headern.

@@ -170,6 +170,22 @@ def list_user_groups(db: Session, user_id: int) -> list[Group]:
     )
 
 
+def list_member_groups_visible_to(db: Session, member_id: int, viewer_id: int) -> list[Group]:
+    """Klubbarna `member_id` är med i, som `viewer_id` får se: alla öppna, och
+    privata bara om `viewer_id` också är med i dem (för en persons profil)."""
+    viewer_groups = select(GroupMember.group_id).where(GroupMember.user_id == viewer_id)
+    return (
+        _base_query(db)
+        .join(GroupMember, GroupMember.group_id == Group.id)
+        .filter(
+            GroupMember.user_id == member_id,
+            or_(Group.visibility == GroupVisibility.public, Group.id.in_(viewer_groups)),
+        )
+        .order_by(Group.name)
+        .all()
+    )
+
+
 def list_suggested_groups(db: Session, user: User) -> list[Group]:
     """Öppna grupper för användarens intressen som hen inte redan är med i."""
     interest_ids = [i.id for i in user.interests]
