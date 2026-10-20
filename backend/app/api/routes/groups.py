@@ -34,6 +34,7 @@ from app.models.user import User
 from app.schemas.contact import ContactUser
 from app.schemas.group import GroupCreate, GroupInvite, GroupMemberResponse, GroupResponse, GroupsOverview
 from app.schemas.group_message import GroupMessageCreate, GroupMessageOut
+from app.services.text_moderation import censor_message, check_fields
 
 # Låst tills profilen är klar (se require_profile).
 router = APIRouter(prefix="/groups", tags=["groups"], dependencies=[Depends(require_profile)])
@@ -103,6 +104,10 @@ def create(
         raise HTTPException(status_code=422, detail="Okänt intresse")
     if db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail="Okänd kommun")
+    check_fields(
+        ai=True, labels={"name": "Gruppnamnet"}, name=data.name, description=data.description,
+        meeting_info=data.meeting_info, place_name=data.place_name, address=data.address,
+    )
     try:
         group = create_group(db, current_user, data)
     except GroupRuleError as err:
@@ -277,7 +282,7 @@ def create_group_message(
     db: Session = Depends(get_db),
 ):
     group = _member_group_or_403(db, group_id, current_user.id)
-    return send_group_message(db, group.id, current_user.id, message_in.content)
+    return send_group_message(db, group.id, current_user.id, censor_message(message_in.content))
 
 
 @router.get("/{group_id}/messages", response_model=list[GroupMessageOut])

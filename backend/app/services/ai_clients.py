@@ -1,10 +1,9 @@
 """
-Klienter mot OpenAI: en språkmodell (get_llm) och OpenAI:s modererings-API (get_moderator).
+Klienter mot OpenAI och Hugging Face, bakom utbytbara gränssnitt.
 
-Resten av backenden pratar bara med de två gränssnitten LLM och Moderator, aldrig med OpenAI
-direkt. Då kan testerna byta ut dem mot fejkade versioner (tests/fakes.py, via set_clients) och
-fler delar av appen kan använda dem. Anropen görs med urllib, så att backend inte får ett nytt
-beroende. Nyckeln läses ur inställningarna och hamnar aldrig i fel, loggar eller svar.
+LLM och Moderator använder OpenAI; ToxicityClassifier använder den fristående HF-spacen via
+gradio_client. Tester kan ersätta alla tre via set_clients. OpenAI-anropen använder urllib.
+Nycklar läses ur inställningarna och hamnar aldrig i fel, loggar eller svar.
 
 Tidsgränser: backendens funktion får köra i högst 30 sekunder (maxDuration i backend/vercel.json),
 så inget anrop får överleva den. Varje anrop väntar högst PER_CALL_TIMEOUT_SECONDS, och ett
@@ -15,7 +14,10 @@ import json
 import time
 import urllib.error
 import urllib.request
+from functools import lru_cache
 from typing import Protocol
+
+from pydantic import BaseModel, Field, StrictBool, StrictStr
 
 from app.core.config import settings
 
@@ -73,6 +75,48 @@ class Moderator(Protocol):
         `texts`. Kastar AIFailed om anropet misslyckas eller svaret inte går att använda."""
 
 
+class ToxicityResult(BaseModel):
+    flagged: StrictBool
+    translated_text: StrictStr
+    score: float = Field(ge=0, le=1, strict=True, allow_inf_nan=False)
+
+
+class ToxicityClassifier(Protocol):
+    def classify(self, text: str, deadline: Deadline | None = None) -> ToxicityResult:
+        ...
+
+
+@lru_cache(maxsize=1)
+def _get_hf_client():
+    from gradio_client import Client
+
+    if not settings.moderation_space.strip():
+        raise AINotConfigured()
+    return Client(
+        settings.moderation_space, token=settings.hf_token or None,
+        verbose=False, analytics_enabled=False,
+        httpx_kwargs={"timeout": PER_CALL_TIMEOUT_SECONDS},
+    )
+
+
+class HuggingFaceClassifier:
+    def classify(self, text: str, deadline: Deadline | None = None) -> ToxicityResult:
+        job = None
+        try:
+            _timeout(deadline)
+            job = _get_hf_client().submit(text, api_name="/moderate")
+            return ToxicityResult.model_validate(job.result(timeout=_timeout(deadline)))
+        except AINotConfigured:
+            raise
+        except Exception:
+            if job is not None:
+                try:
+                    job.cancel()
+                except Exception:
+                    pass
+            raise AIFailed("Textkontrollen misslyckades") from None
+
+
 def _post_json(url: str, payload: dict, timeout: float) -> dict:
     request = urllib.request.Request(
         url,
@@ -123,15 +167,23 @@ class OpenAIModerator:
         return flags
 
 
-# Fejkade versioner som testerna sätter in (set_clients). Är något satt används det i stället för OpenAI.
+# Fejkade versioner som testerna sätter in med set_clients.
 _llm_override: LLM | None = None
 _moderator_override: Moderator | None = None
+_toxicity_override: ToxicityClassifier | None = None
 
 
-def set_clients(llm: LLM | None = None, moderator: Moderator | None = None) -> None:
+def set_clients(
+    llm: LLM | None = None, moderator: Moderator | None = None, toxicity: ToxicityClassifier | None = None
+) -> None:
     """Byter ut klienterna (bara för tester). Utan argument återställs de."""
-    global _llm_override, _moderator_override
+    global _llm_override, _moderator_override, _toxicity_override
     _llm_override, _moderator_override = llm, moderator
+    _toxicity_override = toxicity
+
+
+def get_toxicity_classifier() -> ToxicityClassifier:
+    return _toxicity_override if _toxicity_override is not None else HuggingFaceClassifier()
 
 
 def ai_configured() -> bool:

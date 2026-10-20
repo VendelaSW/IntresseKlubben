@@ -94,6 +94,8 @@ from app.schemas.user import (
     UserOut,
 )
 
+from app.services.text_moderation import check_fields
+
 router = APIRouter(prefix="/users", tags=["users"])
 
 
@@ -121,6 +123,7 @@ def _taken(exc: UsernameTakenError | EmailTakenError) -> HTTPException:
     status_code=status.HTTP_201_CREATED,
 )
 def register_user(user_in: UserCreate, db: Session = Depends(get_db)) -> UserOut:
+    check_fields(username=user_in.username)
     try:
         return create_user(db, user_in)
     except (UsernameTakenError, EmailTakenError) as exc:
@@ -166,6 +169,7 @@ def update_my_account(
     db: Session = Depends(get_db),
 ) -> CurrentUserOut:
     _require_password(current_user, data.password)
+    check_fields(username=data.username)
     try:
         return update_account(db, current_user, username=data.username, email=data.email)
     except (UsernameTakenError, EmailTakenError) as exc:
