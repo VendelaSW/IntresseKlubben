@@ -24,7 +24,7 @@ import { getUserProfile } from '../services/profile'
 // GET /contacts och matchat på id. contactId pekar på själva
 // relations-raden (inte personen), behövs för att acceptera/avböja/ta
 // bort/svara på just den.
-// Kontakterna kommer ur det delade minnet (se services/queryClient.js), och
+// Kompisarna kommer ur det delade minnet (se services/queryClient.js), och
 // åtgärderna (förfrågan, blockera...) säger själva till minnet, så relationen
 // stämmer direkt efteråt.
 function useRelation(userId) {
@@ -44,7 +44,7 @@ function useRelation(userId) {
   return [relation, refetch]
 }
 
-// Vänförfrågan/blockera-knapparna för en annan användares profil. Alla
+// Kompisförfrågan/blockera-knapparna för en annan användares profil. Alla
 // relationsknappar delar samma utseende (secondary-button), bara
 // texten och vad de gör skiljer sig åt beroende på relation.type.
 function RelationButtons({ userId, name, blocked, onBlockedChange }) {
@@ -76,7 +76,7 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
   }
 
   function handleCancelRequest() {
-    if (!window.confirm('Ångrar du denna förfrågan?')) return
+    if (!window.confirm('Ångrar du denna kompisförfrågan?')) return
     run(() => cancelContactRequest(relation.contactId))
   }
 
@@ -111,12 +111,12 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
           disabled={busy}
           onClick={() => run(() => sendContactRequest(userId))}
         >
-          Skicka vänförfrågan
+          Skicka kompisförfrågan
         </button>
       )}
       {relation.type === 'outgoing' && (
         <button type="button" className="secondary-button" disabled={busy} onClick={handleCancelRequest}>
-          Ångra förfrågan
+          Ångra kompisförfrågan
         </button>
       )}
       {relation.type === 'incoming' && (
@@ -127,7 +127,7 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
             disabled={busy}
             onClick={() => run(() => answerContactRequest(relation.contactId, 'accept'))}
           >
-            Acceptera vänförfrågan
+            Acceptera kompisförfrågan
           </button>
           <button
             type="button"
@@ -146,7 +146,7 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
           disabled={busy}
           onClick={() => run(() => removeContact(relation.contactId))}
         >
-          Ta bort vän
+          Ta bort kompis
         </button>
       )}
       <button
@@ -214,7 +214,7 @@ function UserProfilePage() {
   // personkorten). null tills de är hämtade - då visas alla som vanliga taggar.
   const [myInterestIds, setMyInterestIds] = useState(null)
   // Den egna profilen kan öppnas via adressen, men man ska inte kunna
-  // skicka vänförfrågan, meddelande eller blockera sig själv.
+  // skicka kompisförfrågan, meddelande eller blockera sig själv.
   const isMe = user?.id === userId
 
   useEffect(() => {
@@ -301,7 +301,7 @@ function UserProfilePage() {
           {!isMe && (
             <>
               {/* Tydligast: att man kan skriva till personen, även innan ni är
-                  kontakter. Brevtråden visar tidigare brev och svarsraden. */}
+                  kompisar. Brevtråden visar tidigare brev och svarsraden. */}
               {!blocked && (
                 <Link to={`/meddelanden/${userId}`} className="primary-button profile-write">
                   Skriv ett brev

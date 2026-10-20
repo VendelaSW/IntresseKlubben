@@ -82,7 +82,7 @@ function EventsPanel() {
   useEffect(() => {
     if (user) markEventsSeen(user.id)
   }, [user?.id])
-  // Alla events man får se, ens klubbar (formuläret) och ens kontakter (för att
+  // Alla events man får se, ens klubbar (formuläret) och ens kompisar (för att
   // bjuda in), ur det delade minnet (se services/queryClient.js): har man varit
   // här nyss visas de direkt och hämtas om i bakgrunden. Det som ändrar ett event
   // (skapa, svara, bjuda in) säger själv till minnet (se services/events.js).

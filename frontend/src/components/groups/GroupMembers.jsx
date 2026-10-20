@@ -4,7 +4,7 @@ import Avatar from '../Avatar'
 import { getGroupMembers } from '../../services/groups'
 
 // Vilka som är med i klubben. Varje namn länkar till personens profil, där
-// man kan skicka vänförfrågan eller meddelande. `memberCount` gör att listan
+// man kan skicka kompisförfrågan eller meddelande. `memberCount` gör att listan
 // hämtas om när någon går med eller går ur.
 function GroupMembers({ groupId, memberCount }) {
   const [members, setMembers] = useState(null)

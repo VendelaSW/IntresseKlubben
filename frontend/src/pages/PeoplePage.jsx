@@ -23,8 +23,8 @@ import {
 
 const TABS = [
   { id: 'suggested', label: 'Förslag' },
-  { id: 'incoming', label: 'Förfrågningar' },
-  { id: 'contacts', label: 'Kontakter' },
+  { id: 'incoming', label: 'Kompisförfrågningar' },
+  { id: 'contacts', label: 'Kompisar' },
 ]
 
 // "Vill inte uppge" är inget att filtrera på.
@@ -43,9 +43,9 @@ const UNDO_MS = 8000
 
 const EMPTY_TEXT = {
   suggested: 'Inga fler förslag just nu. Lägg till fler intressen på din profil för fler träffar.',
-  incoming: 'Inga förfrågningar att svara på just nu.',
-  outgoing: 'Inga skickade förfrågningar.',
-  contacts: 'Inga kontakter än. Skicka en förfrågan till någon under Förslag.',
+  incoming: 'Inga kompisförfrågningar att svara på just nu.',
+  outgoing: 'Inga skickade kompisförfrågningar.',
+  contacts: 'Inga kompisar än. Skicka en kompisförfrågan till någon under Förslag.',
 }
 
 function sharedCountOf(person, myInterestIds) {
@@ -62,7 +62,7 @@ function sharedCountText(count) {
   )
 }
 
-// Varför någon står under Förfrågningar eller Kontakter: hur många intressen
+// Varför någon står under Kompisförfrågningar eller Kompisar: hur många intressen
 // man har gemensamt. null om inget är gemensamt.
 function sharedInterestsText(person, myInterestIds) {
   const count = sharedCountOf(person, myInterestIds)
@@ -70,8 +70,8 @@ function sharedInterestsText(person, myInterestIds) {
 }
 
 // Personer-sidan: bläddra och filtrera andra användare (Förslag), svara på
-// inkommande kontaktförfrågningar och ångra skickade (Förfrågningar) och se
-// sina kontakter (Kontakter). Under Förslag står de man har intressen
+// inkommande kompisförfrågningar och ångra skickade (Förfrågningar) och se
+// sina kompisar (Kompisar). Under Förslag står de man har intressen
 // gemensamt med under "Personer med liknande intressen", i grupper efter hur
 // många intressen man har gemensamt (rubriken ovanför varje grupp, så att det
 // syns utan att läsa korten), och resten under "Fler i Intresseklubben".
@@ -142,7 +142,7 @@ function PeoplePage() {
     [interestId, municipalityCode, gender, minAge, maxAge, ageError],
   )
 
-  // Personerna och ens kontakter ur det delade minnet (se services/queryClient.js):
+  // Personerna och ens kompisar ur det delade minnet (se services/queryClient.js):
   // har man varit här nyss visas de direkt och hämtas om i bakgrunden. När
   // filtren ändras ligger den förra listan kvar tills den nya har kommit.
   const peopleResult = useQuery({ ...peopleQuery(query), placeholderData: keepPreviousData })
@@ -169,10 +169,10 @@ function PeoplePage() {
     )
   }
 
-  // Någon med en redan accepterad kontakt eller en inkommande förfrågan har
-  // sin egen flik - visa dem inte i Förslag också. Den som redan fått en
+  // Den som redan är ens kompis, eller har skickat en kompisförfrågan till en,
+  // har sin egen flik - visa dem inte i Förslag också. Den som redan fått en
   // förfrågan skickad till sig stannar kvar, men med en statuspill i stället
-  // för "Skicka förfrågan".
+  // för "Skicka kompisförfrågan".
   const outgoingByUserId = new Map(
     contactsData.outgoing_requests.map((request) => [request.user.id, request]),
   )
@@ -200,7 +200,7 @@ function PeoplePage() {
   const others = suggested.filter(({ person }) => sharedCount(person) === 0)
 
   // Gemensamma intressen markerade och förklarade på korten under
-  // Förfrågningar och Kontakter. Under Förslag står antalet i gruppens rubrik.
+  // Kompisförfrågningar och Kompisar. Under Förslag står antalet i gruppens rubrik.
   function sharedProps(person) {
     return { sharedInterestIds: myInterestIds, reason: sharedInterestsText(person, myInterestIds) }
   }
@@ -247,12 +247,12 @@ function PeoplePage() {
 
   function handleRemoveContact(contact) {
     const name = contact.user.name ?? contact.user.username
-    if (!window.confirm(`Ta bort ${name} som kontakt?`)) return
+    if (!window.confirm(`Ta bort ${name} som kompis?`)) return
     runAction(() => removeContact(contact.id))
   }
 
   function handleCancelRequest(request) {
-    if (!window.confirm('Ångrar du denna förfrågan?')) return
+    if (!window.confirm('Ångrar du denna kompisförfrågan?')) return
     runAction(() => cancelContactRequest(request.id))
   }
 
