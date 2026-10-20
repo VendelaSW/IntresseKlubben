@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
+import { useTabParam } from '../../hooks/useTabParam'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
 import EventDetails from './EventDetails'
@@ -53,7 +54,9 @@ const NONE = []
 function EventsPanel() {
   // Intressena (för formuläret och för att markera ens egna) hämtas ur minnet.
   const [interestsStatus, setInterestsStatus] = useState('loading') // 'loading' | 'ready' | 'error'
-  const [tab, setTab] = useState('mine')
+  // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
+  const [urlTab, setTab] = useTabParam(TABS)
+  const tab = urlTab ?? 'mine'
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   // 'list', 'create' eller id för det event som visas. Vyn står i adressen
@@ -119,13 +122,13 @@ function EventsPanel() {
   }, [])
 
   async function handleCreated(created, problem) {
-    setTab('mine')
     setInviteProblem(problem ? `Eventet skapades, men inbjudningarna gick inte att skicka: ${problem}` : '')
     await loadEvents()
     // Från en klubb går man tillbaka dit, om inte något gick fel som ska synas här.
-    // Annars byts formuläret ut mot listan, så att Tillbaka inte öppnar det igen.
+    // Annars byts formuläret ut mot listan på Mina events, så att Tillbaka inte
+    // öppnar formuläret igen.
     if (fromGroupId && !problem) goBack()
-    else setView('list', { replace: true })
+    else setTab('mine')
   }
 
   const lists = splitEvents(events)
@@ -177,10 +180,7 @@ function EventsPanel() {
                 role="tab"
                 aria-selected={tab === t.id}
                 className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-                onClick={() => {
-                  setTab(t.id)
-                  setView('list')
-                }}
+                onClick={() => setTab(t.id)}
               >
                 {t.label} ({lists[t.id].length})
               </button>

@@ -12,6 +12,8 @@ import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
 import Modal from '../components/Modal'
+import MunicipalityPicker from '../components/MunicipalityPicker'
+import BirthDatePicker from '../components/BirthDatePicker'
 import FormField from '../components/FormField'
 import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
@@ -42,8 +44,8 @@ const COLORS = [
 
 // Exempel för Brev-avsnittet: ett nytt och ett öppnat kuvert.
 const EXAMPLE_CONVERSATIONS = [
-  { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), isNew: true },
-  { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', isNew: false },
+  { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), last_message_from_me: false, isNew: true },
+  { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', last_message_from_me: true, isNew: false },
 ]
 
 const SIZES = [
@@ -56,8 +58,22 @@ const SIZES = [
   { name: '--text-small', rem: '0.85rem', label: 'Finstilt', font: 'body', weight: 400 },
 ]
 
+// Några kommuner för kommunfältets exempel (de riktiga kommer från /municipalities/).
+const EXAMPLE_MUNICIPALITIES = [
+  { code: '1480', name: 'Göteborg' },
+  { code: '1401', name: 'Härryda' },
+  { code: '2361', name: 'Härjedalen' },
+  { code: '2280', name: 'Härnösand' },
+  { code: '1481', name: 'Mölndal' },
+  { code: '0180', name: 'Stockholm' },
+  { code: '0120', name: 'Värmdö' },
+]
+
 function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
+  const [exampleMunicipality, setExampleMunicipality] = useState('')
+  const [exampleBirthDate, setExampleBirthDate] = useState('')
+  const [filterMunicipality, setFilterMunicipality] = useState('')
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [examplePosition, setExamplePosition] = useState(null)
@@ -146,6 +162,16 @@ function StyleGuide() {
             Sekundär
           </a>
           <button className="primary-button button-small" type="button">
+            Primär
+          </button>
+        </div>
+        <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Stor variant (.button-large)</p>
+        <p className="hint-text">
+          För den knapp som ska synas mest i ett steg, t.ex. "Skapa min profil". Andra val bredvid
+          blir små (.button-small), så att man inte trycker fel.
+        </p>
+        <div className="account-choice-links" style={{ marginTop: '1rem' }}>
+          <button className="primary-button button-large" type="button">
             Primär
           </button>
         </div>
@@ -303,7 +329,8 @@ function StyleGuide() {
           får gul kant vid hover. Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret; ett
           nytt (.envelope-new) förblir stängt och har ett gult sigill. Avståndet mellan raderna följer
           kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför. Personens bild står
-          bredvid namnet och växer med kuvertet.
+          bredvid namnet och växer med kuvertet. Före bilden står "Från" eller "Till", efter vem som
+          skrev det senaste brevet.
         </p>
         <ul className="envelopes" style={{ marginTop: '1rem' }}>
           {EXAMPLE_CONVERSATIONS.map(({ isNew, ...conversation }) => (
@@ -320,7 +347,10 @@ function StyleGuide() {
           Linjerat papper med röd marginal. Allt på pappret har radhöjden --line-gap, så att texten
           står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. Någon annans bild och namn (överst och vid breven, ChatSender) är länkar till profilen. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
           ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och under på mobil: rubriken Klubbchatt, medlemmarnas bilder
-          och namn vid varje meddelande, och en svarsrad.
+          och namn vid varje meddelande, och en svarsrad. Meddelanden i följd från samma person, inom 5
+          minuter, står under samma namn och bild (startsGroup i utils/messageGroups.js). Klubbens inlägg (GroupPosts) är inte chatt
+          utan ett vitt kort under klubbens ruta: ett skrivfält (.form-compact) och inläggen nyaste
+          först, med ChatSender och tid, och "Radera" för den som skrev inlägget och klubbens ägare.
         </p>
         <article className="notepad lined-paper" style={{ marginTop: '1rem' }}>
           <h3 className="notepad-title">
@@ -331,13 +361,17 @@ function StyleGuide() {
           </h3>
           <ol className="notepad-messages">
             <li className="notepad-message">
-              <p>
+              <p className="notepad-message-head">
                 <ChatSender userId={2} name="Bob" /> <time className="hint-text">igår 12:05</time>
               </p>
               <p>Ska vi klättra på lördag?</p>
             </li>
+            {/* Samma person inom 5 minuter: under samma namn (.notepad-message-continued). */}
+            <li className="notepad-message notepad-message-continued">
+              <p title="igår 12:06">Vi kan ses vid hallen kl 10.</p>
+            </li>
             <li className="notepad-message">
-              <p>
+              <p className="notepad-message-head">
                 <ChatSender mine name="Emmy" /> <time className="hint-text">11:35</time>
               </p>
               <p>Ja gärna!</p>
@@ -369,7 +403,8 @@ function StyleGuide() {
           På dator ligger rubrik och flikar till vänster på alla sidor, på mobil centrerade (Brev,
           Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
           .app-section för sidor med kort i rutnät (Klubbar och Events): "+"-knappen direkt efter
-          rubriken och tätare avstånd.
+          rubriken och tätare avstånd. Vald flik sparas i adressen med useTabParam (?flik=kontakter),
+          så att Tillbaka kommer tillbaka till samma flik.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
           <div className="page-header">
@@ -387,7 +422,13 @@ function StyleGuide() {
         </p>
         <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
           <select aria-label="Exempel 1"><option>Alla intressen</option></select>
-          <select aria-label="Exempel 2"><option>Alla kommuner</option></select>
+          <MunicipalityPicker
+            aria-label="Exempel 2"
+            municipalities={EXAMPLE_MUNICIPALITIES}
+            value={filterMunicipality}
+            onChange={setFilterMunicipality}
+            emptyLabel="Alla kommuner"
+          />
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
@@ -643,6 +684,24 @@ function StyleGuide() {
             placeholder="Berätta lite om dig själv..."
           />
           <p className="hint-text">Teckenräknaren ligger inne i fältet, nere till höger.</p>
+          <label htmlFor="style-guide-birth-date">Födelsedatum (BirthDatePicker)</label>
+          <BirthDatePicker id="style-guide-birth-date" value={exampleBirthDate} onChange={setExampleBirthDate} />
+          <p className="hint-text">
+            Dag, månad och år i tre listor. Värdet är ÅÅÅÅ-MM-DD när alla tre är valda
+            {exampleBirthDate ? ` (nu ${exampleBirthDate})` : ''}. Dagarna följer månaden, och datum i framtiden
+            går inte att välja.
+          </p>
+          <label htmlFor="style-guide-municipality">Sökbart kommunfält (MunicipalityPicker)</label>
+          <MunicipalityPicker
+            id="style-guide-municipality"
+            municipalities={EXAMPLE_MUNICIPALITIES}
+            value={exampleMunicipality}
+            onChange={setExampleMunicipality}
+          />
+          <p className="hint-text">
+            Skriv för att söka (å, ä och ö spelar ingen roll), välj med pilarna och Enter. Bara kommuner i
+            listan kan väljas. Med emptyLabel kan man välja "ingen", som i filtret ovan.
+          </p>
           <button type="submit">Skicka</button>
         </form>
         <p className="status-success" style={{ marginTop: '1rem' }}>Sparat!</p>

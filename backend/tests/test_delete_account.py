@@ -10,6 +10,7 @@ from app.core import storage
 from app.db.base import Base
 from app.models import (
     Contact,
+    ConversationRead,
     DismissedSuggestion,
     Event,
     EventInvitation,
@@ -17,6 +18,7 @@ from app.models import (
     Group,
     GroupMember,
     GroupMessage,
+    GroupPost,
     Interest,
     Message,
     Profile,
@@ -164,6 +166,35 @@ def test_own_group_messages_are_removed_but_others_stay(client, db, me, other):
     assert [m.content for m in db.query(GroupMessage).all()] == ["Från Bertil"]
 
 
+def test_conversation_reads_are_removed_both_ways(client, db, me, other):
+    user, headers = me
+    db.add_all([
+        ConversationRead(user_id=user.id, other_user_id=other.id, last_read_message_id=1),
+        ConversationRead(user_id=other.id, other_user_id=user.id, last_read_message_id=1),
+    ])
+    db.commit()
+
+    assert _delete(client, headers).status_code == 204
+
+    db.expire_all()
+    assert db.query(ConversationRead).count() == 0
+
+
+def test_own_group_posts_are_removed_but_others_stay(client, db, me, other):
+    user, headers = me
+    group = add_group(db, user.id, members=[other.id])
+    db.add_all([
+        GroupPost(group_id=group.id, author_id=user.id, content="Från Anna"),
+        GroupPost(group_id=group.id, author_id=other.id, content="Från Bertil"),
+    ])
+    db.commit()
+
+    assert _delete(client, headers).status_code == 204
+
+    db.expire_all()
+    assert [p.content for p in db.query(GroupPost).all()] == ["Från Bertil"]
+
+
 def test_other_users_keep_their_own_data(client, db, me, other):
     user, headers = me
     third, _ = _register(client, db, "cecilia")
@@ -193,8 +224,11 @@ def test_every_column_pointing_at_users_is_handled():
     assert pointing == [
         "contacts.addressee_id",
         "contacts.requester_id",
+        "conversation_reads.other_user_id",
+        "conversation_reads.user_id",
         "dismissed_suggestions.dismissed_user_id",
         "dismissed_suggestions.user_id",
+        "email_tokens.user_id",
         "event_invitations.user_id",
         "event_responses.user_id",
         "events.created_by",
@@ -202,6 +236,7 @@ def test_every_column_pointing_at_users_is_handled():
         "group_invitations.user_id",
         "group_members.user_id",
         "group_messages.sender_id",
+        "group_posts.author_id",
         "groups.created_by",  # ON DELETE SET NULL: klubben finns kvar utan skapare
         "interests.created_by_user_id",  # sätts till tomt: ett eget intresse finns kvar för andra
         "messages.recipient_id",

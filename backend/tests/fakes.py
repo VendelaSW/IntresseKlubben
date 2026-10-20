@@ -2,9 +2,13 @@
 OpenAI. Sätt in dem med set_clients(FakeLLM(...), FakeModerator(...)). conftest.py återställer dem efter
 varje test."""
 
+import hashlib
+import math
 from dataclasses import dataclass, field
 
+from app.models.interest_embedding import EMBEDDING_DIMENSIONS
 from app.services.ai_clients import AIFailed, Deadline
+from app.services.email import EmailFailed
 from app.services.geocoding import GeocodingFailed, Place
 
 
@@ -60,6 +64,20 @@ class FakeModerator:
 
 
 @dataclass
+class FakeEmailSender:
+    """Fejkat mejlutskick (app/services/email.py): sparar varje mejl i `sent` som (till, ämne, text, html), eller
+    kastar EmailFailed om `fail` är satt."""
+
+    sent: list[tuple[str, str, str, str]] = field(default_factory=list)
+    fail: bool = False
+
+    def send(self, to, subject, text, html):
+        if self.fail:
+            raise EmailFailed("fejkat fel")
+        self.sent.append((to, subject, text, html))
+
+
+@dataclass
 class FakeGeocoder:
     """Fejkad adressökning (app/services/geocoding.py): svarar med `places` för varje sökning, eller
     kastar GeocodingFailed om `fail` är satt. `queries` får varje söktext."""
@@ -73,3 +91,27 @@ class FakeGeocoder:
         if self.fail:
             raise GeocodingFailed("fejkat fel")
         return list(self.places)
+
+
+def fake_vector(text: str) -> list[float]:
+    """En fast, normaliserad vektor för en text: samma text ger samma vektor, olika texter olika."""
+    seed = hashlib.sha256(text.encode("utf-8")).digest()
+    raw = [seed[i % len(seed)] - 127.5 + (i % 7) for i in range(EMBEDDING_DIMENSIONS)]
+    norm = math.sqrt(sum(x * x for x in raw))
+    return [x / norm for x in raw]
+
+
+@dataclass
+class FakeEmbedder:
+    """Fejkad embeddings (app/services/ai_clients.py). `vectors` ger en bestämd vektor för vissa texter, annars
+    används fake_vector. `error` kastas vid varje anrop (t.ex. AIFailed). `calls` får varje anrops texter."""
+
+    vectors: dict[str, list[float]] = field(default_factory=dict)
+    error: BaseException | None = None
+    calls: list[list[str]] = field(default_factory=list)
+
+    def embed(self, texts, deadline=None):
+        self.calls.append(list(texts))
+        if self.error is not None:
+            raise self.error
+        return [self.vectors.get(text) or fake_vector(text) for text in texts]

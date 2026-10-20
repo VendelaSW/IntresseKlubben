@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import '../styles/map.css'
 import { LngLat, Map as MapLibreMap, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -10,13 +11,15 @@ import { attachPlaceSigns } from './mapPrototypeSigns'
 import logo from '../assets/intresseklubben.png'
 import Intressekompis from '../components/Intressekompis'
 import MapCalmPage from './MapCalmPage'
-import MapPagePad, { MAP_PAGES } from './MapPagePad'
+import MapPagePad, { MAP_PAGES, widgetFor } from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
 import MapProfileWidget from './MapProfileWidget'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
 import { getEvents } from '../services/events'
+import { searchPlaces } from '../services/geocode'
 import { getGroups, getMyGroups } from '../services/groups'
 import { getProfile } from '../services/profile'
+import { HOUR, cachedInBrowser } from '../services/queryClient'
 import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
 import {
   ZOOM_LEVELS,
@@ -134,6 +137,26 @@ const normalizePlace = (text) =>
     .replace(/[^a-zåäöéü0-9 ]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+
+// Stadsdelen via adressökningen (GET /geocode), när kartans egna ortnamn inte
+// räcker: i översikten av en stor kommun finns bara de största orterna i
+// kartans data, så t.ex. Hägersten i Stockholm hittas inte där. Bara en träff
+// inom kommunen räknas. Svaret sparas i webbläsaren en vecka, så det söks inte
+// varje gång kartan öppnas. Ger [lng, lat] eller null.
+async function findDistrict(district, kommun) {
+  try {
+    const places = await cachedInBrowser(
+      ['stadsdel', kommun.kod, normalizePlace(district)],
+      () => searchPlaces(`${district}, ${kommun.name}`),
+      7 * 24 * HOUR,
+    )
+    const hit = places.find((p) => isInside(kommun.geometry, [p.longitude, p.latitude]))
+    return hit ? [hit.longitude, hit.latitude] : null
+  } catch {
+    // Sökningen gick inte (t.ex. för många sökningar): kartan stannar på kommunen.
+    return null
+  }
+}
 
 // Kartans nivåer. På 'sverige' och 'landskap' är zoomen låst: man tar sig
 // vidare genom att klicka (på ett landskap, eller i landskapet för att komma
@@ -731,8 +754,8 @@ function syncPlaceLabels(
   return { render }
 }
 
-// Lugnt läge sparas i webbläsaren. Går det inte (t.ex. privat läge) visas
-// kartan som vanligt.
+// Att göra-läget (växeln Karta | Att göra) sparas i webbläsaren. Går det inte
+// (t.ex. privat läge) visas kartan som vanligt.
 const CALM_KEY = 'karta-lugnt-lage'
 
 function readCalm() {
@@ -766,11 +789,11 @@ function MapPrototype() {
   // Sidan som ligger som block på kartan: 'profil' (Min profil, den egna sidan med
   // Lägg till intressen), 'brev', 'personer', 'klubbar', 'events' eller null.
   const [openPage, setOpenPage] = useState(null)
-  // Lugnt läge: kartan göms och bara pappret, widgetarna och blocken syns
-  // (för den som vill ha en lugnare bakgrund, eller en långsam dator). Valet
-  // sparas i webbläsaren.
+  // Att göra-läget (`calm`): kartan göms och en sida i blocket med dagens att
+  // göra visas i stället (MapCalmPage). Widgetarna och blocken ligger kvar. För
+  // den som vill ha en lugnare bakgrund, eller har en långsam dator. Byts med
+  // växeln Karta | Att göra, och valet sparas i webbläsaren.
   const [calm, setCalm] = useState(readCalm)
-  const toggleCalm = () => setCalm((was) => !was)
   useEffect(() => saveCalm(calm), [calm])
   // Adressen blocket öppnas på (se MapPagePad), t.ex. '/klubbar?klubb=3'.
   const [padStart, setPadStart] = useState(null)
@@ -780,6 +803,18 @@ function MapPrototype() {
     setOpenPage(page)
     setPadStart(start)
   }
+
+  // En gammal adress till en av sidorna (t.ex. /klubbar?klubb=3) skickas hit
+  // med sidan i `state.pad` (se OpenOnMap i App.jsx). Den öppnas i ett block,
+  // och tas sedan bort ur historiken så att den inte öppnas igen vid omladdning.
+  const location = useLocation()
+  const navigate = useNavigate()
+  useEffect(() => {
+    const pad = location.state?.pad
+    if (!pad) return
+    openPad(widgetFor(pad), pad)
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location])
   const mapRef = useRef(null)
   const labelsApiRef = useRef(null) // för att rita om namnen när nivån byts
   const outsideApiRef = useRef(null) // för att rita om papperet när nivån byts
@@ -987,26 +1022,38 @@ function MapPrototype() {
   }
 
   // Från översikten av en kommun ner till husnivå: till stadsdelen om den
-  // finns och hittas, annars till centralorten (en stad eller tätort med
-  // kommunens namn, annars den största i kommunen), annars till kommunens
-  // mittpunkt. Ortnamnen finns först när kartrutorna har laddats, så det
-  // görs när översikten är klar.
+  // finns och hittas (i kartans data, annars via adressökningen), annars till
+  // centralorten (en stad eller tätort med kommunens namn, annars den största
+  // i kommunen), annars till kommunens mittpunkt. Ortnamnen finns först när
+  // kartrutorna har laddats, så det görs när översikten är klar. `district`
+  // är stadsdelen som den står i profilen.
   function flyToPlaceIn(map, kommun, district = null) {
     const token = (flyTokenRef.current += 1)
-    map.once('idle', () => {
-      if (mapRef.current !== map || flyTokenRef.current !== token) return
+    const stale = () => mapRef.current !== map || flyTokenRef.current !== token
+    map.once('idle', async () => {
+      if (stale()) return
       const places = map
         .querySourceFeatures('openmaptiles', { sourceLayer: 'place' })
         .filter((f) => f.properties.name && kommun.geometry && isInside(kommun.geometry, f.geometry.coordinates))
       const name = (f) => normalizePlace(f.properties['name:sv'] ?? f.properties.name)
       let match = null
       if (district) {
+        const wanted = normalizePlace(district)
         const candidates = places.filter((f) => DISTRICT_CLASSES.includes(f.properties.class))
         // Helst exakt samma namn, annars ett namn som börjar med texten (eller
         // tvärtom, t.ex. "Gustavsberg centrum" -> Gustavsberg).
         match =
-          candidates.find((f) => name(f) === district) ??
-          candidates.find((f) => name(f).startsWith(district) || district.startsWith(name(f)))
+          candidates.find((f) => name(f) === wanted) ??
+          candidates.find((f) => name(f).startsWith(wanted) || wanted.startsWith(name(f)))
+        if (!match) {
+          const found = await findDistrict(district, kommun)
+          if (stale()) return
+          if (found) {
+            map.easeTo({ center: found, zoom: DISTRICT_ZOOM, duration: 1600 })
+            setLevelName(`${district.trim()}, ${kommun.name}`)
+            return
+          }
+        }
       }
       if (!match) {
         const kommunName = normalizePlace(kommun.name.replace(/ kommun$/, ''))
@@ -1058,7 +1105,7 @@ function MapPrototype() {
     const camera = map.cameraForBounds(kommun.bounds, { padding: LEVEL_PADDING, pitch: TILT })
     if (camera) map.jumpTo({ center: camera.center, zoom: camera.zoom })
     setLevelName(kommun.name)
-    flyToPlaceIn(map, kommun, profile.district ? normalizePlace(profile.district) : null)
+    flyToPlaceIn(map, kommun, profile.district?.trim() || null)
   }
 
   const zoomToLevelRef = useRef(zoomToLevel)
@@ -1134,9 +1181,16 @@ function MapPrototype() {
       map.easeTo({ center: fit.center, zoom: fit.zoom, duration: 500 })
     })
     mapRef.current = map
-    // Klick på kartan på en låst nivå: ett steg in, där man klickade.
+    // Klick på kartan på en låst nivå: ett steg in, där man klickade. Bara i
+    // Sverige, och på landskapsnivån bara i det valda landskapet: runt om ligger
+    // bara papper, och landskapet närmast klicket (se landskapAt) är inte det
+    // man menade.
     map.on('click', (event) => {
-      if (modeRef.current !== 'free') stepLevelRef.current(1, event.lngLat.toArray())
+      if (modeRef.current === 'free') return
+      const point = event.lngLat.toArray()
+      if (!inSweden(...point)) return
+      if (modeRef.current === 'landskap' && landskapAt(point).name !== selectedLandskapRef.current) return
+      stepLevelRef.current(1, point)
     })
     // + och − stegar mellan nivåerna när zoomen är låst (fångas innan
     // MapLibres egna knappar hinner zooma).
@@ -1312,6 +1366,25 @@ function MapPrototype() {
         ))}
         {levelName && <p className="map-level-name">{levelName}</p>}
       </div>
+      {/* Kartan eller dagens att göra (se `calm`). Den valda är nedtryckt. */}
+      <div className="map-view-toggle map-tool-group" role="group" aria-label="Visa">
+        <button
+          type="button"
+          className={`map-tool${calm ? '' : ' is-on'}`}
+          aria-pressed={!calm}
+          onClick={() => setCalm(false)}
+        >
+          Karta
+        </button>
+        <button
+          type="button"
+          className={`map-tool${calm ? ' is-on' : ''}`}
+          aria-pressed={calm}
+          onClick={() => setCalm(true)}
+        >
+          Att göra
+        </button>
+      </div>
       <div className="map-sketch-tools" role="toolbar" aria-label="Nålar och väg" hidden={!pinsShown}>
         <button
           type="button"
@@ -1356,13 +1429,12 @@ function MapPrototype() {
       <img src={logo} alt="Intresseklubben" className="map-logo" />
       <div className="map-top-widgets">
         <MapPageWidgets openPage={openPage} onOpen={(page) => (page ? openPad(page) : setOpenPage(null))} />
-        <MapProfileWidget onOpen={openPad} calm={calm} onToggleCalm={toggleCalm} />
+        <MapProfileWidget onOpen={openPad} />
       </div>
       {calm && (
         <MapCalmPage
           onOpen={openPad}
           onOpenEvent={(id) => openActivityRef.current({ type: 'event', id })}
-          onShowMap={toggleCalm}
         />
       )}
       {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}

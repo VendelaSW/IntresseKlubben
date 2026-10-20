@@ -18,10 +18,10 @@ from app.auth.security import get_current_user, require_profile
 from app.crud.contact import blocked_user_ids, incoming_request_count
 from app.crud.event import unanswered_club_events, unanswered_invitation_count
 from app.crud.group import invitation_count
-from app.crud.message import list_conversations
+from app.crud.message import is_unread, last_read_ids, list_conversations
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.badges import BadgeCounts, ClubEventActivity, ConversationActivity
+from app.schemas.badges import BadgeCounts, ClubEventActivity
 
 router = APIRouter(prefix="/users", tags=["badges"], dependencies=[Depends(require_profile)])
 
@@ -39,18 +39,15 @@ def read_my_badges(current_user: User = Depends(get_current_user), db: Session =
             unanswered_invitation_count(db, user_id, hidden).scalar_subquery(),
         )
     ).one()
+    read_ids = last_read_ids(db, user_id)
     return BadgeCounts(
         contact_requests=requests,
         club_invitations=clubs,
         event_invitations=events,
-        conversations=[
-            ConversationActivity(
-                id=other_id,
-                last_message_at=message.created_at,
-                last_message_from_me=message.sender_id == user_id,
-            )
+        unread_conversations=sum(
+            is_unread(message, user_id, read_ids, other_id)
             for other_id, message in list_conversations(db, user_id, hidden)
-        ],
+        ),
         club_events=[
             ClubEventActivity(id=event_id, created_at=created_at)
             for event_id, created_at in unanswered_club_events(db, user_id, hidden)

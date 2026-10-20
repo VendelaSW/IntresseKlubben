@@ -31,6 +31,7 @@ from app.models.interest import Interest, InterestSource, InterestStatus
 from app.models.user import User
 from app.models.user_interest import UserInterest
 from app.services.analysis_token import AnalysisTokenUnavailable, InvalidAnalysisToken, read_token
+from app.services.interest_embeddings import embed_interests
 from app.services.interest_matching import normalize
 
 OWN_INTEREST_LIMIT = 20  # egna intressen en användare får skapa per dygn
@@ -217,6 +218,7 @@ def apply_batches(db: Session, user: User, batches: list[Batch], source: str) ->
     if creating and _own_interests_today(db, user) + len(creating) > OWN_INTEREST_LIMIT:
         raise _error(429, msg.CONFIRM_TOO_MANY_OWN_INTERESTS)
 
+    created: list[Interest] = []
     for new in news.values():  # föräldrar före barn
         if not new.create:
             continue
@@ -235,6 +237,10 @@ def apply_batches(db: Session, user: User, batches: list[Batch], source: str) ->
         db.add(interest)
         db.flush()  # ger id, som barnen och kopplingarna behöver
         new.id = interest.id
+        created.append(interest)
+    # De nya intressena får en vektor direkt, så att de går att hitta på betydelse. Det får aldrig stoppa sparandet:
+    # går det inte fyller `python -m app.sync_embeddings` i dem senare.
+    embed_interests(db, created)
 
     existing_rows = {(link.interest_id, link.activity) for link in user.interest_links}
     for target, activities in wanted.resolved().items():

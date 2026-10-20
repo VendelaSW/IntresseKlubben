@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import BirthDatePicker from '../components/BirthDatePicker'
 import BlockedUsers from '../components/BlockedUsers'
+import ChangePassword from '../components/ChangePassword'
 import DeleteAccount from '../components/DeleteAccount'
+import EmailVerification from '../components/EmailVerification'
 import InterestExplorer from '../components/InterestExplorer'
+import MunicipalityPicker from '../components/MunicipalityPicker'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { useAuth } from '../hooks/useAuth'
@@ -24,14 +28,6 @@ import {
 // Så länge kontrollen av användarnamn/e-post väntar efter senaste
 // tangenttrycket, så att inte varje bokstav blir ett anrop.
 const AVAILABILITY_DELAY_MS = 400
-
-// Dagens datum som YYYY-MM-DD i lokal tid (toISOString ger UTC och kan
-// visa fel dag runt midnatt).
-function todayString() {
-  const d = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
 
 // Felmeddelanden från servern saknar ibland punkt i slutet, och då skulle en
 // mening som läggs efter dem gå ihop med dem.
@@ -311,7 +307,9 @@ function ProfilePage() {
     setSaving(true)
 
     // Namn, födelsedatum, kön, kommun och Om mig är obligatoriska och skickas
-    // alltid med. Stadsdel är valfri och skickas bara om den är ifylld.
+    // alltid med. Stadsdel är valfri: en ny profil får den bara om den är
+    // ifylld, och en befintlig får null när fältet är tomt, så att en gammal
+    // stadsdel tas bort.
     const data = {
       name,
       birth_date: birthDate,
@@ -321,6 +319,7 @@ function ProfilePage() {
       profile_text: aboutText,
     }
     if (district.trim()) data.district = district
+    else if (!isNew) data.district = null
 
     // 0. Kontouppgifterna, om de ändrats. De sparas först, så att fel lösenord
     //    eller ett upptaget namn (de vanligaste felen) stoppar allt innan
@@ -433,14 +432,7 @@ function ProfilePage() {
           />
 
           <label htmlFor="profile-birth-date">Födelsedatum</label>
-          <input
-            id="profile-birth-date"
-            type="date"
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            max={todayString()}
-            required
-          />
+          <BirthDatePicker id="profile-birth-date" value={birthDate} onChange={setBirthDate} required />
 
           <label htmlFor="profile-gender">Kön</label>
           <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)} required>
@@ -461,19 +453,14 @@ function ProfilePage() {
           </label>
 
           <label htmlFor="profile-municipality">Kommun</label>
-          <select
+          <MunicipalityPicker
             id="profile-municipality"
+            municipalities={municipalities}
             value={municipalityCode}
-            onChange={(e) => setMunicipalityCode(e.target.value)}
+            onChange={setMunicipalityCode}
             required
-          >
-            <option value="">Välj...</option>
-            {municipalities.map((m) => (
-              <option key={m.code} value={m.code}>
-                {m.name}
-              </option>
-            ))}
-          </select>
+          />
+          <p className="hint-text">Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke.</p>
 
           <label htmlFor="profile-district">Stadsdel (valfritt)</label>
           <input
@@ -564,6 +551,7 @@ function ProfilePage() {
         </form>
         {/* Utanför formuläret ovan: Radera konto har ett eget formulär, och formulär går inte att lägga i varandra.
             Bara för en befintlig profil, en ny har inget att radera än. */}
+        {!isNew && <ChangePassword email={account?.email} />}
         {!isNew && <DeleteAccount />}
       </div>
     )
@@ -596,6 +584,7 @@ function ProfilePage() {
         <dd>{account?.email ?? 'Ingen e-post sparad'}</dd>
       </dl>
       <p className="hint-text">E-posten syns bara för dig.</p>
+      <EmailVerification account={account} />
       <ProfileAbout text={profile.profile_text} />
       <BlockedUsers />
       <button type="button" className="primary-button" onClick={() => startEditing()}>

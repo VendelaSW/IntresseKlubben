@@ -1,30 +1,31 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from './useAuth'
+import { isIdle, onUserActive } from '../services/activity'
 import { getBadges } from '../services/badges'
 import { EVENTS_SEEN, eventsSeenAt } from '../services/eventsSeen'
 import { INVITATIONS_CHANGED } from '../services/groups'
-import { countUnseenConversations } from '../services/messages'
+import { MESSAGES_READ } from '../services/messages'
 
-// Hur ofta siffrorna räknas om medan man står kvar.
-const POLL_MS = 30000
+// Hur ofta siffrorna räknas om medan man står kvar. De räknas också om vid
+// varje sidbyte, så de behöver inte hämtas oftare än så här.
+const POLL_MS = 60000
 
-export const EMPTY_COUNTS = { contactRequests: 0, clubInvitations: 0, eventNews: 0, unseenMessages: 0 }
-
-// Siffrorna för appens märken (menyn i AppShell och lapparna på kartan):
+// Siffrorna för appens märken (lapparna på kartan):
 //   contactRequests: obesvarade kontaktförfrågningar (Personer)
 //   clubInvitations: klubbar man är inbjuden till (Klubbar)
 //   eventNews: events man inte har svarat på som antingen är en inbjudan, eller
 //     är nya i en av ens klubbar sedan man senast tittade på Events (se
 //     services/eventsSeen.js). Ens egna och de som redan är slut räknas inte.
 //     (Events)
-//   unseenMessages: konversationer med nya brev, samma som fliken Nya på Brev
-//     (Brev). `openConversationId` är konversationen man har öppen; den räknas
-//     inte, eftersom chatten själv markerar den som sedd.
+//   unseenMessages: konversationer med brev man inte har läst, samma som
+//     fliken Nya på Brev (Brev). Räknas på servern, så siffran är densamma på
+//     alla enheter.
 //
 // Räknas om när `refreshKey` ändras (t.ex. vid sidbyte), när man har gått med
-// i eller avböjt en klubb, när man har tittat på Events, och var POLL_MS, så att något nytt syns utan att
-// man gör något. Pausar när fliken inte syns och räknar om direkt när man
-// kommer tillbaka. Anropen är låsta tills profilen är klar (require_profile i
+// i eller avböjt en klubb, när man har tittat på Events eller läst brev, och var POLL_MS, så att något nytt syns utan att
+// man gör något. Pausar när fliken inte syns eller ingen har rört appen på
+// ett tag (se services/activity.js), och räknar om direkt när man kommer
+// tillbaka. Anropen är låsta tills profilen är klar (require_profile i
 // backend), så inget hämtas innan dess.
 //
 // Alla fyra kommer i ett anrop (GET /users/me/badges), så att en omräkning
@@ -37,7 +38,7 @@ const countNew = (clubEvents, seenAt) => clubEvents.filter((e) => new Date(e.cre
 // Ger null tills första hämtningen är klar, så att den som jämför siffror
 // (kartans lappar studsar när en går upp) inte tar de första riktiga
 // siffrorna för en ökning från noll. Alla fyra sätts på en gång.
-export function useBadgeCounts({ refreshKey = null, openConversationId = null } = {}) {
+export function useBadgeCounts({ refreshKey = null } = {}) {
   const { user } = useAuth()
   const profileDone = Boolean(user?.profile_completed)
   const userId = user?.id
@@ -68,7 +69,7 @@ export function useBadgeCounts({ refreshKey = null, openConversationId = null } 
         // Klubbarnas events kommer utan inbjudningarna (de räknas redan), så
         // inget räknas två gånger.
         eventNews: badges.event_invitations + countNew(badges.club_events, eventsSeenAt(userId)),
-        unseenMessages: countUnseenConversations(badges.conversations.filter((c) => c.id !== openConversationId)),
+        unseenMessages: badges.unread_conversations,
       }
       setCounts((current) => {
         const same = current && Object.keys(next).every((key) => current[key] === next[key])
@@ -81,18 +82,22 @@ export function useBadgeCounts({ refreshKey = null, openConversationId = null } 
     }
 
     refresh()
-    const timer = setInterval(refresh, POLL_MS)
+    const timer = setInterval(() => isIdle() || refresh(), POLL_MS)
+    const stopListening = onUserActive(refresh)
     document.addEventListener('visibilitychange', onVisibilityChange)
     window.addEventListener(INVITATIONS_CHANGED, refresh)
     window.addEventListener(EVENTS_SEEN, refresh)
+    window.addEventListener(MESSAGES_READ, refresh)
     return () => {
       cancelled = true
       clearInterval(timer)
+      stopListening()
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener(INVITATIONS_CHANGED, refresh)
       window.removeEventListener(EVENTS_SEEN, refresh)
+      window.removeEventListener(MESSAGES_READ, refresh)
     }
-  }, [refreshKey, openConversationId, profileDone, userId])
+  }, [refreshKey, profileDone, userId])
 
   return counts
 }

@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
 import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
+import { eventTimeText } from '../components/events/EventList'
 import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
 import {
@@ -15,54 +16,9 @@ import {
   sendContactRequest,
   unblockUser,
 } from '../services/contacts'
+import { eventsQuery } from '../services/events'
 import { getMyInterests } from '../services/interests'
-import { sendMessage } from '../services/messages'
 import { getUserProfile } from '../services/profile'
-
-// Skickar ett meddelande till personen man tittar på. Visar bara
-// formuläret, själva konversationen läses på en egen sida senare.
-function MessageForm({ userId }) {
-  const [text, setText] = useState('')
-  const [sending, setSending] = useState(false)
-  const [error, setError] = useState('')
-  const [sent, setSent] = useState(false)
-
-  async function handleSubmit(event) {
-    event.preventDefault()
-    setSending(true)
-    setError('')
-    try {
-      await sendMessage(userId, text)
-      setText('')
-      setSent(true)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSending(false)
-    }
-  }
-
-  return (
-    <form className="auth-form" onSubmit={handleSubmit}>
-      <label htmlFor="message-text">Skicka ett brev</label>
-      <input
-        id="message-text"
-        type="text"
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value)
-          setSent(false)
-        }}
-        required
-      />
-      {error && <p className="form-error">{error}</p>}
-      {sent && <p className="form-success">Skickat!</p>}
-      <button type="submit" disabled={sending}>
-        {sending ? 'Skickar...' : 'Skicka'}
-      </button>
-    </form>
-  )
-}
 
 // Vem man är i förhållande till personen man tittar på, hämtat från
 // GET /contacts och matchat på id. contactId pekar på själva
@@ -206,6 +162,43 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
   )
 }
 
+// Kommande events som personen har skapat. Listan är alla events man själv får se
+// (samma delade hämtning som Events och kartan, se services/events.js), så ett
+// event bara för inbjudna eller för en klubb man inte är med i syns inte här
+// heller. Ett klick öppnar eventet, och Tillbaka går hit igen.
+function CreatedEvents({ userId, isMe }) {
+  const { data: events, isError } = useQuery(eventsQuery)
+  const created = (events ?? []).filter((event) => event.creator_id === userId)
+
+  return (
+    <section className="profile-events">
+      <h2>{isMe ? 'Mina events' : 'Events hen ordnar'}</h2>
+      {isError ? (
+        <p className="hint-text">Kunde inte hämta events.</p>
+      ) : events === undefined ? (
+        <p className="hint-text">Laddar events...</p>
+      ) : created.length === 0 ? (
+        <p className="hint-text">Inga kommande events.</p>
+      ) : (
+        <div className="person-list person-list-compact person-list-marker">
+          <ul>
+            {created.map((event) => (
+              <li key={event.id}>
+                <Link to={`/events?event=${event.id}`} className="person-list-item">
+                  <span>{event.title}</span>
+                  <span className="hint-text">
+                    {eventTimeText(event)} · {event.place_name}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  )
+}
+
 // Visar en annan användares profil, skrivskyddat. Ingen redigering och
 // ingen bilduppladdning här - det är bara ägaren som kan ändra sin profil.
 function UserProfilePage() {
@@ -304,15 +297,22 @@ function UserProfilePage() {
               <p className="hint-text">Inga intressen valda än.</p>
             )}
           </section>
+          <CreatedEvents userId={userId} isMe={isMe} />
           {!isMe && (
             <>
+              {/* Tydligast: att man kan skriva till personen, även innan ni är
+                  kontakter. Brevtråden visar tidigare brev och svarsraden. */}
+              {!blocked && (
+                <Link to={`/meddelanden/${userId}`} className="primary-button profile-write">
+                  Skriv ett brev
+                </Link>
+              )}
               <RelationButtons
                 userId={userId}
                 name={profile.name}
                 blocked={blocked}
                 onBlockedChange={setBlocked}
               />
-              {!blocked && <MessageForm userId={userId} />}
             </>
           )}
         </div>
