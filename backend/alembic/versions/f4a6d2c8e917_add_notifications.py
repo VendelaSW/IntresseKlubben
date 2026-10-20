@@ -1,14 +1,14 @@
 """add notifications
 
 Revision ID: f4a6d2c8e917
-Revises: b6e1c4a9d273
+Revises: a3d9f6c2e815
 """
 from alembic import op
 import sqlalchemy as sa
 
 
 revision = 'f4a6d2c8e917'
-down_revision = 'b6e1c4a9d273'
+down_revision = 'a3d9f6c2e815'
 branch_labels = None
 depends_on = None
 
