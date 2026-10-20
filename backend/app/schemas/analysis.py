@@ -4,6 +4,9 @@ from app.core import error_messages as msg
 
 # Så mycket text analyseras som mest (profiltexten är max 800 tecken).
 MAX_TEXT_LENGTH = 1000
+# Ett enda intresse med egna ord (POST /interests/suggest). Samma gräns som en tagg ur utläsningen (MAX_TAG_LENGTH i
+# services/interest_extractor.py), eftersom texten kontrolleras som en tagg.
+MAX_PHRASE_LENGTH = 40
 
 
 class AnalyzeRequest(BaseModel):
@@ -13,6 +16,18 @@ class AnalyzeRequest(BaseModel):
     @classmethod
     def text_not_empty(cls, value: str) -> str:
         value = value.strip()
+        if not value:
+            raise ValueError(msg.INTERVIEW_TEXT_EMPTY)
+        return value
+
+
+class SuggestRequest(BaseModel):
+    text: str = Field(max_length=MAX_PHRASE_LENGTH)
+
+    @field_validator("text")
+    @classmethod
+    def text_not_empty(cls, value: str) -> str:
+        value = " ".join(value.split())
         if not value:
             raise ValueError(msg.INTERVIEW_TEXT_EMPTY)
         return value
