@@ -2821,3 +2821,151 @@ label.person-list-item {
 .explorer .explorer-crumb-current {
   font-weight: 700;
 }
+
+/* Notiser från Intresseklubben (se NotificationsPage), som en inkorg: en
+   kompakt rad per notis i en vit ruta, nyaste först. En oläst notis har fet
+   rubrik, en gul prick och en gul kant till vänster. Ett klick på raden öppnar
+   notisen (.notification-details), krysset tar bort den. */
+.notification-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  width: 100%;
+  max-width: 560px;
+}
+
+/* "Markera alla som lästa" när allt redan är läst: kvar på sin plats, men grå
+   och utan den gula linjen, så att den inte ser klickbar ut. */
+.notification-actions .text-button:disabled {
+  color: var(--color-muted);
+  border-bottom-color: transparent;
+  cursor: default;
+  opacity: 1;
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 560px;
+  background: var(--color-white);
+  border: 2px solid var(--color-line);
+  border-radius: 4px;
+}
+
+.notification {
+  display: flex;
+  align-items: center;
+  border-left: 4px solid transparent;
+}
+
+.notification + .notification {
+  border-top: 1px solid var(--color-line);
+}
+
+.notification.is-unread {
+  border-left-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+/* Hela raden är knappen som öppnar notisen. */
+.notification-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.25rem 0.6rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+.notification-open:hover .notification-title,
+.notification-open:focus-visible .notification-title {
+  text-decoration: underline;
+}
+
+.notification-dot {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 1px solid var(--color-text);
+}
+
+.notification-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-body);
+  font-weight: 400;
+}
+
+.notification.is-unread .notification-title {
+  font-weight: 700;
+}
+
+.notification-time {
+  flex: none;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.notification-remove {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  margin-right: 0.25rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.notification-remove:hover,
+.notification-remove:focus-visible {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* En öppnad notis. */
+.notification-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 560px;
+}
+
+.notification-meta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.notification-details-title {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.notification-quote {
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  border-left: 3px solid var(--color-line);
+  background: var(--color-accent-soft);
+  font-style: italic;
+}

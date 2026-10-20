@@ -241,6 +241,7 @@ def test_every_column_pointing_at_users_is_handled():
         "interests.created_by_user_id",  # sätts till tomt: ett eget intresse finns kvar för andra
         "messages.recipient_id",
         "messages.sender_id",
+        "notifications.user_id",
         "profiles.user_id",
         "user_interests.user_id",
     ]

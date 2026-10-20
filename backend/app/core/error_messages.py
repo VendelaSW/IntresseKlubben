@@ -68,6 +68,8 @@ GROUP_ADDRESS_TOO_LONG = "Adress får max vara 100 tecken"
 
 # ---------- Events (routes/events.py, crud/event.py) ----------
 EVENT_NOT_FOUND = "Eventet finns inte"
+EVENT_CANCEL_MESSAGE_TOO_LONG = "Meddelandet får max vara 300 tecken"
+NOTIFICATION_NOT_FOUND = "Notisen finns inte"
 EVENT_ONLY_CREATOR = "Bara den som skapat eventet kan ändra det"
 EVENT_ONLY_CREATOR_CAN_INVITE = "Bara den som skapat eventet kan bjuda in"
 EVENT_IN_PRIVATE_GROUP_CANNOT_BE_OPEN = "Events i privata klubbar kan inte vara öppna"

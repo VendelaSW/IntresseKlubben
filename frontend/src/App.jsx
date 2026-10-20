@@ -26,7 +26,15 @@ const MapPrototype = lazy(() => import('./pages/MapPrototype'))
 // Appens sidor (Brev, Personer, Klubbar, Events, profiler) finns bara som block
 // på kartan. Deras gamla adresser, t.ex. ett bokmärke eller en länk till
 // /klubbar?klubb=3, öppnar kartan med sidan i ett block (se MapPrototype).
-const MAP_PAD_PATHS = ['/klubbar', '/personer', '/events', '/meddelanden', '/meddelanden/:userId', '/anvandare/:userId']
+const MAP_PAD_PATHS = [
+  '/klubbar',
+  '/personer',
+  '/events',
+  '/meddelanden',
+  '/meddelanden/:userId',
+  '/anvandare/:userId',
+  '/notiser',
+]
 
 function OpenOnMap() {
   const { pathname, search } = useLocation()
