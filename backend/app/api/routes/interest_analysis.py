@@ -7,7 +7,8 @@ POST /interests/analyze - tar emot ett fritt svar och returnerar AI-förslag: de
 
 POST /interests/suggest - ett enda intresse med egna ord (högst 50 tecken), för "Lägg till ett intresse". Texten är själva
   taggen: den kontrolleras (ordfilter, moderation, granskning) och kopplas till ett intresse som finns eller till en
-  förälder, och ger ett förslag med sigill. 422 med ett meddelande om det inte godkänns. Delar minutgräns med analyze.
+  förälder, och ger ett förslag med sigill. 422 med ett meddelande om det inte godkänns. Med interest_id i stället för text
+  får ett befintligt intresse (valt ur sökningen) bara ett sigill, utan några anrop. Delar minutgräns med analyze.
 
 Kräver inloggning. Varje anrop kostar pengar hos OpenAI, så det finns en gräns för hur ofta en användare får
 anropa den. Gränsen räknas i minnet per användare och gäller per serverinstans, så den är en spärr och inget mer.
@@ -28,7 +29,7 @@ from app.db.session import get_db
 from app.schemas.analysis import AnalyzeRequest, AnalyzeResponse, SuggestRequest
 from app.services.ai_clients import AIFailed, AINotConfigured
 from app.services.analysis_token import AnalysisTokenUnavailable, create_token
-from app.services.interest_analysis import PhraseNotAllowed, analyze, analyze_phrase
+from app.services.interest_analysis import PhraseNotAllowed, UnknownInterest, analyze, analyze_interest, analyze_phrase
 from app.services.interest_candidates import CandidateFinder
 
 router = APIRouter(tags=["interests"])
@@ -75,10 +76,16 @@ def suggest_interest(
 ):
     _check_rate_limit(current_user.id)
     try:
-        result = analyze_phrase(data.text, load_library_index(db), load_activities(), CandidateFinder(db))
+        index, catalog = load_library_index(db), load_activities()
+        if data.interest_id is not None:
+            result = analyze_interest(data.interest_id, index, catalog)
+        else:
+            result = analyze_phrase(data.text, index, catalog, CandidateFinder(db))
         token = create_token(current_user.id, result.sealed)
     except PhraseNotAllowed:
         raise HTTPException(status_code=422, detail=msg.INTEREST_NOT_ALLOWED)
+    except UnknownInterest:
+        raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
     except (AIFailed, AINotConfigured, AnalysisTokenUnavailable, LibraryError):
         # En kontroll som inte går att köra släpper inte igenom något ogranskat: användaren får försöka igen.
         raise HTTPException(status_code=503, detail=msg.SUGGEST_UNAVAILABLE)

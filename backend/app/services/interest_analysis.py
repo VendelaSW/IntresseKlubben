@@ -151,3 +151,20 @@ def analyze_phrase(text: str, index: LibraryIndex, catalog: dict[str, str], find
     if all(m.kind == "none" for m in matches):  # modellen avgjorde att det inte är ett intresse
         raise PhraseNotAllowed()
     return _assemble(plan(matches, index, catalog, deadline, text="", use_model=False), index, followups_enabled=False)
+
+
+class UnknownInterest(Exception):
+    """Intresset finns inte (eller är inte aktivt)."""
+
+
+def analyze_interest(interest_id: int, index: LibraryIndex, catalog: dict[str, str]) -> Analysis:
+    """Förslaget för ett befintligt intresse som användaren valt ur sökningen (POST /interests/suggest med interest_id). Det får
+    ett sigill utan några anrop eller kontroller, eftersom intresset redan är granskat. Det väljs på id och inte på namn, så
+    att ett av flera intressen med samma namn (Fantasy under både Film och Böcker) aldrig blir ett annat. Intervjun
+    behöver det, eftersom den bara sparar förslag med sigill. Kastar UnknownInterest om det inte finns."""
+    item = index.by_id.get(interest_id)
+    if item is None:
+        raise UnknownInterest()
+    match = Match(Tag("t1", item.name), "same", interest_id=item.id, via="exact")
+    return _assemble(plan([match], index, catalog, Deadline(), text="", use_model=False), index, followups_enabled=False)
+

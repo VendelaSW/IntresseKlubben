@@ -458,6 +458,50 @@ def test_the_suggestion_shares_the_minute_limit_with_the_analysis(client, user, 
     assert suggest(client, "bananskalning").status_code == 429
 
 
+def test_a_chosen_existing_interest_gets_a_seal_without_any_ai_call(client, user, library):
+    llm, moderator = ai()
+    response = client.post(SUGGEST_URL, json={"interest_id": library["metal"].id})
+    assert response.status_code == 200
+    (proposal,) = response.json()["proposals"]
+    assert proposal["interest"] == {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "is_new": False, "parent_key": None}
+    assert llm.calls == [] and moderator.batches == []
+    assert read_token(response.json()["token"], user.id) == [
+        {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka"], "interest_id": library["metal"].id}
+    ]
+
+
+def test_an_area_can_be_chosen_by_id_too(client, user, library):
+    ai()
+    (proposal,) = client.post(SUGGEST_URL, json={"interest_id": library["musik"].id}).json()["proposals"]
+    assert proposal["interest"]["name"] == "Musik" and proposal["interest"]["path"] == []
+
+
+def test_the_interest_is_chosen_by_id_so_two_with_the_same_name_are_never_mixed_up(client, user, library, db):
+    first = Interest(name="Fantasy", slug="fantasy-film", parent_id=library["skapande"].id)
+    second = Interest(name="Fantasy", slug="fantasy-bocker", parent_id=library["djur"].id)
+    db.add_all([first, second])
+    db.commit()
+    ai()
+    for interest in (first, second):
+        (proposal,) = client.post(SUGGEST_URL, json={"interest_id": interest.id}).json()["proposals"]
+        assert proposal["interest"]["id"] == interest.id
+
+
+def test_an_interest_that_does_not_exist_or_is_inactive_is_refused(client, user, library, db):
+    ai()
+    assert client.post(SUGGEST_URL, json={"interest_id": 999999}).status_code == 422
+    library["jazz"].status = "inactive"
+    db.commit()
+    response = client.post(SUGGEST_URL, json={"interest_id": library["jazz"].id})
+    assert response.status_code == 422 and response.json()["detail"] == "Okänt intresse"
+
+
+@pytest.mark.parametrize("body", [{}, {"text": "bananskalning", "interest_id": 1}, {"text": None, "interest_id": None}])
+def test_exactly_one_of_text_and_interest_id_is_required(client, user, library, body):
+    ai()
+    assert client.post(SUGGEST_URL, json=body).status_code == 422
+
+
 def test_suggesting_needs_a_login(client, library):
     assert suggest(client, "bananskalning").status_code == 401
 

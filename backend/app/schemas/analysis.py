@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core import error_messages as msg
 
@@ -22,15 +22,27 @@ class AnalyzeRequest(BaseModel):
 
 
 class SuggestRequest(BaseModel):
-    text: str = Field(max_length=MAX_PHRASE_LENGTH)
+    """Antingen `text` (ett intresse med egna ord, som kontrolleras) eller `interest_id` (ett befintligt intresse som valts
+    ur sökningen, som bara får ett sigill). Exakt ett av dem."""
+
+    text: str | None = Field(default=None, max_length=MAX_PHRASE_LENGTH)
+    interest_id: int | None = None
 
     @field_validator("text")
     @classmethod
-    def text_not_empty(cls, value: str) -> str:
+    def text_not_empty(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         value = " ".join(value.split())
         if not value:
             raise ValueError(msg.INTERVIEW_TEXT_EMPTY)
         return value
+
+    @model_validator(mode="after")
+    def exactly_one(self) -> "SuggestRequest":
+        if (self.text is None) == (self.interest_id is None):
+            raise ValueError(msg.INTERVIEW_TEXT_EMPTY)
+        return self
 
 
 class InterestRef(BaseModel):
