@@ -2,6 +2,16 @@
 
 <!-- Kort beskrivning och vilken ticket det gäller. -->
 
+## Skärmdumpar
+
+<!-- Ändrar PR:en något man ser? Lägg en skärmdump i mobilbredd (375 px) och en på dator. -->
+
+## Testat i testläget (`npm run dev:test`)
+
+- [ ] På en riktig telefon (`npm run dev:telefon`) och på dator
+- [ ] Långa texter (kontot Maximiliana) och tomma listor (kontot Nils)
+- [ ] Testdata, scenarier eller fejkade AI-svar som featuren behöver finns i `backend/app/devtools/` (se CONTRIBUTING, "Testa i testläget")
+
 ## Checklista
 
 - [ ] Nya eller ändrade endpoints, CRUD-funktioner och valideringar har tester i `backend/tests/`
