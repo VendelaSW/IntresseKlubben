@@ -329,7 +329,7 @@ function StyleGuide() {
           får gul kant vid hover. Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret; ett
           nytt (.envelope-new) förblir stängt och har ett gult sigill. Avståndet mellan raderna följer
           kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför. Personens bild står
-          bredvid namnet och växer med kuvertet. Före bilden står "Från" eller "Till", efter vem som
+          bredvid namnet och växer med kuvertet. Över bilden och namnet står "Från" eller "Till", efter vem som
           skrev det senaste brevet.
         </p>
         <ul className="envelopes" style={{ marginTop: '1rem' }}>
@@ -348,9 +348,12 @@ function StyleGuide() {
           står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. Någon annans bild och namn (överst och vid breven, ChatSender) är länkar till profilen. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
           ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och under på mobil: rubriken Klubbchatt, medlemmarnas bilder
           och namn vid varje meddelande, och en svarsrad. Meddelanden i följd från samma person, inom 5
-          minuter, står under samma namn och bild (startsGroup i utils/messageGroups.js). Klubbens inlägg (GroupPosts) är inte chatt
-          utan ett vitt kort under klubbens ruta: ett skrivfält (.form-compact) och inläggen nyaste
-          först, med ChatSender och tid, och "Radera" för den som skrev inlägget och klubbens ägare.
+          minuter, står under samma namn och bild (startsGroup i utils/messageGroups.js). Klubbens anslagstavla (GroupPosts, .board) ligger
+          överst på klubbsidan för medlemmar: en låg korktavla med handritade lappar (.paper-note, samma som
+          kartans lappar). En lapp visar tre rader; ett klick öppnar hela lappen i en popup, där den som
+          satte upp den och ägaren kan ta ner den. Ägaren kan nåla fast en lapp i taget (.is-pinned: rak,
+          svagt gul och med en röd knappnål), som alltid ligger först och bara ägaren kan ta ner.
+          Medlemmarna (.group-members) står i två kolumner.
         </p>
         <article className="notepad lined-paper" style={{ marginTop: '1rem' }}>
           <h3 className="notepad-title">

@@ -97,7 +97,8 @@ export function sendGroupMessage(id, content) {
   return apiPost(`/groups/${id}/messages`, { content })
 }
 
-// Klubbens inlägg (nyheter, regler), nyaste först. Bara för medlemmar.
+// Klubbens inlägg (nyheter, regler): det fastnålade först, sedan nyaste först.
+// Bara för medlemmar.
 export function getGroupPosts(id) {
   return apiGet(`/groups/${id}/posts`)
 }
@@ -106,9 +107,19 @@ export function createGroupPost(id, content) {
   return apiPost(`/groups/${id}/posts`, { content })
 }
 
-// Bara den som skrev inlägget och klubbens ägare får radera det.
+// Bara den som skrev inlägget och klubbens ägare får radera det. Ett
+// fastnålat inlägg får bara ägaren radera.
 export function deleteGroupPost(id, postId) {
   return apiDelete(`/groups/${id}/posts/${postId}`)
+}
+
+// Bara ägaren. Ett inlägg i taget är fastnålat, så ett annat fastnålat tas loss.
+export function pinGroupPost(id, postId) {
+  return apiPut(`/groups/${id}/posts/${postId}/pin`)
+}
+
+export function unpinGroupPost(id, postId) {
+  return apiDelete(`/groups/${id}/posts/${postId}/pin`)
 }
 
 export function createGroup(data) {

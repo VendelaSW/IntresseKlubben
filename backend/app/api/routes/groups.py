@@ -26,7 +26,16 @@ from app.crud.group import (
     list_user_invitations,
 )
 from app.crud.group_message import get_group_messages, send_group_message
-from app.crud.group_post import can_delete_post, create_group_post, delete_group_post, get_group_post, get_group_posts
+from app.crud.group_post import (
+    can_delete_post,
+    create_group_post,
+    delete_group_post,
+    get_group_post,
+    get_group_posts,
+    is_group_owner,
+    pin_group_post,
+    unpin_group_post,
+)
 from app.crud.interest import get_active_interest
 from app.db.session import get_db
 from app.models.group import Group, GroupRole, GroupVisibility
@@ -289,7 +298,8 @@ def read_group_messages(group_id: int, current_user=Depends(get_current_user), d
 
 
 # Inlägg (nyheter, regler) som ligger kvar, till skillnad från chatten. Bara för
-# medlemmar, som chatten. Den som skrev inlägget och klubbens ägare får radera det.
+# medlemmar, som chatten. Den som skrev inlägget och klubbens ägare får radera det, utom ett
+# fastnålat inlägg, som bara ägaren får radera.
 @router.post("/{group_id}/posts", response_model=GroupPostOut, status_code=status.HTTP_201_CREATED)
 def create_post(
     group_id: int,
@@ -314,9 +324,34 @@ def delete_post(group_id: int, post_id: int, current_user=Depends(get_current_us
     if post is None:
         raise HTTPException(status_code=404, detail=msg.GROUP_POST_NOT_FOUND)
     if not can_delete_post(group, post, current_user.id):
-        raise HTTPException(status_code=403, detail=msg.GROUP_POST_CANNOT_DELETE)
+        pinned_own = post.author_id == current_user.id
+        raise HTTPException(
+            status_code=403, detail=msg.GROUP_POST_PINNED_CANNOT_DELETE if pinned_own else msg.GROUP_POST_CANNOT_DELETE
+        )
     delete_group_post(db, post)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _owned_post_or_error(db: Session, group_id: int, post_id: int, user_id: int):
+    """Inlägget, om användaren är klubbens ägare. Annars 403 (eller 404 om inlägget saknas)."""
+    group = _member_group_or_403(db, group_id, user_id)
+    post = get_group_post(db, group.id, post_id)
+    if post is None:
+        raise HTTPException(status_code=404, detail=msg.GROUP_POST_NOT_FOUND)
+    if not is_group_owner(group, user_id):
+        raise HTTPException(status_code=403, detail=msg.GROUP_POST_ONLY_OWNER_CAN_PIN)
+    return post
+
+
+# Ägaren kan nåla fast ett inlägg i taget, som då ligger först (se pin_group_post).
+@router.put("/{group_id}/posts/{post_id}/pin", response_model=GroupPostOut)
+def pin_post(group_id: int, post_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    return pin_group_post(db, _owned_post_or_error(db, group_id, post_id, current_user.id))
+
+
+@router.delete("/{group_id}/posts/{post_id}/pin", response_model=GroupPostOut)
+def unpin_post(group_id: int, post_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    return unpin_group_post(db, _owned_post_or_error(db, group_id, post_id, current_user.id))
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
