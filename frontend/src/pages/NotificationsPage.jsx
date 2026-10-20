@@ -116,24 +116,12 @@ function NotificationsPage() {
       ) : (
         <ul className="notification-list">
           {notifications.map((n) => (
-            <li key={n.id} className={`notification${n.read ? '' : ' is-unread'}`}>
-              <button type="button" className="notification-open" onClick={() => setSearchParams({ notis: String(n.id) })}>
-                {!n.read && <span className="notification-dot" aria-label="Ny" />}
-                <span className="notification-title">{n.title}</span>
-                <time className="notification-time" dateTime={n.created_at}>
-                  {formatSentAt(n.created_at)}
-                </time>
-              </button>
-              <button
-                type="button"
-                className="notification-remove"
-                aria-label={`Ta bort notisen ${n.title}`}
-                title="Ta bort"
-                onClick={() => run(() => deleteNotification(n.id))}
-              >
-                ×
-              </button>
-            </li>
+            <NotificationRow
+              key={n.id}
+              notification={n}
+              onOpen={() => setSearchParams({ notis: String(n.id) })}
+              onRemove={() => run(() => deleteNotification(n.id))}
+            />
           ))}
         </ul>
       )}
@@ -141,8 +129,33 @@ function NotificationsPage() {
   )
 }
 
-// En öppnad notis: hela texten, citatet och länken. Räknas som läst när den visas.
-function NotificationDetails({ notification: n, onRemove }) {
+// En rad i listan: rubriken och tiden (en oläst med prick och fet rubrik), och krysset som tar bort den.
+// Exporterad för stilguiden.
+export function NotificationRow({ notification: n, onOpen, onRemove }) {
+  return (
+    <li className={`notification${n.read ? '' : ' is-unread'}`}>
+      <button type="button" className="notification-open" onClick={onOpen}>
+        {!n.read && <span className="notification-dot" aria-label="Ny" />}
+        <span className="notification-title">{n.title}</span>
+        <time className="notification-time" dateTime={n.created_at}>
+          {formatSentAt(n.created_at)}
+        </time>
+      </button>
+      <button
+        type="button"
+        className="notification-remove"
+        aria-label={`Ta bort notisen ${n.title}`}
+        title="Ta bort"
+        onClick={onRemove}
+      >
+        ×
+      </button>
+    </li>
+  )
+}
+
+// En öppnad notis: hela texten, citatet och länken. Räknas som läst när den visas. Exporterad för stilguiden.
+export function NotificationDetails({ notification: n, onRemove }) {
   useEffect(() => {
     // Misslyckas det står den kvar som ny, och nästa gång man öppnar den försöker den igen.
     if (!n.read) markNotificationRead(n.id).catch(() => {})

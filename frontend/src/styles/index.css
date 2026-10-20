@@ -397,6 +397,16 @@ button.info-link {
   margin-top: 0;
 }
 
+/* Något som inte går att ångra, t.ex. "Radera eventet": röd kant och text i
+   stället för gul, så att det inte ser ut som det vanliga valet. Det säkra
+   valet bredvid ("Behåll eventet") är den gula knappen. */
+.auth-form .button-danger {
+  background: transparent;
+  border: 2px solid var(--color-error);
+  color: var(--color-error);
+  margin-top: 0;
+}
+
 button.banner-button {
   border: none;
   cursor: pointer;
@@ -2942,13 +2952,15 @@ label.person-list-item {
   color: var(--color-text);
 }
 
-/* En öppnad notis. */
+/* En öppnad notis. Långa ord utan mellanslag (t.ex. en länk i meddelandet)
+   bryts, så att de inte sticker ut ur rutan på mobil. */
 .notification-details {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   width: 100%;
   max-width: 560px;
+  overflow-wrap: anywhere;
 }
 
 .notification-meta {
@@ -2960,10 +2972,12 @@ label.person-list-item {
 .notification-details-title {
   margin: 0;
   font-size: 1.15rem;
+  overflow-wrap: anywhere;
 }
 
 .notification-quote {
   margin: 0;
+  overflow-wrap: anywhere;
   padding: 0.4rem 0.75rem;
   border-left: 3px solid var(--color-line);
   background: var(--color-accent-soft);

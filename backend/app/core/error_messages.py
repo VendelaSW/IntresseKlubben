@@ -69,7 +69,6 @@ GROUP_ADDRESS_TOO_LONG = "Adress får max vara 100 tecken"
 # ---------- Events (routes/events.py, crud/event.py) ----------
 EVENT_NOT_FOUND = "Eventet finns inte"
 EVENT_CANCEL_MESSAGE_TOO_LONG = "Meddelandet får max vara 300 tecken"
-NOTIFICATION_NOT_FOUND = "Notisen finns inte"
 EVENT_ONLY_CREATOR = "Bara den som skapat eventet kan ändra det"
 EVENT_ONLY_CREATOR_CAN_INVITE = "Bara den som skapat eventet kan bjuda in"
 EVENT_IN_PRIVATE_GROUP_CANNOT_BE_OPEN = "Events i privata klubbar kan inte vara öppna"
@@ -79,6 +78,9 @@ CAN_ONLY_INVITE_CONTACTS = "Du kan bara bjuda in dina kontakter"
 PERSON_NOT_INVITED = "Personen är inte inbjuden"
 GROUP_INVITE_NOBODY = "Välj minst en person att bjuda in"
 GROUP_CANNOT_INVITE = "Du kan inte bjuda in till den här klubben"
+
+# ---------- Notiser (routes/notifications.py, crud/notification.py) ----------
+NOTIFICATION_NOT_FOUND = "Notisen finns inte"
 
 # ---------- Inlägg i klubbar (routes/groups.py, schemas/group_post.py) ----------
 GROUP_POST_EMPTY = "Inlägget får inte vara tomt"

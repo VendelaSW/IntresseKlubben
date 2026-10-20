@@ -112,10 +112,16 @@ def list_notifications(db: Session, user_id: int) -> list[Notification]:
 
 
 def unread_count(user_id: int):
-    """Antal olästa notiser, som en fråga att ställa ihop med märkenas andra räkningar (se routes/badges.py)."""
-    return select(func.count()).select_from(Notification).where(
-        Notification.user_id == user_id, Notification.read_at.is_(None)
+    """Antal olästa notiser bland dem som visas (de LIST_LIMIT senaste), så att märket aldrig räknar en notis som
+    inte syns i listan. En fråga att ställa ihop med märkenas andra räkningar (se routes/badges.py)."""
+    shown = (
+        select(Notification.read_at)
+        .where(Notification.user_id == user_id)
+        .order_by(Notification.created_at.desc(), Notification.id.desc())
+        .limit(LIST_LIMIT)
+        .subquery()
     )
+    return select(func.count()).select_from(shown).where(shown.c.read_at.is_(None))
 
 
 def mark_read(db: Session, user_id: int, notification_id: int) -> bool:

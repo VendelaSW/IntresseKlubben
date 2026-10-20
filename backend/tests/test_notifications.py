@@ -159,6 +159,21 @@ def test_unread_notifications_are_counted_in_the_badges(client, db, event, peopl
     assert client.get("/notifications").json()[0]["read"] is True
 
 
+def test_the_badge_only_counts_notifications_shown_in_the_list(client, db, people, monkeypatch):
+    # Listan visar de LIST_LIMIT senaste. En oläst notis längre ner syns inte, och ska då inte räknas i märket.
+    from app.crud import notification as crud
+    from app.models.notification import NotificationKind
+
+    monkeypatch.setattr(crud, "LIST_LIMIT", 2)
+    for title in ("Äldst", "Mitten", "Nyast"):
+        crud.notify(db, [2], NotificationKind.event_changed, title=title)
+        db.commit()
+
+    login_as(people[2])
+    assert [n["title"] for n in client.get("/notifications").json()] == ["Nyast", "Mitten"]
+    assert client.get("/users/me/badges").json()["unread_notifications"] == 2
+
+
 def test_you_only_see_your_own_notifications(client, db, event, people):
     client.request("DELETE", f"/events/{event.id}")
     login_as(people[4])

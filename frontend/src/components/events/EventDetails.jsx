@@ -231,12 +231,26 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
                 <p className="card-text">
                   «{event.title}» tas bort, med inbjudningar och svar. Det går inte att ångra.
                 </p>
-                {coming > 0 ? (
+                {/* Medan svaren laddas sägs inget om vilka som får en notis. Gick de inte att hämta vet vi
+                    inte, men backend skickar notiserna ändå, så meddelandefältet visas. */}
+                {responses === null && !failed && <p className="hint-text">Hämtar vilka som har svarat...</p>}
+                {failed && (
+                  <p className="hint-text">
+                    Kunde inte hämta vilka som har svarat. De som har svarat Ja eller Kanske får ändå en notis från
+                    Intresseklubben om att eventet är inställt.
+                  </p>
+                )}
+                {responses !== null && coming > 0 && (
+                  <p className="hint-text">
+                    {coming === 1 ? '1 person har' : `${coming} personer har`} svarat Ja eller Kanske och får en notis
+                    från Intresseklubben om att eventet är inställt.
+                  </p>
+                )}
+                {responses !== null && coming === 0 && (
+                  <p className="hint-text">Ingen har svarat Ja eller Kanske, så ingen får någon notis.</p>
+                )}
+                {(failed || coming > 0) && (
                   <>
-                    <p className="hint-text">
-                      {coming === 1 ? '1 person har' : `${coming} personer har`} svarat Ja eller Kanske och får en notis
-                      från Intresseklubben om att eventet är inställt.
-                    </p>
                     <label htmlFor={`cancel-message-${event.id}`}>Meddelande till dem (valfritt)</label>
                     <TextareaWithCount
                       id={`cancel-message-${event.id}`}
@@ -247,16 +261,15 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
                       placeholder="T.ex. Inställt pga sjukdom, vi ses nästa vecka!"
                     />
                   </>
-                ) : (
-                  <p className="hint-text">Ingen har svarat Ja eller Kanske, så ingen får någon notis.</p>
                 )}
                 {deleteError && <p className="status-error">{deleteError}</p>}
+                {/* Det säkra valet är den gula knappen, raderingen har en egen röd stil (.button-danger). */}
                 <div className="form-actions">
-                  <button type="submit" disabled={deleting}>
-                    {deleting ? 'Raderar...' : 'Radera eventet'}
-                  </button>
-                  <button type="button" className="button-secondary" onClick={() => setCancelOpen(false)} disabled={deleting}>
+                  <button type="button" onClick={() => setCancelOpen(false)} disabled={deleting}>
                     Behåll eventet
+                  </button>
+                  <button type="submit" className="button-danger" disabled={deleting || (responses === null && !failed)}>
+                    {deleting ? 'Raderar...' : 'Radera eventet'}
                   </button>
                 </div>
               </form>
