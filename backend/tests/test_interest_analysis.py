@@ -6,9 +6,11 @@ import pytest
 from app.api.routes import interest_analysis as route
 from app.core.config import settings
 from app.models.interest import Interest
+from app.models.interest_embedding import InterestEmbedding
 from app.services.ai_clients import AIFailed, set_clients
 from app.services.analysis_token import InvalidAnalysisToken, read_token
-from tests.fakes import FakeLLM, FakeModerator
+from app.services.interest_candidates import CandidateFinder
+from tests.fakes import FakeEmbedder, FakeLLM, FakeModerator
 
 URL = "/interests/analyze"
 UNAVAILABLE = "Vi kunde inte tolka texten just nu. Välj dina intressen i listan i stället."
@@ -69,7 +71,8 @@ def analyze(client, text="Jag spelar hårdrock i ett band."):
 # ---------- Förslagen ----------
 
 
-def test_an_existing_interest_is_proposed_with_its_place_in_the_tree_and_the_activity_the_text_says(client, user, library):
+def test_an_existing_interest_is_proposed_with_its_place_in_the_tree_and_the_activity_the_text_says(client, user, library, monkeypatch):
+    monkeypatch.setattr(settings, "interest_followups", True)  # aktiviteten ur texten läses bara ut med följdfrågorna på
     ai(extract=tree(("hårdrock", [])), clarify=clarify_for(("t1", "spela", [], "none")))
     response = analyze(client)
     assert response.status_code == 200
@@ -161,7 +164,8 @@ def test_every_step_shares_one_deadline_so_the_analysis_fits_in_the_function(cli
 # ---------- Sigillet ----------
 
 
-def test_the_seal_covers_exactly_the_proposals_and_what_is_allowed_for_each(client, user, library):
+def test_the_seal_covers_exactly_the_proposals_and_what_is_allowed_for_each(client, user, library, monkeypatch):
+    monkeypatch.setattr(settings, "interest_followups", True)
     ai(extract=tree(("hårdrock", [])), clarify=clarify_for(("t1", "spela", [], "none")))
     body = analyze(client).json()
     assert read_token(body["token"], user.id) == [
@@ -192,6 +196,159 @@ def test_the_seal_belongs_to_the_user_who_got_it(client, user, library):
         read_token(token, user.id + 1)
 
 
+# ---------- Alias först: kända intressen utan AI ----------
+
+
+def test_a_list_of_known_interests_is_answered_without_any_ai_call(client, user, library):
+    llm, moderator = ai()
+    body = analyze(client, "Hårdrock och katter").json()
+    assert llm.calls == [] and moderator.batches == []
+    assert [p["interest"]["name"] for p in body["proposals"]] == ["Metal", "Katter"]
+    assert [claim["interest_id"] for claim in read_token(body["token"], user.id)] == [library["metal"].id, library["katter"].id]
+
+
+def test_a_text_that_shows_doubt_is_not_a_shortcut_and_goes_to_the_model(client, user, library):
+    llm, _ = ai(extract=tree(("katter", [])))
+    proposals = analyze(client, "Katter, men jag hatar hårdrock").json()["proposals"]
+    assert len(llm.calls_named("interests")) == 1
+    assert [p["interest"]["name"] for p in proposals] == ["Katter"]
+
+
+def test_a_part_that_is_not_in_the_library_sends_the_whole_text_to_the_model(client, user, library):
+    llm, _ = ai(extract=tree(("hårdrock", [])))
+    proposals = analyze(client, "Hårdrock och kaktusar").json()["proposals"]
+    assert len(llm.calls_named("interests")) == 1
+    assert [p["interest"]["name"] for p in proposals] == ["Metal"]
+
+
+def test_when_the_model_finds_nothing_a_known_alias_in_the_text_is_used(client, user, library):
+    llm, moderator = ai(extract=tree())
+    proposals = analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"]
+    assert [p["interest"]["name"] for p in proposals] == ["Metal"]
+    assert [call.name for call in llm.calls] == ["interests"]  # inget mer anrop till modellen
+    assert moderator.batches == [["Jag är intresserad av Metal."]]  # men träffen modereras som modellens taggar
+
+
+def test_the_safety_net_finds_a_simple_form_of_a_word(client, user, library):
+    ai(extract=tree())
+    proposals = analyze(client, "Jag älskar katterna, mest på kvällarna").json()["proposals"]
+    assert [p["interest"]["name"] for p in proposals] == ["Katter"]
+
+
+def test_the_models_own_tags_are_never_added_to_by_the_safety_net(client, user, library):
+    ai(extract=tree(("katter", [])))
+    proposals = analyze(client, "Jag gillar katter och hårdrock, mest på kvällarna").json()["proposals"]
+    assert [p["interest"]["name"] for p in proposals] == ["Katter"]
+
+
+def test_the_safety_net_leaves_out_an_area_when_something_more_specific_was_found(client, user, library):
+    ai(extract=tree())
+    proposals = analyze(client, "Jag lyssnar på musik och hårdrock, mest på kvällarna").json()["proposals"]
+    assert [p["interest"]["name"] for p in proposals] == ["Metal"]
+
+
+def test_the_safety_net_is_not_used_for_a_text_that_shows_doubt(client, user, library):
+    ai(extract=tree())
+    assert analyze(client, "Jag hatar hårdrock, mest på kvällarna").json()["proposals"] == []
+
+
+def test_the_safety_net_is_not_used_when_the_judge_removed_the_models_tag(client, user, library):
+    ai(extract=tree(("hårdrock", [])), judge={"remove": ["hårdrock"]})
+    assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"] == []
+
+
+def test_the_safety_net_is_not_used_when_moderation_removed_the_models_tag(client, user, library):
+    ai(extract=tree(("hårdrock", [])), flagged=["Jag är intresserad av hårdrock."])
+    assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"] == []
+
+
+def test_the_safety_net_is_not_used_for_something_the_person_stopped_doing(client, user, library):
+    ai(extract=tree())
+    assert analyze(client, "Jag har slutat med hårdrock, mest på kvällarna").json()["proposals"] == []
+
+
+def test_a_hit_from_the_safety_net_that_moderation_flags_is_removed(client, user, library):
+    ai(extract=tree(), flagged=["Jag är intresserad av Metal."])
+    assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"] == []
+
+
+def test_moderation_that_cannot_run_for_a_safety_net_hit_gives_503(client, user, library):
+    _, moderator = ai(extract=tree())
+    moderator.error = AIFailed("URLError")
+    assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").status_code == 503
+
+
+def test_a_shortcut_does_not_write_anything_to_the_database(client, user, library, db):
+    before = db.query(Interest).count()
+    ai()
+    assert analyze(client, "Hårdrock och katter").status_code == 200
+    assert db.query(Interest).count() == before
+
+
+# ---------- Kandidatfilter: AI:n ser bara det som kan vara rätt ----------
+
+NEW_MATCH = {"decisions": [{"key": "t1", "decision": "new", "interest_id": None, "parent_id": None, "new_name": "modellbygge"}]}
+
+
+def with_vectors(db, library):
+    """Vektorer i tre dimensioner: Skapande nära "modellbygge", musiken och katterna långt därifrån."""
+    placed = {"skapande": [1.0, 0.0, 0.0], "musik": [0.0, 1.0, 0.0], "metal": [0.0, 1.0, 0.0], "jazz": [0.0, 1.0, 0.0],
+              "djur": [0.0, 0.0, 1.0], "katter": [0.0, 0.0, 1.0]}
+    for key, vector in placed.items():
+        db.add(InterestEmbedding(interest_id=library[key].id, embedding=vector, embedding_hash="x"))
+    db.commit()
+
+
+def analyze_with_candidates(client, monkeypatch, db, embedder):
+    monkeypatch.setattr(route, "CandidateFinder", lambda session: CandidateFinder(session, embedder=embedder, per_tag=1, for_text=1))
+    llm, _ = ai(extract=tree(("modellbygge", [])), match=NEW_MATCH)
+    response = analyze(client, "Jag bygger modeller.")
+    assert response.status_code == 200
+    (call,) = llm.calls_named("match")
+    return call.user.split("\n\nTaggar:\n")[0]
+
+
+def test_the_model_only_sees_the_nearest_interests_and_the_areas_not_the_whole_library(client, user, library, db, monkeypatch):
+    with_vectors(db, library)
+    embedder = FakeEmbedder(vectors={"modellbygge": [1.0, 0.0, 0.0], "Jag bygger modeller.": [1.0, 0.0, 0.0]})
+    listing = analyze_with_candidates(client, monkeypatch, db, embedder)
+    assert "Skapande" in listing  # det närmaste, och ett huvudområde
+    assert "Musik" in listing and "Djur och natur" in listing  # alla huvudområden, alltid
+    assert "Metal" not in listing and "Jazz" not in listing and "Katter" not in listing  # det som ligger långt bort
+
+
+def test_without_vectors_the_model_gets_the_whole_library_as_before(client, user, library, db, monkeypatch):
+    embedder = FakeEmbedder(vectors={"modellbygge": [1.0, 0.0, 0.0], "Jag bygger modeller.": [1.0, 0.0, 0.0]})
+    listing = analyze_with_candidates(client, monkeypatch, db, embedder)  # tabellen är tom: synken är inte körd
+    assert all(name in listing for name in ("Metal", "Jazz", "Katter", "Skapande"))
+
+
+def test_when_the_embedding_call_fails_the_model_gets_the_whole_library_and_the_analysis_works(client, user, library, db, monkeypatch):
+    with_vectors(db, library)
+    listing = analyze_with_candidates(client, monkeypatch, db, FakeEmbedder(error=AIFailed("URLError")))
+    assert all(name in listing for name in ("Metal", "Jazz", "Katter", "Skapande"))
+
+
+def test_no_embedding_call_is_made_when_every_tag_is_an_exact_match(client, user, library, db, monkeypatch):
+    with_vectors(db, library)
+    embedder = FakeEmbedder()
+    monkeypatch.setattr(route, "CandidateFinder", lambda session: CandidateFinder(session, embedder=embedder))
+    llm, _ = ai(extract=tree(("hårdrock", [])))
+    assert analyze(client, "Jag spelar hårdrock i ett band.").status_code == 200
+    assert embedder.calls == [] and llm.calls_named("match") == []
+
+
+def test_the_proposals_are_the_same_with_the_filter_as_without_it(client, user, library, db, monkeypatch):
+    # Filtret ändrar vad modellen ser, inte vad som blir ett förslag: "modellbygge" blir ett nytt intresse under Skapande.
+    match = {"decisions": [{"key": "t1", "decision": "new", "interest_id": None, "parent_id": library["skapande"].id, "new_name": "modellbygge"}]}
+    with_vectors(db, library)
+    embedder = FakeEmbedder(vectors={"modellbygge": [1.0, 0.0, 0.0], "Jag bygger modeller.": [1.0, 0.0, 0.0]})
+    monkeypatch.setattr(route, "CandidateFinder", lambda session: CandidateFinder(session, embedder=embedder, per_tag=1, for_text=1))
+    ai(extract=tree(("modellbygge", [])), match=match)
+    (proposal,) = analyze(client, "Jag bygger modeller.").json()["proposals"]
+    assert proposal["interest"] == {"id": None, "name": "Modellbygge", "path": ["Skapande"], "is_new": True, "parent_key": None}
+
+
 # ---------- Följdfrågor: byggda men av ----------
 
 
@@ -202,6 +359,15 @@ def test_follow_up_questions_are_off_by_default_and_nothing_is_guessed(client, u
     assert settings.interest_followups is False
     assert body["followups"] == []
     assert body["proposals"][0]["activity"] == ""
+
+
+def test_with_follow_ups_off_the_model_is_asked_about_neither_activities_nor_questions(client, user, library):
+    llm, _ = ai(extract=tree(("hårdrock", []), ("katter", [])), clarify=clarify_for(("t1", "spela", [], "none")))
+    body = analyze(client, "Jag spelar hårdrock och har katter.").json()
+    assert {call.name for call in llm.calls} == {"interests", "judge"}  # inget anrop om följdfrågor eller aktiviteter
+    assert [p["activity"] for p in body["proposals"]] == ["", ""]  # aktiviteten ur texten läses inte ut
+    claims = read_token(body["token"], user.id)
+    assert [c["allowed"] for c in claims] == [["lyssna", "spela", "skapa", "besoka"], []]  # Katter har ingen lista i biblioteket
 
 
 def test_follow_up_questions_are_sent_when_they_are_switched_on(client, user, library, monkeypatch):

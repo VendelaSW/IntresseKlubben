@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import BirthDatePicker from '../components/BirthDatePicker'
 import BlockedUsers from '../components/BlockedUsers'
+import ChangePassword from '../components/ChangePassword'
 import DeleteAccount from '../components/DeleteAccount'
+import EmailVerification from '../components/EmailVerification'
 import InterestExplorer from '../components/InterestExplorer'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import ProfileAbout from '../components/ProfileAbout'
@@ -549,6 +551,7 @@ function ProfilePage() {
         </form>
         {/* Utanför formuläret ovan: Radera konto har ett eget formulär, och formulär går inte att lägga i varandra.
             Bara för en befintlig profil, en ny har inget att radera än. */}
+        {!isNew && <ChangePassword email={account?.email} />}
         {!isNew && <DeleteAccount />}
       </div>
     )
@@ -581,6 +584,7 @@ function ProfilePage() {
         <dd>{account?.email ?? 'Ingen e-post sparad'}</dd>
       </dl>
       <p className="hint-text">E-posten syns bara för dig.</p>
+      <EmailVerification account={account} />
       <ProfileAbout text={profile.profile_text} />
       <BlockedUsers />
       <button type="button" className="primary-button" onClick={() => startEditing()}>
