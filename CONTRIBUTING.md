@@ -166,6 +166,18 @@ Bygg klart en feature innan du öppnar PR:en, i stället för många små PR:er,
 ### Ersätta befintlig kod
 Bygger du något som överlappar befintlig kod: skriv i PR:en vad som ersätts och varför, eller varför båda behövs. Att ta bort kod är aldrig farligt, eftersom den finns kvar i Git-historiken, men det ska synas i PR:en.
 
+### Mobil
+De flesta använder appen på telefonen. Vi följer de vanliga riktlinjerna för formulär och knappar på telefon (Apple, Material Design, WCAG 2.2 och Baymards forskning om formulär), och intervjun (`ProfileInterview`) är exemplet att utgå från:
+- **Fält har minst 16 px text på pekskärmar**, annars zoomar iPhone in när man trycker i dem. Det sköts globalt i `index.css`, så sätt inte `!important` på en mindre storlek.
+- **Knappar och fält är minst 48 px höga** (Material 48 dp, Apple 44 pt, WCAG 2.5.8 minst 24 px), med minst 8 px mellan.
+- **En kolumn och etiketten ovanför fältet.** Fält bredvid varandra (`.form-row`) läggs under varandra.
+- **Huvudknappen störst och där tummen når**, längst ned eller till höger. På långa sidor ligger den kvar längst ned medan man scrollar.
+- **Ett formulär med några få frågor ska gå att fylla i utan att scrolla** på en vanlig telefon (390 × 844, och helst 375 × 667).
+- **Rätt tangentbord:** `type`, `autoComplete` och `enterKeyHint` på fälten (t.ex. `autoComplete="name"`, `type="email"`).
+- **Stäng aldrig av zoom med två fingrar** (`maximum-scale` eller `user-scalable=no` i viewport-taggen). Det behövs för den som ser dåligt.
+
+Testa på en riktig telefon innan merge (se [testa-pa-mobilen.md](testa-pa-mobilen.md)).
+
 ---
 
 ## 4. Tester och CI
