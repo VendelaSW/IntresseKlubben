@@ -345,3 +345,86 @@ def test_similar_has_a_minute_limit_per_user(client, db, user, library, monkeypa
 
 def test_similar_needs_login(client, library):
     assert client.get(SIMILAR_URL, params={"q": "vara ute"}).status_code == 401
+
+
+# --- Egna intressen syns för andra först när minst tre användare har dem ------
+
+
+def _people(db, count):
+    """`count` andra användare (id 2 och uppåt), den inloggade (id 1) är user-fixturen."""
+    from app.models import User
+
+    people = [User(id=i, username=f"person{i}", password_hash="unused") for i in range(2, 2 + count)]
+    db.add_all(people)
+    db.commit()
+    return people
+
+
+def _own_interest(db, library, creator_id, holders=(), name="Kubb", parent="Sport och träning"):
+    """Ett eget intresse (source user_suggestion) skapat av `creator_id`, som `holders` har på sin profil."""
+    from app.models.user_interest import UserInterest
+
+    interest = Interest(
+        name=name, parent_id=library[parent].id, source="user_suggestion", created_by_user_id=creator_id
+    )
+    db.add(interest)
+    db.flush()
+    for holder in holders:
+        db.add(UserInterest(user_id=holder, interest_id=interest.id))
+    db.commit()
+    return interest
+
+
+def _children_names(client, interest):
+    return [name for name, _, _ in _browse(client.get(f"/interests/{interest.id}/children"))]
+
+
+def test_someone_elses_own_interest_is_hidden_with_fewer_than_three_users(client, db, user, library):
+    _people(db, 3)
+    _own_interest(db, library, creator_id=2, holders=[2, 3])  # skaparen och en till: två
+    assert "Kubb" not in _children_names(client, library["Sport och träning"])
+    assert client.get("/interests/search", params={"q": "kubb"}).json() == []
+
+
+def test_someone_elses_own_interest_shows_when_three_users_have_it(client, db, user, library):
+    _people(db, 3)
+    _own_interest(db, library, creator_id=2, holders=[2, 3, 4])  # skaparen plus två till
+    assert "Kubb" in _children_names(client, library["Sport och träning"])
+    assert _browse(client.get("/interests/search", params={"q": "kubb"})) == [("Kubb", ["Sport och träning"], False)]
+
+
+def test_the_creator_always_sees_their_own_interest(client, db, user, library):
+    _own_interest(db, library, creator_id=user.id)  # ingen har det på sin profil
+    assert "Kubb" in _children_names(client, library["Sport och träning"])
+    assert [name for name, _, _ in _browse(client.get("/interests/search", params={"q": "kubb"}))] == ["Kubb"]
+
+
+def test_one_user_with_two_activities_counts_once(client, db, user, library):
+    from app.models.user_interest import UserInterest
+
+    _people(db, 2)
+    own = _own_interest(db, library, creator_id=2, holders=[2, 3])
+    db.add(UserInterest(user_id=3, interest_id=own.id, activity="spela"))  # samma person, annan aktivitet
+    db.commit()
+    assert "Kubb" not in _children_names(client, library["Sport och träning"])
+
+
+def test_library_interests_are_always_visible(client, user, library):
+    assert "Löpning" in _children_names(client, library["Sport och träning"])
+    assert _browse(client.get("/interests/search", params={"q": "löpning"}))
+
+
+def test_a_hidden_interest_is_still_found_by_meaning(client, db, user, library):
+    from app.services.ai_clients import set_clients
+    from app.services.interest_embeddings import embed_interests, embedding_text
+    from tests.fakes import FakeEmbedder
+
+    _people(db, 1)
+    own = _own_interest(db, library, creator_id=2, holders=[2])
+    vector = _vector(1.0, 0.0)
+    embedder = FakeEmbedder(vectors={embedding_text(own): vector, "gårdsspel": vector})
+    embed_interests(db, [own], embedder)
+    db.commit()
+    set_clients(embedder=embedder)
+    assert client.get("/interests/search", params={"q": "kubb"}).json() == []  # dolt i sökningen
+    assert [name for name, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "gårdsspel"}))] == ["Kubb"]
