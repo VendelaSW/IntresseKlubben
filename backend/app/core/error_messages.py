@@ -108,6 +108,8 @@ CONFIRM_UNAVAILABLE = "Vi kunde inte spara just nu. Försök igen om en stund."
 REPORT_TARGET_NOT_FOUND = "Det du vill anmäla finns inte längre"
 REPORT_SELF = "Du kan inte anmäla dig själv"
 REPORT_COMMENT_TOO_LONG = "Kommentaren får max vara 500 tecken"
+REPORT_ALREADY_SENT = "Du har redan anmält det här. Vi tittar på det."
+REPORT_TOO_MANY = "Du har anmält många saker på kort tid. Försök igen om en stund."
 
 # ---------- Moderering (routes/moderation.py, auth/security.py) ----------
 MODERATORS_ONLY = "Bara moderatorer kommer åt det här"

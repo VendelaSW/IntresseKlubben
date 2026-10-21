@@ -1,11 +1,15 @@
 """Tester för anmälningar: POST /reports, och att anmälningarna finns kvar utan
 koppling till kontot när ett konto raderas."""
 
+from datetime import timedelta
+
 import pytest
 
 from app.auth.security import get_current_user
 from app.crud.user import delete_user
 from app.main import app
+from app.models.email_token import utc_now
+from app.crud.report import REPORTS_PER_HOUR
 from app.models import GroupMessage, GroupPost, Interest, Message, Report, User
 
 
@@ -157,3 +161,39 @@ def test_reports_stay_without_the_deleted_account(client, db, user, bob, outside
 
     reports = db.query(Report).order_by(Report.id).all()
     assert [(r.reporter_id, r.reported_user_id) for r in reports] == [(user.id, None), (None, outsider.id)]
+
+
+def test_same_thing_can_only_be_reported_once_until_handled(client, db, user, bob):
+    letter = Message(sender_id=bob.id, recipient_id=user.id, text="Elakt brev")
+    db.add(letter)
+    db.commit()
+    assert _report(client, "message", letter.id).status_code == 201
+    assert _report(client, "profile", bob.id).status_code == 201  # profilen är en annan sak
+
+    for target_type, target_id in (("message", letter.id), ("profile", bob.id)):
+        response = _report(client, target_type, target_id, reason="spam")
+        assert response.status_code == 409
+        assert response.json()["detail"] == "Du har redan anmält det här. Vi tittar på det."
+    assert db.query(Report).count() == 2
+
+    # När anmälan är hanterad går det att anmäla igen.
+    db.query(Report).update({Report.handled_at: utc_now()})
+    db.commit()
+    assert _report(client, "profile", bob.id).status_code == 201
+
+
+def test_at_most_a_few_reports_per_hour(client, db, user):
+    people = [User(id=10 + i, username=f"person{i}", password_hash="unused") for i in range(REPORTS_PER_HOUR + 1)]
+    db.add_all(people)
+    db.commit()
+    for person in people[:REPORTS_PER_HOUR]:
+        assert _report(client, "profile", person.id).status_code == 201
+
+    response = _report(client, "profile", people[-1].id)
+    assert response.status_code == 429
+    assert "många saker på kort tid" in response.json()["detail"]
+
+    # Anmälningar äldre än en timme räknas inte.
+    db.query(Report).update({Report.created_at: utc_now() - timedelta(hours=2)})
+    db.commit()
+    assert _report(client, "profile", people[-1].id).status_code == 201

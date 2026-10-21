@@ -3,18 +3,29 @@ Anmälningar (se models/report.py). Granskningen görs i SCRUM-131.
 
 Man kan anmäla en användare, ett brev man har fått, och ett meddelande eller en
 lapp i en klubb man är med i. Aldrig sig själv eller något man själv har skrivit.
+
+Så att ingen kan översvämma modereringen: högst REPORTS_PER_HOUR anmälningar i
+timmen per användare, och samma sak kan bara anmälas en gång av samma person så
+länge anmälan inte är hanterad. Räknas i databasen, så att det gäller oavsett
+hur många serverinstanser som körs.
 """
+
+from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
 from app.core import error_messages as msg
 from app.crud.group import get_group, get_membership
+from app.models.email_token import utc_now
 from app.models.group_message import GroupMessage
 from app.models.group_post import GroupPost
 from app.models.message import Message
 from app.models.report import Report, ReportTarget
 from app.models.user import User
 from app.schemas.report import ReportCreate
+
+
+REPORTS_PER_HOUR = 10
 
 
 class ReportError(Exception):
@@ -57,11 +68,23 @@ def create_report(db: Session, reporter_id: int, data: ReportCreate) -> Report:
     reported_user_id, content = _target(db, reporter_id, data)
     if reported_user_id == reporter_id:
         raise ReportError(400, msg.REPORT_SELF)
+    target_id = None if data.target_type == ReportTarget.profile else data.target_id
+    mine = db.query(Report).filter(Report.reporter_id == reporter_id)
+    same = mine.filter(
+        Report.handled_at.is_(None),
+        Report.target_type == data.target_type.value,
+        Report.reported_user_id == reported_user_id,
+        Report.target_id.is_(None) if target_id is None else Report.target_id == target_id,
+    )
+    if same.first() is not None:
+        raise ReportError(409, msg.REPORT_ALREADY_SENT)
+    if mine.filter(Report.created_at >= utc_now() - timedelta(hours=1)).count() >= REPORTS_PER_HOUR:
+        raise ReportError(429, msg.REPORT_TOO_MANY)
     report = Report(
         reporter_id=reporter_id,
         reported_user_id=reported_user_id,
         target_type=data.target_type.value,
-        target_id=None if data.target_type == ReportTarget.profile else data.target_id,
+        target_id=target_id,
         content=content,
         reason=data.reason.value,
         comment=data.comment,

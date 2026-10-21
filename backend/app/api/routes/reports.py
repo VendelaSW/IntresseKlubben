@@ -4,7 +4,9 @@ Anmälningar (se crud/report.py).
 POST /reports - anmäler en användare, ett brev man har fått, eller ett
 meddelande eller en lapp i en klubb man är med i. Anmälan sparas för granskning
 (SCRUM-131), och den anmälda får inte veta vem som anmälde. 404 om det anmälda
-inte finns eller man inte får se det, 400 om man anmäler sig själv.
+inte finns eller man inte får se det, 400 om man anmäler sig själv, 409 om man redan
+har anmält samma sak och den inte är hanterad än, och 429 efter för många
+anmälningar på en timme (se crud/report.py).
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
