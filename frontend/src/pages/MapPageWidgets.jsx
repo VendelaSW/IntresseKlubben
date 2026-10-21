@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import brevIcon from '../assets/brev.png'
 import eventIcon from '../assets/event.png'
 import klubbarIcon from '../assets/klubbar.png'
+import notiserIcon from '../assets/notiser.svg'
 import personerIcon from '../assets/personer.png'
 import { useBadgeCounts } from '../hooks/useBadgeCounts'
 
@@ -19,6 +20,7 @@ const WIDGETS = [
   { id: 'personer', label: 'Personer', icon: personerIcon, badge: ['contactRequests', 'nya kompisförfrågningar'] },
   { id: 'klubbar', label: 'Klubbar', icon: klubbarIcon, badge: ['clubInvitations', 'klubbinbjudningar'] },
   { id: 'events', label: 'Events', icon: eventIcon, badge: ['eventNews', 'nya events och inbjudningar'] },
+  { id: 'notiser', label: 'Notiser', icon: notiserIcon, badge: ['notifications', 'nya notiser'] },
 ]
 
 // Hur länge en lapp studsar (samma som animationen map-widget-ping).
