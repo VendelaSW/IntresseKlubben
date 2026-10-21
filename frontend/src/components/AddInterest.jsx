@@ -34,10 +34,10 @@ function messageOf(error) {
     : 'Något gick fel. Kontrollera anslutningen och försök igen.'
 }
 
-// "Menade du:" för en text som inte gav någon träff: intressen med liknande betydelse, så att man hittar det som finns i
-// stället för att skapa en variant. `action(item)` ger knappen vid varje rad (sidan bestämmer vad den gör). Visar inget
-// medan förslagen hämtas eller om inget liknar, och ett fel ger inget förslag: det är en hjälp, aldrig ett hinder.
-export function DidYouMean({ text, action }) {
+// Förslagen till en text som inte gav någon träff (GET /interests/similar): intressen som liknar i stavning eller betydelse.
+// Hämtas en gång per text. Inget medan de hämtas, eller om texten är för kort, och ett fel ger inga förslag: det är en hjälp,
+// aldrig ett hinder.
+function useSimilar(text) {
   const [items, setItems] = useState([])
 
   useEffect(() => {
@@ -52,7 +52,11 @@ export function DidYouMean({ text, action }) {
     }
   }, [text])
 
-  if (items.length === 0) return null
+  return items
+}
+
+// "Menade du:" med förslagen. `action(item)` ger knappen vid varje rad (sidan bestämmer vad den gör).
+function SuggestionList({ items, action }) {
   return (
     <div aria-live="polite">
       <p className="hint-text">Menade du:</p>
@@ -69,6 +73,12 @@ export function DidYouMean({ text, action }) {
       </ul>
     </div>
   )
+}
+
+// Bara "Menade du:", för sidor utan erbjudandet om ett nytt intresse (formuläret när profilen skapas).
+export function DidYouMean({ text, action }) {
+  const items = useSimilar(text)
+  return items.length === 0 ? null : <SuggestionList items={items} action={action} />
 }
 
 // Frågan innan intresset läggs till. Bara utseende: `proposals` är förslagen från backend (oftast ett), som visas med var
@@ -106,8 +116,11 @@ export function InterestPrompt({ proposals, busy = false, error = '', boxed = tr
 
 // Kärnan: erbjudandet för en text som inte gav någon träff. `onAddNew(result)` får { token, proposals, text } och returnerar ett
 // promise (misslyckas det visas felet här). `onDone` anropas när intresset är tillagt. `boxed` = egen ruta (utforskaren har
-// redan en runt träfflistan och visar den utan). `children` visas mellan "Inget intresse matchar" och knappen (se DidYouMean).
-export function NewInterestOffer({ text, onAddNew, onDone, boxed = true, children }) {
+// redan en runt träfflistan och visar den utan). `similarAction(item)` ger knappen vid varje förslag i "Menade du:". Liknar något
+// i stavning (felstavning eller annat skrivsätt) är det troligen det man menade, så "lägg till som nytt" blir en liten länk
+// i stället för en knapp. Det går fortfarande att lägga till, så ingen fastnar om det ändå är ett eget intresse.
+export function NewInterestOffer({ text, onAddNew, onDone, boxed = true, similarAction }) {
+  const similar = useSimilar(similarAction ? text : '')
   const [phase, setPhase] = useState('idle') // idle, checking, ask, saving
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
@@ -173,9 +186,18 @@ export function NewInterestOffer({ text, onAddNew, onDone, boxed = true, childre
   return (
     <div className={boxed ? 'explorer-box' : undefined} aria-live="polite">
       <p className="hint-text">Inget intresse matchar "{text}" än.</p>
-      {children}
-      <button type="button" className="secondary-button" disabled={phase === 'checking'} onClick={check}>
-        {phase === 'checking' ? 'Kontrollerar...' : `Lägg till "${text}" som nytt intresse`}
+      {similar.length > 0 && <SuggestionList items={similar} action={similarAction} />}
+      <button
+        type="button"
+        className={similar.some((item) => item.spelling) ? 'text-button' : 'secondary-button'}
+        disabled={phase === 'checking'}
+        onClick={check}
+      >
+        {phase === 'checking'
+          ? 'Kontrollerar...'
+          : similar.some((item) => item.spelling)
+            ? `Ingen av dessa, lägg till "${text}" som nytt intresse`
+            : `Lägg till "${text}" som nytt intresse`}
       </button>
       {error && <p className="form-error">{error}</p>}
     </div>
@@ -254,9 +276,7 @@ function AddInterest({ selectedIds = [], onPickExisting, onAddNew }) {
       {results &&
         results.text === query.trim() &&
         (results.items.length === 0 ? (
-          <NewInterestOffer text={results.text} onAddNew={onAddNew} onDone={() => setQuery('')}>
-            <DidYouMean text={results.text} action={pickButton} />
-          </NewInterestOffer>
+          <NewInterestOffer text={results.text} onAddNew={onAddNew} onDone={() => setQuery('')} similarAction={pickButton} />
         ) : (
           <div className="explorer-box">
             <ul className="explorer-rows">

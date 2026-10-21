@@ -392,6 +392,24 @@ def test_the_text_is_the_tag_so_there_is_no_extraction_and_no_follow_up_call(cli
     assert moderator.batches == [["Jag är intresserad av bananskalning."]]
 
 
+def test_the_same_word_in_another_spelling_is_the_known_interest_without_any_ai_call(client, user, library):
+    llm, moderator = ai()
+    for text in ("Heavy-Metal", "hardrock"):  # alias heavy metal / hårdrock, med bindestreck och utan prickar
+        response = suggest(client, text)
+        assert response.status_code == 200
+        (proposal,) = response.json()["proposals"]
+        assert proposal["interest"]["id"] == library["metal"].id and proposal["interest"]["is_new"] is False
+    assert llm.calls == [] and moderator.batches == []
+
+
+def test_a_spelling_that_fits_two_interests_is_left_to_the_matching(client, db, user, library):
+    db.add_all([Interest(name="Sång", parent_id=library["musik"].id), Interest(name="Sang", parent_id=library["skapande"].id)])
+    db.commit()
+    llm, _ = ai(match=new_under(library))
+    response = suggest(client, "sàng")  # viks till samma ord som båda: ingen sammanslagning i kod
+    assert response.status_code == 200 and llm.calls  # modellen fick avgöra
+
+
 def test_a_known_interest_written_in_other_words_can_be_matched_to_one_that_exists(client, user, library):
     match = {"decisions": [{"key": "t1", "decision": "same", "interest_id": library["katter"].id, "parent_id": None, "new_name": None}]}
     ai(match=match)
