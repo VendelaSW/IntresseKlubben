@@ -36,7 +36,7 @@ function DemoApp() {
             <NavLink key={item.to} to={item.to} end={item.end} className="app-nav-link">
               {item.label}
               {item.label === 'Personer' && incoming > 0 && (
-                <span className="nav-badge" aria-label={`${incoming} nya förfrågningar`}>
+                <span className="nav-badge" aria-label={`${incoming} nya kompisförfrågningar`}>
                   {incoming}
                 </span>
               )}
@@ -82,7 +82,7 @@ export function DemoOverview() {
 
       {incoming.length > 0 && (
         <section className="app-section">
-          <h2>Nya kontaktförfrågningar</h2>
+          <h2>Nya kompisförfrågningar</h2>
           <div className="card-grid">
             {incoming.map((person) => (
               <PersonCard key={person.id} person={person} shared={person.interests.filter((i) => profile.interests.includes(i))} />

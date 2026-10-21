@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 
 // Vald flik på sidor med flikar (Personer, Brev, Klubbar och Events). Fliken
-// står i adressen (?flik=kontakter), så att Tillbaka och webbläsarens bakåt
+// står i adressen (?flik=kompisar), så att Tillbaka och webbläsarens bakåt
 // kommer tillbaka till samma flik, även i kartans block. Ett flikbyte byter ut
 // sidan i historiken i stället för att lägga till en, så att Tillbaka går till
 // förra sidan och inte till förra fliken.

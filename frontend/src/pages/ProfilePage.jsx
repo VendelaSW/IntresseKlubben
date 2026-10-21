@@ -13,7 +13,7 @@ import { useAuth } from '../hooks/useAuth'
 import { checkAvailability, getCurrentUser, updateAccount } from '../services/api'
 import { clearProfileDraft, loadProfileDraft, saveProfileDraft } from '../services/profileDraft'
 import { resizeProfileImage } from '../services/resizeProfileImage'
-import { addInterest, getMyInterests, getTopInterests, removeInterest } from '../services/interests'
+import { addInterest, confirmInterests, getMyInterests, getTopInterests, removeInterest } from '../services/interests'
 import {
   GENDER_OPTIONS,
   createProfile,
@@ -287,6 +287,11 @@ function ProfilePage() {
   // uppdaterade listan, och stoppar att det sista intresset tas bort.
   async function addSavedInterest(interest) {
     setMyInterests(await addInterest(interest.id))
+  }
+
+  // Ett nytt intresse med egna ord (godkänt av backend, se AddInterest). Listan hämtas om, så att det syns under sin förälder.
+  async function addNewInterest(result) {
+    setMyInterests(await confirmInterests(result))
   }
 
   // Frågar först. Underintressen till det man tar bort ligger kvar, och visas
@@ -593,7 +598,12 @@ function ProfilePage() {
     </div>
     {/* Intressena som ett eget vitt kort bredvid profilen (under på mobil).
         Ändringar sparas direkt. */}
-    <InterestExplorer selected={myInterests} onAdd={addSavedInterest} onRemove={removeSavedInterest} />
+    <InterestExplorer
+      selected={myInterests}
+      onAdd={addSavedInterest}
+      onRemove={removeSavedInterest}
+      onAddNew={addNewInterest}
+    />
     </div>
   )
 }

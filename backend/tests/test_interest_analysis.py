@@ -349,6 +349,188 @@ def test_the_proposals_are_the_same_with_the_filter_as_without_it(client, user, 
     assert proposal["interest"] == {"id": None, "name": "Modellbygge", "path": ["Skapande"], "is_new": True, "parent_key": None}
 
 
+# ---------- Ett enda intresse med egna ord: POST /interests/suggest ----------
+
+SUGGEST_URL = "/interests/suggest"
+NOT_ALLOWED = "Detta intresse godkänns inte, försök med ett annat."
+SUGGEST_UNAVAILABLE = "Vi kunde inte kontrollera intresset just nu. Försök igen om en stund."
+
+
+def suggest(client, text):
+    return client.post(SUGGEST_URL, json={"text": text})
+
+
+def new_under(library, parent_key="skapande"):
+    return {"decisions": [{"key": "t1", "decision": "new", "interest_id": None, "parent_id": library[parent_key].id, "new_name": None}]}
+
+
+def test_a_known_interest_is_suggested_without_any_ai_call(client, user, library):
+    llm, moderator = ai()
+    response = suggest(client, "Hårdrock")  # alias till Metal
+    assert response.status_code == 200
+    (proposal,) = response.json()["proposals"]
+    assert proposal["interest"] == {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "is_new": False, "parent_key": None}
+    assert llm.calls == [] and moderator.batches == []
+    assert read_token(response.json()["token"], user.id) == [
+        {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka"], "interest_id": library["metal"].id}
+    ]
+
+
+def test_a_new_interest_gets_a_parent_and_is_the_users_own_words_with_a_capital_letter(client, user, library):
+    llm, moderator = ai(match=new_under(library))
+    response = suggest(client, "  bananskalning!  ")
+    assert response.status_code == 200
+    (proposal,) = response.json()["proposals"]
+    assert proposal["interest"] == {"id": None, "name": "Bananskalning", "path": ["Skapande"], "is_new": True, "parent_key": None}
+    assert [claim["new"] for claim in read_token(response.json()["token"], user.id)] == [{"name": "Bananskalning", "parent_id": library["skapande"].id}]
+
+
+def test_the_text_is_the_tag_so_there_is_no_extraction_and_no_follow_up_call(client, user, library):
+    llm, moderator = ai(match=new_under(library))
+    assert suggest(client, "bananskalning").status_code == 200
+    assert sorted(call.name for call in llm.calls) == ["judge", "match"]  # inget "interests" (utläsning) och inget "clarify"
+    assert moderator.batches == [["Jag är intresserad av bananskalning."]]
+
+
+def test_a_known_interest_written_in_other_words_can_be_matched_to_one_that_exists(client, user, library):
+    match = {"decisions": [{"key": "t1", "decision": "same", "interest_id": library["katter"].id, "parent_id": None, "new_name": None}]}
+    ai(match=match)
+    (proposal,) = suggest(client, "kattälskare").json()["proposals"]
+    assert proposal["interest"]["id"] == library["katter"].id and proposal["interest"]["is_new"] is False
+
+
+def test_a_word_from_the_blocklist_is_not_approved_and_costs_nothing(client, user, library):
+    llm, moderator = ai()
+    response = suggest(client, "fitta")
+    assert response.status_code == 422 and response.json()["detail"] == NOT_ALLOWED
+    assert llm.calls == [] and moderator.batches == []
+
+
+def test_something_the_moderation_flags_is_not_approved(client, user, library):
+    ai(match=new_under(library), flagged=["Jag är intresserad av bananskalning."])
+    response = suggest(client, "bananskalning")
+    assert response.status_code == 422 and response.json()["detail"] == NOT_ALLOWED
+
+
+def test_something_the_review_removes_is_not_approved(client, user, library):
+    llm, _ = ai(judge={"remove": ["bananskalning"]}, match=new_under(library))
+    response = suggest(client, "bananskalning")
+    assert response.status_code == 422 and response.json()["detail"] == NOT_ALLOWED
+    assert llm.calls_named("match") == []  # det stoppades innan matchningen
+
+
+def test_something_the_model_says_is_not_an_interest_is_not_approved_with_the_same_message(client, user, library):
+    none = {"decisions": [{"key": "t1", "decision": "none", "interest_id": None, "parent_id": None, "new_name": None}]}
+    ai(match=none)
+    response = suggest(client, "snäll")
+    assert response.status_code == 422 and response.json()["detail"] == NOT_ALLOWED
+
+
+@pytest.mark.parametrize("text", ["x", "!!!", "."])
+def test_a_text_that_is_too_short_or_only_punctuation_is_not_approved(client, user, library, text):
+    ai()
+    assert suggest(client, text).status_code == 422
+
+
+@pytest.mark.parametrize("text", ["", "   ", "x" * 41])
+def test_an_empty_or_too_long_text_is_refused(client, user, library, text):
+    ai()
+    assert suggest(client, text).status_code == 422
+
+
+def test_the_longest_allowed_text_is_forty_characters(client, user, library):
+    ai(match=new_under(library))
+    assert suggest(client, "a" * 40).status_code == 200
+
+
+def test_a_check_that_cannot_run_gives_503_and_approves_nothing(client, user, library):
+    _, moderator = ai(match=new_under(library))
+    moderator.error = AIFailed("URLError")
+    response = suggest(client, "bananskalning")
+    assert response.status_code == 503 and response.json()["detail"] == SUGGEST_UNAVAILABLE
+
+
+def test_the_suggestion_shares_the_minute_limit_with_the_analysis(client, user, library, monkeypatch):
+    monkeypatch.setattr(route, "RATE_LIMIT", 2)
+    ai(match=new_under(library))
+    assert suggest(client, "bananskalning").status_code == 200
+    assert analyze(client, "Jag gillar katter.").status_code in (200, 503)  # räknas också
+    assert suggest(client, "bananskalning").status_code == 429
+
+
+def test_choosing_existing_interests_does_not_count_against_the_minute_limit(client, user, library, monkeypatch):
+    monkeypatch.setattr(route, "RATE_LIMIT", 2)
+    statuses = [client.post(SUGGEST_URL, json={"interest_id": library["metal"].id}).status_code for _ in range(5)]
+    assert statuses == [200] * 5
+    ai(match=new_under(library))
+    assert suggest(client, "bananskalning").status_code == 200  # gränsen är orörd
+
+
+def test_a_chosen_existing_interest_gets_a_seal_without_any_ai_call(client, user, library):
+    llm, moderator = ai()
+    response = client.post(SUGGEST_URL, json={"interest_id": library["metal"].id})
+    assert response.status_code == 200
+    (proposal,) = response.json()["proposals"]
+    assert proposal["interest"] == {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "is_new": False, "parent_key": None}
+    assert llm.calls == [] and moderator.batches == []
+    assert read_token(response.json()["token"], user.id) == [
+        {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka"], "interest_id": library["metal"].id}
+    ]
+
+
+def test_an_area_can_be_chosen_by_id_too(client, user, library):
+    ai()
+    (proposal,) = client.post(SUGGEST_URL, json={"interest_id": library["musik"].id}).json()["proposals"]
+    assert proposal["interest"]["name"] == "Musik" and proposal["interest"]["path"] == []
+
+
+def test_the_interest_is_chosen_by_id_so_two_with_the_same_name_are_never_mixed_up(client, user, library, db):
+    first = Interest(name="Fantasy", slug="fantasy-film", parent_id=library["skapande"].id)
+    second = Interest(name="Fantasy", slug="fantasy-bocker", parent_id=library["djur"].id)
+    db.add_all([first, second])
+    db.commit()
+    ai()
+    for interest in (first, second):
+        (proposal,) = client.post(SUGGEST_URL, json={"interest_id": interest.id}).json()["proposals"]
+        assert proposal["interest"]["id"] == interest.id
+
+
+def test_an_interest_that_does_not_exist_or_is_inactive_is_refused(client, user, library, db):
+    ai()
+    assert client.post(SUGGEST_URL, json={"interest_id": 999999}).status_code == 422
+    library["jazz"].status = "inactive"
+    db.commit()
+    response = client.post(SUGGEST_URL, json={"interest_id": library["jazz"].id})
+    assert response.status_code == 422 and response.json()["detail"] == "Okänt intresse"
+
+
+@pytest.mark.parametrize("body", [{}, {"text": "bananskalning", "interest_id": 1}, {"text": None, "interest_id": None}])
+def test_exactly_one_of_text_and_interest_id_is_required(client, user, library, body):
+    ai()
+    assert client.post(SUGGEST_URL, json=body).status_code == 422
+
+
+def test_suggesting_needs_a_login(client, library):
+    assert suggest(client, "bananskalning").status_code == 401
+
+
+def test_suggesting_writes_nothing_to_the_database(client, user, library, db):
+    before = db.query(Interest).count()
+    ai(match=new_under(library))
+    assert suggest(client, "bananskalning").status_code == 200
+    assert db.query(Interest).count() == before
+
+
+def test_the_match_only_sees_the_nearest_interests_when_the_vectors_exist(client, user, library, db, monkeypatch):
+    with_vectors(db, library)
+    embedder = FakeEmbedder(vectors={"bananskalning": [1.0, 0.0, 0.0]})
+    monkeypatch.setattr(route, "CandidateFinder", lambda session: CandidateFinder(session, embedder=embedder, per_tag=1, for_text=1))
+    llm, _ = ai(match=new_under(library))
+    assert suggest(client, "bananskalning").status_code == 200
+    listing = llm.calls_named("match")[0].user.split("\n\nTaggar:\n")[0]
+    assert "Skapande" in listing and "Metal" not in listing and "Katter" not in listing
+
+
 # ---------- Följdfrågor: byggda men av ----------
 
 

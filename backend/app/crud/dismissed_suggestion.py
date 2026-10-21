@@ -28,6 +28,16 @@ def dismiss_suggestion(db: Session, user_id: int, dismissed_user_id: int) -> Non
     db.commit()
 
 
+def undismiss_suggestion(db: Session, user_id: int, dismissed_user_id: int) -> None:
+    """Ångrar att user_id tog bort dismissed_user_id som förslag. Idempotent -
+    går att anropa även om personen inte var borttagen."""
+    db.query(DismissedSuggestion).filter(
+        DismissedSuggestion.user_id == user_id,
+        DismissedSuggestion.dismissed_user_id == dismissed_user_id,
+    ).delete()
+    db.commit()
+
+
 def list_dismissed_user_ids(db: Session, user_id: int) -> set[int]:
     """Alla id:n user_id tidigare tagit bort som förslag."""
     rows = (
@@ -36,6 +46,11 @@ def list_dismissed_user_ids(db: Session, user_id: int) -> set[int]:
         .all()
     )
     return {row[0] for row in rows}
+
+
+def count_dismissed_suggestions(db: Session, user_id: int) -> int:
+    """Hur många personer user_id har tagit bort som förslag."""
+    return db.query(DismissedSuggestion).filter(DismissedSuggestion.user_id == user_id).count()
 
 
 def reset_dismissed_suggestions(db: Session, user_id: int) -> int:

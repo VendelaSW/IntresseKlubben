@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import AddInterest, { AddInterestError } from '../components/AddInterest'
 import FormField from '../components/FormField'
 import InterestTree, { descendantKeys, withoutDuplicates } from '../components/InterestTree'
 import TextareaWithCount from '../components/TextareaWithCount'
@@ -8,6 +9,7 @@ import MunicipalityPicker from '../components/MunicipalityPicker'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
+import { sealInterest, suggestInterest } from '../services/interests'
 import { GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
 
 // Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions`
@@ -148,9 +150,6 @@ function ProfileInterview() {
   const analyzedText = useRef(null)
   const nextBatchId = useRef(1)
   // "Lägg till intresse"
-  const [addText, setAddText] = useState('')
-  const [adding, setAdding] = useState(false)
-  const [addError, setAddError] = useState('')
   // Att spara profilen
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -381,7 +380,7 @@ function ProfileInterview() {
     analyzeInterests(trimmed)
       .then((data) => {
         if (analysisId.current !== id) return
-        setBatches([{ id: 0, text: trimmed, token: data.token, proposals: data.proposals }])
+        setBatches([{ id: 0, kind: 'text', text: trimmed, token: data.token, proposals: data.proposals }])
         setAnalysisStatus('done')
       })
       .catch((error) => {
@@ -410,30 +409,29 @@ function ProfileInterview() {
     setSaveError('')
   }
 
-  // Tolkar en text till ett eget tillägg: ännu en omgång med eget sigill.
-  async function handleAdd(event) {
-    event.preventDefault()
-    const text = addText.trim()
-    if (!text || adding) return
-    setAdding(true)
-    setAddError('')
-    try {
-      const data = await analyzeInterests(text)
-      // Det som redan finns bland intressena läggs inte till igen (de som tagits bort räknas inte).
-      const fresh = withoutDuplicates(data.proposals, visibleProposals)
-      if (data.proposals.length === 0) {
-        setAddError('Jag hittade inget intresse i det du skrev.')
-      } else if (fresh.length === 0) {
-        setAddError('Det intresset finns redan bland dina intressen.')
-      } else {
-        setBatches((current) => [...current, { id: nextBatchId.current++, text, token: data.token, proposals: fresh }])
-        setAddText('')
-      }
-    } catch (error) {
-      setAddError(messageOf(error))
-    } finally {
-      setAdding(false)
-    }
+  // Intressena som redan är valda (id), så att sökningen visar dem som valda.
+  const selectedIds = visibleProposals.map((p) => p.interest.id).filter((id) => id !== null)
+
+  // Ett nytt intresse med egna ord, godkänt av backend (se AddInterest): ännu en omgång med eget sigill. Det som redan finns
+  // bland intressena (de som tagits bort räknas inte) läggs inte till igen.
+  async function addNewInterest(result) {
+    const fresh = withoutDuplicates(result.proposals, visibleProposals)
+    if (fresh.length === 0) throw new AddInterestError('Det intresset finns redan bland dina intressen.')
+    setBatches((current) => [
+      ...current,
+      { id: nextBatchId.current++, kind: 'phrase', text: result.text, token: result.token, proposals: fresh },
+    ])
+  }
+
+  // Ett befintligt intresse valt ur sökningen: det får ett sigill (utan AI) och läggs som en egen omgång, eftersom
+  // intervjun bara sparar förslag med sigill.
+  async function pickExistingInterest(interest) {
+    if (selectedIds.includes(interest.id)) return
+    const result = await sealInterest(interest)
+    setBatches((current) => [
+      ...current,
+      { id: nextBatchId.current++, kind: 'pick', interestId: interest.id, token: result.token, proposals: result.proposals },
+    ])
   }
 
   // Går tillbaka till sista frågan för att ändra sin text (t.ex. när "Om mig" nekades). Intressena man valt bort och
@@ -457,7 +455,13 @@ function ProfileInterview() {
     try {
       const fresh = await Promise.all(
         batches.map(async (batch) => {
-          const data = await analyzeInterests(batch.text)
+          // Varje sorts omgång tolkas om på sitt sätt: intressetexten, ett nytt intresse med egna ord, eller ett befintligt.
+          const data =
+            batch.kind === 'phrase'
+              ? await suggestInterest(batch.text)
+              : batch.kind === 'pick'
+                ? await sealInterest({ id: batch.interestId })
+                : await analyzeInterests(batch.text)
           return { ...batch, token: data.token, proposals: data.proposals }
         }),
       )
@@ -552,8 +556,6 @@ function ProfileInterview() {
     setRemoved(new Set())
     setAnalysisStatus('idle')
     setAnalysisError('')
-    setAddText('')
-    setAddError('')
     setSaveError('')
     setExpired(false)
     setIndex(0)
@@ -701,26 +703,9 @@ function ProfileInterview() {
                     <InterestTree proposals={visibleProposals} onRemove={removeProposal} />
                   )}
                   {analysisStatus !== 'pending' && analysisStatus !== 'failed' && (
-                    <form onSubmit={handleAdd} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-                      <input
-                        type="text"
-                        className="field-large"
-                        aria-label="Lägg till ett intresse"
-                        placeholder="Lägg till ett intresse"
-                        value={addText}
-                        onChange={(event) => setAddText(event.target.value)}
-                        maxLength={200}
-                        style={{ flex: 1, minWidth: 0 }}
-                      />
-                      <button type="submit" className="secondary-button" disabled={adding || !addText.trim()}>
-                        {adding ? 'Tolkar...' : 'Lägg till'}
-                      </button>
-                    </form>
-                  )}
-                  {addError && (
-                    <p className="form-error" style={{ marginTop: '0.5rem' }}>
-                      {addError}
-                    </p>
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <AddInterest selectedIds={selectedIds} onPickExisting={pickExistingInterest} onAddNew={addNewInterest} />
+                    </div>
                   )}
                 </div>
                 {answers.about.trim() && (

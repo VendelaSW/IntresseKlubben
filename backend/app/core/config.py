@@ -46,8 +46,12 @@ class Settings(BaseSettings):
     require_email_verification: bool = False
     # Vilken miljö koden kör i. Sätts av Vercel själv ("production", "preview" eller "development"); tom lokalt.
     vercel_env: str = ""
+    # Testläget (se app/devtools): "Logga in som ..." och testpanelen. Slås bara på av
+    # `python -m app.devtools.server`, som också sätter en egen SQLite-databas. Går aldrig att slå på mot en
+    # riktig databas eller på Vercel (se app/devtools/__init__.py).
+    dev_mode: bool = False
 
-    @field_validator("interest_followups", "require_email_verification", mode="before")
+    @field_validator("interest_followups", "require_email_verification", "dev_mode", mode="before")
     @classmethod
     def _empty_means_off(cls, value):
         # En tom rad (INTEREST_FOLLOWUPS=) i .env eller Vercel ska inte stoppa starten. Tomma textvärden

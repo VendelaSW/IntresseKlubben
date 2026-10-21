@@ -11,14 +11,14 @@ function ServiceDetails({ id }) {
           dina intressen åt dig.
         </li>
         <li>
-          Få förslag på personer med gemensamma intressen och skicka en kontaktförfrågan, eller skriv
+          Få förslag på personer med gemensamma intressen och skicka en kompisförfrågan, eller skriv
           ett brev.
         </li>
         <li>Gå med i en klubb eller starta en egen, och bjud in till events där ni ses.</li>
       </ol>
       <h2 className="service-details-heading">För vem?</h2>
       <p>
-        För alla som vill hitta nya vänner genom sina intressen.
+        För alla som vill hitta nya kompisar genom sina intressen.
         Det spelar ingen roll vem du är, utan vad du gillar.
       </p>
     </section>

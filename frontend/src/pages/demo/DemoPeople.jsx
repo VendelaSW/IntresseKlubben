@@ -4,8 +4,8 @@ import { matchPeople, useDemo } from '../../hooks/useDemo'
 
 const FILTERS = [
   { key: 'suggested', label: 'Förslag' },
-  { key: 'requests', label: 'Förfrågningar' },
-  { key: 'contacts', label: 'Kontakter' },
+  { key: 'requests', label: 'Kompisförfrågningar' },
+  { key: 'contacts', label: 'Kompisar' },
 ]
 
 function DemoPeople() {
@@ -21,9 +21,9 @@ function DemoPeople() {
   const shown = lists[filter]
 
   const empty = {
-    suggested: 'Du har redan kontakt med alla förslag. Snyggt!',
-    requests: 'Inga förfrågningar att svara på.',
-    contacts: 'Inga kontakter än. Skicka en förfrågan till någon under Förslag.',
+    suggested: 'Du är redan kompis med alla förslag. Snyggt!',
+    requests: 'Inga kompisförfrågningar att svara på.',
+    contacts: 'Inga kompisar än. Skicka en kompisförfrågan till någon under Förslag.',
   }
 
   return (
