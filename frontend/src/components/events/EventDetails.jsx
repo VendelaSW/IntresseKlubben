@@ -20,7 +20,7 @@ const ANSWERS = [
 // föräldern att hämta om eventlistorna, så att ens svar och flikarna stämmer.
 // "Bjud in" syns för den som får bjuda in (event.can_invite: skaparen, eller alla
 // om skaparen har slagit på "Gäster får bjuda in") och öppnar en popup med ens
-// kontakter och klubbar (`contacts`, `groups`). Skaparen kan slå på och av valet här.
+// kompisar och klubbar (`contacts`, `groups`). Skaparen kan slå på och av valet här.
 // Tillbaka-knappen ligger ovanför rutan, i EventsPanel.
 function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
   const [responses, setResponses] = useState(null) // null = laddar

@@ -47,3 +47,12 @@ app.include_router(messages_router)
 app.include_router(badges_router)
 app.include_router(events_router)
 app.include_router(geocode_router)
+
+# Testläget (se app/devtools): bara när DEV_MODE är satt, vilket bara `python -m app.devtools.server` gör.
+# assert_safe stoppar starten om det skulle vara påslaget mot en riktig databas eller på Vercel.
+if settings.dev_mode:
+    from app.devtools import assert_safe
+    from app.devtools.routes import router as devtools_router
+
+    assert_safe()
+    app.include_router(devtools_router)

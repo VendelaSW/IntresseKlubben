@@ -46,7 +46,7 @@ function DeleteAccount() {
     <form className="auth-form" onSubmit={handleSubmit}>
       <h2>Radera konto</h2>
       <p className="form-error">
-        Din profil, dina meddelanden, kontakter och events raderas för gott. Klubbar du äger går
+        Din profil, dina meddelanden, kompisar och events raderas för gott. Klubbar du äger går
         vidare till den som varit med längst. Det går inte att ångra.
       </p>
       <label htmlFor="delete-account-password">Skriv ditt lösenord för att bekräfta</label>

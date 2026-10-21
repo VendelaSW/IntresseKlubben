@@ -150,7 +150,7 @@ export function deleteGroup(id) {
   return changingMyGroups(apiDelete(`/groups/${id}`))
 }
 
-// Bjuder in kontakter (userIds). Svaret är de som blev inbjudna den här gången.
+// Bjuder in kompisar (userIds). Svaret är de som blev inbjudna den här gången.
 export function inviteToGroup(id, userIds) {
   return apiPost(`/groups/${id}/invitations`, { user_ids: userIds })
 }

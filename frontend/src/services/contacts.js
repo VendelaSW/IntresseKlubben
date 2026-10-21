@@ -26,7 +26,7 @@ async function changingBlocks(request) {
   return result
 }
 
-// Egna kontakter, inkommande och skickade förfrågningar.
+// Egna kompisar, inkommande och skickade förfrågningar.
 export function getContacts() {
   return queryClient.fetchQuery(contactsQuery)
 }
