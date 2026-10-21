@@ -242,6 +242,8 @@ def test_every_column_pointing_at_users_is_handled():
         "messages.recipient_id",
         "messages.sender_id",
         "profiles.user_id",
+        "reports.reported_user_id",  # sätts till tomt: anmälan finns kvar för granskning
+        "reports.reporter_id",  # sätts till tomt, se ovan
         "user_interests.user_id",
     ]
 

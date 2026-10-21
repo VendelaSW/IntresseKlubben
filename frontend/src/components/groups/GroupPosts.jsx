@@ -8,10 +8,12 @@ import {
   pinGroupPost,
   unpinGroupPost,
 } from '../../services/groups'
+import { REPORT_TARGET } from '../../services/reports'
 import { formatSentAt } from '../../utils/formatSentAt'
 import Avatar from '../Avatar'
 import ChatSender from '../ChatSender'
 import Modal from '../Modal'
+import ReportButton from '../ReportButton'
 
 // Samma gräns som i backend (schemas/group_post.py).
 const MAX_LENGTH = 2000
@@ -127,6 +129,8 @@ function GroupPosts({ groupId, isOwner }) {
   const titleId = `board-${groupId}`
   const open = openPost && authorOf(openPost)
   const canRemove = openPost && (isOwner || (openPost.author_id === user?.id && !openPost.pinned_at))
+  // Andras lappar går att anmäla (se ReportButton).
+  const reportable = openPost && openPost.author_id !== user?.id && open.author
   // Skrivlappen hamnar efter den fastnålade, som alltid ligger först.
   const pinnedCount = posts.filter((post) => post.pinned_at).length
 
@@ -222,7 +226,7 @@ function GroupPosts({ groupId, isOwner }) {
               {formatSentAt(openPost.created_at)}
             </time>
           </p>
-          {canRemove && (
+          {(canRemove || reportable) && (
             <div className="board-note-buttons">
               {isOwner && (
                 <button type="button" className="secondary-button button-small" onClick={() => handlePin(openPost)}>
@@ -233,6 +237,15 @@ function GroupPosts({ groupId, isOwner }) {
                 <button type="button" className="secondary-button button-small" onClick={() => handleDelete(openPost)}>
                   Ta ner lappen
                 </button>
+              )}
+              {reportable && (
+                <ReportButton
+                  targetType={REPORT_TARGET.groupPost}
+                  targetId={openPost.id}
+                  userId={open.author.id}
+                  name={open.name}
+                  quote={openPost.content}
+                />
               )}
             </div>
           )}

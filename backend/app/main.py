@@ -16,6 +16,7 @@ from app.api.routes.interview import router as interview_router
 from app.api.routes.messages import router as messages_router
 from app.api.routes.municipalities import router as municipalities_router
 from app.api.routes.profile import router as profile_router
+from app.api.routes.reports import router as reports_router
 from app.api.routes.user import router as user_router
 from app.core.config import settings
 from app.core.error_messages import validation_error_handler
@@ -47,3 +48,4 @@ app.include_router(messages_router)
 app.include_router(badges_router)
 app.include_router(events_router)
 app.include_router(geocode_router)
+app.include_router(reports_router)
