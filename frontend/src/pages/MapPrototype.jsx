@@ -164,6 +164,10 @@ async function findDistrict(district, kommun) {
 // 'free' (län, kommun och närmare) zoomar man fritt, och nålarna finns bara
 // där. Zoomar man ut förbi landskapets storlek fastnar kartan på landskapet.
 const LEVEL_PADDING = 48 // luft runt området när man zoomar till en nivå
+// Nålarna och tråden mellan dem (Sätt ut nålar, Längs vägen, Nålar i svängar)
+// är avstängda tills vidare: de förvirrade användarna. Sätt till true
+// för att visa dem igen (se attachPinsAndThread).
+const PINS_ENABLED = false
 // Lager som döljs på Sverige-nivån, så att landskapen och deras namn syns
 // tydligt: skog, vattnets skraffering, vattendrag och vägar. Kustlinjen och
 // sjöarnas konturer, landskapens färger och gränser blir kvar, som i en atlas.
@@ -926,7 +930,7 @@ function MapPrototype() {
   // Kartans nivå: 'sverige', 'landskap' eller 'free' (se LEVEL_PADDING ovan).
   const [mode, setModeState] = useState('free')
   const modeRef = useRef('free')
-  const pinsShown = mode === 'free'
+  const pinsShown = PINS_ENABLED && mode === 'free'
 
   // Byt nivå: lås eller släpp zoomen med mus, fingrar och tangentbord.
   // `lan`: länskoden på fri nivå (länsvyn och kommuner i den), annars null.
