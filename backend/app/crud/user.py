@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.auth.security import hash_password
 from app.crud.email_token import delete_user_tokens
 from app.crud.group import list_user_groups, remove_member
+from app.crud.moderation import delete_user_moderation
 from app.crud.report import anonymize_user_reports
 from app.models.contact import Contact
 from app.models.conversation_read import ConversationRead
@@ -180,7 +181,8 @@ def delete_user(db: Session, user: User) -> str | None:
       båda hållen, så att inget pekar på kontot efteråt. Egna
       gruppchattmeddelanden raderas också.
     - Anmälningar som kontot har gjort eller fått finns kvar för granskning,
-      men utan koppling till kontot.
+      men utan koppling till kontot. Kontots avstängningar raderas, och har
+      kontot varit moderator står det inte längre på andras.
     - Profil, intressen och sist själva kontot. Egna intressen som kontot
       skapat finns kvar för andra som har dem, men utan skapare.
 
@@ -225,6 +227,7 @@ def delete_user(db: Session, user: User) -> str | None:
     ).delete(synchronize_session=False)
     delete_user_tokens(db, user_id)
     anonymize_user_reports(db, user_id)
+    delete_user_moderation(db, user_id)
 
     # Egna intressen som kontot skapat finns kvar för andra som har dem, utan skapare.
     db.query(Interest).filter(Interest.created_by_user_id == user_id).update(

@@ -17,3 +17,4 @@ from app.models.dismissed_suggestion import DismissedSuggestion  # noqa: F401
 from app.models.event import Event, EventInvitation, EventResponse  # noqa: F401
 from app.models.email_token import EmailToken  # noqa: F401
 from app.models.report import Report  # noqa: F401
+from app.models.suspension import Suspension  # noqa: F401

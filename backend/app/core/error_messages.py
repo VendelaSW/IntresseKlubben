@@ -109,6 +109,14 @@ REPORT_TARGET_NOT_FOUND = "Det du vill anmäla finns inte längre"
 REPORT_SELF = "Du kan inte anmäla dig själv"
 REPORT_COMMENT_TOO_LONG = "Kommentaren får max vara 500 tecken"
 
+# ---------- Moderering (routes/moderation.py, auth/security.py) ----------
+MODERATORS_ONLY = "Bara moderatorer kommer åt det här"
+REPORT_NOT_FOUND = "Anmälan finns inte"
+USER_NOT_FOUND = "Användaren finns inte"
+CANNOT_SUSPEND_SELF = "Du kan inte stänga av dig själv"
+SUSPENSION_DAYS_INVALID = "Välj 1, 7 eller 30 dagar, eller tills vidare"
+ACCOUNT_SUSPENDED = "Ditt konto är avstängt"
+
 # ---------- Verifiering av e-post (routes/user.py) ----------
 EMAIL_NOT_VERIFIED = "Bekräfta din e-postadress först. Länken finns i mejlet vi skickade."
 EMAIL_MISSING = "Lägg till en e-postadress först"

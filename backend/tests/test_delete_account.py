@@ -242,8 +242,12 @@ def test_every_column_pointing_at_users_is_handled():
         "messages.recipient_id",
         "messages.sender_id",
         "profiles.user_id",
+        "reports.handled_by",  # sätts till tomt: moderatorn som hanterade anmälan
         "reports.reported_user_id",  # sätts till tomt: anmälan finns kvar för granskning
         "reports.reporter_id",  # sätts till tomt, se ovan
+        "suspensions.created_by",  # sätts till tomt: moderatorn som stängde av
+        "suspensions.lifted_by",  # sätts till tomt: moderatorn som hävde
+        "suspensions.user_id",
         "user_interests.user_id",
     ]
 

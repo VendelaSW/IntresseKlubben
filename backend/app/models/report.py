@@ -45,7 +45,10 @@ class Report(Base):
     content = Column(Text, nullable=True)  # kopia av det anmälda meddelandet eller lappen
     reason = Column(String(20), nullable=False)  # ReportReason
     comment = Column(Text, nullable=True)
-    # "new" tills någon har granskat den (SCRUM-131).
+    # "new" tills en moderator har markerat den som hanterad ("handled", se crud/moderation.py).
     status = Column(String(20), nullable=False, default="new")
+    handled_at = Column(DateTime(timezone=True), nullable=True)
+    # Moderatorn som hanterade den. None om det kontot har raderats.
+    handled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     # I Python och inte i databasen, så att tiden har tidszon även i testerna (SQLite).
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)

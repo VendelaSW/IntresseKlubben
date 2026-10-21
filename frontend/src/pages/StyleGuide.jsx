@@ -660,6 +660,11 @@ function StyleGuide() {
           chattmeddelanden, där den är en liten grå länk till höger (.report-link) som syns vid hovring
           på dator och alltid på mobil.
         </p>
+        <p className="hint-text">
+          Moderering (ModerationPage, bara för moderatorer) visar anmälningarna som kort (.moderation-card)
+          med anledningen som .status-pill-error och texten som .report-quote. Rutan "Stäng av …" har en
+          gul påminnelse (.moderation-reminder) om personen har varit avstängd förut, och nästa steg är förvalt.
+        </p>
         <button type="button" className="secondary-button button-small" style={{ marginTop: '1rem' }} onClick={() => setModalOpen(true)}>
           Öppna exempel
         </button>

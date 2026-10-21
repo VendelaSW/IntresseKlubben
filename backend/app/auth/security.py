@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.core import error_messages as msg
 from app.core.config import settings
+from app.crud.moderation import active_suspension
 from app.db.session import get_db
 from app.models.user import User
 
@@ -106,7 +107,29 @@ def get_current_user(
     user = db.get(User, user_id)
     if user is None or _issued_before_password_change(issued_at, user):
         raise _not_logged_in()
+    # En avstängd användare loggas ut vid nästa anrop (frontend loggar ut vid 401).
+    if active_suspension(db, user.id) is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=msg.ACCOUNT_SUSPENDED,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return user
+
+
+_MONTHS = ("jan", "feb", "mars", "april", "maj", "juni", "juli", "aug", "sep", "okt", "nov", "dec")
+
+
+def suspended_message(db: Session, user: User) -> str | None:
+    """Beskedet vid inloggning för en avstängd användare, t.ex. "Ditt konto är
+    avstängt till 28 okt.", eller None om hen inte är avstängd."""
+    suspension = active_suspension(db, user.id)
+    if suspension is None:
+        return None
+    if suspension.until is None:
+        return f"{msg.ACCOUNT_SUSPENDED} tills vidare."
+    until = suspension.until
+    return f"{msg.ACCOUNT_SUSPENDED} till {until.day} {_MONTHS[until.month - 1]}."
 
 
 def _issued_before_password_change(issued_at: int | None, user: User) -> bool:
@@ -135,3 +158,9 @@ def require_profile(current_user: User = Depends(get_current_user)) -> None:
     """
     if not current_user.profile_completed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg.PROFILE_REQUIRED)
+
+
+def require_moderator(current_user: User = Depends(get_current_user)) -> None:
+    """FastAPI-dependency för moderatorernas sidor (routes/moderation.py): 403 för alla andra."""
+    if not current_user.is_moderator:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg.MODERATORS_ONLY)
