@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" fill="none" stroke="#111" stroke-linecap="round" stroke-linejoin="round">
+  <!-- En klocka i samma handritade stil som appens andra ikoner: dubbla, lite ojämna linjer. -->
+  <path d="M110 32 C 70 34, 58 66, 58 100 L 57 134 C 56 148, 46 156, 36 164 L 184 165 C 173 157, 163 148, 163 134 L 162 100 C 162 66, 150 33, 110 32 Z" stroke-width="9"/>
+  <path d="M106 36 C 72 40, 63 70, 63 102 L 62 136 C 61 150, 52 157, 44 161" stroke-width="5" opacity="0.6"/>
+  <path d="M110 32 L 110 20" stroke-width="9"/>
+  <path d="M90 166 C 92 186, 128 188, 131 166" stroke-width="9"/>
+  <path d="M30 165 L 190 166" stroke-width="6" opacity="0.7"/>
+  <path d="M176 52 C 186 64, 190 78, 190 92" stroke-width="7"/>
+  <path d="M44 52 C 34 64, 30 78, 30 92" stroke-width="7"/>
+</svg>
