@@ -110,7 +110,20 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
         <Link to={`/anvandare/${event.creator_id}`} className="info-link">
           {creatorName}
         </Link>
-        {event.group_name && ` i ${event.group_name}`}
+        {event.group_name && (
+          <>
+            {' i '}
+            {/* Klubbens namn går till klubben, där man kan gå med. En privat klubb man inte är
+                med eller inbjuden i går inte att öppna, så då är det bara text. */}
+            {event.group_visible ? (
+              <Link to={`/klubbar?klubb=${event.group_id}`} className="info-link">
+                {event.group_name}
+              </Link>
+            ) : (
+              event.group_name
+            )}
+          </>
+        )}
       </p>
 
       <div className="detail-view-section">
