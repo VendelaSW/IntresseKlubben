@@ -1,5 +1,9 @@
 # Testa appen på mobilen hemma
 
+> **Enklast: testläget.** `npm run dev:telefon` i `frontend/` gör allt nedan åt dig (adresser, CORS och en QR-kod att
+> skanna) och kör mot testlägets egen databas i stället för Neon, med färdiga testkonton. Se "Testa i testläget" i
+> [CONTRIBUTING.md](CONTRIBUTING.md). Stegen nedan behövs bara om du vill testa mot den riktiga databasen.
+
 Feature-branches och `pre-dev` deployas inte längre (se `CONTRIBUTING.md`), så vill du se din branch på mobilen kör du appen på datorn och öppnar den från mobilen över ert Wi-Fi. Det tar ett par minuter att ställa in första gången.
 
 ```

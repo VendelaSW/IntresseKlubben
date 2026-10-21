@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import logo from '../assets/intresseklubben.png'
 import ForgotPasswordFields from '../components/ForgotPasswordFields'
@@ -6,7 +6,11 @@ import LoginFields from '../components/LoginFields'
 import ProblemStatement from '../components/ProblemStatement'
 import RegisterFields from '../components/RegisterFields'
 import ServiceDetails from '../components/ServiceDetails'
+import { DEV_MODE } from '../devtools/devMode'
 import { useAuth } from '../hooks/useAuth'
+
+// "Logga in som ..." finns bara i testläget (npm run dev:test), och kommer inte ens med i en vanlig build.
+const DevLogin = DEV_MODE ? lazy(() => import('../devtools/DevLogin')) : null
 
 function Home() {
   const { user, loading } = useAuth()
@@ -49,6 +53,12 @@ function Home() {
             Registrera dig
           </button>
         </div>
+      )}
+
+      {DevLogin && view === null && (
+        <Suspense fallback={null}>
+          <DevLogin />
+        </Suspense>
       )}
 
       {view === 'login' && (
