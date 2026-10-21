@@ -62,3 +62,15 @@ def spelling_matches(text: str, index: LibraryIndex) -> list[int]:
             if distance <= limit and (item.id not in best or (distance, len(form)) < best[item.id]):
                 best[item.id] = (distance, len(form))
     return sorted(best, key=lambda item_id: (best[item_id], item_id))
+
+
+def folded_match(text: str, index: LibraryIndex) -> int | None:
+    """Id på intresset om `text` är samma ord som ett namn eller alias med annat skrivsätt (versaler, accenter, bindestreck,
+    mellanslag, å/ä/ö: "Pokemon TCG" och "Pokémon TCG", "mountain bike" och "Mountainbike"), annars None. Det gäller bara när
+    det är ett enda intresse, så att ett namn som finns på flera ställen (Fantasy under Film och Böcker) lämnas åt matchningen.
+    Det är inget avstånd: i biblioteket finns inga olika intressen som viks till samma sak, så det är lika säkert som en exakt träff."""
+    wanted = fold(text)
+    if len(wanted) < MIN_LENGTH:
+        return None
+    found = {item.id for item in index.items for name in (item.name, *item.aliases) if fold(name) == wanted}
+    return found.pop() if len(found) == 1 else None

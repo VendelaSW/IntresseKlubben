@@ -42,7 +42,7 @@ from app.crud.interest import (
 )
 from app.db.session import get_db
 from app.models.interest import Interest
-from app.schemas.interest import InterestBrowseItem, InterestResponse, ProfileInterest
+from app.schemas.interest import InterestBrowseItem, InterestResponse, ProfileInterest, SimilarItem
 from app.services.interest_embeddings import similar_interests
 from app.services.interest_spelling import spelling_matches
 
@@ -109,7 +109,7 @@ def search(
     return _browse_items(db, search_interests(db, q, current_user.id))
 
 
-@router.get("/interests/similar", response_model=list[InterestBrowseItem])
+@router.get("/interests/similar", response_model=list[SimilarItem])
 def similar(
     q: str = Query(min_length=MIN_SIMILAR_LENGTH, max_length=100),
     current_user=Depends(get_current_user),
@@ -120,13 +120,15 @@ def similar(
         return []
     _check_similar_rate_limit(current_user.id)
     # Stavning först (billigt, ingen OpenAI), betydelsen fyller på. Räcker stavningen hoppas embedding-anropet över.
-    ids = spelling_matches(text, load_library_index(db))
+    spelled = spelling_matches(text, load_library_index(db))
+    ids = list(spelled)
     if len(ids) < SIMILAR_MAX:
         ids += [i.id for i, _ in similar_interests(db, text) if i.id not in ids]
     by_id = {i.id: i for i in db.query(Interest).filter(Interest.id.in_(ids)).all()}
     items = _browse_items(db, [by_id[i] for i in ids if i in by_id])
     # Ett tomt huvudområde (utan underintressen) är ingen sak att föreslå.
-    return [item for item in items if item.path or item.has_children][:SIMILAR_MAX]
+    shown = [item for item in items if item.path or item.has_children][:SIMILAR_MAX]
+    return [SimilarItem(**item.model_dump(), spelling=item.id in spelled) for item in shown]
 
 
 @router.get("/interests/{interest_id}/children", response_model=list[InterestBrowseItem])

@@ -472,3 +472,11 @@ def test_similar_does_not_suggest_by_spelling_for_short_or_distant_words(client,
     assert client.get(SIMILAR_URL, params={"q": "gum"}).json() == []  # för kort för stavningsförslag (Gym)
     assert client.get(SIMILAR_URL, params={"q": "lopningsbana"}).json() == []  # fem tecken ifrån Löpning
     assert client.get(SIMILAR_URL, params={"q": "lopni"}).json() == []  # två tecken ifrån ett sjutecknat ord: för långt
+
+
+def test_similar_marks_what_matches_in_spelling(client, db, user, library):
+    vector = _vector(1.0, 0.0)
+    embedder = _embedded(db, library, {"Gym": vector})
+    embedder.vectors["lopnig"] = vector
+    by_name = {i["name"]: i["spelling"] for i in client.get(SIMILAR_URL, params={"q": "lopnig"}).json()}
+    assert by_name == {"Löpning": True, "Gym": False}
