@@ -20,7 +20,7 @@ from app.api.routes.profile import router as profile_router
 from app.api.routes.user import router as user_router
 from app.core.config import settings
 from app.core.error_messages import validation_error_handler
-from app.services.text_moderation import ModerationUnavailableError, ToxicContentError, WordFilterError
+from app.services.text_moderation import ToxicContentError, WordFilterError
 
 app = FastAPI(title="Intresseklubben API")
 
@@ -35,14 +35,6 @@ async def word_filter_handler(request: Request, error: WordFilterError):
 @app.exception_handler(ToxicContentError)
 async def toxic_content_handler(request: Request, error: ToxicContentError):
     return JSONResponse(status_code=422, content={"detail": "Innehållet innehåller otillåtet språk."})
-
-
-@app.exception_handler(ModerationUnavailableError)
-async def moderation_unavailable_handler(request: Request, error: ModerationUnavailableError):
-    return JSONResponse(
-        status_code=503,
-        content={"detail": "Textkontrollen är tillfälligt otillgänglig. Försök igen senare."},
-    )
 
 
 # Svenska texter på valideringsfel, för alla endpoints.

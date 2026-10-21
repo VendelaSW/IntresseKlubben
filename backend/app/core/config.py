@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     jwt_secret: str = ""
 
     moderation_space: str = ""
+    # HF_TOKEN i miljön används endast när den privata Hugging Face-Spacen anropas.
     hf_token: str = ""
 
     # Språkmodellen som läser ut intressen ur texten i intervjun (se app/services/interest_extractor.py).

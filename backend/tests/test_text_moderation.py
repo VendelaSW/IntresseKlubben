@@ -40,10 +40,22 @@ def test_flagged_public_text_is_rejected(classifier):
         text_moderation.check_fields(ai=True, description="Kontrolltext")
 
 
-def test_ai_failure_fails_closed(classifier):
+def test_ai_failure_falls_back_to_local_filter_and_logs_warning(classifier, caplog):
     classifier.classify.side_effect = AIFailed()
-    with pytest.raises(text_moderation.ModerationUnavailableError):
-        text_moderation.check_fields(ai=True, description="Kontrolltext")
+    assert text_moderation.check_fields(ai=True, description="Kontrolltext") is None
+    assert "lokal ordkontroll används" in caplog.text
+
+
+def test_ai_failure_does_not_bypass_local_word_filter(classifier, caplog):
+    classifier.classify.side_effect = AIFailed()
+    with pytest.raises(text_moderation.WordFilterError):
+        text_moderation.check_fields(ai=True, description="FUCK")
+    classifier.classify.assert_not_called()
+
+
+def test_explicitly_empty_ai_bundle_skips_remote_call(classifier):
+    text_moderation.check_fields(ai=True, ai_text="", place_name="Slottsskogen")
+    classifier.classify.assert_not_called()
 
 
 def test_chat_censorship_never_uses_ai(classifier):

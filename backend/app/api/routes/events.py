@@ -122,7 +122,14 @@ def create(
         # avvisas hellre än rättas tyst, så att felet syns direkt.
         if group.visibility == GroupVisibility.private and data.visibility == EventVisibility.open:
             raise HTTPException(status_code=422, detail=msg.EVENT_IN_PRIVATE_GROUP_CANNOT_BE_OPEN)
-    check_fields(ai=True, title=data.title, description=data.description, place_name=data.place_name, address=data.address)
+    check_fields(
+        ai=True,
+        ai_text=f"{data.title}\n{data.description}",
+        title=data.title,
+        description=data.description,
+        place_name=data.place_name,
+        address=data.address,
+    )
     event = create_event(db, current_user.id, data)
     return _to_response(event, current_user.id)
 
@@ -148,9 +155,16 @@ def edit_event(
     if data.interest_id is not None and get_active_interest(db, data.interest_id) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
     changes = data.model_dump(exclude_unset=True)
-    check_fields(ai=True, **{
-        field: changes[field] for field in ("title", "description", "place_name", "address") if field in changes
-    })
+    public_text = [changes[field] for field in ("title", "description") if field in changes]
+    check_fields(
+        ai=True,
+        ai_text="\n".join(public_text),
+        **{
+            field: changes[field]
+            for field in ("title", "description", "place_name", "address")
+            if field in changes
+        },
+    )
     try:
         event = update_event(db, event, data)
     except EventRuleError as err:

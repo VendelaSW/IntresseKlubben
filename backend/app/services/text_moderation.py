@@ -1,6 +1,9 @@
-from app.core.profanity import censor_text, validate_clean_text
-from app.services.ai_clients import AIFailed, AINotConfigured, Deadline, get_toxicity_classifier
+import logging
 
+from app.core.profanity import censor_text, validate_clean_text
+from app.services.ai_clients import Deadline, get_toxicity_classifier
+
+logger = logging.getLogger(__name__)
 TOXICITY_THRESHOLD = 0.5
 FIELD_LABELS = {
     "username": "Användarnamnet", "name": "Namnet", "profile_text": "Om mig-texten",
@@ -13,10 +16,6 @@ class ToxicContentError(Exception):
     pass
 
 
-class ModerationUnavailableError(Exception):
-    pass
-
-
 class WordFilterError(Exception):
     def __init__(self, field: str, detail: str):
         self.field = field
@@ -25,7 +24,8 @@ class WordFilterError(Exception):
 
 
 def check_fields(
-    *, ai: bool = False, labels: dict[str, str] | None = None, deadline: Deadline | None = None, **fields: str | None
+    *, ai: bool = False, ai_text: str | None = None, labels: dict[str, str] | None = None,
+    deadline: Deadline | None = None, **fields: str | None
 ) -> None:
     texts = {field: text for field, text in fields.items() if text is not None and text.strip()}
     for field, text in texts.items():
@@ -34,17 +34,24 @@ def check_fields(
             validate_clean_text(text, label)
         except ValueError as error:
             raise WordFilterError(field, str(error)) from None
-    if not ai or not texts:
+    moderation_texts = (
+        [ai_text] if ai_text is not None and ai_text.strip()
+        else [] if ai_text is not None
+        else list(texts.values())
+    )
+    if not ai or not moderation_texts:
         return
     deadline = deadline if deadline is not None else Deadline()
     try:
         classifier = get_toxicity_classifier()
-        for text in texts.values():
-            result = classifier.classify(text, deadline)
-            if result.flagged or result.score >= TOXICITY_THRESHOLD:
-                raise ToxicContentError()
-    except (AIFailed, AINotConfigured):
-        raise ModerationUnavailableError() from None
+        results = [classifier.classify(text, deadline) for text in moderation_texts]
+    except Exception as error:
+        logger.warning(
+            "AI-moderering kunde inte köras; lokal ordkontroll används (%s)", type(error).__name__
+        )
+        return
+    if any(result.flagged or result.score >= TOXICITY_THRESHOLD for result in results):
+        raise ToxicContentError()
 
 
 def censor_message(text: str) -> str:

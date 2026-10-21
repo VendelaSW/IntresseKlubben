@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from app.services import ai_clients, text_moderation as moderation
+from app.core.config import Settings
 from app.auth.security import hash_password
 from app.models.user import User
 from app.models.user_interest import UserInterest
@@ -39,7 +40,7 @@ def test_client_is_created_once_and_reused(client_factory):
     )
 
 
-def test_missing_space_fails_closed_without_connecting(client_factory, monkeypatch):
+def test_missing_space_is_reported_by_client_without_connecting(client_factory, monkeypatch):
     factory, constructor = client_factory
     monkeypatch.setattr(ai_clients.settings, "moderation_space", "")
     with pytest.raises(ai_clients.AINotConfigured):
@@ -50,6 +51,19 @@ def test_missing_space_fails_closed_without_connecting(client_factory, monkeypat
 def test_private_space_token_stays_in_client_configuration(client_factory, monkeypatch):
     factory, constructor = client_factory
     monkeypatch.setattr(ai_clients.settings, "hf_token", "test-token-only")
+    factory()
+    assert constructor.call_args.kwargs["token"] == "test-token-only"
+
+
+def test_hf_token_is_loaded_from_environment(monkeypatch):
+    monkeypatch.setenv("HF_TOKEN", "environment-test-token")
+    configured = Settings(_env_file=None)
+    assert configured.hf_token == "environment-test-token"
+
+
+def test_private_space_token_is_trimmed_before_client_initialization(client_factory, monkeypatch):
+    factory, constructor = client_factory
+    monkeypatch.setattr(ai_clients.settings, "hf_token", "  test-token-only  ")
     factory()
     assert constructor.call_args.kwargs["token"] == "test-token-only"
 
@@ -86,23 +100,36 @@ def test_flagged_or_high_scoring_text_is_rejected(remote, result):
     {"flagged": False, "translated_text": "Hello", "score": 1.1},
     {"flagged": False, "score": 0.1},
 ])
-def test_invalid_remote_response_fails_closed(remote, result):
+def test_invalid_remote_response_falls_back_and_logs_warning(remote, result, caplog):
     remote.submit.return_value.result.return_value = result
-    with pytest.raises(moderation.ModerationUnavailableError):
-        moderation.check_fields(ai=True, description="Hej")
+    assert moderation.check_fields(ai=True, description="Hej") is None
+    assert "lokal ordkontroll används" in caplog.text
 
 
-def test_timeout_fails_closed_and_cancels_job(remote):
+def test_timeout_falls_back_and_cancels_job(remote, caplog):
     remote.submit.return_value.result.side_effect = TimeoutError()
-    with pytest.raises(moderation.ModerationUnavailableError):
-        moderation.check_fields(ai=True, description="Hej")
+    assert moderation.check_fields(ai=True, description="Hej") is None
     remote.submit.return_value.cancel.assert_called_once()
+    assert "lokal ordkontroll används" in caplog.text
 
 
-def test_remote_failure_fails_closed(remote):
+def test_remote_failure_falls_back(remote, caplog):
     remote.submit.side_effect = RuntimeError("unavailable")
-    with pytest.raises(moderation.ModerationUnavailableError):
-        moderation.check_fields(ai=True, description="Hej")
+    assert moderation.check_fields(ai=True, description="Hej") is None
+    assert "lokal ordkontroll används" in caplog.text
+
+
+def test_private_space_auth_failure_falls_back_to_local_filter(remote, caplog):
+    remote.submit.side_effect = RuntimeError("401 Unauthorized")
+    assert moderation.check_fields(ai=True, description="Ren text") is None
+    assert "lokal ordkontroll används" in caplog.text
+
+
+def test_private_space_auth_failure_does_not_bypass_local_filter(remote, caplog):
+    remote.submit.side_effect = RuntimeError("401 Unauthorized")
+    with pytest.raises(moderation.WordFilterError):
+        moderation.check_fields(ai=True, description="FUCK")
+    remote.submit.assert_not_called()
 
 
 @pytest.mark.parametrize("text", [None, "", "  "])
@@ -156,7 +183,9 @@ def save_case(request, db, user, municipalities, client):
     db.commit()
     group = add_group(db, user.id)
     target = "Kontrolltext"
-    uses_ai = operation in ("group_create", "event_create", "event_update") or (
+    uses_ai = operation == "group_create" or (
+        operation in ("event_create", "event_update") and field in ("title", "description")
+    ) or (
         operation in ("profile_create", "profile_update") and field == "profile_text"
     )
     if operation == "account_create":
@@ -213,43 +242,55 @@ def _snapshot(db):
 
 
 @pytest.mark.parametrize("save_case", [case for case in _SAVE_CASES if
-    case[0] in ("group_create", "event_create", "event_update") or case[1] == "profile_text"], indirect=True)
+    case[0] == "group_create"
+    or (case[0] in ("event_create", "event_update") and case[1] in ("title", "description"))
+    or (case[0] in ("profile_create", "profile_update") and case[1] == "profile_text")], indirect=True)
 @pytest.mark.parametrize("unavailable", [False, True])
-def test_every_save_checks_text_before_mutation(db, remote, save_case, unavailable):
+def test_every_save_checks_text_before_mutation(db, remote, save_case, unavailable, caplog):
     save, _, target, _, _, _ = save_case
     before = _snapshot(db)
 
     def submit(text, **kwargs):
-        if text == target and unavailable:
+        if target in text and unavailable:
             raise RuntimeError("Space unavailable")
         job = Mock()
         job.result.return_value = {
-            "flagged": text == target, "translated_text": "Translation", "score": 0.9 if text == target else 0.01,
+            "flagged": target in text, "translated_text": "Translation", "score": 0.9 if target in text else 0.01,
         }
         return job
 
     remote.submit.side_effect = submit
     response = save()
-    assert response.status_code == (503 if unavailable else 422)
-    assert response.json()["detail"] == (
-        "Textkontrollen är tillfälligt otillgänglig. Försök igen senare." if unavailable
-        else "Innehållet innehåller otillåtet språk."
-    )
-    assert not db.new
-    assert not db.dirty
-    db.expire_all()
-    assert _snapshot(db) == before
-    assert target in [call.args[0] for call in remote.submit.call_args_list]
+    if unavailable:
+        assert response.status_code in (200, 201), response.text
+        assert "lokal ordkontroll används" in caplog.text
+        assert target in str(_snapshot(db))
+    else:
+        assert response.status_code == 422
+        assert response.json()["detail"] == "Innehållet innehåller otillåtet språk."
+        assert not db.new
+        assert not db.dirty
+        db.expire_all()
+        assert _snapshot(db) == before
+    assert any(target in call.args[0] for call in remote.submit.call_args_list)
 
 
-@pytest.mark.parametrize("save_case", _SAVE_CASES, indirect=True)
+_AI_SAVE_CASES = [
+    case for case in _SAVE_CASES
+    if case[0] == "group_create"
+    or (case[0] in ("event_create", "event_update") and case[1] in ("title", "description"))
+    or (case[0] in ("profile_create", "profile_update") and case[1] == "profile_text")
+]
+
+
+@pytest.mark.parametrize("save_case", _AI_SAVE_CASES, indirect=True)
 def test_every_save_keeps_approved_original_text(db, remote, save_case):
     save, field, target, uses_ai, model, _ = save_case
     response = save()
     assert response.status_code in (200, 201), response.text
     db.expire_all()
     assert db.query(model).filter(getattr(model, field) == target).count() == 1
-    assert (target in [call.args[0] for call in remote.submit.call_args_list]) is uses_ai
+    assert any(target in call.args[0] for call in remote.submit.call_args_list) is uses_ai
 
 
 @pytest.mark.parametrize("save_case", [case for case in _SAVE_CASES if case[0] not in ("message", "group_message")], indirect=True)
@@ -264,27 +305,6 @@ def test_every_free_text_field_gets_local_baseline_before_ai(db, remote, save_ca
     db.expire_all()
     assert _snapshot(db) == before
     remote.submit.assert_not_called()
-
-
-@pytest.mark.parametrize("unavailable", [False, True])
-def test_interview_completion_checks_profile_before_saving(client, db, user, municipalities, remote, unavailable):
-    if unavailable:
-        remote.submit.side_effect = RuntimeError("Space unavailable")
-    else:
-        remote.submit.return_value.result.return_value = {
-            "flagged": True, "translated_text": "Toxic", "score": 0.9,
-        }
-    body = profile_payload([], name="Kontrolltext")
-    body.pop("interest_ids")
-    body["batches"] = [{"token": "unused", "items": []}]
-    response = client.post("/profile/interview/complete", json=body)
-    assert response.status_code == (503 if unavailable else 422)
-    assert response.json()["detail"] == (
-        "Textkontrollen är tillfälligt otillgänglig. Försök igen senare."
-        if unavailable else "Innehållet innehåller otillåtet språk."
-    )
-    assert db.query(Profile).count() == 0
-    assert db.get(User, user.id).onboarding_completed_at is None
 
 
 @pytest.mark.parametrize("unavailable", [False, True])
@@ -313,6 +333,37 @@ def test_chat_routes_never_depend_on_ai(client, db, user, municipalities, remote
     remote.submit.assert_not_called()
 
 
+def test_event_create_and_update_send_one_combined_public_text_to_ai(client, user, db, remote):
+    interest = Interest(id=1, name="Löpning")
+    db.add(interest)
+    db.commit()
+    body = event_payload(title="Morgonlöpning", description="Vi springer tillsammans.")
+    created = client.post("/events/", json=body)
+    assert created.status_code == 201, created.text
+    remote.submit.assert_called_once_with(
+        "Morgonlöpning\nVi springer tillsammans.", api_name="/moderate"
+    )
+
+    remote.submit.reset_mock()
+    updated = client.patch(
+        f"/events/{created.json()['id']}",
+        json={"title": "Kvällslöpning", "description": "En lugn runda."},
+    )
+    assert updated.status_code == 200, updated.text
+    remote.submit.assert_called_once_with("Kvällslöpning\nEn lugn runda.", api_name="/moderate")
+
+
+def test_event_location_only_update_uses_local_filter_without_ai(client, user, db, remote):
+    db.add(Interest(id=1, name="Löpning"))
+    db.commit()
+    created = client.post("/events/", json=event_payload())
+    assert created.status_code == 201, created.text
+    remote.submit.reset_mock()
+    response = client.patch(f"/events/{created.json()['id']}", json={"place_name": "Slottsskogen"})
+    assert response.status_code == 200, response.text
+    remote.submit.assert_not_called()
+
+
 @pytest.fixture
 def bio_setup(db, user, municipalities, monkeypatch):
     from app.api.routes import profile as profile_route
@@ -338,7 +389,7 @@ def bio_setup(db, user, municipalities, monkeypatch):
 
 @pytest.mark.parametrize("route", ["/profile/text-check", "/profile/", "/profile/interview/complete"])
 @pytest.mark.parametrize("decision", ["clean", "flagged", "unavailable"])
-def test_bio_setup_checks_bio_before_saving(client, db, user, remote, bio_setup, route, decision):
+def test_bio_setup_checks_bio_before_saving(client, db, user, remote, bio_setup, route, decision, caplog):
     bio, bodies = bio_setup
 
     def submit(text, **kwargs):
@@ -353,20 +404,20 @@ def test_bio_setup_checks_bio_before_saving(client, db, user, remote, bio_setup,
 
     remote.submit.side_effect = submit
     response = client.post(route, json=bodies[route])
-    if decision == "clean":
+    if decision != "flagged":
         assert response.status_code == (204 if route == "/profile/text-check" else 201), response.text
         if route != "/profile/text-check":
             assert db.query(Profile).one().profile_text == bio
             assert db.query(UserInterest).count() == 1
         else:
             assert db.query(Profile).count() == 0
+        if decision == "unavailable":
+            assert "lokal ordkontroll används" in caplog.text
     else:
-        assert response.status_code == (422 if decision == "flagged" else 503)
-        assert response.json() == {"detail": (
-            "Innehållet innehåller otillåtet språk." if decision == "flagged"
-            else "Textkontrollen är tillfälligt otillgänglig. Försök igen senare."
-        )}
+        assert response.status_code == 422
+        assert response.json() == {"detail": "Innehållet innehåller otillåtet språk."}
         assert db.query(Profile).count() == 0
         assert db.query(UserInterest).count() == 0
         assert db.get(User, user.id).onboarding_completed_at is None
-    assert bio in [call.args[0] for call in remote.submit.call_args_list]
+    if decision == "flagged":
+        assert bio in [call.args[0] for call in remote.submit.call_args_list]

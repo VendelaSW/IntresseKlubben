@@ -33,7 +33,7 @@ def worker(monkeypatch):
     monkeypatch.setitem(sys.modules, "optimum.onnxruntime", onnx)
     monkeypatch.setitem(sys.modules, "optimum.pipelines", pipelines)
     monkeypatch.setitem(sys.modules, "gradio", SimpleNamespace(Interface=Mock(), Textbox=Mock(), JSON=Mock()))
-    path = Path(__file__).parents[1] / "app" / "ai_worker" / "app.py"
+    path = Path(__file__).parents[2] / "ai_worker" / "app.py"
     specification = importlib.util.spec_from_file_location("moderation_space_worker", path)
     module = importlib.util.module_from_spec(specification)
     specification.loader.exec_module(module)

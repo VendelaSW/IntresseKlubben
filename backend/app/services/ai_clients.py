@@ -92,8 +92,9 @@ def _get_hf_client():
 
     if not settings.moderation_space.strip():
         raise AINotConfigured()
+    token = settings.hf_token.strip() or None
     return Client(
-        settings.moderation_space, token=settings.hf_token or None,
+        settings.moderation_space, token=token,
         verbose=False, analytics_enabled=False,
         httpx_kwargs={"timeout": PER_CALL_TIMEOUT_SECONDS},
     )
