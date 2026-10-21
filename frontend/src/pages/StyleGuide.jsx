@@ -426,7 +426,7 @@ function StyleGuide() {
           Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
           .app-section för sidor med kort i rutnät (Klubbar och Events): "+ Skapa"-knappen direkt efter
           rubriken och tätare avstånd. Flikarna är sammanhängande knappar med en ram runt, och den
-          valda är gul; på mobil bryts de till flera rader. En tom flik har en knapp vidare. Vald flik sparas i adressen med useTabParam (?flik=kontakter),
+          valda är gul; på mobil bryts de till flera rader. En tom flik har en knapp vidare. Vald flik sparas i adressen med useTabParam (?flik=kompisar),
           så att Tillbaka kommer tillbaka till samma flik.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
@@ -481,6 +481,28 @@ function StyleGuide() {
             </div>
           </article>
         </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Grupper i en lista (.match-group, .match-group-title) och "Ångra" (.undo-notice)
+        </p>
+        <p className="hint-text">
+          Förslag på Personer: de man har intressen gemensamt med står under "Personer med liknande
+          intressen", i grupper efter antal gemensamma intressen, med antalet som rubrik ovanför
+          korten. Har man tagit bort någon står antalet och "Visa dem igen" under filtren. Direkt efter
+          att man tagit bort någon visas .undo-notice med "Ångra" en stund, längst ner i blocket även
+          när man scrollar.
+        </p>
+        <section className="match-group" style={{ marginTop: '1rem' }}>
+          <h3 className="match-group-title">
+            <strong className="shared-count">3</strong> gemensamma intressen
+          </h3>
+        </section>
+        <p className="undo-notice" style={{ position: 'static' }}>
+          Bob är borttagen från förslagen.{' '}
+          <button type="button" className="text-button">
+            Ångra
+          </button>
+        </p>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Statusmärken (.status-pill, med .status-pill-success, .status-pill-error eller .status-pill-owner)
