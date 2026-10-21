@@ -80,6 +80,12 @@ användarnamn eller e-post.
 POST /users/{user_id}/dismiss - tar bort en person från dina Förslag
 (GET /users/ ovan). Ensidigt, påverkar inget annat. Idempotent.
 
+DELETE /users/{user_id}/dismiss - ångrar det, så att personen syns i Förslag
+igen ("Ångra" direkt efter att man tagit bort någon). Idempotent.
+
+GET /users/dismissed-suggestions - hur många personer du har tagit bort från
+dina Förslag ({"count": 2}), så att "Visa dem igen" bara syns när det finns några.
+
 DELETE /users/dismissed-suggestions - nollställer alla dina borttagna
 förslag, så de kan dyka upp igen.
 """
@@ -97,7 +103,9 @@ from app.core.config import settings
 from app.crud.email_token import TooManyEmails
 from app.crud.contact import blocked_user_ids, is_blocked
 from app.crud.dismissed_suggestion import (
+    count_dismissed_suggestions,
     dismiss_suggestion,
+    undismiss_suggestion,
     list_dismissed_user_ids,
     reset_dismissed_suggestions,
 )
@@ -123,6 +131,7 @@ from app.schemas.user import (
     CurrentUserOut,
     AccountUpdate,
     AvailabilityOut,
+    DismissedSuggestionsOut,
     ForgotPassword,
     LoginResponse,
     PasswordChange,
@@ -364,6 +373,31 @@ def dismiss_person(
             detail="Du kan inte ta bort dig själv som förslag.",
         )
     dismiss_suggestion(db, current_user.id, other.id)
+
+
+@router.delete(
+    "/{user_id}/dismiss",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_profile)],
+)
+def undismiss_person(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    undismiss_suggestion(db, current_user.id, user_id)
+
+
+@router.get(
+    "/dismissed-suggestions",
+    response_model=DismissedSuggestionsOut,
+    dependencies=[Depends(require_profile)],
+)
+def read_dismissed_count(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DismissedSuggestionsOut:
+    return DismissedSuggestionsOut(count=count_dismissed_suggestions(db, current_user.id))
 
 
 @router.delete(

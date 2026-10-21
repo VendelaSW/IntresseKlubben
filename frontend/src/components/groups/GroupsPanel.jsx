@@ -99,7 +99,7 @@ function GroupsPanel() {
   // Ens egna intressen, för att markera klubbarnas intresse om det är ett av dem.
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [municipalities, setMunicipalities] = useState([])
-  // Ens kontakter, för "Bjud in" i en klubb. Hämtas först när en klubb öppnas
+  // Ens kompisar, för "Bjud in" i en klubb. Hämtas först när en klubb öppnas
   // (null = inte hämtade än), eftersom listan inte behövs förrän då.
   const [contacts, setContacts] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -124,7 +124,7 @@ function GroupsPanel() {
     if (typeof view !== 'number' || contacts !== null) return
     getContacts()
       .then((data) => setContacts(data.contacts.map((c) => c.user)))
-      // Utan kontakter går det ändå att se klubben, bara inte bjuda in.
+      // Utan kompisar går det ändå att se klubben, bara inte bjuda in.
       .catch(() => setContacts([]))
   }, [view, contacts])
 

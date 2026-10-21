@@ -2,9 +2,9 @@ import { useState } from 'react'
 import Avatar from '../Avatar'
 import { memberCountText } from '../groups/GroupList'
 
-// Innehållet i popupen "Bjud in": en sökbar lista över ens kontakter och en lista
+// Innehållet i popupen "Bjud in": en sökbar lista över ens kompisar och en lista
 // över ens klubbar (alla medlemmar bjuds då in), med en kryssruta per rad.
-// Kontakter visas med liten text och små avatarer (samma kompakta personlista som
+// Kompisar visas med liten text och små avatarer (samma kompakta personlista som
 // svarslistan). `initial` är det som redan var valt när popupen öppnades, och
 // `onSubmit` får { userIds, groupIds }. Själva inbjudan skickas av föräldern.
 function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onSubmit, onCancel }) {
@@ -24,8 +24,8 @@ function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onS
       <div className="auth-form form-wide form-compact">
         <input
           type="search"
-          aria-label="Sök bland kontakter"
-          placeholder="Sök bland kontakter..."
+          aria-label="Sök bland kompisar"
+          placeholder="Sök bland kompisar..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -34,11 +34,11 @@ function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onS
       <div className="modal-scroll">
         <div className="person-list person-list-compact">
           <div>
-            <p className="card-subheading">Kontakter</p>
+            <p className="card-subheading">Kompisar</p>
             {contacts.length === 0 ? (
-              <p className="hint-text">Du har inga kontakter än.</p>
+              <p className="hint-text">Du har inga kompisar än.</p>
             ) : shown.length === 0 ? (
-              <p className="hint-text">Ingen kontakt matchar sökningen.</p>
+              <p className="hint-text">Ingen kompis matchar sökningen.</p>
             ) : (
               <ul>
                 {shown.map((c) => (

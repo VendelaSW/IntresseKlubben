@@ -174,3 +174,41 @@ def test_a_rejected_early_check_is_not_remembered(client, user, municipalities, 
     assert client.post(URL, json={"profile_text": "Jag är nazist."}).status_code == 422
     assert create(client, yoga, "Jag är nazist.").status_code == 422
     assert len(llm.calls_named("text_policy")) == 2
+
+
+# ---------- Sparandet kostar inte AI-anrop i onödan, och räknas mot samma gräns ----------
+
+
+def test_a_second_profile_gets_409_without_any_ai_call(client, user, municipalities, yoga):
+    llm, moderator = fakes()
+    assert create(client, yoga, "Jag gillar katter.").status_code == 201
+    calls_before, batches_before = len(llm.calls_named("text_policy")), len(moderator.batches)
+    response = create(client, yoga, "Jag gillar hundar.")  # en annan text, så att ett anrop skulle synas
+    assert response.status_code == 409
+    assert len(llm.calls_named("text_policy")) == calls_before and len(moderator.batches) == batches_before
+
+
+def test_saving_is_counted_against_the_same_limit_as_the_early_check(client, user, municipalities, yoga, monkeypatch):
+    fakes()
+    monkeypatch.setattr(profile_routes, "TEXT_CHECK_LIMIT", 3)
+    assert create(client, yoga, "Text ett.").status_code == 201  # kontroll 1
+    codes = [client.patch("/profile/", json={"profile_text": f"Text {n}."}).status_code for n in (2, 3, 4)]
+    assert codes == [200, 200, 429]  # kontroll 2 och 3 går igenom, den fjärde stoppas
+
+
+def test_a_text_that_was_already_checked_does_not_use_up_the_limit_when_saved(client, user, municipalities, yoga, monkeypatch):
+    fakes()
+    monkeypatch.setattr(profile_routes, "TEXT_CHECK_LIMIT", 2)
+    assert client.post(URL, json={"profile_text": "Jag gillar katter."}).status_code == 204  # kontroll 1
+    assert create(client, yoga, "Jag gillar katter.").status_code == 201  # samma text: räknas inte
+    assert client.patch("/profile/", json={"profile_text": "Ny text."}).status_code == 200  # kontroll 2
+    assert client.patch("/profile/", json={"profile_text": "Ännu en."}).status_code == 429
+
+
+def test_a_save_stopped_by_the_limit_saves_nothing(client, user, municipalities, yoga, monkeypatch):
+    fakes()
+    monkeypatch.setattr(profile_routes, "TEXT_CHECK_LIMIT", 1)
+    assert client.post(URL, json={"profile_text": "Jag gillar katter."}).status_code == 204
+    assert create(client, yoga, "Jag gillar hundar.").status_code == 429
+    assert client.get("/profile/").status_code == 404  # ingen profil skapades
+

@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest'
 import InterestTree, { PROFILE_MAX_SUBS, profileTree } from './InterestTree'
 import { getChildInterests, getTopInterests, searchInterests } from '../services/interests'
 
@@ -17,12 +18,14 @@ const SEARCH_DELAY_MS = 300
 // ett intresse vars förälder också är vald ligger under den. När profilen skapas
 // kommer de valda från sökningen och utforska, som saknar parent_id, så där
 // ligger alla överst. `card` = eget vitt kort (profilen); utan ligger den direkt
-// i ett formulär (när profilen skapas).
+// i ett formulär (när profilen skapas). Med `onAddNew(result)` erbjuds man att lägga
+// till ett intresse som inte finns när sökningen inte ger någon träff (se
+// AddInterest.jsx); utan den visas bara att inget matchar.
 //
 // På profilen syns bara de valda intressena tills man trycker "Lägg till
 // intressen", då fälls sök och Utforska ut. I formuläret är allt öppet direkt,
 // eftersom man måste välja minst ett intresse där.
-function InterestExplorer({ selected, onAdd, onRemove, card = true }) {
+function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) {
   const [top, setTop] = useState([])
   const [loadError, setLoadError] = useState('')
   // Var man är när man utforskar: huvudområdet och vägen ner, [] = stängt.
@@ -30,6 +33,7 @@ function InterestExplorer({ selected, onAdd, onRemove, card = true }) {
   const [level, setLevel] = useState([])
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null) // null = ingen sökning
+  const [resultsFor, setResultsFor] = useState('') // texten som träfflistan gäller
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
   const [open, setOpen] = useState(!card)
@@ -96,7 +100,11 @@ function InterestExplorer({ selected, onAdd, onRemove, card = true }) {
     const timer = setTimeout(() => {
       const request = ++searchRequest.current
       searchInterests(text)
-        .then((items) => request === searchRequest.current && setResults(items))
+        .then((items) => {
+          if (request !== searchRequest.current) return
+          setResults(items)
+          setResultsFor(text)
+        })
         .catch(() => request === searchRequest.current && setError('Sökningen misslyckades.'))
     }, SEARCH_DELAY_MS)
     return () => clearTimeout(timer)
@@ -226,6 +234,7 @@ function InterestExplorer({ selected, onAdd, onRemove, card = true }) {
             className="explorer-search"
             aria-label="Sök intressen"
             placeholder='Sök, t.ex. "springa" eller "foto"'
+            maxLength={MAX_INTEREST_LENGTH}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -233,7 +242,14 @@ function InterestExplorer({ selected, onAdd, onRemove, card = true }) {
           {results && (
             <div className="explorer-box">
               {results.length === 0 ? (
-                <p className="hint-text">Inget intresse matchar "{query.trim()}" än.</p>
+                onAddNew ? (
+                  // Först när träfflistan gäller texten som står i rutan, annars skulle man kunna lägga till något som har träffar.
+                  resultsFor === query.trim() && (
+                    <NewInterestOffer text={resultsFor} onAddNew={onAddNew} onDone={() => setQuery('')} boxed={false} />
+                  )
+                ) : (
+                  <p className="hint-text">Inget intresse matchar "{query.trim()}" än.</p>
+                )
               ) : (
                 <ul className="explorer-rows">
                   {results.map((item) => (

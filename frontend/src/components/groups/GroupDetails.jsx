@@ -12,7 +12,7 @@ import { inviteToGroup } from '../../services/groups'
 // skapa ett event i klubben (öppnar eventformuläret med klubben vald), och "Gå ur"
 // och "Radera" (för ägaren) ligger längst ner i kortet. "Bjud in" syns för den som
 // får bjuda in (group.can_invite: ägaren, eller alla medlemmar om ägaren har slagit
-// på det) och öppnar en popup med ens kontakter (`contacts`). Den som är inbjuden kan
+// på det) och öppnar en popup med ens kompisar (`contacts`). Den som är inbjuden kan
 // gå med eller avböja. Tillbaka-knappen ligger ovanför rutan, i GroupsPanel.
 function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecline }) {
   const navigate = useNavigate()
