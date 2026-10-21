@@ -1358,86 +1358,96 @@ function MapPrototype() {
         <path className="map-sketch-compass-north" d="M40 22 L46 44 L34 44 Z" />
         <text x="40" y="14">N</text>
       </svg>
-      <div className="map-levels" role="group" aria-label="Zooma till">
-        {ZOOM_LEVELS.map(({ id, label }) => (
-          <button key={id} type="button" className="map-tool" onClick={() => zoomToLevel(id)}>
-            {label}
-          </button>
-        ))}
-        {levelName && <p className="map-level-name">{levelName}</p>}
-      </div>
-      {/* Kartan eller dagens att göra (se `calm`). Den valda är nedtryckt. */}
-      <div className="map-view-toggle map-tool-group" role="group" aria-label="Visa">
-        <button
-          type="button"
-          className={`map-tool${calm ? '' : ' is-on'}`}
-          aria-pressed={!calm}
-          onClick={() => setCalm(false)}
-        >
-          Karta
-        </button>
-        <button
-          type="button"
-          className={`map-tool${calm ? ' is-on' : ''}`}
-          aria-pressed={calm}
-          onClick={() => setCalm(true)}
-        >
-          Att göra
-        </button>
-      </div>
-      <div className="map-sketch-tools" role="toolbar" aria-label="Nålar och väg" hidden={!pinsShown}>
-        <button
-          type="button"
-          className={`map-tool${route.placing ? ' is-on' : ''}`}
-          aria-pressed={route.placing}
-          onClick={() => routeRef.current?.setPlacing(!route.placing)}
-        >
-          <svg className="map-tool-pin" viewBox="0 0 10 16" aria-hidden="true">
-            <path d="M5 8 L5.4 15.5" stroke="#3a2f25" strokeWidth="1.4" strokeLinecap="round" />
-            <circle cx="5" cy="5" r="3.8" fill="#a32d2d" stroke="#3a2f25" strokeWidth="1.2" />
-          </svg>
-          {route.placing ? 'Klar' : 'Sätt ut nålar'}
-        </button>
-        <div className="map-tool-group" role="group" aria-label="Trådens stil">
-          <button
-            type="button"
-            className={`map-tool${route.style === 'road' ? ' is-on' : ''}`}
-            aria-pressed={route.style === 'road'}
-            onClick={() => routeRef.current?.setStyle('road')}
-          >
-            Längs vägen
-          </button>
-          <button
-            type="button"
-            className={`map-tool${route.style === 'pins' ? ' is-on' : ''}`}
-            aria-pressed={route.style === 'pins'}
-            onClick={() => routeRef.current?.setStyle('pins')}
-          >
-            Nålar i svängar
-          </button>
+      {/* Raden upptill: växeln och nålknapparna till vänster, sidornas lappar,
+          profillappen och snabbzoomen till höger. De ligger i samma rad så att
+          de aldrig kan hamna på varandra, hur smalt fönstret än är (se
+          .map-top-bar i map.css; på mobil sprids de ut som förut). */}
+      <div className="map-top-bar">
+        <div className="map-top-left">
+          {/* Kartan eller dagens att göra (se `calm`). Den valda är nedtryckt. */}
+          <div className="map-view-toggle map-tool-group" role="group" aria-label="Visa">
+            <button
+              type="button"
+              className={`map-tool${calm ? '' : ' is-on'}`}
+              aria-pressed={!calm}
+              onClick={() => setCalm(false)}
+            >
+              Karta
+            </button>
+            <button
+              type="button"
+              className={`map-tool${calm ? ' is-on' : ''}`}
+              aria-pressed={calm}
+              onClick={() => setCalm(true)}
+            >
+              Att göra
+            </button>
+          </div>
+          <div className="map-sketch-tools" role="toolbar" aria-label="Nålar och väg" hidden={!pinsShown}>
+            <button
+              type="button"
+              className={`map-tool${route.placing ? ' is-on' : ''}`}
+              aria-pressed={route.placing}
+              onClick={() => routeRef.current?.setPlacing(!route.placing)}
+            >
+              <svg className="map-tool-pin" viewBox="0 0 10 16" aria-hidden="true">
+                <path d="M5 8 L5.4 15.5" stroke="#3a2f25" strokeWidth="1.4" strokeLinecap="round" />
+                <circle cx="5" cy="5" r="3.8" fill="#a32d2d" stroke="#3a2f25" strokeWidth="1.2" />
+              </svg>
+              {route.placing ? 'Klar' : 'Sätt ut nålar'}
+            </button>
+            <div className="map-tool-group" role="group" aria-label="Trådens stil">
+              <button
+                type="button"
+                className={`map-tool${route.style === 'road' ? ' is-on' : ''}`}
+                aria-pressed={route.style === 'road'}
+                onClick={() => routeRef.current?.setStyle('road')}
+              >
+                Längs vägen
+              </button>
+              <button
+                type="button"
+                className={`map-tool${route.style === 'pins' ? ' is-on' : ''}`}
+                aria-pressed={route.style === 'pins'}
+                onClick={() => routeRef.current?.setStyle('pins')}
+              >
+                Nålar i svängar
+              </button>
+            </div>
+            {route.pinCount > 0 && (
+              <button type="button" className="map-tool" onClick={() => routeRef.current?.clear()}>
+                Ta bort nålar
+              </button>
+            )}
+          </div>
+          {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}
         </div>
-        {route.pinCount > 0 && (
-          <button type="button" className="map-tool" onClick={() => routeRef.current?.clear()}>
-            Ta bort nålar
-          </button>
-        )}
+        <div className="map-top-right">
+          <div className="map-top-widgets">
+            <MapPageWidgets openPage={openPage} onOpen={(page) => (page ? openPad(page) : setOpenPage(null))} />
+            <MapProfileWidget onOpen={openPad} />
+          </div>
+          <div className="map-levels" role="group" aria-label="Zooma till">
+            {ZOOM_LEVELS.map(({ id, label }) => (
+              <button key={id} type="button" className="map-tool" onClick={() => zoomToLevel(id)}>
+                {label}
+              </button>
+            ))}
+            {levelName && <p className="map-level-name">{levelName}</p>}
+          </div>
+        </div>
       </div>
       {/* TEST: dator: kompisen nere i högra hörnet. Mobil: den vanliga loggan uppe i vänstra hörnet. */}
       <div className="map-kompis">
         <Intressekompis alt="" />
       </div>
       <img src={logo} alt="Intresseklubben" className="map-logo" />
-      <div className="map-top-widgets">
-        <MapPageWidgets openPage={openPage} onOpen={(page) => (page ? openPad(page) : setOpenPage(null))} />
-        <MapProfileWidget onOpen={openPad} />
-      </div>
       {calm && (
         <MapCalmPage
           onOpen={openPad}
           onOpenEvent={(id) => openActivityRef.current({ type: 'event', id })}
         />
       )}
-      {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}
       <div className="map-sketch-table" aria-hidden="true" />
       {openPage && padStart && (
         // key: byter man sida landar ett nytt block.
