@@ -458,6 +458,14 @@ def test_the_suggestion_shares_the_minute_limit_with_the_analysis(client, user, 
     assert suggest(client, "bananskalning").status_code == 429
 
 
+def test_choosing_existing_interests_does_not_count_against_the_minute_limit(client, user, library, monkeypatch):
+    monkeypatch.setattr(route, "RATE_LIMIT", 2)
+    statuses = [client.post(SUGGEST_URL, json={"interest_id": library["metal"].id}).status_code for _ in range(5)]
+    assert statuses == [200] * 5
+    ai(match=new_under(library))
+    assert suggest(client, "bananskalning").status_code == 200  # gränsen är orörd
+
+
 def test_a_chosen_existing_interest_gets_a_seal_without_any_ai_call(client, user, library):
     llm, moderator = ai()
     response = client.post(SUGGEST_URL, json={"interest_id": library["metal"].id})

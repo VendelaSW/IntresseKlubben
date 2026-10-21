@@ -5,10 +5,11 @@ POST /interests/analyze - tar emot ett fritt svar och returnerar AI-förslag: de
   matchade mot biblioteket (ett intresse som finns, eller ett nytt med en förälder), med ett sigill över dem.
   Inget sparas här. Se app/services/interest_analysis.py för stegen.
 
-POST /interests/suggest - ett enda intresse med egna ord (högst 50 tecken), för "Lägg till ett intresse". Texten är själva
+POST /interests/suggest - ett enda intresse med egna ord (högst 40 tecken), för "Lägg till ett intresse". Texten är själva
   taggen: den kontrolleras (ordfilter, moderation, granskning) och kopplas till ett intresse som finns eller till en
   förälder, och ger ett förslag med sigill. 422 med ett meddelande om det inte godkänns. Med interest_id i stället för text
-  får ett befintligt intresse (valt ur sökningen) bara ett sigill, utan några anrop. Delar minutgräns med analyze.
+  får ett befintligt intresse (valt ur sökningen) bara ett sigill, utan några anrop och utan att räknas mot minutgränsen.
+  Med text delar den minutgräns med analyze.
 
 Kräver inloggning. Varje anrop kostar pengar hos OpenAI, så det finns en gräns för hur ofta en användare får
 anropa den. Gränsen räknas i minnet per användare och gäller per serverinstans, så den är en spärr och inget mer.
@@ -74,7 +75,8 @@ def suggest_interest(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _check_rate_limit(current_user.id)
+    if data.interest_id is None:
+        _check_rate_limit(current_user.id)  # bara text kostar anrop; ett valt intresse är gratis och räknas inte
     try:
         index, catalog = load_library_index(db), load_activities()
         if data.interest_id is not None:
