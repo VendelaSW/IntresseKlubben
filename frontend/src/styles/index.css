@@ -1738,22 +1738,6 @@ span.tag-selected:hover {
   white-space: nowrap;
 }
 
-/* Caveat (var(--font-heading)) lutar, så sista bokstaven och svansarna (g, j,
-   y) sticker ut utanför textens ruta. Där texten kortas av (overflow: hidden,
-   "…" eller -webkit-line-clamp) klipps de, så texten får lite luft till höger
-   och upp och ner. Den negativa marginalen håller rutan lika stor, och texten
-   får lika mycket plats som förut (luften ligger utanför). Ny Caveat-text som kortas av läggs till här. Kuvertnamnet (.envelope-name)
-   har egen luft, eftersom namnet ska stå nära bilden. */
-.map-profile-name,
-.map-activity-name,
-.notepad-title-name,
-.list-card-link .card-title {
-  padding-block: 0.12em;
-  padding-right: 0.25em;
-  margin-block: -0.12em;
-  margin-right: -0.25em;
-}
-
 .envelope-when {
   font-size: clamp(0.5rem, 4.9cqi, 0.7rem);
   color: var(--color-muted);
@@ -2932,6 +2916,24 @@ button.board-note:focus-visible {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Caveat (var(--font-heading)) lutar, så sista bokstaven och svansarna (g, j,
+   y) sticker ut utanför textens ruta. Där texten kortas av (overflow: hidden,
+   "…" eller -webkit-line-clamp) klipps de, så texten får lite luft till höger
+   och upp och ner. Den negativa marginalen håller rutan lika stor, och texten
+   får lika mycket plats som förut (luften ligger utanför). Ny Caveat-text som
+   kortas av läggs till här. Kuvertnamnet (.envelope-name) har egen luft,
+   eftersom namnet ska stå nära bilden. Regeln ligger efter list-card-reglerna
+   ovan, som nollställer marginalen på .card-title, så att den inte skrivs över. */
+.map-profile-name,
+.map-activity-name,
+.notepad-title-name,
+.list-card-link .card-title {
+  padding-block: 0.12em;
+  padding-right: 0.25em;
+  margin-block: -0.12em;
+  margin-right: -0.25em;
 }
 
 /* Bara början av beskrivningen på kortet; hela syns i postens egen vy. */
