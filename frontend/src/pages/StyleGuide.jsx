@@ -127,6 +127,11 @@ function StyleGuide() {
         <p className="problem-statement">
           Stora, personliga rubriker: Hero, sidrubrik (H1) och namn i boxar.
         </p>
+        <p className="hint-text">
+          Caveat lutar, så sista bokstaven och svansarna på g, j och y sticker ut utanför textens ruta. Caveat-text
+          som kortas av (med "…" eller efter ett antal rader) ska läggas till i den gemensamma regeln i index.css
+          (se .map-profile-name där), annars klipps bokstäverna.
+        </p>
         <p
           style={{
             fontFamily: 'var(--font-body)',

@@ -1194,13 +1194,14 @@
   border-top: 1.5px dashed #3a2f25;
 }
 
-/* Caveat lutar, så sista bokstaven och svansarna (g, j, y) sticker ut utanför
-   textens ruta. overflow: hidden (för "…") klipper dem, så texten får lite luft
-   till höger och upp och ner. Den negativa marginalen håller lappen lika hög. */
+/* Luften så att Caveat inte klipps ligger i den gemensamma regeln i index.css
+   (se .map-profile-name där). Lappen är så bred som namnet, så här får luften
+   till höger ta plats (ingen negativ marginal, annars krymper lappen), och den
+   är lite mindre, så att lappen är lika bred som förut. */
 .map-profile-name {
+  padding-right: 0.15em;
+  margin-right: 0;
   overflow: hidden;
-  padding: 0.12em 0.15em 0.12em 0;
-  margin-block: -0.12em;
   font-family: var(--font-heading);
   font-size: 1.5rem;
   line-height: 1;
