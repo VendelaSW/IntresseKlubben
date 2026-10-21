@@ -428,3 +428,47 @@ def test_a_hidden_interest_is_still_found_by_meaning(client, db, user, library):
     set_clients(embedder=embedder)
     assert client.get("/interests/search", params={"q": "kubb"}).json() == []  # dolt i sökningen
     assert [name for name, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "gårdsspel"}))] == ["Kubb"]
+
+
+# --- "Menade du": stavningskontrollen kommer före betydelsen ------------------
+
+
+def test_similar_finds_a_misspelled_interest_without_any_embedding_call(client, user, library):
+    from app.services.ai_clients import set_clients
+    from tests.fakes import FakeEmbedder
+
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    response = client.get(SIMILAR_URL, params={"q": "lopnig"})  # Löpning, felstavat och utan prickar
+    assert _browse(response) == [("Löpning", ["Sport och träning"], True)]
+    assert embedder.calls == [["lopnig"]]  # tre träffar saknas, så betydelsen fyller på (inget fanns att lägga till)
+
+
+def test_similar_finds_an_alias_with_a_typo_and_a_different_spelling(client, user, library):
+    assert [n for n, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "joga"}))] == ["Löpning"]  # alias jogga
+    assert [n for n, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "Trail-löpning"}))] == ["Traillöpning"]
+
+
+def test_similar_puts_spelling_before_meaning(client, db, user, library):
+    vector = _vector(1.0, 0.0)
+    embedder = _embedded(db, library, {"Gym": vector})
+    embedder.vectors["lopnig"] = vector  # betydelsen pekar på Gym, stavningen på Löpning
+    names = [n for n, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "lopnig"}))]
+    assert names == ["Löpning", "Gym"]
+
+
+def test_similar_skips_the_embedding_call_when_spelling_fills_the_list(client, db, user, library):
+    from app.models import Interest as I
+
+    for name in ("Löpnings", "Löpningn"):
+        db.add(I(name=name, parent_id=library["Sport och träning"].id))
+    db.commit()
+    embedder = _embedded(db, library)
+    names = [n for n, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "lopning"}))]
+    assert set(names) == {"Löpning", "Löpnings", "Löpningn"} and embedder.calls == []
+
+
+def test_similar_does_not_suggest_by_spelling_for_short_or_distant_words(client, user, library):
+    assert client.get(SIMILAR_URL, params={"q": "gum"}).json() == []  # för kort för stavningsförslag (Gym)
+    assert client.get(SIMILAR_URL, params={"q": "lopningsbana"}).json() == []  # fem tecken ifrån Löpning
+    assert client.get(SIMILAR_URL, params={"q": "lopni"}).json() == []  # två tecken ifrån ett sjutecknat ord: för långt

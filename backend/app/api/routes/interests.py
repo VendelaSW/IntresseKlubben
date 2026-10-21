@@ -8,8 +8,9 @@ GET /interests/search?q= - intressen vars namn eller alias innehåller texten,
   bästa träffarna först, var och en med var den hör hemma (path).
   Utforska, underintressen och sökningen visar bibliotekets intressen, ens egna, och andras egna intressen först när minst
   tre användare har dem (se crud/interest.py). De som är dolda hittas ändå på betydelse med /interests/similar.
-GET /interests/similar?q= - "Menade du": högst tre intressen med liknande betydelse som texten (ett embedding-anrop),
-  för när sökningen inte gav någon träff. Tom lista om det inte går eller inget liknar.
+GET /interests/similar?q= - "Menade du": högst tre intressen som liknar texten, för när sökningen inte gav någon träff.
+  Först de som liknar i stavning (felstavningar och skrivsätt, i kod: services/interest_spelling.py), sedan de med liknande
+  betydelse (ett embedding-anrop). Tom lista om inget liknar.
 
 GET /profile/interests, PUT/DELETE /profile/interests/{id} - ens egna intressen.
 Bara aktiva intressen går att lägga till; ett inaktivt som man redan har går
@@ -34,6 +35,7 @@ from app.crud.interest import (
     list_child_interests,
     list_interests,
     list_top_interests,
+    load_library_index,
     remove_user_interest,
     search_interests,
     sorted_interests,
@@ -42,6 +44,7 @@ from app.db.session import get_db
 from app.models.interest import Interest
 from app.schemas.interest import InterestBrowseItem, InterestResponse, ProfileInterest
 from app.services.interest_embeddings import similar_interests
+from app.services.interest_spelling import spelling_matches
 
 router = APIRouter(tags=["interests"])
 
@@ -116,7 +119,12 @@ def similar(
     if len(text) < MIN_SIMILAR_LENGTH:
         return []
     _check_similar_rate_limit(current_user.id)
-    items = _browse_items(db, [interest for interest, _ in similar_interests(db, text)])
+    # Stavning först (billigt, ingen OpenAI), betydelsen fyller på. Räcker stavningen hoppas embedding-anropet över.
+    ids = spelling_matches(text, load_library_index(db))
+    if len(ids) < SIMILAR_MAX:
+        ids += [i.id for i, _ in similar_interests(db, text) if i.id not in ids]
+    by_id = {i.id: i for i in db.query(Interest).filter(Interest.id.in_(ids)).all()}
+    items = _browse_items(db, [by_id[i] for i in ids if i in by_id])
     # Ett tomt huvudområde (utan underintressen) är ingen sak att föreslå.
     return [item for item in items if item.path or item.has_children][:SIMILAR_MAX]
 
