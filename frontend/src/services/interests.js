@@ -13,8 +13,15 @@ export function getAllInterests() {
 // Intressebiblioteket: huvudområdena, underintressena till ett intresse, och
 // sökning i namn och alias. Varje intresse har path (namnen ovanför det i
 // trädet) och has_children (om det går att klicka sig vidare ner).
+//
+// Ett huvudområde utan underintressen (t.ex. Övrigt och nischat tills något hamnat där) är en tom kategori som inte betyder
+// något för andra, så det syns varken under Utforska eller i sökningen. Så fort det får underintressen visas det igen.
+function hasContent(interest) {
+  return interest.path.length > 0 || interest.has_children
+}
+
 export function getTopInterests() {
-  return cached(['interests', 'top'], () => apiGet('/interests/top'), HOUR)
+  return cached(['interests', 'top'], () => apiGet('/interests/top').then((items) => items.filter(hasContent)), HOUR)
 }
 
 export function getChildInterests(id) {
@@ -22,7 +29,14 @@ export function getChildInterests(id) {
 }
 
 export function searchInterests(query) {
-  return apiGet(`/interests/search?${new URLSearchParams({ q: query })}`)
+  return apiGet(`/interests/search?${new URLSearchParams({ q: query })}`).then((items) => items.filter(hasContent))
+}
+
+// "Menade du": högst tre intressen med liknande betydelse som texten, för när sökningen inte gav någon träff ("vara ute i
+// naturen" ger Friluftsliv, "pokmon" ger Pokémon TCG). Samma form som searchInterests. Tom lista om inget liknar eller om
+// det inte gick att räkna ut. Kostar ett litet anrop hos backend, så anropa den bara efter en sökning utan träff.
+export function similarInterests(query) {
+  return apiGet(`/interests/similar?${new URLSearchParams({ q: query })}`)
 }
 
 // Tom lista om användaren inte finns än, så att profilsidan ändå kan visas.

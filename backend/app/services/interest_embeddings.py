@@ -19,6 +19,7 @@ import hashlib
 import math
 
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.interest import Interest, InterestStatus
@@ -159,3 +160,23 @@ def nearest_interests(
     stored = db.query(InterestEmbedding.interest_id, InterestEmbedding.embedding).filter(InterestEmbedding.interest_id.in_(list(interests))).all()
     scored = [(interests[interest_id], _cosine_similarity(vector, embedding)) for interest_id, embedding in stored]
     return sorted(scored, key=lambda pair: -pair[1])[:limit]
+
+
+SIMILAR_MIN = 0.40  # så lik betydelse ska ett intresse minst ha (1 = samma). Mät med scratchpad/similar_probe.py innan den ändras.
+SIMILAR_LOOKUP = 8  # så många av de närmaste hämtas, så att några kan sorteras bort efteråt
+SIMILAR_SECONDS = 4  # längre får "Menade du" inte vänta: sökrutan ska inte hänga
+
+
+def similar_interests(db: Session, text: str, embedder: Embedder | None = None) -> list[tuple[Interest, float]]:
+    """Intressen vars betydelse liknar `text`, närmast först, med likheten. Ett embedding-anrop och ingen språkmodell. Går
+    det inte (ingen nyckel, OpenAI nere, vektorerna eller tabellen saknas) ges en tom lista: förslaget är en hjälp
+    och får aldrig stoppa sökningen."""
+    try:
+        vector = (embedder or get_embedder()).embed([text], Deadline(SIMILAR_SECONDS))[0]
+        found = nearest_interests(db, vector, SIMILAR_LOOKUP)
+    except (AIFailed, AINotConfigured):
+        return []
+    except SQLAlchemyError:
+        db.rollback()  # i Postgres måste transaktionen rullas tillbaka innan sessionen går att använda igen
+        return []
+    return [(interest, similarity) for interest, similarity in found if similarity >= SIMILAR_MIN]
