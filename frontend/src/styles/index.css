@@ -804,6 +804,271 @@ span.tag-selected:hover {
   font-weight: 700;
 }
 
+/* Intervjun (ProfileInterview): Intressekompisen (videon och undertexten) till
+   vänster och frågan med formuläret till höger på dator, under varandra på
+   smalare skärmar. */
+.interview-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 960px;
+  margin-top: 2rem;
+}
+
+.interview-kompis {
+  flex: 0 1 380px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.interview-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+/* Undertexten. Platsen är reserverad, så att inget under hoppar när texten byts. */
+.interview-caption {
+  min-height: 3.2rem;
+  margin: 0.75rem 0 0;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.interview-main {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.interview-question {
+  text-align: left;
+  white-space: pre-line;
+}
+
+.interview-progress {
+  margin: 0.5rem 0;
+  text-align: left;
+}
+
+/* Framstegsstapeln syns bara på mobil (se nedan). */
+.interview-progress-bar {
+  display: none;
+}
+
+/* Mobil (upp till 767 px). Byggd efter de vanliga riktlinjerna för formulär på
+   telefon (se CONTRIBUTING.md, "Mobil"):
+   - en fråga och dess formulär syns utan att man scrollar
+   - en kolumn, etiketten ovanför fältet, fälten över hela bredden
+   - knappar och fält minst 48 px höga (Material 48 dp, Apple 44 pt, WCAG 2.5.8)
+   - huvudknappen ("Nästa") störst och längst till höger, där tummen når
+   - framsteget ("Fråga 2 av 5" och en stapel) ovanför frågan
+   Intressekompisen är liten och rund högst upp, med det den säger bredvid som
+   en pratbubbla. Innan intervjun startar är den större och centrerad. */
+@media (max-width: 767px) {
+  .interview-page {
+    padding: 1rem 1rem 2rem;
+    gap: 1rem;
+  }
+
+  .interview-layout {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 1.25rem;
+    margin-top: 0;
+  }
+
+  .interview-kompis,
+  .interview-main {
+    flex: none;
+  }
+
+  /* Startskärmen. */
+  .interview-kompis {
+    width: 200px;
+    max-width: 60vw;
+    margin: 0 auto;
+  }
+
+  .interview-kompis:not(.is-asking) .interview-caption {
+    min-height: 1.5rem;
+    font-size: 1.05rem;
+  }
+
+  .interview-start {
+    width: 100%;
+    min-height: 48px;
+    font-size: 1.05rem;
+  }
+
+  /* Medan frågorna ställs. */
+  .interview-kompis.is-asking {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+
+  .interview-kompis.is-asking .interview-video {
+    flex: none;
+    width: 64px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--color-line);
+    background: var(--color-white);
+  }
+
+  /* Pratbubblan, med en liten spets mot kompisen. Tom bubbla syns inte, men
+     raden behåller sin höjd (kompisen), så inget hoppar. */
+  .interview-kompis.is-asking .interview-caption {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid var(--color-line);
+    border-radius: 12px;
+    background: var(--color-white);
+    font-size: 1rem;
+    line-height: 1.35;
+    text-align: left;
+  }
+
+  .interview-kompis.is-asking .interview-caption::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    border-left: 2px solid var(--color-line);
+    border-bottom: 2px solid var(--color-line);
+    background: var(--color-white);
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .interview-kompis.is-asking .interview-caption.is-empty {
+    visibility: hidden;
+  }
+
+  /* Frågan: framsteget först, sedan frågan i en storlek som ryms på några rader. */
+  .interview-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+    text-align: left;
+  }
+
+  .interview-heading .interview-progress {
+    order: -2;
+    margin: 0;
+    font-size: var(--text-small);
+  }
+
+  .interview-progress-bar {
+    order: -1;
+    display: block;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--color-white);
+    border: 1px solid var(--color-line);
+    overflow: hidden;
+  }
+
+  .interview-progress-bar span {
+    display: block;
+    height: 100%;
+    background: var(--color-accent);
+    transition: width 0.3s ease;
+  }
+
+  .app-title.interview-question {
+    margin: 0.25rem 0 0;
+    font-size: 2rem;
+    line-height: 1.15;
+  }
+
+  /* Formuläret direkt på sidan, utan ruta runt, så att fälten får hela bredden
+     och linjerar med frågan. */
+  .interview-card.card {
+    max-width: none;
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none !important;
+  }
+
+  .interview-page .interview-card .auth-form {
+    gap: 1rem;
+  }
+
+  .interview-page .interview-card label {
+    font-size: 1rem;
+  }
+
+  .interview-page .interview-card input,
+  .interview-page .interview-card select {
+    min-height: 48px;
+  }
+
+  .interview-page .interview-card .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Knapparna: Tillbaka liten till vänster (syns inte på första frågan),
+     Nästa resten av raden. .interview-page före, så att reglerna går före
+     .form-compact, som kommer senare i filen. */
+  .interview-page .interview-actions {
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .interview-page .interview-actions button {
+    min-height: 48px;
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .interview-page .interview-back:disabled {
+    display: none;
+  }
+
+  .interview-page .interview-next {
+    flex: 1;
+  }
+
+  /* Slutskärmen (profilen och intressena): mindre rubrik och luft, och
+     "Skapa min profil" ligger kvar längst ned på skärmen medan man scrollar,
+     så att huvudknappen alltid syns. */
+  .interview-summary.card {
+    padding: 1rem;
+  }
+
+  .interview-summary .card-title {
+    font-size: 1.75rem;
+  }
+
+  .interview-summary .interview-save-buttons {
+    position: sticky;
+    bottom: 0;
+    margin: 0 -1rem -1rem;
+    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    background: var(--color-white);
+    border-top: 1px solid var(--color-line);
+  }
+
+  .interview-summary .interview-save-buttons .button-large {
+    width: 100%;
+    min-height: 48px;
+  }
+}
+
 /* Knapparna sist i intervjun (ProfileInterview): "Skapa min profil" stor och
    "Börja om" liten tätt under, så att man inte trycker fel. */
 .interview-save-buttons {
@@ -1085,11 +1350,14 @@ span.tag-selected:hover {
 }
 
 /* Knapparna på personkorten: den första mot vänsterkanten och den andra mot
-   högerkanten. Texten går på två rader ("Skicka / förfrågan"), så att knappen
+   högerkanten. Texten går på flera rader ("Skicka / kompisförfrågan"), så att knappen
    bara blir så bred som det längsta ordet plus lite luft, och inte har
-   onödigt mycket gult på sidorna. */
+   onödigt mycket gult på sidorna. Får inte allt plats på ett smalt kort
+   hamnar textknappen ("Ta bort förslag") på en egen rad, till höger. */
 .person-card .card-actions {
+  flex-wrap: wrap;
   justify-content: space-between;
+  row-gap: 0.4rem;
 }
 
 .person-card .card-actions > .primary-button,
@@ -1124,6 +1392,7 @@ span.tag-selected:hover {
 
 /* Textknappen ("Ta bort förslag") en bit in från högerkanten. */
 .person-card .card-actions > .text-button {
+  margin-left: auto;
   margin-right: 0.4rem;
 }
 
@@ -1134,6 +1403,41 @@ span.tag-selected:hover {
   color: var(--color-text);
   font-weight: 700;
   border-bottom: 2px solid var(--color-accent);
+}
+
+/* Förslag på Personer: en grupp kort per antal gemensamma intressen, med
+   antalet som en liten rubrik ovanför (siffran som .shared-count). */
+.match-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.match-group-title {
+  margin: 0.5rem 0 0;
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  font-weight: 400;
+}
+
+/* Bekräftelse med "Ångra" efter något man nyss gjort (t.ex. tagit bort ett
+   förslag på Personer). Ligger kvar längst ner i blocket medan man scrollar,
+   så att den syns var man än är i listan, och försvinner efter en stund. */
+.undo-notice {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 2;
+  align-self: center;
+  max-width: 100%;
+  margin: 1rem 0 0;
+  padding: 0.5rem 1rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 6px;
+  box-shadow: 3px 3px 0 #3a2f25;
+  font-size: var(--text-small);
+  overflow-wrap: anywhere;
 }
 
 /* Bilden till vänster med namnet och åldern bredvid, och staden på raden
@@ -2718,6 +3022,20 @@ button.board-note:focus-visible {
   font-size: var(--text-small);
   padding: 0.3rem 0.7rem;
   margin-top: 0;
+}
+
+/* På telefoner zoomar webbläsaren (Safari på iPhone) in när man trycker i ett
+   fält med mindre text än 16 px, och zoomar inte ut igen, så att man inte längre
+   ser hela sidan. Därför har alla fält minst 16 px text på pekskärmar, oavsett
+   vilket formulär de ligger i (därav !important). På dator är de kompakta
+   fälten kvar. Zooma med två fingrar går fortfarande, med flit: viewport-taggen
+   stänger inte av det, eftersom det behövs för den som ser dåligt. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: max(1rem, 16px) !important;
+  }
 }
 
 /* Etiketten tätt ovanför sitt fält (till skillnad från mellanrummet mellan fälten). */

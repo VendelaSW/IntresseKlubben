@@ -47,7 +47,7 @@ export function answerEvent(eventId, answer) {
   return changingEvents(apiPut(`/events/${eventId}/response`, { answer }))
 }
 
-// Bjuder in kontakter (userIds) och/eller alla medlemmar i klubbar (groupIds).
+// Bjuder in kompisar (userIds) och/eller alla medlemmar i klubbar (groupIds).
 // Returnerar de som blev inbjudna den här gången.
 export function inviteToEvent(eventId, { userIds = [], groupIds = [] }) {
   return changingEvents(apiPost(`/events/${eventId}/invitations`, { user_ids: userIds, group_ids: groupIds }))

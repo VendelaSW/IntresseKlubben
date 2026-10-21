@@ -21,7 +21,7 @@ const ANSWERS = [
 // föräldern att hämta om eventlistorna, så att ens svar och flikarna stämmer.
 // "Bjud in" syns för den som får bjuda in (event.can_invite: skaparen, eller alla
 // om skaparen har slagit på "Gäster får bjuda in") och öppnar en popup med ens
-// kontakter och klubbar (`contacts`, `groups`). Skaparen kan slå på och av valet här.
+// kompisar och klubbar (`contacts`, `groups`). Skaparen kan slå på och av valet här.
 // Skaparen ser också Redigera (`onEdit`, formuläret visas av EventsPanel) och Radera,
 // som öppnar en ruta där man kan skriva ett meddelande till dem som har svarat Ja
 // eller Kanske (de får en notis från Intresseklubben), och sedan anropar

@@ -79,10 +79,22 @@ def sent_emails():
 
 @pytest.fixture(autouse=True)
 def reset_ai_clients():
-    """Inget test ska råka behålla en fejkad AI-klient från ett annat test, eller anropa OpenAI."""
+    """Inget test ska råka behålla en fejkad AI-klient från ett annat test, eller anropa OpenAI. Spärren för antal
+    Om mig-kontroller och minnet av redan kontrollerade texter nollställs också, så att ett test som sparar många
+    profiltexter inte stoppar nästa."""
+    from app.api.routes import profile as profile_route
+
     set_clients()
+    from app.api.routes import interests as interests_route
+
+    profile_route._recent_text_checks.clear()
+    profile_route._checked_texts.clear()
+    interests_route._recent_similar.clear()
     yield
     set_clients()
+    profile_route._recent_text_checks.clear()
+    profile_route._checked_texts.clear()
+    interests_route._recent_similar.clear()
 
 
 @pytest.fixture

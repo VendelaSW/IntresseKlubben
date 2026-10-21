@@ -17,7 +17,7 @@ import { useBadgeCounts } from '../hooks/useBadgeCounts'
 // läses upp.
 const WIDGETS = [
   { id: 'brev', label: 'Brev', icon: brevIcon, badge: ['unseenMessages', 'konversationer med nya brev'] },
-  { id: 'personer', label: 'Personer', icon: personerIcon, badge: ['contactRequests', 'nya förfrågningar'] },
+  { id: 'personer', label: 'Personer', icon: personerIcon, badge: ['contactRequests', 'nya kompisförfrågningar'] },
   { id: 'klubbar', label: 'Klubbar', icon: klubbarIcon, badge: ['clubInvitations', 'klubbinbjudningar'] },
   { id: 'events', label: 'Events', icon: eventIcon, badge: ['eventNews', 'nya events och inbjudningar'] },
   { id: 'notiser', label: 'Notiser', icon: notiserIcon, badge: ['notifications', 'nya notiser'] },

@@ -12,7 +12,7 @@ import { NOTIFICATIONS_READ } from '../services/notifications'
 const POLL_MS = 60000
 
 // Siffrorna för appens märken (lapparna på kartan):
-//   contactRequests: obesvarade kontaktförfrågningar (Personer)
+//   contactRequests: obesvarade kompisförfrågningar (Personer)
 //   clubInvitations: klubbar man är inbjuden till (Klubbar)
 //   eventNews: events man inte har svarat på som antingen är en inbjudan, eller
 //     är nya i en av ens klubbar sedan man senast tittade på Events (se
