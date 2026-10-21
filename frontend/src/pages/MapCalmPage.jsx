@@ -50,6 +50,7 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
         letters: counts?.unread_conversations ?? 0,
         invitations: counts?.club_invitations ?? 0,
         requests: counts?.contact_requests ?? 0,
+        notifications: counts?.unread_notifications ?? 0,
       })
     })
     return () => {
@@ -91,6 +92,11 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
             {todo.requests > 0 && (
               <TodoLine onClick={() => onOpen('personer')} done={false}>
                 {plural(todo.requests, 'person vill', 'personer vill')} bli din kompis
+              </TodoLine>
+            )}
+            {todo.notifications > 0 && (
+              <TodoLine onClick={() => onOpen('notiser')} done={false}>
+                Läs {plural(todo.notifications, 'ny notis', 'nya notiser')}
               </TodoLine>
             )}
           </ul>

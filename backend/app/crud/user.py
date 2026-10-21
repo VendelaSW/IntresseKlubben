@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.auth.security import hash_password
 from app.crud.email_token import delete_user_tokens
 from app.crud.group import list_user_groups, remove_member
+from app.crud.notification import delete_user_notifications
 from app.models.contact import Contact
 from app.models.conversation_read import ConversationRead
 from app.models.dismissed_suggestion import DismissedSuggestion
@@ -221,6 +222,7 @@ def delete_user(db: Session, user: User) -> str | None:
         or_(DismissedSuggestion.user_id == user_id, DismissedSuggestion.dismissed_user_id == user_id)
     ).delete(synchronize_session=False)
     delete_user_tokens(db, user_id)
+    delete_user_notifications(db, user_id)
 
     # Egna intressen som kontot skapat finns kvar för andra som har dem, utan skapare.
     db.query(Interest).filter(Interest.created_by_user_id == user_id).update(
