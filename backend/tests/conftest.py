@@ -81,8 +81,12 @@ def sent_emails():
 def reset_ai_clients():
     """Inget test ska råka behålla en fejkad AI-klient från ett annat test, eller anropa OpenAI."""
     set_clients()
+    from app.api.routes import interests as interests_route
+
+    interests_route._recent_similar.clear()
     yield
     set_clients()
+    interests_route._recent_similar.clear()
 
 
 @pytest.fixture

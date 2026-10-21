@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../services/api'
-import { searchInterests, suggestInterest } from '../services/interests'
+import { searchInterests, similarInterests, suggestInterest } from '../services/interests'
 
 // Lägg till ett intresse som inte finns i biblioteket. Samma funktion överallt, i två lägen:
 //
@@ -16,6 +16,9 @@ import { searchInterests, suggestInterest } from '../services/interests'
 // Måste stämma med backend (MAX_PHRASE_LENGTH i schemas/analysis.py).
 export const MAX_INTEREST_LENGTH = 40
 
+// Så kort text får inte ett "Menade du" (backend kräver samma).
+const MIN_SIMILAR_LENGTH = 3
+
 // Så länge sökningen väntar efter senaste tangenttrycket, så att inte varje bokstav blir ett anrop.
 const SEARCH_DELAY_MS = 300
 
@@ -29,6 +32,43 @@ function messageOf(error) {
   return error instanceof ApiError || error instanceof AddInterestError
     ? error.message
     : 'Något gick fel. Kontrollera anslutningen och försök igen.'
+}
+
+// "Menade du:" för en text som inte gav någon träff: intressen med liknande betydelse, så att man hittar det som finns i
+// stället för att skapa en variant. `action(item)` ger knappen vid varje rad (sidan bestämmer vad den gör). Visar inget
+// medan förslagen hämtas eller om inget liknar, och ett fel ger inget förslag: det är en hjälp, aldrig ett hinder.
+export function DidYouMean({ text, action }) {
+  const [items, setItems] = useState([])
+
+  useEffect(() => {
+    setItems([])
+    if (text.length < MIN_SIMILAR_LENGTH) return undefined
+    let cancelled = false
+    similarInterests(text)
+      .then((found) => !cancelled && setItems(found))
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [text])
+
+  if (items.length === 0) return null
+  return (
+    <div aria-live="polite">
+      <p className="hint-text">Menade du:</p>
+      <ul className="explorer-rows">
+        {items.map((item) => (
+          <li key={item.id} className="explorer-row">
+            <span className="explorer-name">
+              {item.name}
+              <span className="hint-text">{item.path.length ? item.path.join(' › ') : 'Huvudområde'}</span>
+            </span>
+            {action(item)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 // Frågan innan intresset läggs till. Bara utseende: `proposals` är förslagen från backend (oftast ett), som visas med var
@@ -66,8 +106,8 @@ export function InterestPrompt({ proposals, busy = false, error = '', boxed = tr
 
 // Kärnan: erbjudandet för en text som inte gav någon träff. `onAddNew(result)` får { token, proposals, text } och returnerar ett
 // promise (misslyckas det visas felet här). `onDone` anropas när intresset är tillagt. `boxed` = egen ruta (utforskaren har
-// redan en runt träfflistan och visar den utan).
-export function NewInterestOffer({ text, onAddNew, onDone, boxed = true }) {
+// redan en runt träfflistan och visar den utan). `children` visas mellan "Inget intresse matchar" och knappen (se DidYouMean).
+export function NewInterestOffer({ text, onAddNew, onDone, boxed = true, children }) {
   const [phase, setPhase] = useState('idle') // idle, checking, ask, saving
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
@@ -133,6 +173,7 @@ export function NewInterestOffer({ text, onAddNew, onDone, boxed = true }) {
   return (
     <div className={boxed ? 'explorer-box' : undefined} aria-live="polite">
       <p className="hint-text">Inget intresse matchar "{text}" än.</p>
+      {children}
       <button type="button" className="secondary-button" disabled={phase === 'checking'} onClick={check}>
         {phase === 'checking' ? 'Kontrollerar...' : `Lägg till "${text}" som nytt intresse`}
       </button>
@@ -181,6 +222,21 @@ function AddInterest({ selectedIds = [], onPickExisting, onAddNew }) {
     }
   }
 
+  function pickButton(item) {
+    return (
+      <button
+        type="button"
+        className={`explorer-add${chosen.has(item.id) ? ' explorer-add-on' : ''}`}
+        aria-label={chosen.has(item.id) ? `${item.name} är redan tillagt` : `Lägg till ${item.name}`}
+        aria-pressed={chosen.has(item.id)}
+        disabled={busyId === item.id || chosen.has(item.id)}
+        onClick={() => pick(item)}
+      >
+        {chosen.has(item.id) ? '✓' : '+'}
+      </button>
+    )
+  }
+
   return (
     <div className="explorer">
       <input
@@ -198,7 +254,9 @@ function AddInterest({ selectedIds = [], onPickExisting, onAddNew }) {
       {results &&
         results.text === query.trim() &&
         (results.items.length === 0 ? (
-          <NewInterestOffer text={results.text} onAddNew={onAddNew} onDone={() => setQuery('')} />
+          <NewInterestOffer text={results.text} onAddNew={onAddNew} onDone={() => setQuery('')}>
+            <DidYouMean text={results.text} action={pickButton} />
+          </NewInterestOffer>
         ) : (
           <div className="explorer-box">
             <ul className="explorer-rows">
@@ -208,16 +266,7 @@ function AddInterest({ selectedIds = [], onPickExisting, onAddNew }) {
                     {item.name}
                     <span className="hint-text">{item.path.length ? item.path.join(' › ') : 'Huvudområde'}</span>
                   </span>
-                  <button
-                    type="button"
-                    className={`explorer-add${chosen.has(item.id) ? ' explorer-add-on' : ''}`}
-                    aria-label={chosen.has(item.id) ? `${item.name} är redan tillagt` : `Lägg till ${item.name}`}
-                    aria-pressed={chosen.has(item.id)}
-                    disabled={busyId === item.id || chosen.has(item.id)}
-                    onClick={() => pick(item)}
-                  >
-                    {chosen.has(item.id) ? '✓' : '+'}
-                  </button>
+                  {pickButton(item)}
                 </li>
               ))}
             </ul>

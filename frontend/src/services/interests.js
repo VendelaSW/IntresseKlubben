@@ -25,6 +25,13 @@ export function searchInterests(query) {
   return apiGet(`/interests/search?${new URLSearchParams({ q: query })}`)
 }
 
+// "Menade du": högst tre intressen med liknande betydelse som texten, för när sökningen inte gav någon träff ("vara ute i
+// naturen" ger Friluftsliv, "pokmon" ger Pokémon TCG). Samma form som searchInterests. Tom lista om inget liknar eller om
+// det inte gick att räkna ut. Kostar ett litet anrop hos backend, så anropa den bara efter en sökning utan träff.
+export function similarInterests(query) {
+  return apiGet(`/interests/similar?${new URLSearchParams({ q: query })}`)
+}
+
 // Tom lista om användaren inte finns än, så att profilsidan ändå kan visas.
 // Sparas i minnet som profilen (se getProfile).
 export function getMyInterests() {
