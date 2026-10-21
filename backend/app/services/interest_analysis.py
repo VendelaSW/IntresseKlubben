@@ -3,11 +3,14 @@ Analysen av användarens text: från fri text till förslag på intressen, med e
 (POST /interests/analyze, se app/api/routes/interest_analysis.py).
 
 Stegen, med allt delad på en tidsgräns (se Deadline) så att analysen ryms i backendens funktionstid:
+0. Alias först (interest_shortcut): är hela texten en lista av intressen som finns i biblioteket görs inga anrop
+   alls i steg 1 och 2. Och hittar utläsningen ingen tagg alls letar vi namn och alias i texten som skyddsnät.
 1. Utläsning (interest_extractor): modellen gör texten till ett träd av taggar, med skydden mot olämpligt innehåll.
 2. Matchning (interest_matching): varje tagg blir ett intresse som finns, ett nytt intresse med en förälder, eller
-   inget.
-3. Aktivitet (interest_followups.plan): modellen läser ut hur användaren håller på med intresset, men bara om texten
-   säger det. Gissas aldrig. Följdfrågor byggs men skickas bara om de är påslagna (settings.interest_followups).
+   inget. Är taggen inte en exakt träff visas bara kandidaterna för modellen (interest_candidates), inte hela biblioteket.
+3. Aktivitet och följdfrågor (interest_followups.plan): bara om följdfrågorna är påslagna (settings.interest_followups)
+   läser modellen ut hur användaren håller på med intresset (bara om texten säger det, aldrig gissat) och formulerar
+   frågorna. Är de av görs inget anrop här, och aktiviteter kommer bara från biblioteket.
 4. Förslagen får nycklar (p1, p2...) och en kompakt form som sigillet täcker (analysis_token).
 
 Inget sparas. Förslagen sparas i ett senare steg, och bara de som har ett giltigt sigill godtas där.
@@ -16,9 +19,11 @@ Inget sparas. Förslagen sparas i ett senare steg, och bara de som har ett gilti
 from dataclasses import dataclass, field
 
 from app.services.ai_clients import Deadline
-from app.services.interest_extractor import extract_interests
+from app.services.interest_confirm import MIN_NAME_LENGTH
+from app.services.interest_extractor import clean_tag, drop_tags, extract_interests, judge_tags, remove_flagged
 from app.services.interest_followups import FollowUp, plan
-from app.services.interest_matching import LibraryIndex, Match, match_tags, tags_from_tree
+from app.services.interest_matching import LibraryIndex, Match, Tag, exact_match, match_tags, tags_from_tree
+from app.services.interest_shortcut import local_tree, shortcut_tree
 
 
 @dataclass
@@ -75,15 +80,29 @@ def _followup(question: FollowUp, keys: dict[str, str]) -> dict | None:
     }
 
 
-def analyze(text: str, index: LibraryIndex, catalog: dict[str, str], followups_enabled: bool = False) -> Analysis:
+def analyze(
+    text: str, index: LibraryIndex, catalog: dict[str, str], followups_enabled: bool = False, finder=None
+) -> Analysis:
     """Förslagen på intressen i `text`, mot biblioteket i `index` och aktiviteterna i `catalog` (slug -> namn).
     Kastar AINotConfigured om AI-tjänsten inte är inställd, och AIFailed om ett steg misslyckas eller tiden tar slut."""
     deadline = Deadline()
-    tags = tags_from_tree(extract_interests(text, deadline))
+    tree = shortcut_tree(text, index)  # hela texten är kända intressen: inga anrop alls
+    if tree is None:
+        # Skyddsnät: hittar modellen ingen tagg alls letar vi namn och alias i texten (och modererar träffarna).
+        # Har granskningen eller moderationen tagit bort något gäller deras beslut, då används inget skyddsnät.
+        tree = extract_interests(text, deadline, on_nothing=lambda: remove_flagged(local_tree(text, index), deadline))
+    tags = tags_from_tree(tree)
     if not tags:
         return Analysis()
-    result = plan(match_tags(tags, index, deadline), index, catalog, deadline, text=text)
+    # Med en kandidatfunktion (interest_candidates.CandidateFinder) ser matchningens modell bara de intressen som kan vara
+    # rätt, i stället för hela biblioteket.
+    candidates = None if finder is None else lambda unresolved: finder(unresolved, text, index, deadline)
+    result = plan(match_tags(tags, index, deadline, candidates), index, catalog, deadline, text=text, use_model=followups_enabled)
+    return _assemble(result, index, followups_enabled)
 
+
+def _assemble(result, index: LibraryIndex, followups_enabled: bool) -> Analysis:
+    """Förslagen, med sigillets innehåll och eventuella följdfrågor, ur matchningens och planens resultat."""
     live = [m for m in result.matches if m.kind != "none"]
     keys = {m.tag.key: f"p{number}" for number, m in enumerate(live, 1)}
     built: dict[str, dict] = {}
@@ -102,3 +121,50 @@ def analyze(text: str, index: LibraryIndex, catalog: dict[str, str], followups_e
     if followups_enabled:
         followups = [f for f in (_followup(q, keys) for q in result.followups) if f is not None]
     return Analysis(list(built.values()), followups, sealed)
+
+
+class PhraseNotAllowed(Exception):
+    """Intresset godkänns inte: orden är otillåtna, moderationen eller granskningen stoppar det, eller det är inget
+    intresse. Användaren får ett och samma meddelande oavsett vilket, så att det inte avslöjar vad som slog till."""
+
+
+def analyze_phrase(text: str, index: LibraryIndex, catalog: dict[str, str], finder=None) -> Analysis:
+    """Förslaget för ETT intresse som användaren skrivit med egna ord (POST /interests/suggest). Texten är själva taggen:
+    ingen utläsning, så den kan inte skrivas om eller försvinna. Steg: ordfilter och känsliga ord, moderation och
+    granskning (hoppas över för ett känt intresse, som redan är granskat), och sedan matchningen, som kopplar ett
+    intresse som finns eller väljer en förälder till ett nytt, med kandidatfiltret. Inga följdfrågor. Kastar
+    PhraseNotAllowed om det inte godkänns (också när modellen säger att det inte är ett intresse), och AIFailed eller
+    AINotConfigured om en kontroll inte går att köra, så att inget släpps igenom ogranskat."""
+    deadline = Deadline()
+    name = clean_tag(text)  # None om det är grovt, känsligt, för långt eller tomt
+    if name is None or len(name) < MIN_NAME_LENGTH:
+        raise PhraseNotAllowed()
+    tree = [{"name": name, "aliases": [], "subtags": []}]
+    if exact_match(Tag("t1", name), index) is None:  # ett känt intresse behöver varken kontroll eller modell
+        tree = remove_flagged(tree, deadline)
+        if tree:
+            tree = drop_tags(tree, judge_tags(name, [name], deadline))
+        if not tree:
+            raise PhraseNotAllowed()
+    candidates = None if finder is None else lambda unresolved: finder(unresolved, name, index, deadline)
+    matches = match_tags(tags_from_tree(tree), index, deadline, candidates)
+    if all(m.kind == "none" for m in matches):  # modellen avgjorde att det inte är ett intresse
+        raise PhraseNotAllowed()
+    return _assemble(plan(matches, index, catalog, deadline, text="", use_model=False), index, followups_enabled=False)
+
+
+class UnknownInterest(Exception):
+    """Intresset finns inte (eller är inte aktivt)."""
+
+
+def analyze_interest(interest_id: int, index: LibraryIndex, catalog: dict[str, str]) -> Analysis:
+    """Förslaget för ett befintligt intresse som användaren valt ur sökningen (POST /interests/suggest med interest_id). Det får
+    ett sigill utan några anrop eller kontroller, eftersom intresset redan är granskat. Det väljs på id och inte på namn, så
+    att ett av flera intressen med samma namn (Fantasy under både Film och Böcker) aldrig blir ett annat. Intervjun
+    behöver det, eftersom den bara sparar förslag med sigill. Kastar UnknownInterest om det inte finns."""
+    item = index.by_id.get(interest_id)
+    if item is None:
+        raise UnknownInterest()
+    match = Match(Tag("t1", item.name), "same", interest_id=item.id, via="exact")
+    return _assemble(plan([match], index, catalog, Deadline(), text="", use_model=False), index, followups_enabled=False)
+

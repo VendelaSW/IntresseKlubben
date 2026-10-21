@@ -84,7 +84,7 @@ function CardInterests({ interests, sharedIds }) {
 // t.ex. "Ni har 2 gemensamma intressen" (text eller JSX). Intressena visas
 // på en rad, se CardInterests.
 function PersonCard({ person, sharedInterestIds, reason, actions }) {
-  // Kontakter/förfrågningar har bara username garanterat (inget namn valt än).
+  // Kompisar/förfrågningar har bara username garanterat (inget namn valt än).
   const displayName = person.name ?? person.username
   const place = [person.district, person.municipality_name].filter(Boolean).join(', ')
 

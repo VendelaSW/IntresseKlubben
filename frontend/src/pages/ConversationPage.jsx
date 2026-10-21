@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import BackButton from '../components/BackButton'
@@ -7,9 +7,11 @@ import ChatSender from '../components/ChatSender'
 import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
 import { useChatScroll } from '../hooks/useChatScroll'
-import { conversationQuery, markConversationSeen, sendMessage } from '../services/messages'
+import { isIdle, onUserActive } from '../services/activity'
+import { conversationQuery, markConversationRead, sendMessage } from '../services/messages'
 import { getProfile } from '../services/profile'
 import { formatSentAt } from '../utils/formatSentAt'
+import { startsGroup } from '../utils/messageGroups'
 
 // Hur ofta konversationen hämtas igen medan den är öppen, så att nya brev
 // syns utan att man laddar om sidan.
@@ -30,9 +32,14 @@ function ConversationPage() {
   // Konversationen ur det delade minnet (se services/queryClient.js): har man
   // haft den öppen förut visas den direkt. Den hämtas när sidan öppnas och sedan
   // var POLL_MS, och direkt när man kommer tillbaka till fliken. När fliken inte
-  // syns frågar den inte servern. Misslyckas en senare hämtning ligger breven
-  // kvar och nästa försök kommer snart; bara den första visar fel.
-  const { data, isSuccess, isError } = useQuery({ ...conversationQuery(userId), refetchInterval: POLL_MS })
+  // syns, eller ingen har rört appen på ett tag (se services/activity.js),
+  // frågar den inte servern. Misslyckas en senare hämtning ligger breven kvar
+  // och nästa försök kommer snart; bara den första visar fel.
+  const { data, isSuccess, isError, refetch } = useQuery({
+    ...conversationQuery(userId),
+    refetchInterval: () => (isIdle() ? false : POLL_MS),
+  })
+  useEffect(() => onUserActive(() => refetch()), [refetch])
   const status = isSuccess ? 'ready' : isError ? 'error' : 'loading'
   // Vem konversationen är med (från servern), för namnet överst och vid breven.
   const other = data?.user ?? null
@@ -61,10 +68,17 @@ function ConversationPage() {
     }
   }, [messages.length])
 
-  // Det man ser i chatten räknas som läst, så att det inte blir en badge när man
-  // sedan lämnar sidan.
+  // Det man ser i chatten räknas som läst, och sparas på kontot (se
+  // markConversationRead): när man öppnar konversationen och när ett nytt brev
+  // kommer medan den är öppen. Bara en gång per nytt brev, inte vid varje
+  // hämtning.
+  const markedReadUpTo = useRef(null)
   useEffect(() => {
-    if (other && messages.length > 0) markConversationSeen(other.id, messages.at(-1).created_at)
+    const newest = messages.at(-1)
+    if (!other || !newest || markedReadUpTo.current === newest.id) return
+    markedReadUpTo.current = newest.id
+    // Misslyckas det står brevet kvar som nytt, och nästa nya brev försöker igen.
+    markConversationRead(other.id).catch(() => {})
   }, [other, messages])
 
   // Tillbaka dit man kom ifrån (t.ex. någons profil), som på profilsidan.
@@ -123,23 +137,29 @@ function ConversationPage() {
         {status === 'ready' && messages.length === 0 && <p className="hint-text">Inga brev än.</p>}
         {status === 'ready' && messages.length > 0 && (
           <ol className="notepad-messages" ref={listRef} onScroll={onScroll}>
-            {/* Namn och tid som en rad överst, meddelandet under (som i de flesta chattar). */}
-            {messages.map((m) => (
-              <li key={m.id} className="notepad-message">
-                <p>
-                  <ChatSender
-                    userId={other?.id}
-                    mine={m.sender_id === user.id}
-                    name={m.sender_id === user.id ? myProfile?.name : otherName}
-                    imageUrl={m.sender_id === user.id ? myProfile?.image_url : other?.image_url}
-                  />{' '}
-                  <time className="hint-text" dateTime={m.created_at}>
-                    {formatSentAt(m.created_at)}
-                  </time>
-                </p>
-                <p>{m.text}</p>
-              </li>
-            ))}
+            {/* Namn och tid som en rad överst, meddelandet under (som i de flesta chattar).
+                Brev i följd från samma person hamnar under samma namn (se startsGroup). */}
+            {messages.map((m, index) => {
+              const first = startsGroup(messages, index)
+              return (
+                <li key={m.id} className={`notepad-message${first ? '' : ' notepad-message-continued'}`}>
+                  {first && (
+                    <p className="notepad-message-head">
+                      <ChatSender
+                        userId={other?.id}
+                        mine={m.sender_id === user.id}
+                        name={m.sender_id === user.id ? myProfile?.name : otherName}
+                        imageUrl={m.sender_id === user.id ? myProfile?.image_url : other?.image_url}
+                      />{' '}
+                      <time className="hint-text" dateTime={m.created_at}>
+                        {formatSentAt(m.created_at)}
+                      </time>
+                    </p>
+                  )}
+                  <p title={first ? undefined : formatSentAt(m.created_at)}>{m.text}</p>
+                </li>
+              )
+            })}
           </ol>
         )}
 

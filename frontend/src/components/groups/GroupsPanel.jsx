@@ -2,12 +2,16 @@ import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
+import { useTabParam } from '../../hooks/useTabParam'
 import CreateGroupForm from './CreateGroupForm'
 import BackButton from '../BackButton'
+import CreateButton from '../CreateButton'
 import GroupChat from './GroupChat'
 import GroupDetails from './GroupDetails'
 import GroupList from './GroupList'
+import GroupPosts from './GroupPosts'
 import GroupSortMenu from './GroupSortMenu'
+import MunicipalityPicker from '../MunicipalityPicker'
 import { getContacts } from '../../services/contacts'
 import {
   declineGroupInvitation,
@@ -30,6 +34,7 @@ const TABS = [
   { id: 'invitations', label: 'Inbjudningar' },
 ]
 
+// Tomma flikar har en knapp vidare (se emptyAction nedan).
 const EMPTY_TEXT = {
   mine: 'Du är inte med i någon klubb än.',
   suggested: 'Inga förslag just nu. Lägg till fler intressen på din profil för att få fler.',
@@ -53,7 +58,8 @@ const NONE = []
 
 function GroupsPanel() {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
-  const [tab, setTab] = useState('mine')
+  // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
+  const [urlTab, setTab] = useTabParam(TABS)
   const [searchParams, setSearchParams] = useSearchParams()
   // 'list', 'create' eller id för den klubb som visas. Vyn står i adressen
   // (/klubbar?klubb=ID, /klubbar?skapa=1), så att Tillbaka och webbläsarens bakåt
@@ -93,11 +99,13 @@ function GroupsPanel() {
   // Ens egna intressen, för att markera klubbarnas intresse om det är ett av dem.
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [municipalities, setMunicipalities] = useState([])
-  // Ens kontakter, för "Bjud in" i en klubb. Hämtas först när en klubb öppnas
+  // Ens kompisar, för "Bjud in" i en klubb. Hämtas först när en klubb öppnas
   // (null = inte hämtade än), eftersom listan inte behövs förrän då.
   const [contacts, setContacts] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  // Klubben man nyss gick med i, för bekräftelsen "Du är med i …!" (tills nästa åtgärd eller flikbyte).
+  const [joined, setJoined] = useState(null)
 
   const handleError = (err) => setError(err.message)
 
@@ -116,7 +124,7 @@ function GroupsPanel() {
     if (typeof view !== 'number' || contacts !== null) return
     getContacts()
       .then((data) => setContacts(data.contacts.map((c) => c.user)))
-      // Utan kontakter går det ändå att se klubben, bara inte bjuda in.
+      // Utan kompisar går det ändå att se klubben, bara inte bjuda in.
       .catch(() => setContacts([]))
   }, [view, contacts])
 
@@ -134,6 +142,9 @@ function GroupsPanel() {
   // inbjudningar innehåller redan bara klubbar man inte är med i.
   const overview = useQuery(groupsOverviewQuery)
   const { mine = NONE, suggested = NONE, invitations = NONE } = overview.data ?? {}
+  // Utan vald flik: Mina klubbar, eller Förslag för den som inte är med i någon
+  // klubb än (en tom flik är ingen bra början).
+  const tab = urlTab ?? (overview.data && mine.length === 0 ? 'suggested' : 'mine')
   const overviewFailed = overview.isError && overview.data === undefined
   const { refetch: refetchOverview } = overview
   const loadMineAndSuggested = useCallback(() => refetchOverview(), [refetchOverview])
@@ -188,11 +199,14 @@ function GroupsPanel() {
   async function runAction(group, action) {
     setBusy(true)
     setError('')
+    setJoined(null)
     try {
       await action(group.id)
       if (action === joinGroup) {
         setLists((current) => ({ ...current, all: current.all.filter((g) => g.id !== group.id) }))
         await loadMineAndSuggested()
+        // Kortet försvinner ur Förslag och Alla, så det ska synas att det gick.
+        setJoined(group)
       } else {
         await Promise.all([loadMineAndSuggested(), loadAll()])
       }
@@ -218,8 +232,9 @@ function GroupsPanel() {
 
   async function handleDecline(group) {
     await runAction(group, declineGroupInvitation)
-    // En privat klubb man har avböjt syns inte längre, så vi går tillbaka till listan.
-    if (group.visibility === 'private') setView('list', { replace: true })
+    // En privat klubb man har avböjt syns inte längre, så vi går tillbaka till listan
+    // (till samma flik, t.ex. Inbjudningar).
+    if (group.visibility === 'private') goBack()
   }
 
   async function handleDelete(group) {
@@ -229,7 +244,6 @@ function GroupsPanel() {
   }
 
   async function handleCreated(group) {
-    setTab('mine')
     await loadMineAndSuggested().catch(handleError)
     // Formuläret byts ut mot den nya klubben, så att Tillbaka inte öppnar formuläret igen.
     setView(group.id, { replace: true })
@@ -272,14 +286,7 @@ function GroupsPanel() {
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Klubbar</h1>
-        {view !== 'create' && (
-          <button
-            type="button"
-            className="primary-button round-button"
-            aria-label="Skapa klubb"
-            onClick={() => setView('create')}
-          />
-        )}
+        {view !== 'create' && <CreateButton label="Skapa klubb" onClick={() => setView('create')} />}
       </div>
 
       {/* Finns Mina klubbar redan i minnet visas sidan direkt, och "Alla" fylls i när den kommer. */}
@@ -309,8 +316,8 @@ function GroupsPanel() {
                 aria-selected={tab === t.id}
                 className={`tag${tab === t.id ? ' tag-selected' : ''}`}
                 onClick={() => {
+                  setJoined(null)
                   setTab(t.id)
-                  setView('list')
                 }}
               >
                 {t.label} ({shown[t.id].length}
@@ -320,11 +327,34 @@ function GroupsPanel() {
           </div>
 
           {error && <p className="status-error">{error}</p>}
+          {joined && (
+            <div className="soft-box join-notice" role="status">
+              <p className="soft-box-text">
+                <strong>Du är med i {joined.name}!</strong> Den finns nu under Mina klubbar.
+              </p>
+              {!(tab === 'mine' && !selected) && (
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => {
+                    setJoined(null)
+                    setTab('mine')
+                  }}
+                >
+                  Se Mina klubbar
+                </button>
+              )}
+            </div>
+          )}
 
           {selected ? (
             <>
               <BackButton onClick={goBack} />
-              {/* Klubben till vänster och chatten bredvid på dator, chatten under på mobil. */}
+              {/* Anslagstavlan överst, bara för medlemmar. Under den klubben till vänster och
+                  chatten bredvid på dator, chatten under på mobil. */}
+              {selected.is_member && (
+                <GroupPosts key={selected.id} groupId={selected.id} isOwner={selected.is_owner} />
+              )}
               <div className="group-layout">
                 <div className="card sheet">
                   <GroupDetails
@@ -371,18 +401,13 @@ function GroupsPanel() {
                     </option>
                   ))}
                 </select>
-                <select
+                <MunicipalityPicker
                   aria-label="Filtrera på kommun"
+                  municipalities={municipalities}
                   value={filters.municipalityCode}
-                  onChange={(e) => setFilters({ ...filters, municipalityCode: e.target.value })}
-                >
-                  <option value="">Alla kommuner</option>
-                  {municipalities.map((m) => (
-                    <option key={m.code} value={m.code}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                  emptyLabel="Alla kommuner"
+                />
               </div>
               {shown[tab].length === 0 && filtering ? (
                 <div className="content-stack">
@@ -397,6 +422,17 @@ function GroupsPanel() {
                 <GroupList
                   groups={shown[tab]}
                   emptyText={EMPTY_TEXT[tab]}
+                  // En tom flik leder vidare: till Alla, eller till att skapa en
+                  // klubb när det inte finns några alls.
+                  emptyAction={
+                    tab === 'all' ? (
+                      <CreateButton label="Skapa klubb" onClick={() => setView('create')} />
+                    ) : (
+                      <button type="button" className="secondary-button" onClick={() => setTab('all')}>
+                        Se alla klubbar
+                      </button>
+                    )
+                  }
                   myInterestIds={myInterestIds}
                   busy={busy}
                   onSelect={(g) => setView(g.id)}

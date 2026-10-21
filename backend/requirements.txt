@@ -8,3 +8,4 @@ boto3
 PyJWT
 email-validator
 gradio_client>=2,<3
+pgvector

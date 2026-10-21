@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user, require_profile
 from app.core import error_messages as msg
 from app.core import storage
+from app.core.profanity import censor_text
 from app.crud.event import (
     EventRuleError,
     can_invite,
@@ -20,6 +21,7 @@ from app.crud.event import (
     update_event,
 )
 from app.crud.interest import get_active_interest
+from app.crud.notification import notify_event_cancelled, notify_event_changed
 from app.db.session import get_db
 from app.models.event import Event, EventVisibility
 from app.models.group import GroupVisibility
@@ -33,6 +35,7 @@ from app.schemas.event import (
     EventOut,
     EventUpdate,
 )
+from app.schemas.notification import EventCancel
 
 from app.services.text_moderation import check_fields
 
@@ -165,20 +168,35 @@ def edit_event(
             if field in changes
         },
     )
+    # Tid och plats före ändringen, för att se om deltagarna ska få en notis.
+    time_before, place_before = _time_of(event), _place_of(event)
     try:
         event = update_event(db, event, data)
     except EventRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=err.detail)
+    notify_event_changed(db, event, _time_of(event) != time_before, _place_of(event) != place_before)
     return _to_response(event, current_user.id)
 
 
+def _time_of(event: Event) -> tuple:
+    return (event.starts_at, event.ends_at)
+
+
+def _place_of(event: Event) -> tuple:
+    return (event.place_name, event.address, event.latitude, event.longitude)
+
+
+# Body är valfri: utan den (eller utan meddelande) får deltagarna bara beskedet att eventet är inställt.
 @router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_event(
     event_id: int,
+    data: EventCancel | None = Body(default=None),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     event = _own_event_or_error(db, event_id, current_user.id)
+    message = data.message if data else None
+    notify_event_cancelled(db, event, censor_text(message) if message else None)
     delete_event(db, event)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

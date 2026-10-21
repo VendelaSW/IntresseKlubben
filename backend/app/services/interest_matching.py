@@ -337,11 +337,19 @@ def match_message(tags: list[Tag], index: LibraryIndex, parent_interests: dict[s
 
 
 def _ask_model(
-    tags: list[Tag], index: LibraryIndex, deadline: Deadline | None, parent_interests: dict[str, int]
+    tags: list[Tag],
+    index: LibraryIndex,
+    deadline: Deadline | None,
+    parent_interests: dict[str, int],
+    candidate_ids: set[int] | None = None,
 ) -> list[dict]:
+    listing = index
+    if candidate_ids:  # bara kandidaterna visas i stället för hela biblioteket (se interest_candidates.py)
+        wanted = candidate_ids | set(parent_interests.values())
+        listing = LibraryIndex([item for item in index.items if item.id in wanted])
     answer = get_llm().complete_json(
         system=MATCH_PROMPT,
-        user=match_message(tags, index, parent_interests),
+        user=match_message(tags, listing, parent_interests),
         name="match",
         schema=MATCH_SCHEMA,
         deadline=deadline,
@@ -459,10 +467,14 @@ def _merge_duplicates(matches: list[Match]) -> list[Match]:
     ]
 
 
-def match_tags(tags: list[Tag], index: LibraryIndex, deadline: Deadline | None = None) -> list[Match]:
+def match_tags(
+    tags: list[Tag], index: LibraryIndex, deadline: Deadline | None = None, candidates=None
+) -> list[Match]:
     """Vad varje tagg är, i samma ordning som `tags`. Överst i trädet avgörs först, och en sub avgörs sedan
     under det dess överordnade blev. Kastar AIFailed om modellen behövs men inte svarar eller svarar något
-    som inte går att läsa. Finns allt som exakta träffar görs inget anrop."""
+    som inte går att läsa. Finns allt som exakta träffar görs inget anrop. Med `candidates` (en funktion som får de
+    oklara taggarna och ger id:na på intressena att visa, eller None för hela biblioteket) ser modellen bara
+    kandidaterna. Svaret kontrolleras ändå mot hela biblioteket."""
     ordered = [t for t in tags if t.parent_key is None] + [t for t in tags if t.parent_key is not None]
     matches: dict[str, Match] = {}
     unresolved: list[Tag] = []
@@ -481,7 +493,8 @@ def match_tags(tags: list[Tag], index: LibraryIndex, deadline: Deadline | None =
         }
         by_key = {tag.key: tag for tag in unresolved}
         decided: dict[str, dict] = {}
-        for decision in _ask_model(unresolved, index, deadline, parent_interests):
+        candidate_ids = candidates(unresolved) if candidates is not None else None
+        for decision in _ask_model(unresolved, index, deadline, parent_interests, candidate_ids):
             key = decision.get("key")
             if key in by_key and key not in decided:
                 decided[key] = decision

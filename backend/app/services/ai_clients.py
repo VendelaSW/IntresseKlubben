@@ -2,8 +2,9 @@
 Klienter mot OpenAI och Hugging Face, bakom utbytbara gränssnitt.
 
 LLM och Moderator använder OpenAI; ToxicityClassifier använder den fristående HF-spacen via
-gradio_client. Tester kan ersätta alla tre via set_clients. OpenAI-anropen använder urllib.
-Nycklar läses ur inställningarna och hamnar aldrig i fel, loggar eller svar.
+gradio_client, och Embedder använder OpenAI embeddings. Tester kan ersätta alla klienter via
+set_clients. OpenAI-anropen använder urllib. Nycklar läses ur inställningarna och hamnar aldrig i fel,
+loggar eller svar.
 
 Tidsgränser: backendens funktion får köra i högst 30 sekunder (maxDuration i backend/vercel.json),
 så inget anrop får överleva den. Varje anrop väntar högst PER_CALL_TIMEOUT_SECONDS, och ett
@@ -20,11 +21,18 @@ from typing import Protocol
 from pydantic import BaseModel, Field, StrictBool, StrictStr
 
 from app.core.config import settings
+from app.models.interest_embedding import EMBEDDING_DIMENSIONS
 
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 MODERATION_URL = "https://api.openai.com/v1/moderations"
 MODERATION_MODEL = "omni-moderation-latest"
 MODERATION_BATCH = 30  # så många texter skickas till modereringen åt gången
+EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings"
+# Modellen är en konstant, inte en inställning: vektorer från olika modeller går inte att jämföra, och en
+# miljövariabel som skiljer sig mellan Vercel och en lokal körning skulle blanda dem i samma tabell. Modellnamnet och
+# storleken ingår i hashen på varje intresse (services/interest_embeddings.py), så byter vi modell räknas allt om.
+EMBEDDING_MODEL = "text-embedding-3-small"
+EMBEDDING_BATCH = 256  # så många texter skickas till embeddings åt gången
 
 # Funktionen får köra i 30 sekunder. Ett enskilt anrop får ta högst så här länge, och ett arbete med
 # flera anrop i rad får ta högst så här länge tillsammans (se Deadline). Lämnar marginal för resten.
@@ -118,6 +126,12 @@ class HuggingFaceClassifier:
             raise AIFailed("Textkontrollen misslyckades") from None
 
 
+class Embedder(Protocol):
+    def embed(self, texts: list[str], deadline: Deadline | None = None) -> list[list[float]]:
+        """En vektor per text, i samma ordning som `texts`, med EMBEDDING_DIMENSIONS tal vardera. Kastar AIFailed om
+        anropet misslyckas eller svaret inte går att använda."""
+
+
 def _post_json(url: str, payload: dict, timeout: float) -> dict:
     request = urllib.request.Request(
         url,
@@ -145,6 +159,8 @@ class OpenAILLM:
             ],
             "response_format": {"type": "json_schema", "json_schema": {"name": name, "strict": True, "schema": schema}},
         }
+        if settings.openai_temperature is not None:  # bara när den är satt: alla modeller tillåter inte parametern
+            payload["temperature"] = settings.openai_temperature
         response = _post_json(OPENAI_URL, payload, _timeout(deadline))
         try:
             return json.loads(response["choices"][0]["message"]["content"])
@@ -172,19 +188,38 @@ class OpenAIModerator:
 _llm_override: LLM | None = None
 _moderator_override: Moderator | None = None
 _toxicity_override: ToxicityClassifier | None = None
+_embedder_override: Embedder | None = None
 
 
 def set_clients(
-    llm: LLM | None = None, moderator: Moderator | None = None, toxicity: ToxicityClassifier | None = None
+    llm: LLM | None = None, moderator: Moderator | None = None,
+    embedder: Embedder | None = None, toxicity: ToxicityClassifier | None = None,
 ) -> None:
     """Byter ut klienterna (bara för tester). Utan argument återställs de."""
-    global _llm_override, _moderator_override, _toxicity_override
+    global _llm_override, _moderator_override, _toxicity_override, _embedder_override
     _llm_override, _moderator_override = llm, moderator
-    _toxicity_override = toxicity
+    _embedder_override, _toxicity_override = embedder, toxicity
 
 
 def get_toxicity_classifier() -> ToxicityClassifier:
     return _toxicity_override if _toxicity_override is not None else HuggingFaceClassifier()
+
+
+class OpenAIEmbedder:
+    def embed(self, texts: list[str], deadline: Deadline | None = None) -> list[list[float]]:
+        vectors: list[list[float]] = []
+        for start in range(0, len(texts), EMBEDDING_BATCH):
+            batch = texts[start : start + EMBEDDING_BATCH]
+            response = _post_json(EMBEDDINGS_URL, {"model": EMBEDDING_MODEL, "input": batch}, _timeout(deadline))
+            try:
+                ordered = sorted(response["data"], key=lambda item: item["index"])
+                chunk = [[float(x) for x in item["embedding"]] for item in ordered]
+            except (KeyError, TypeError, ValueError):
+                raise AIFailed("Oväntat svar från embeddings") from None
+            if len(chunk) != len(batch) or any(len(vector) != EMBEDDING_DIMENSIONS for vector in chunk):
+                raise AIFailed("Oväntat svar från embeddings")
+            vectors.extend(chunk)
+        return vectors
 
 
 def ai_configured() -> bool:
@@ -209,3 +244,12 @@ def get_moderator() -> Moderator:
     if not settings.openai_api_key:
         raise AINotConfigured()
     return OpenAIModerator()
+
+
+def get_embedder() -> Embedder:
+    """Embeddings. Kastar AINotConfigured om nyckeln saknas."""
+    if _embedder_override is not None:
+        return _embedder_override
+    if not settings.openai_api_key:
+        raise AINotConfigured()
+    return OpenAIEmbedder()

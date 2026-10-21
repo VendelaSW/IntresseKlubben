@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { InterestPrompt } from '../components/AddInterest'
 import brevIcon from '../assets/brev.png'
 import eventIcon from '../assets/event.png'
 import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
+import notiserIcon from '../assets/notiser.svg'
 import personerIcon from '../assets/personer.png'
 import Avatar from '../components/Avatar'
 import Intressekompis from '../components/Intressekompis'
@@ -11,11 +13,15 @@ import LocationPicker from '../components/LocationPicker'
 import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
+import CreateButton from '../components/CreateButton'
 import Modal from '../components/Modal'
+import MunicipalityPicker from '../components/MunicipalityPicker'
+import BirthDatePicker from '../components/BirthDatePicker'
 import FormField from '../components/FormField'
 import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
+import { NotificationDetails, NotificationRow } from './NotificationsPage'
 
 const NAV_ICONS = [
   { icon: hemIcon, label: 'Hem' },
@@ -42,9 +48,25 @@ const COLORS = [
 
 // Exempel för Brev-avsnittet: ett nytt och ett öppnat kuvert.
 const EXAMPLE_CONVERSATIONS = [
-  { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), isNew: true },
-  { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', isNew: false },
+  { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), last_message_from_me: false, isNew: true },
+  { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', last_message_from_me: true, isNew: false },
 ]
+
+// Exempel för Notiser-avsnittet: en oläst och en läst notis, och en öppnad med citat och länk.
+const EXAMPLE_NOTIFICATIONS = [
+  { id: 1, title: '«Fotbollsträffen» har ställts in', read: false, created_at: new Date().toISOString() },
+  { id: 2, title: '«Brädspelskväll» har fått ny tid', read: true, created_at: '2025-10-06T18:02:00Z' },
+]
+const EXAMPLE_NOTIFICATION = {
+  id: 3,
+  title: '«Fotbollsträffen» har ställts in',
+  body: 'Bob har tagit bort eventet som du skulle gå på.',
+  quote: 'Inställt pga sjukdom, vi ses nästa vecka!',
+  quote_by: 'Bob',
+  link: '/stilguide',
+  read: true,
+  created_at: new Date().toISOString(),
+}
 
 const SIZES = [
   { name: '--text-hero', rem: '5rem', label: 'Hero', font: 'heading', weight: 700 },
@@ -56,8 +78,22 @@ const SIZES = [
   { name: '--text-small', rem: '0.85rem', label: 'Finstilt', font: 'body', weight: 400 },
 ]
 
+// Några kommuner för kommunfältets exempel (de riktiga kommer från /municipalities/).
+const EXAMPLE_MUNICIPALITIES = [
+  { code: '1480', name: 'Göteborg' },
+  { code: '1401', name: 'Härryda' },
+  { code: '2361', name: 'Härjedalen' },
+  { code: '2280', name: 'Härnösand' },
+  { code: '1481', name: 'Mölndal' },
+  { code: '0180', name: 'Stockholm' },
+  { code: '0120', name: 'Värmdö' },
+]
+
 function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
+  const [exampleMunicipality, setExampleMunicipality] = useState('')
+  const [exampleBirthDate, setExampleBirthDate] = useState('')
+  const [filterMunicipality, setFilterMunicipality] = useState('')
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [examplePosition, setExamplePosition] = useState(null)
@@ -90,6 +126,11 @@ function StyleGuide() {
         <p className="tagline" style={{ fontSize: '2.5rem', marginTop: '1.5rem' }}>Caveat</p>
         <p className="problem-statement">
           Stora, personliga rubriker: Hero, sidrubrik (H1) och namn i boxar.
+        </p>
+        <p className="hint-text">
+          Caveat lutar, så sista bokstaven och svansarna på g, j och y sticker ut utanför textens ruta. Caveat-text
+          som kortas av (med "…" eller efter ett antal rader) ska läggas till i den gemensamma regeln i index.css
+          (se .map-profile-name där), annars klipps bokstäverna.
         </p>
         <p
           style={{
@@ -149,9 +190,19 @@ function StyleGuide() {
             Primär
           </button>
         </div>
-        <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Rund knapp (.round-button)</p>
+        <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Stor variant (.button-large)</p>
+        <p className="hint-text">
+          För den knapp som ska synas mest i ett steg, t.ex. "Skapa min profil". Andra val bredvid
+          blir små (.button-small), så att man inte trycker fel.
+        </p>
         <div className="account-choice-links" style={{ marginTop: '1rem' }}>
-          <button className="primary-button round-button" type="button" aria-label="Exempel" />
+          <button className="primary-button button-large" type="button">
+            Primär
+          </button>
+        </div>
+        <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Skapa-knapp (CreateButton, .create-button)</p>
+        <div className="account-choice-links" style={{ marginTop: '1rem' }}>
+          <CreateButton label="Skapa klubb" onClick={() => {}} />
         </div>
       </section>
 
@@ -185,6 +236,23 @@ function StyleGuide() {
           maxSubs={PROFILE_MAX_SUBS}
           highlight={new Set(['id:1', 'id:2', 'id:3', 'id:4', 'id:5', 'id:6'])}
         />
+
+        <h3>Lägg till ett intresse (components/AddInterest.jsx)</h3>
+        <p className="hint-text">
+          Finns intresset inte i biblioteket erbjuds man att lägga till det med egna ord (högst 40 tecken). Backend
+          kontrollerar det och väljer en förälder, och godkänns det visas den här frågan. Godkänns det inte visas bara
+          ett felmeddelande. Samma kärna används på profilen (i utforskaren) och i intervjun (en egen ruta).
+        </p>
+        <InterestPrompt
+          proposals={[
+            { key: 'p1', label: null, activity: '', interest: { id: null, name: 'Bananskalning', path: ['Mat och dryck'], is_new: true, parent_key: null } },
+          ]}
+          onConfirm={() => {}}
+          onCancel={() => {}}
+        />
+        <p className="form-error" style={{ marginTop: '0.75rem' }}>
+          Detta intresse godkänns inte, försök med ett annat.
+        </p>
       </section>
 
       <section className="style-section">
@@ -303,7 +371,8 @@ function StyleGuide() {
           får gul kant vid hover. Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret; ett
           nytt (.envelope-new) förblir stängt och har ett gult sigill. Avståndet mellan raderna följer
           kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför. Personens bild står
-          bredvid namnet och växer med kuvertet.
+          bredvid namnet och växer med kuvertet. Över bilden och namnet står "Från" eller "Till", efter vem som
+          skrev det senaste brevet.
         </p>
         <ul className="envelopes" style={{ marginTop: '1rem' }}>
           {EXAMPLE_CONVERSATIONS.map(({ isNew, ...conversation }) => (
@@ -320,7 +389,13 @@ function StyleGuide() {
           Linjerat papper med röd marginal. Allt på pappret har radhöjden --line-gap, så att texten
           står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. Någon annans bild och namn (överst och vid breven, ChatSender) är länkar till profilen. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
           ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och under på mobil: rubriken Klubbchatt, medlemmarnas bilder
-          och namn vid varje meddelande, och en svarsrad.
+          och namn vid varje meddelande, och en svarsrad. Meddelanden i följd från samma person, inom 5
+          minuter, står under samma namn och bild (startsGroup i utils/messageGroups.js). Klubbens anslagstavla (GroupPosts, .board) ligger
+          överst på klubbsidan för medlemmar: en låg korktavla med handritade lappar (.paper-note, samma som
+          kartans lappar). En lapp visar tre rader; ett klick öppnar hela lappen i en popup, där den som
+          satte upp den och ägaren kan ta ner den. Ägaren kan nåla fast en lapp i taget (.is-pinned: rak,
+          svagt gul och med en röd knappnål), som alltid ligger först och bara ägaren kan ta ner.
+          Medlemmarna (.group-members) står i två kolumner.
         </p>
         <article className="notepad lined-paper" style={{ marginTop: '1rem' }}>
           <h3 className="notepad-title">
@@ -331,13 +406,17 @@ function StyleGuide() {
           </h3>
           <ol className="notepad-messages">
             <li className="notepad-message">
-              <p>
+              <p className="notepad-message-head">
                 <ChatSender userId={2} name="Bob" /> <time className="hint-text">igår 12:05</time>
               </p>
               <p>Ska vi klättra på lördag?</p>
             </li>
+            {/* Samma person inom 5 minuter: under samma namn (.notepad-message-continued). */}
+            <li className="notepad-message notepad-message-continued">
+              <p title="igår 12:06">Vi kan ses vid hallen kl 10.</p>
+            </li>
             <li className="notepad-message">
-              <p>
+              <p className="notepad-message-head">
                 <ChatSender mine name="Emmy" /> <time className="hint-text">11:35</time>
               </p>
               <p>Ja gärna!</p>
@@ -356,6 +435,49 @@ function StyleGuide() {
       </section>
 
       <section className="style-section">
+        <h2>Notiser</h2>
+        <p className="swatch-label">Klocklappen på kartan (Notiser, notiser.svg)</p>
+        <p className="hint-text">
+          Lappen ligger sist bland sidornas lappar på kartan (MapPageWidgets) och har samma röda siffra som de andra
+          (.map-widget-badge i map.css): antalet olästa notiser. Den studsar till när siffran går upp.
+        </p>
+        <div className="swatch-grid" style={{ marginTop: '1rem' }}>
+          <div className="swatch">
+            <span className="app-nav-link" style={{ padding: 0 }}>
+              <img src={notiserIcon} alt="" className="nav-icon" />
+              <span className="app-nav-label">Notiser</span>
+            </span>
+          </div>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Listan (.notification-list med NotificationRow)
+        </p>
+        <p className="hint-text">
+          Som en inkorg: en kompakt rad per notis i en vit ruta, nyaste först. En oläst notis har gul prick, fet
+          rubrik och en gul kant till vänster. Långa rubriker kortas med ... på raden. Ett klick öppnar notisen och
+          först då räknas den som läst; krysset tar bort den. Ovanför listan står "Markera alla som lästa" (grå och
+          utan gul linje när allt redan är läst) och "Ta bort alla", som frågar först i en popup.
+        </p>
+        <ul className="notification-list" style={{ marginTop: '1rem' }}>
+          {EXAMPLE_NOTIFICATIONS.map((n) => (
+            <NotificationRow key={n.id} notification={n} onOpen={() => {}} onRemove={() => {}} />
+          ))}
+        </ul>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          En öppnad notis (NotificationDetails)
+        </p>
+        <p className="hint-text">
+          Ett vitt kort med avsändare och tid, rubriken, texten och ett citat (t.ex. skaparens meddelande när ett
+          event ställs in), och "Visa" om notisen har en länk. Långa ord bryts, så att inget sticker ut på mobil.
+        </p>
+        <div style={{ marginTop: '1rem' }}>
+          <NotificationDetails notification={EXAMPLE_NOTIFICATION} onRemove={() => {}} />
+        </div>
+      </section>
+
+      <section className="style-section">
         <h2>Sidlayout och listor</h2>
         <p className="hint-text">
           Byggstenarna som listsidor (Klubbar, Events) delar. Nya sidor ska återanvända dem och
@@ -363,22 +485,25 @@ function StyleGuide() {
         </p>
 
         <p className="swatch-label" style={{ marginTop: '1.5rem' }}>
-          Rubrikrad (.page-header) med rund knapp, och flikar (.filter-tabs)
+          Rubrikrad (.page-header) med skapa-knapp, och flikar (.filter-tabs)
         </p>
         <p className="hint-text">
           På dator ligger rubrik och flikar till vänster på alla sidor, på mobil centrerade (Brev,
           Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
-          .app-section för sidor med kort i rutnät (Klubbar och Events): "+"-knappen direkt efter
-          rubriken och tätare avstånd.
+          .app-section för sidor med kort i rutnät (Klubbar och Events): "+ Skapa"-knappen direkt efter
+          rubriken och tätare avstånd. Flikarna är sammanhängande knappar med en ram runt, och den
+          valda är gul; på mobil bryts de till flera rader. En tom flik har en knapp vidare. Vald flik sparas i adressen med useTabParam (?flik=kompisar),
+          så att Tillbaka kommer tillbaka till samma flik.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
           <div className="page-header">
             <h1 className="app-title">Exempel</h1>
-            <button className="primary-button round-button" type="button" aria-label="Skapa" />
+            <CreateButton label="Skapa" onClick={() => {}} />
           </div>
           <div className="filter-tabs" role="tablist">
             <button type="button" role="tab" aria-selected="true" className="tag tag-selected">Första (2)</button>
             <button type="button" role="tab" aria-selected="false" className="tag">Andra (0)</button>
+            <button type="button" role="tab" aria-selected="false" className="tag">Tredje (5)</button>
           </div>
         </section>
 
@@ -387,7 +512,13 @@ function StyleGuide() {
         </p>
         <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
           <select aria-label="Exempel 1"><option>Alla intressen</option></select>
-          <select aria-label="Exempel 2"><option>Alla kommuner</option></select>
+          <MunicipalityPicker
+            aria-label="Exempel 2"
+            municipalities={EXAMPLE_MUNICIPALITIES}
+            value={filterMunicipality}
+            onChange={setFilterMunicipality}
+            emptyLabel="Alla kommuner"
+          />
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
@@ -416,6 +547,28 @@ function StyleGuide() {
             </div>
           </article>
         </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Grupper i en lista (.match-group, .match-group-title) och "Ångra" (.undo-notice)
+        </p>
+        <p className="hint-text">
+          Förslag på Personer: de man har intressen gemensamt med står under "Personer med liknande
+          intressen", i grupper efter antal gemensamma intressen, med antalet som rubrik ovanför
+          korten. Har man tagit bort någon står antalet och "Visa dem igen" under filtren. Direkt efter
+          att man tagit bort någon visas .undo-notice med "Ångra" en stund, längst ner i blocket även
+          när man scrollar.
+        </p>
+        <section className="match-group" style={{ marginTop: '1rem' }}>
+          <h3 className="match-group-title">
+            <strong className="shared-count">3</strong> gemensamma intressen
+          </h3>
+        </section>
+        <p className="undo-notice" style={{ position: 'static' }}>
+          Bob är borttagen från förslagen.{' '}
+          <button type="button" className="text-button">
+            Ångra
+          </button>
+        </p>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Statusmärken (.status-pill, med .status-pill-success, .status-pill-error eller .status-pill-owner)
@@ -610,6 +763,7 @@ function StyleGuide() {
           som formulärfälten. Smal som standard, så den passar inne i ett profilkort. Som "Om
           mig" bevarar den radbrytningar (.soft-box-text) och visas bara om texten finns.
           Med .soft-box-wide fyller den hela bredden i ett ark, t.ex. "Kommer du?" på ett event.
+          Samma fält bekräftar att man har gått med i en klubb ("Du är med i …!", .join-notice).
         </p>
         <div className="card card-wide content-stack" style={{ marginTop: '1rem' }}>
           <p className="card-title">Emmy, 24</p>
@@ -643,6 +797,24 @@ function StyleGuide() {
             placeholder="Berätta lite om dig själv..."
           />
           <p className="hint-text">Teckenräknaren ligger inne i fältet, nere till höger.</p>
+          <label htmlFor="style-guide-birth-date">Födelsedatum (BirthDatePicker)</label>
+          <BirthDatePicker id="style-guide-birth-date" value={exampleBirthDate} onChange={setExampleBirthDate} />
+          <p className="hint-text">
+            Dag, månad och år i tre listor. Värdet är ÅÅÅÅ-MM-DD när alla tre är valda
+            {exampleBirthDate ? ` (nu ${exampleBirthDate})` : ''}. Dagarna följer månaden, och datum i framtiden
+            går inte att välja.
+          </p>
+          <label htmlFor="style-guide-municipality">Sökbart kommunfält (MunicipalityPicker)</label>
+          <MunicipalityPicker
+            id="style-guide-municipality"
+            municipalities={EXAMPLE_MUNICIPALITIES}
+            value={exampleMunicipality}
+            onChange={setExampleMunicipality}
+          />
+          <p className="hint-text">
+            Skriv för att söka (å, ä och ö spelar ingen roll), välj med pilarna och Enter. Bara kommuner i
+            listan kan väljas. Med emptyLabel kan man välja "ingen", som i filtret ovan.
+          </p>
           <button type="submit">Skicka</button>
         </form>
         <p className="status-success" style={{ marginTop: '1rem' }}>Sparat!</p>

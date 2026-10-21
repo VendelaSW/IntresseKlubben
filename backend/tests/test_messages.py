@@ -1,6 +1,7 @@
 import pytest
 
 from app.models.contact import Contact
+from app.models.conversation_read import ConversationRead
 from app.models.message import Message
 from app.models.user import User
 
@@ -79,6 +80,7 @@ def test_blank_message_gives_422(client, user, friend):
         ("post", "/messages", {"json": {"recipient_id": 2, "text": "Hej!"}}),
         ("get", "/messages/2", {}),
         ("get", "/messages", {}),
+        ("put", "/messages/2/read", {}),
     ],
 )
 def test_not_logged_in_gives_401(client, friend, method, path, kwargs):
@@ -145,3 +147,74 @@ def test_list_conversations_says_who_wrote_the_latest_message(client, db, user, 
 
     from_me = {c["username"]: c["last_message_from_me"] for c in client.get("/messages").json()}
     assert from_me == {"friend": False, "annan-van": True}
+
+
+# ---------- Lästa brev (PUT /messages/{user_id}/read) ----------
+
+
+def _unread(client):
+    return {c["username"]: c["unread"] for c in client.get("/messages").json()}
+
+
+def test_a_letter_from_someone_else_is_unread_until_the_conversation_is_read(client, db, user, friend):
+    db.add(Message(sender_id=friend.id, recipient_id=user.id, text="Hej!"))
+    db.commit()
+    assert _unread(client) == {"friend": True}
+
+    assert client.put("/messages/2/read").status_code == 204
+    assert _unread(client) == {"friend": False}
+    # Det står i databasen, inte i webbläsaren: en annan enhet ser samma sak.
+    read = db.get(ConversationRead, (user.id, friend.id))
+    assert read.last_read_message_id == db.query(Message).one().id
+    assert read.read_at is not None
+
+
+def test_a_new_letter_after_reading_is_unread_again(client, db, user, friend):
+    db.add(Message(sender_id=friend.id, recipient_id=user.id, text="Första"))
+    db.commit()
+    client.put("/messages/2/read")
+    db.add(Message(sender_id=friend.id, recipient_id=user.id, text="Andra"))
+    db.commit()
+    assert _unread(client) == {"friend": True}
+
+
+def test_own_letters_are_never_unread(client, user, friend):
+    client.post("/messages", json={"recipient_id": 2, "text": "Hej!"})
+    assert _unread(client) == {"friend": False}
+
+
+def test_reading_is_per_person(client, db, user, friend):
+    """Att jag har läst gör inte breven lästa för den andra."""
+    client.post("/messages", json={"recipient_id": 2, "text": "Hej!"})
+    client.put("/messages/2/read")
+    assert db.get(ConversationRead, (friend.id, user.id)) is None
+
+
+def test_reading_twice_or_an_older_state_does_not_move_back(client, db, user, friend):
+    first = Message(sender_id=friend.id, recipient_id=user.id, text="Första")
+    db.add(first)
+    db.commit()
+    client.put("/messages/2/read")
+    second = Message(sender_id=friend.id, recipient_id=user.id, text="Andra")
+    db.add(second)
+    db.commit()
+    client.put("/messages/2/read")
+    assert client.put("/messages/2/read").status_code == 204
+    assert db.get(ConversationRead, (user.id, friend.id)).last_read_message_id == second.id
+
+
+def test_reading_an_empty_conversation_saves_nothing(client, db, user, friend):
+    assert client.put("/messages/2/read").status_code == 204
+    assert db.query(ConversationRead).count() == 0
+
+
+def test_reading_a_blocked_or_unknown_user_gives_404(client, db, user, friend):
+    assert client.put("/messages/9999/read").status_code == 404
+    db.add(Contact(
+        requester_id=friend.id,
+        addressee_id=user.id,
+        pair_key=f"{min(user.id, friend.id)}:{max(user.id, friend.id)}",
+        status="BLOCKED",
+    ))
+    db.commit()
+    assert client.put("/messages/2/read").status_code == 404

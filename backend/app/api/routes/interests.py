@@ -6,11 +6,18 @@ GET /interests/top - huvudområdena, för "Utforska" på intressesidan.
 GET /interests/{id}/children - underintressena till ett intresse.
 GET /interests/search?q= - intressen vars namn eller alias innehåller texten,
   bästa träffarna först, var och en med var den hör hemma (path).
+  Utforska, underintressen och sökningen visar bibliotekets intressen, ens egna, och andras egna intressen först när minst
+  tre användare har dem (se crud/interest.py). De som är dolda hittas ändå på betydelse med /interests/similar.
+GET /interests/similar?q= - "Menade du": högst tre intressen med liknande betydelse som texten (ett embedding-anrop),
+  för när sökningen inte gav någon träff. Tom lista om det inte går eller inget liknar.
 
 GET /profile/interests, PUT/DELETE /profile/interests/{id} - ens egna intressen.
 Bara aktiva intressen går att lägga till; ett inaktivt som man redan har går
 att ta bort.
 """
+
+import time
+from collections import defaultdict, deque
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -34,8 +41,28 @@ from app.crud.interest import (
 from app.db.session import get_db
 from app.models.interest import Interest
 from app.schemas.interest import InterestBrowseItem, InterestResponse, ProfileInterest
+from app.services.interest_embeddings import similar_interests
 
 router = APIRouter(tags=["interests"])
+
+# "Menade du" kostar ett embedding-anrop, så högst så här många per användare under så här många sekunder. Gränsen är
+# i minnet per serverinstans, en spärr och inget mer.
+SIMILAR_RATE_LIMIT = 20
+SIMILAR_RATE_WINDOW_SECONDS = 60
+SIMILAR_MAX = 3
+MIN_SIMILAR_LENGTH = 3
+
+_recent_similar: dict[int, deque[float]] = defaultdict(deque)
+
+
+def _check_similar_rate_limit(user_id: int) -> None:
+    now = time.monotonic()
+    calls = _recent_similar[user_id]
+    while calls and now - calls[0] > SIMILAR_RATE_WINDOW_SECONDS:
+        calls.popleft()
+    if len(calls) >= SIMILAR_RATE_LIMIT:
+        raise HTTPException(status_code=429, detail=msg.INTERVIEW_TOO_MANY_REQUESTS)
+    calls.append(now)
 
 
 def _current_db_user(current_user, db: Session):
@@ -67,7 +94,7 @@ def read_interests(db: Session = Depends(get_db)):
 
 @router.get("/interests/top", response_model=list[InterestBrowseItem])
 def read_top_interests(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return _browse_items(db, list_top_interests(db))
+    return _browse_items(db, list_top_interests(db, current_user.id))
 
 
 @router.get("/interests/search", response_model=list[InterestBrowseItem])
@@ -76,7 +103,22 @@ def search(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return _browse_items(db, search_interests(db, q))
+    return _browse_items(db, search_interests(db, q, current_user.id))
+
+
+@router.get("/interests/similar", response_model=list[InterestBrowseItem])
+def similar(
+    q: str = Query(min_length=MIN_SIMILAR_LENGTH, max_length=100),
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    text = " ".join(q.split())
+    if len(text) < MIN_SIMILAR_LENGTH:
+        return []
+    _check_similar_rate_limit(current_user.id)
+    items = _browse_items(db, [interest for interest, _ in similar_interests(db, text)])
+    # Ett tomt huvudområde (utan underintressen) är ingen sak att föreslå.
+    return [item for item in items if item.path or item.has_children][:SIMILAR_MAX]
 
 
 @router.get("/interests/{interest_id}/children", response_model=list[InterestBrowseItem])
@@ -88,7 +130,7 @@ def read_child_interests(
     interest = get_active_interest(db, interest_id)
     if interest is None:
         raise HTTPException(status_code=404, detail="Intresset finns inte")
-    return _browse_items(db, list_child_interests(db, interest))
+    return _browse_items(db, list_child_interests(db, interest, current_user.id))
 
 
 @router.get("/profile/interests", response_model=list[ProfileInterest])

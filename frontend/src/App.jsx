@@ -1,21 +1,17 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import ServiceInfo from './pages/ServiceInfo'
 import StyleGuide from './pages/StyleGuide'
+import VerifyEmailPage from './pages/VerifyEmailPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
+import ConfirmPasswordPage from './pages/ConfirmPasswordPage'
 import ProfilePage from './pages/ProfilePage'
 import ProfileInterview from './pages/ProfileInterview'
-import GroupsPage from './pages/GroupsPage'
-import EventsPage from './pages/EventsPage'
-import HubPage from './pages/HubPage'
-import PeoplePage from './pages/PeoplePage'
-import InboxPage from './pages/InboxPage'
-import ConversationPage from './pages/ConversationPage'
-import UserProfilePage from './pages/UserProfilePage'
 import AppShell from './components/AppShell'
-import HomeSwitch from './components/HomeSwitch'
 import ProtectedRoute from './components/ProtectedRoute'
 import RequireProfile from './components/RequireProfile'
+import { useAuth } from './hooks/useAuth'
 import DemoLayout from './pages/demo/DemoLayout'
 import DemoStart from './pages/demo/DemoStart'
 import DemoAuth from './pages/demo/DemoAuth'
@@ -23,9 +19,39 @@ import DemoProfile from './pages/demo/DemoProfile'
 import DemoApp, { DemoComingSoon, DemoOverview } from './pages/demo/DemoApp'
 import DemoPeople from './pages/demo/DemoPeople'
 import DemoClubs from './pages/demo/DemoClubs'
+import { DEV_MODE } from './devtools/devMode'
 
-// Kartbiblioteket är stort, så prototypsidan laddas bara när någon öppnar den.
+// Kartbiblioteket är stort, så kartan laddas först när den behövs.
 const MapPrototype = lazy(() => import('./pages/MapPrototype'))
+
+// Testpanelen finns bara i testläget (npm run dev:test), och kommer inte ens med i en vanlig build.
+const DevPanel = DEV_MODE ? lazy(() => import('./devtools/DevPanel')) : null
+
+// Appens sidor (Brev, Personer, Klubbar, Events, profiler) finns bara som block
+// på kartan. Deras gamla adresser, t.ex. ett bokmärke eller en länk till
+// /klubbar?klubb=3, öppnar kartan med sidan i ett block (se MapPrototype).
+const MAP_PAD_PATHS = [
+  '/klubbar',
+  '/personer',
+  '/events',
+  '/meddelanden',
+  '/meddelanden/:userId',
+  '/anvandare/:userId',
+  '/notiser',
+]
+
+function OpenOnMap() {
+  const { pathname, search } = useLocation()
+  return <Navigate to="/hem" replace state={{ pad: pathname + search }} />
+}
+
+// Min profil är ett block på kartan, som de andra sidorna. Den som inte har gjort
+// klart sin profil kommer inte åt kartan än, och fyller i formuläret här, i
+// AppShell (/profil?lista=1, se ProfilePage).
+function ProfileRoute() {
+  const { user } = useAuth()
+  return user.profile_completed ? <OpenOnMap /> : <AppShell />
+}
 
 function App() {
   return (
@@ -33,6 +59,10 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/om" element={<ServiceInfo />} />
+        {/* Länkarna i mejlen. Utanför inloggningen: de ska fungera även utloggad. */}
+        <Route path="/verifiera" element={<VerifyEmailPage />} />
+        <Route path="/aterstall" element={<ResetPasswordPage />} />
+        <Route path="/bekrafta-losenord" element={<ConfirmPasswordPage />} />
         {/* Ersatta av inloggning/registrering inline på /, kvar som omdirigering
             ifall någon har ett gammalt bokmärke eller en gammal länk. */}
         <Route path="/konto" element={<Navigate to="/" replace />} />
@@ -41,36 +71,25 @@ function App() {
         <Route path="/stilguide" element={<StyleGuide />} />
 
         <Route element={<ProtectedRoute />}>
-          {/* Bara för inloggade med klar profil, och utanför AppShell eftersom
-              kartan tar hela skärmen. /hem visar kartan eller appens vanliga
-              startsida (se HomeSwitch); /karta-prototyp visar alltid kartan. */}
+          {/* Bara för inloggade med klar profil. Kartan tar hela skärmen. */}
           <Route element={<RequireProfile />}>
-            <Route path="/hem" element={<HomeSwitch />}>
-              <Route index element={<HubPage />} />
-            </Route>
             <Route
-              path="/karta-prototyp"
+              path="/hem"
               element={
                 <Suspense fallback={<p className="hint-text">Laddar karta...</p>}>
                   <MapPrototype />
                 </Suspense>
               }
             />
+            <Route path="/karta-prototyp" element={<Navigate to="/hem" replace />} />
+            {MAP_PAD_PATHS.map((path) => (
+              <Route key={path} path={path} element={<OpenOnMap />} />
+            ))}
           </Route>
           {/* Intervjun har en egen helskärmsvy, utan menyn. */}
           <Route path="/profil/intervju" element={<ProfileInterview />} />
-          <Route element={<AppShell />}>
-            {/* Innan profilen är klar går bara intervjun (ovan) och formuläret i
-                listläget (/profil?lista=1) att nå. Resten ligger i RequireProfile. */}
-            <Route path="/profil" element={<ProfilePage />} />
-            <Route element={<RequireProfile />}>
-              <Route path="/klubbar" element={<GroupsPage />} />
-              <Route path="/personer" element={<PeoplePage />} />
-              <Route path="/events" element={<EventsPage />} />
-              <Route path="/meddelanden" element={<InboxPage />} />
-              <Route path="/meddelanden/:userId" element={<ConversationPage />} />
-              <Route path="/anvandare/:userId" element={<UserProfilePage />} />
-            </Route>
+          <Route path="/profil" element={<ProfileRoute />}>
+            <Route index element={<ProfilePage />} />
           </Route>
         </Route>
 
@@ -89,6 +108,11 @@ function App() {
           </Route>
         </Route>
       </Routes>
+      {DevPanel && (
+        <Suspense fallback={null}>
+          <DevPanel />
+        </Suspense>
+      )}
     </>
   )
 }

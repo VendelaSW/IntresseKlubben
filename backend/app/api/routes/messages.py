@@ -12,17 +12,29 @@ GET /messages/{user_id} - hela konversationen med en specifik
 användare, båda riktningarna, kronologiskt sorterad, och vem personen är
 (se ConversationDetail).
 
+PUT /messages/{user_id}/read - markerar konversationen som läst fram till
+det senaste brevet. Sparas på kontot, så att ett läst brev är läst på alla
+enheter. Inkorgen (unread) och märket på Brev räknas utifrån det.
+
 Användare pekas alltid ut med id, aldrig användarnamn, så att namnen inte
 syns i några adresser.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth.security import get_current_user, require_profile
 from app.core import storage
 from app.crud.contact import is_blocked
-from app.crud.message import CannotMessageSelfError, get_conversation, list_conversations, send_message
+from app.crud.message import (
+    CannotMessageSelfError,
+    get_conversation,
+    is_unread,
+    last_read_ids,
+    list_conversations,
+    mark_conversation_read,
+    send_message,
+)
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.contact import ContactUser
@@ -49,6 +61,7 @@ def list_my_conversations(
     db: Session = Depends(get_db),
 ) -> list[ConversationResponse]:
     conversations = list_conversations(db, current_user.id)
+    read_ids = last_read_ids(db, current_user.id)
     # Alla personerna med profiler i en fråga, inte en per konversation.
     other_ids = [other_id for other_id, _ in conversations]
     users = {u.id: u for u in db.query(User).options(selectinload(User.profile)).filter(User.id.in_(other_ids))}
@@ -67,6 +80,7 @@ def list_my_conversations(
             last_message=last_message.text,
             last_message_at=last_message.created_at,
             last_message_from_me=last_message.sender_id == current_user.id,
+            unread=is_unread(last_message, current_user.id, read_ids, other.id),
         ))
     return result
 
@@ -105,3 +119,14 @@ def read_conversation(
         ),
         messages=get_conversation(db, current_user.id, other.id),
     )
+
+
+@router.put("/{user_id}/read", status_code=status.HTTP_204_NO_CONTENT)
+def mark_read(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    other = _reachable_user_or_404(db, current_user.id, user_id)
+    mark_conversation_read(db, current_user.id, other.id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

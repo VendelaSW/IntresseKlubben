@@ -32,6 +32,11 @@ os.environ["OPENAI_MODEL"] = ""
 os.environ["MODERATION_SPACE"] = ""
 os.environ["HF_TOKEN"] = ""
 
+# Samma sak för mejlen: ingen riktig Resend-nyckel, och kravet på bekräftad e-post av som standard.
+os.environ["RESEND_API_KEY"] = ""
+os.environ["REQUIRE_EMAIL_VERIFICATION"] = ""
+os.environ["VERCEL_ENV"] = ""
+
 # Egen nyckel för inloggningstoken i tester, aldrig den riktiga från .env.
 os.environ["JWT_SECRET"] = "test-secret-only-for-tests-0123456789"
 
@@ -43,8 +48,9 @@ from sqlalchemy.pool import StaticPool  # noqa: E402
 
 from app.auth.security import get_current_user, require_profile  # noqa: E402
 from app.services.ai_clients import set_clients  # noqa: E402
+from app.services.email import set_email_sender  # noqa: E402
 from app.services.geocoding import set_geocoder  # noqa: E402
-from tests.fakes import FakeGeocoder  # noqa: E402
+from tests.fakes import FakeEmailSender, FakeGeocoder  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
@@ -76,11 +82,33 @@ def fake_geocoder():
 
 
 @pytest.fixture(autouse=True)
+def sent_emails():
+    """Inget test ska skicka riktiga mejl: utskicket är en fejkad version som sparar mejlen. Testerna som gäller
+    mejlen ber om fixturen och läser `sent_emails.sent`."""
+    sender = FakeEmailSender()
+    set_email_sender(sender)
+    yield sender
+    set_email_sender()
+
+
+@pytest.fixture(autouse=True)
 def reset_ai_clients():
-    """Inget test ska råka behålla en fejkad AI-klient från ett annat test, eller anropa OpenAI."""
+    """Inget test ska råka behålla en fejkad AI-klient från ett annat test, eller anropa OpenAI. Spärren för antal
+    Om mig-kontroller och minnet av redan kontrollerade texter nollställs också, så att ett test som sparar många
+    profiltexter inte stoppar nästa."""
+    from app.api.routes import profile as profile_route
+
     set_clients()
+    from app.api.routes import interests as interests_route
+
+    profile_route._recent_text_checks.clear()
+    profile_route._checked_texts.clear()
+    interests_route._recent_similar.clear()
     yield
     set_clients()
+    profile_route._recent_text_checks.clear()
+    profile_route._checked_texts.clear()
+    interests_route._recent_similar.clear()
 
 
 @pytest.fixture

@@ -14,6 +14,7 @@ import EventsPage from './EventsPage'
 import GroupsPage from './GroupsPage'
 import InboxPage from './InboxPage'
 import MapPad from './MapPad'
+import NotificationsPage from './NotificationsPage'
 import PeoplePage from './PeoplePage'
 import ProfilePage from './ProfilePage'
 import UserProfilePage from './UserProfilePage'
@@ -34,6 +35,7 @@ export const MAP_PAGES = {
   personer: '/personer',
   klubbar: '/klubbar',
   events: '/events',
+  notiser: '/notiser',
 }
 
 // Sidorna som kan visas i blocket, och blockets rubrik för dem.
@@ -44,10 +46,18 @@ const PAD_ROUTES = [
   { path: '/anvandare/:userId', title: 'Personer', Page: UserProfilePage },
   { path: '/klubbar', title: 'Klubbar', Page: GroupsPage },
   { path: '/events', title: 'Events', Page: EventsPage },
+  { path: '/notiser', title: 'Notiser', Page: NotificationsPage },
   { path: '/profil', title: 'Min profil', Page: ProfilePage },
 ]
 
 const padRouteFor = (pathname) => PAD_ROUTES.find((r) => matchPath(r.path, pathname)) ?? null
+
+// Vilken lapp (MAP_PAGES) en adress hör till, t.ex. '/anvandare/3' → 'personer'.
+export function widgetFor(address) {
+  const { pathname = '' } = parsePath(address)
+  if (pathname.startsWith('/anvandare/')) return 'personer'
+  return Object.keys(MAP_PAGES).find((id) => pathname.startsWith(MAP_PAGES[id])) ?? null
+}
 
 // En adress (sträng eller { pathname, search, hash }) som en location.
 let nextKey = 0

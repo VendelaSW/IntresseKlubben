@@ -19,8 +19,16 @@ export function RoleBadge({ group }) {
 // knapparna inte hamnar nästlade i varandra (samma upplägg som PersonCard).
 // "Avböj" visas bara om `onDecline` skickas med och man är inbjuden till klubben.
 // `myInterestIds` (en Set) markerar intresset om det är ett av ens egna.
-function GroupList({ groups, emptyText, myInterestIds, busy, onSelect, onJoin, onDecline }) {
-  if (groups.length === 0) return <p className="hint-text">{emptyText}</p>
+// `emptyAction` (valfri) är en knapp vidare under texten när listan är tom.
+function GroupList({ groups, emptyText, emptyAction, myInterestIds, busy, onSelect, onJoin, onDecline }) {
+  if (groups.length === 0) {
+    return (
+      <div className="content-stack">
+        <p className="hint-text">{emptyText}</p>
+        {emptyAction}
+      </div>
+    )
+  }
 
   return (
     <div className="card-grid card-grid-compact">

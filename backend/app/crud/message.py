@@ -2,6 +2,7 @@ from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session
 
 from app.crud.contact import blocked_user_ids
+from app.models.conversation_read import ConversationRead
 from app.models.message import Message
 
 
@@ -68,3 +69,48 @@ def list_conversations(db: Session, user_id: int, hidden: set[int] | None = None
     if hidden is None:
         hidden = blocked_user_ids(db, user_id)
     return [(other, message) for other, message in rows if other not in hidden]
+
+
+# ---------- Lästa brev ----------
+
+
+def mark_conversation_read(db: Session, user_id: int, other_id: int) -> None:
+    """Markerar konversationen med other_id som läst fram till det senaste
+    brevet. Går att upprepa, och flyttar aldrig tillbaka (ett äldre svar från
+    en långsam enhet gör inte ett nyare brev oläst igen)."""
+    newest = (
+        db.query(func.max(Message.id))
+        .filter(
+            or_(
+                and_(Message.sender_id == user_id, Message.recipient_id == other_id),
+                and_(Message.sender_id == other_id, Message.recipient_id == user_id),
+            )
+        )
+        .scalar()
+    )
+    if newest is None:
+        return
+    read = db.get(ConversationRead, (user_id, other_id))
+    if read is None:
+        db.add(ConversationRead(user_id=user_id, other_user_id=other_id, last_read_message_id=newest))
+    elif newest > read.last_read_message_id:
+        read.last_read_message_id = newest
+    else:
+        return
+    db.commit()
+
+
+def last_read_ids(db: Session, user_id: int) -> dict[int, int]:
+    """{den andras id: id:t på senaste lästa brevet} för användarens konversationer."""
+    rows = db.query(ConversationRead.other_user_id, ConversationRead.last_read_message_id).filter(
+        ConversationRead.user_id == user_id
+    )
+    return dict(rows.all())
+
+
+def is_unread(last_message: Message, user_id: int, read_ids: dict[int, int], other_id: int) -> bool:
+    """Har den andra skrivit något som användaren inte har läst? Ens egna brev
+    är aldrig nya."""
+    if last_message.sender_id == user_id:
+        return False
+    return last_message.id > read_ids.get(other_id, 0)

@@ -75,13 +75,17 @@ def test_toxicity_client_is_replaceable_through_shared_mock_boundary():
 def test_content_checks_are_not_imported_in_storage_or_schemas(layer):
     root = Path(__file__).parents[1] / "app" / layer
     forbidden = {
-        "app.core.profanity", "app.services.moderation", "app.services.text_moderation",
+        "app.services.moderation", "app.services.text_moderation",
         "app.services.ai_clients", "app.services.text_policy",
     }
     for path in root.glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
+                if node.module == "app.core.profanity":
+                    assert layer == "crud" and path.name in {
+                        "message.py", "group_message.py", "group_post.py",
+                    }, f"{path.name} imports the content filter"
                 assert node.module not in forbidden, f"{path.name} imports {node.module}"
                 if node.module == "app.services":
                     assert not ({alias.name for alias in node.names} & {
