@@ -3,7 +3,7 @@ import Avatar from './Avatar'
 import { formatSentAt } from '../utils/formatSentAt'
 
 // En konversation i inkorgen, som ett kuvert med personens bild, namn och när
-// det senaste brevet kom. Före namnet står "Från" eller "Till" (vem som skrev
+// det senaste brevet kom. Över namnet står "Från" eller "Till" (vem som skrev
 // det senaste brevet), så att ett brev man själv har skickat inte ser ut att
 // vara till en själv. Hela kuvertet länkar till tråden (ConversationPage).
 // Klickbart som andra kort (.card-interactive): lyfts och får gul kant vid hover.
@@ -23,8 +23,8 @@ function ConversationCard({ conversation, isNew = false }) {
       <span className="envelope-front" aria-hidden="true">
         {/* Bild och namn, och datumet under, nertill som en adress på ett kuvert. */}
         <span className="envelope-address">
+          <span className="envelope-direction">{direction}</span>
           <span className="envelope-addressee">
-            <span className="envelope-direction">{direction}</span>
             <Avatar name={name} imageUrl={conversation.image_url} className="person-list-avatar envelope-avatar" />
             <span className="envelope-name">{name}</span>
           </span>

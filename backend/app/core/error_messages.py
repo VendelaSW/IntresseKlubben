@@ -83,6 +83,8 @@ GROUP_POST_EMPTY = "Inlägget får inte vara tomt"
 GROUP_POST_TOO_LONG = "Inlägget får max vara 2000 tecken"
 GROUP_POST_NOT_FOUND = "Inlägget finns inte"
 GROUP_POST_CANNOT_DELETE = "Bara den som skrev inlägget och klubbens ägare kan radera det"
+GROUP_POST_PINNED_CANNOT_DELETE = "Inlägget är fastnålat, så bara klubbens ägare kan radera det"
+GROUP_POST_ONLY_OWNER_CAN_PIN = "Bara klubbens ägare kan nåla fast inlägg"
 
 # Intervju: intressen ur fri text
 INTERVIEW_TEXT_EMPTY = "Skriv något om dina intressen"
