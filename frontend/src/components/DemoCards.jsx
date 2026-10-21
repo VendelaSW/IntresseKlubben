@@ -45,7 +45,7 @@ function RelationActions({ person }) {
   if (relation === 'sent') {
     return (
       <div className="card-actions">
-        <span className="status-pill">Förfrågan skickad</span>
+        <span className="status-pill">Kompisförfrågan skickad</span>
         <button type="button" className="text-button" onClick={() => cancelRequest(person.id)}>
           Ångra
         </button>
@@ -55,7 +55,7 @@ function RelationActions({ person }) {
   if (relation === 'contact') {
     return (
       <div className="card-actions">
-        <span className="status-pill status-pill-success">Kontakt</span>
+        <span className="status-pill status-pill-success">Kompis</span>
         <button type="button" className="text-button" onClick={() => removeContact(person.id)}>
           Ta bort
         </button>
@@ -65,7 +65,7 @@ function RelationActions({ person }) {
   return (
     <div className="card-actions">
       <button type="button" className="primary-button" onClick={() => sendRequest(person.id)}>
-        Skicka förfrågan
+        Skicka kompisförfrågan
       </button>
     </div>
   )
