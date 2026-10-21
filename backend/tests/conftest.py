@@ -85,12 +85,16 @@ def reset_ai_clients():
     from app.api.routes import profile as profile_route
 
     set_clients()
+    from app.api.routes import interests as interests_route
+
     profile_route._recent_text_checks.clear()
     profile_route._checked_texts.clear()
+    interests_route._recent_similar.clear()
     yield
     set_clients()
     profile_route._recent_text_checks.clear()
     profile_route._checked_texts.clear()
+    interests_route._recent_similar.clear()
 
 
 @pytest.fixture
