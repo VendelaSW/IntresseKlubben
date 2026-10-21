@@ -33,6 +33,21 @@ export async function dismissSuggestion(userId) {
   return result
 }
 
+// Ångrar att en person togs bort från Förslag ("Ångra" direkt efteråt).
+export async function undoDismissSuggestion(userId) {
+  const result = await apiDelete(`/users/${userId}/dismiss`)
+  invalidate(PEOPLE_KEY)
+  return result
+}
+
+// Hur många personer man har tagit bort från Förslag ({ count }). Under
+// PEOPLE_KEY, så att den räknas om när man tar bort eller nollställer.
+export const dismissedCountQuery = {
+  queryKey: [...PEOPLE_KEY, 'dismissed'],
+  queryFn: () => apiGet('/users/dismissed-suggestions'),
+  staleTime: 15 * SECOND,
+}
+
 // Visar alla tidigare borttagna förslag igen.
 export async function resetDismissedSuggestions() {
   const result = await apiDelete('/users/dismissed-suggestions')

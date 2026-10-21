@@ -1,9 +1,12 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core import error_messages as msg
 
 # Så mycket text analyseras som mest (profiltexten är max 800 tecken).
 MAX_TEXT_LENGTH = 1000
+# Ett enda intresse med egna ord (POST /interests/suggest). Samma gräns som en tagg ur utläsningen (MAX_TAG_LENGTH i
+# services/interest_extractor.py), eftersom texten kontrolleras som en tagg.
+MAX_PHRASE_LENGTH = 40
 
 
 class AnalyzeRequest(BaseModel):
@@ -16,6 +19,30 @@ class AnalyzeRequest(BaseModel):
         if not value:
             raise ValueError(msg.INTERVIEW_TEXT_EMPTY)
         return value
+
+
+class SuggestRequest(BaseModel):
+    """Antingen `text` (ett intresse med egna ord, som kontrolleras) eller `interest_id` (ett befintligt intresse som valts
+    ur sökningen, som bara får ett sigill). Exakt ett av dem."""
+
+    text: str | None = Field(default=None, max_length=MAX_PHRASE_LENGTH)
+    interest_id: int | None = None
+
+    @field_validator("text")
+    @classmethod
+    def text_not_empty(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = " ".join(value.split())
+        if not value:
+            raise ValueError(msg.INTERVIEW_TEXT_EMPTY)
+        return value
+
+    @model_validator(mode="after")
+    def exactly_one(self) -> "SuggestRequest":
+        if (self.text is None) == (self.interest_id is None):
+            raise ValueError(msg.INTERVIEW_TEXT_EMPTY)
+        return self
 
 
 class InterestRef(BaseModel):
