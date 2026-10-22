@@ -19,9 +19,11 @@ Inget sparas. Förslagen sparas i ett senare steg, och bara de som har ett gilti
 from dataclasses import dataclass, field
 
 from app.services.ai_clients import Deadline
-from app.services.interest_extractor import extract_interests, remove_flagged
+from app.services.interest_confirm import MIN_NAME_LENGTH
+from app.services.interest_extractor import clean_tag, drop_tags, extract_interests, judge_tags, remove_flagged
 from app.services.interest_followups import FollowUp, plan
-from app.services.interest_matching import LibraryIndex, Match, match_tags, tags_from_tree
+from app.services.interest_matching import LibraryIndex, Match, Tag, exact_match, match_tags, tags_from_tree
+from app.services.interest_spelling import folded_match
 from app.services.interest_shortcut import local_tree, shortcut_tree
 
 
@@ -97,7 +99,11 @@ def analyze(
     # rätt, i stället för hela biblioteket.
     candidates = None if finder is None else lambda unresolved: finder(unresolved, text, index, deadline)
     result = plan(match_tags(tags, index, deadline, candidates), index, catalog, deadline, text=text, use_model=followups_enabled)
+    return _assemble(result, index, followups_enabled)
 
+
+def _assemble(result, index: LibraryIndex, followups_enabled: bool) -> Analysis:
+    """Förslagen, med sigillets innehåll och eventuella följdfrågor, ur matchningens och planens resultat."""
     live = [m for m in result.matches if m.kind != "none"]
     keys = {m.tag.key: f"p{number}" for number, m in enumerate(live, 1)}
     built: dict[str, dict] = {}
@@ -116,3 +122,53 @@ def analyze(
     if followups_enabled:
         followups = [f for f in (_followup(q, keys) for q in result.followups) if f is not None]
     return Analysis(list(built.values()), followups, sealed)
+
+
+class PhraseNotAllowed(Exception):
+    """Intresset godkänns inte: orden är otillåtna, moderationen eller granskningen stoppar det, eller det är inget
+    intresse. Användaren får ett och samma meddelande oavsett vilket, så att det inte avslöjar vad som slog till."""
+
+
+def analyze_phrase(text: str, index: LibraryIndex, catalog: dict[str, str], finder=None) -> Analysis:
+    """Förslaget för ETT intresse som användaren skrivit med egna ord (POST /interests/suggest). Texten är själva taggen:
+    ingen utläsning, så den kan inte skrivas om eller försvinna. Steg: ordfilter och känsliga ord, moderation och
+    granskning (hoppas över för ett känt intresse, som redan är granskat), och sedan matchningen, som kopplar ett
+    intresse som finns eller väljer en förälder till ett nytt, med kandidatfiltret. Inga följdfrågor. Kastar
+    PhraseNotAllowed om det inte godkänns (också när modellen säger att det inte är ett intresse), och AIFailed eller
+    AINotConfigured om en kontroll inte går att köra, så att inget släpps igenom ogranskat."""
+    deadline = Deadline()
+    name = clean_tag(text)  # None om det är grovt, känsligt, för långt eller tomt
+    if name is None or len(name) < MIN_NAME_LENGTH:
+        raise PhraseNotAllowed()
+    tree = [{"name": name, "aliases": [], "subtags": []}]
+    if exact_match(Tag("t1", name), index) is None:  # ett känt intresse behöver varken kontroll eller modell
+        same = folded_match(name, index)  # samma ord med annat skrivsätt ("Pokemon TCG"): också ett känt intresse
+        if same is not None:
+            return analyze_interest(same, index, catalog)
+        tree = remove_flagged(tree, deadline)
+        if tree:
+            tree = drop_tags(tree, judge_tags(name, [name], deadline))
+        if not tree:
+            raise PhraseNotAllowed()
+    candidates = None if finder is None else lambda unresolved: finder(unresolved, name, index, deadline)
+    matches = match_tags(tags_from_tree(tree), index, deadline, candidates)
+    if all(m.kind == "none" for m in matches):  # modellen avgjorde att det inte är ett intresse
+        raise PhraseNotAllowed()
+    return _assemble(plan(matches, index, catalog, deadline, text="", use_model=False), index, followups_enabled=False)
+
+
+class UnknownInterest(Exception):
+    """Intresset finns inte (eller är inte aktivt)."""
+
+
+def analyze_interest(interest_id: int, index: LibraryIndex, catalog: dict[str, str]) -> Analysis:
+    """Förslaget för ett befintligt intresse som användaren valt ur sökningen (POST /interests/suggest med interest_id). Det får
+    ett sigill utan några anrop eller kontroller, eftersom intresset redan är granskat. Det väljs på id och inte på namn, så
+    att ett av flera intressen med samma namn (Fantasy under både Film och Böcker) aldrig blir ett annat. Intervjun
+    behöver det, eftersom den bara sparar förslag med sigill. Kastar UnknownInterest om det inte finns."""
+    item = index.by_id.get(interest_id)
+    if item is None:
+        raise UnknownInterest()
+    match = Match(Tag("t1", item.name), "same", interest_id=item.id, via="exact")
+    return _assemble(plan([match], index, catalog, Deadline(), text="", use_model=False), index, followups_enabled=False)
+

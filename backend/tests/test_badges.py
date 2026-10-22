@@ -63,6 +63,7 @@ def test_no_badges_for_a_new_user(client, user):
         "club_invitations": 0,
         "event_invitations": 0,
         "unread_conversations": 0,
+        "unread_notifications": 0,
         "club_events": [],
     }
 

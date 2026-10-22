@@ -5,6 +5,7 @@ import { useGoBack } from '../../hooks/useCanGoBack'
 import { useTabParam } from '../../hooks/useTabParam'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
+import CreateButton from '../CreateButton'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
 import { contactsQuery } from '../../services/contacts'
@@ -82,7 +83,7 @@ function EventsPanel() {
   useEffect(() => {
     if (user) markEventsSeen(user.id)
   }, [user?.id])
-  // Alla events man får se, ens klubbar (formuläret) och ens kontakter (för att
+  // Alla events man får se, ens klubbar (formuläret) och ens kompisar (för att
   // bjuda in), ur det delade minnet (se services/queryClient.js): har man varit
   // här nyss visas de direkt och hämtas om i bakgrunden. Det som ändrar ett event
   // (skapa, svara, bjuda in) säger själv till minnet (se services/events.js).
@@ -109,6 +110,14 @@ function EventsPanel() {
   const [interests, setInterests] = useState([])
   // Fel från inbjudningarna när eventet skapades (eventet skapades ändå).
   const [inviteProblem, setInviteProblem] = useState('')
+  // Visas formuläret för att redigera eventet som är öppet? Stängs när man byter vy.
+  const [editing, setEditing] = useState(false)
+  // "Eventet är raderat." ovanför listan, tills man öppnar något annat.
+  const [notice, setNotice] = useState('')
+  useEffect(() => {
+    setEditing(false)
+    if (view !== 'list') setNotice('')
+  }, [view])
   const [myInterestIds, setMyInterestIds] = useState(new Set())
 
   useEffect(() => {
@@ -131,19 +140,35 @@ function EventsPanel() {
     else setTab('mine')
   }
 
+  // Eventet finns inte längre: tillbaka till klubben om man kom därifrån, annars
+  // till listan (och inte bakåt till eventet, som är borta).
+  // Vyn byts först, så att förklaringen för ett event som inte finns (se `missing`)
+  // inte hinner visas när listan hämtas om.
+  async function handleDeleted() {
+    if (fromGroupId) {
+      goBack()
+    } else {
+      setView('list', { replace: true })
+      setNotice('Eventet är raderat.')
+    }
+    await loadEvents()
+  }
+
   const lists = splitEvents(events)
   // Leta upp eventet i hela listan, så att vyn visar ens senaste svar.
   const selected = typeof view === 'number' ? events.find((e) => e.id === view) : null
+  // Ett event som inte (längre) finns i listan: raderat av den som skapade det,
+  // eller passerat. Visas med en förklaring i stället för att listan dyker upp
+  // utan att man förstår varför (t.ex. via en gammal länk eller kartan).
+  const missing = typeof view === 'number' && !selected && eventsResult.isSuccess
 
   return (
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Events</h1>
         {view !== 'create' && (
-          <button
-            type="button"
-            className="primary-button round-button"
-            aria-label="Skapa event"
+          <CreateButton
+            label="Skapa event"
             onClick={() => {
               setInviteProblem('')
               setView('create')
@@ -188,8 +213,35 @@ function EventsPanel() {
           </div>
 
           {inviteProblem && <p className="status-error">{inviteProblem}</p>}
+          {notice && <p className="status-success">{notice}</p>}
           {eventsFailed ? (
             <p className="status-error">Kunde inte hämta events. Försök igen senare.</p>
+          ) : selected && editing && selected.is_owner ? (
+            <>
+              <BackButton onClick={() => setEditing(false)} />
+              <div className="card sheet">
+                <CreateEventForm
+                  // key: ett nytt formulär (med eventets uppgifter) varje gång man börjar redigera.
+                  key={selected.id}
+                  event={selected}
+                  interests={interests}
+                  groups={myGroups}
+                  contacts={contacts}
+                  onSaved={async () => {
+                    await loadEvents()
+                    setEditing(false)
+                  }}
+                  onCancel={() => setEditing(false)}
+                />
+              </div>
+            </>
+          ) : missing ? (
+            <>
+              <BackButton onClick={goBack} />
+              <p className="hint-text">
+                Eventet finns inte längre. Det kan ha raderats av den som skapade det, eller redan ha varit.
+              </p>
+            </>
           ) : selected ? (
             <>
               <BackButton onClick={goBack} />
@@ -200,6 +252,8 @@ function EventsPanel() {
                   contacts={contacts}
                   groups={myGroups}
                   onAnswered={loadEvents}
+                  onEdit={() => setEditing(true)}
+                  onDeleted={handleDeleted}
                 />
               </div>
             </>

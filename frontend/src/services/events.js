@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost, apiPut } from './api'
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from './api'
 import { SECOND, invalidate, queryClient } from './queryClient'
 
 // Värdena måste matcha EventVisibility i backend/app/models/event.py.
@@ -47,7 +47,7 @@ export function answerEvent(eventId, answer) {
   return changingEvents(apiPut(`/events/${eventId}/response`, { answer }))
 }
 
-// Bjuder in kontakter (userIds) och/eller alla medlemmar i klubbar (groupIds).
+// Bjuder in kompisar (userIds) och/eller alla medlemmar i klubbar (groupIds).
 // Returnerar de som blev inbjudna den här gången.
 export function inviteToEvent(eventId, { userIds = [], groupIds = [] }) {
   return changingEvents(apiPost(`/events/${eventId}/invitations`, { user_ids: userIds, group_ids: groupIds }))
@@ -56,4 +56,11 @@ export function inviteToEvent(eventId, { userIds = [], groupIds = [] }) {
 // Ändrar bara de fält som skickas, t.ex. { guests_can_invite: true }. Bara skaparen får.
 export function updateEvent(eventId, changes) {
   return changingEvents(apiPatch(`/events/${eventId}`, changes))
+}
+
+// Ställer in eventet: tar bort det med dess inbjudningar och svar. De som har
+// svarat Ja eller Kanske får en notis, med skaparens meddelande om det finns
+// ett (t.ex. "Inställt pga sjukdom"). Bara skaparen får.
+export function deleteEvent(eventId, message = '') {
+  return changingEvents(apiDelete(`/events/${eventId}`, { message: message.trim() || null }))
 }

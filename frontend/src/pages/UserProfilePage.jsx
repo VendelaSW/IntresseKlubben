@@ -5,6 +5,7 @@ import BackButton from '../components/BackButton'
 import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import { eventTimeText } from '../components/events/EventList'
+import { memberCountText } from '../components/groups/GroupList'
 import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
 import {
@@ -17,6 +18,7 @@ import {
   unblockUser,
 } from '../services/contacts'
 import { eventsQuery } from '../services/events'
+import { memberGroupsQuery } from '../services/groups'
 import { getMyInterests } from '../services/interests'
 import { getUserProfile } from '../services/profile'
 
@@ -24,7 +26,7 @@ import { getUserProfile } from '../services/profile'
 // GET /contacts och matchat på id. contactId pekar på själva
 // relations-raden (inte personen), behövs för att acceptera/avböja/ta
 // bort/svara på just den.
-// Kontakterna kommer ur det delade minnet (se services/queryClient.js), och
+// Kompisarna kommer ur det delade minnet (se services/queryClient.js), och
 // åtgärderna (förfrågan, blockera...) säger själva till minnet, så relationen
 // stämmer direkt efteråt.
 function useRelation(userId) {
@@ -44,7 +46,7 @@ function useRelation(userId) {
   return [relation, refetch]
 }
 
-// Vänförfrågan/blockera-knapparna för en annan användares profil. Alla
+// Kompisförfrågan/blockera-knapparna för en annan användares profil. Alla
 // relationsknappar delar samma utseende (secondary-button), bara
 // texten och vad de gör skiljer sig åt beroende på relation.type.
 function RelationButtons({ userId, name, blocked, onBlockedChange }) {
@@ -76,7 +78,7 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
   }
 
   function handleCancelRequest() {
-    if (!window.confirm('Ångrar du denna förfrågan?')) return
+    if (!window.confirm('Ångrar du denna kompisförfrågan?')) return
     run(() => cancelContactRequest(relation.contactId))
   }
 
@@ -111,12 +113,12 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
           disabled={busy}
           onClick={() => run(() => sendContactRequest(userId))}
         >
-          Skicka vänförfrågan
+          Skicka kompisförfrågan
         </button>
       )}
       {relation.type === 'outgoing' && (
         <button type="button" className="secondary-button" disabled={busy} onClick={handleCancelRequest}>
-          Ångra förfrågan
+          Ångra kompisförfrågan
         </button>
       )}
       {relation.type === 'incoming' && (
@@ -127,7 +129,7 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
             disabled={busy}
             onClick={() => run(() => answerContactRequest(relation.contactId, 'accept'))}
           >
-            Acceptera vänförfrågan
+            Acceptera kompisförfrågan
           </button>
           <button
             type="button"
@@ -146,7 +148,7 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
           disabled={busy}
           onClick={() => run(() => removeContact(relation.contactId))}
         >
-          Ta bort vän
+          Ta bort kompis
         </button>
       )}
       <button
@@ -162,33 +164,28 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
   )
 }
 
-// Kommande events som personen har skapat. Listan är alla events man själv får se
-// (samma delade hämtning som Events och kartan, se services/events.js), så ett
-// event bara för inbjudna eller för en klubb man inte är med i syns inte här
-// heller. Ett klick öppnar eventet, och Tillbaka går hit igen.
-function CreatedEvents({ userId, isMe }) {
-  const { data: events, isError } = useQuery(eventsQuery)
-  const created = (events ?? []).filter((event) => event.creator_id === userId)
-
+// En lista med länkar på profilen (events och klubbar): rubrik, och en rad per
+// sak med namn och en detalj under. `items` är [{ key, to, title, detail }],
+// eller undefined medan listan laddas. Ett klick öppnar saken, och Tillbaka går
+// hit igen.
+function ProfileLinkList({ title, items, isError, errorText, loadingText, emptyText }) {
   return (
     <section className="profile-events">
-      <h2>{isMe ? 'Mina events' : 'Events hen ordnar'}</h2>
+      <h2>{title}</h2>
       {isError ? (
-        <p className="hint-text">Kunde inte hämta events.</p>
-      ) : events === undefined ? (
-        <p className="hint-text">Laddar events...</p>
-      ) : created.length === 0 ? (
-        <p className="hint-text">Inga kommande events.</p>
+        <p className="hint-text">{errorText}</p>
+      ) : items === undefined ? (
+        <p className="hint-text">{loadingText}</p>
+      ) : items.length === 0 ? (
+        <p className="hint-text">{emptyText}</p>
       ) : (
         <div className="person-list person-list-compact person-list-marker">
           <ul>
-            {created.map((event) => (
-              <li key={event.id}>
-                <Link to={`/events?event=${event.id}`} className="person-list-item">
-                  <span>{event.title}</span>
-                  <span className="hint-text">
-                    {eventTimeText(event)} · {event.place_name}
-                  </span>
+            {items.map((item) => (
+              <li key={item.key}>
+                <Link to={item.to} className="person-list-item">
+                  <span>{item.title}</span>
+                  <span className="hint-text">{item.detail}</span>
                 </Link>
               </li>
             ))}
@@ -196,6 +193,54 @@ function CreatedEvents({ userId, isMe }) {
         </div>
       )}
     </section>
+  )
+}
+
+// Kommande events som personen har skapat. Listan är alla events man själv får se
+// (samma delade hämtning som Events och kartan, se services/events.js), så ett
+// event bara för inbjudna eller för en klubb man inte är med i syns inte här
+// heller.
+function CreatedEvents({ userId, isMe }) {
+  const { data: events, isError } = useQuery(eventsQuery)
+  const created = events?.filter((event) => event.creator_id === userId)
+
+  return (
+    <ProfileLinkList
+      title={isMe ? 'Mina events' : 'Events hen ordnar'}
+      items={created?.map((event) => ({
+        key: event.id,
+        to: `/events?event=${event.id}`,
+        title: event.title,
+        detail: `${eventTimeText(event)} · ${event.place_name}`,
+      }))}
+      isError={isError}
+      errorText="Kunde inte hämta events."
+      loadingText="Laddar events..."
+      emptyText="Inga kommande events."
+    />
+  )
+}
+
+// Klubbarna personen är med i, så att man hittar klubbar via folk man gillar.
+// Servern visar bara öppna klubbar, och privata som man själv är med i (se
+// GET /groups/member/{id}).
+function MemberClubs({ userId, isMe }) {
+  const { data: groups, isError } = useQuery(memberGroupsQuery(userId))
+
+  return (
+    <ProfileLinkList
+      title={isMe ? 'Mina klubbar' : 'Klubbar hen är med i'}
+      items={groups?.map((group) => ({
+        key: group.id,
+        to: `/klubbar?klubb=${group.id}`,
+        title: group.name,
+        detail: `${group.municipality_name} · ${memberCountText(group.member_count)}`,
+      }))}
+      isError={isError}
+      errorText="Kunde inte hämta klubbar."
+      loadingText="Laddar klubbar..."
+      emptyText={isMe ? 'Du är inte med i någon klubb än.' : 'Inga klubbar att visa.'}
+    />
   )
 }
 
@@ -214,7 +259,7 @@ function UserProfilePage() {
   // personkorten). null tills de är hämtade - då visas alla som vanliga taggar.
   const [myInterestIds, setMyInterestIds] = useState(null)
   // Den egna profilen kan öppnas via adressen, men man ska inte kunna
-  // skicka vänförfrågan, meddelande eller blockera sig själv.
+  // skicka kompisförfrågan, meddelande eller blockera sig själv.
   const isMe = user?.id === userId
 
   useEffect(() => {
@@ -298,10 +343,11 @@ function UserProfilePage() {
             )}
           </section>
           <CreatedEvents userId={userId} isMe={isMe} />
+          <MemberClubs userId={userId} isMe={isMe} />
           {!isMe && (
             <>
               {/* Tydligast: att man kan skriva till personen, även innan ni är
-                  kontakter. Brevtråden visar tidigare brev och svarsraden. */}
+                  kompisar. Brevtråden visar tidigare brev och svarsraden. */}
               {!blocked && (
                 <Link to={`/meddelanden/${userId}`} className="primary-button profile-write">
                   Skriv ett brev

@@ -56,7 +56,8 @@ backend/
 │   ├── models/                 tabeller (SQLAlchemy), en fil per tabell
 │   ├── schemas/                in- och utdata (Pydantic)
 │   ├── crud/                   databasoperationer
-│   └── api/routes/             endpoints, en fil per resurs
+│   ├── api/routes/             endpoints, en fil per resurs
+│   └── devtools/               testläget (se "Testa i testläget" nedan)
 ├── alembic/versions/           migrationer
 └── tests/                      tester (pytest)
 
@@ -66,6 +67,7 @@ frontend/src/
 ├── components/                 återanvändbara delar
 ├── hooks/                      delad logik (t.ex. inloggningsstatus)
 ├── services/                   anrop till backend, en fil per resurs
+├── devtools/                   testlägets "Logga in som ..." och testpanel
 └── styles/                     CSS
 ```
 
@@ -117,8 +119,43 @@ Osäker på upplägget? Skriv två rader i ticketen eller ta det på standup inn
    git merge origin/pre-dev
    ```
    Har `pre-dev` ändrat något grundläggande, som inloggningen, måste din kod anpassas. Det är så de flesta överraskningar i review uppstår.
-6. **Kör testerna lokalt** (se avsnitt 4).
+6. **Kör testerna lokalt** (se avsnitt 4) **och klicka igenom featuren i testläget** (nedan), i mobilbredd och på dator.
 7. **Gör PR:en redo** ("Ready for review") mot `pre-dev` och fyll i checklistan. **Nämn en granskare.**
+
+### Testa i testläget
+
+Testläget är appen lokalt med en egen databas och färdig testdata, så att du slipper skapa konton och klicka fram
+kontakter, klubbar och brev varje gång. Från `frontend/`:
+```
+npm run dev:test
+```
+Det startar backend och frontend (http://localhost:5173). Första gången behöver backend sina paket (`pip install -r
+requirements-dev.txt` i `backend/`, i en venv i `backend/.venv`) och frontend `npm install`.
+
+- **Logga in som ...:** startsidan visar testkontona, ett klick och du är inloggad. Bland dem finns ett konto med
+  lite av allt, ett med långt namn och långa texter, ett där alla listor är tomma och ett som inte har gjort
+  intervjun. Lösenordet för alla är `testlage123` om du vill logga in den vanliga vägen.
+- **Testpanelen** (knappen "Testläge" nere till vänster): byt konto, låt något hända (få en kontaktförfrågan, ett brev,
+  en klubb- eller eventinbjudan) och börja om med testdatan.
+- **På telefonen:** `npm run dev:telefon` startar testläget så att en telefon på samma Wi-Fi når det, och skriver ut
+  en QR-kod att skanna. Då testar du den riktiga appen i telefonens webbläsare: pekskärm, tangentbord, zoom och
+  adressfält. Alla på samma nätverk når då testkontona, så gör det hemma och inte på ett öppet nät. Frågar Windows
+  om brandväggen första gången: tillåt privata nätverk.
+- **Snabbkoll av bredd** (i testpanelen): appen i en ram med en telefons eller surfplattas bredd, ovanpå sidan och
+  inloggad som samma konto. Bra för att snabbt se layouten, men bara bredden: testa på telefonen innan merge.
+- **Databasen** är en SQLite-fil i `backend/.devdata/` som byggs om vid varje start. **Neon rörs aldrig**, och
+  testläget vägrar starta mot något annat än SQLite eller på Vercel.
+- **AI och mejl är fejkade:** intervjun hittar intressen vars namn står i texten ("jag gillar löpning och schack"),
+  och ett intresse som inte finns ("Lägg till ett intresse") godkänns och hamnar under "Övrigt och nischat". Skriv
+  **nekas** i ett intresse eller i profiltexten för att se hur appen gör när kontrollen säger nej. Mejl skrivs i
+  terminalen i stället för att skickas, så att du kan klicka på länkarna därifrån.
+- **Ny AI-funktion?** Testläget svarar på varje AI-anrop efter dess namn (`app/devtools/fake_ai.py`). Ett nytt namn
+  ger ett tydligt fel i testläget tills du lägger till ett fejkat svar där.
+
+**Behöver din feature egen testdata?** Lägg till den i `backend/app/devtools/seed.py` (och ett scenario i
+`routes.py` om det är något som ska kunna hända på knapptryck) i samma PR, så kan alla testa den direkt. Testdatan
+skapas via appens eget API, så den följer samma regler som på riktigt, och `tests/test_devtools.py` säger till om
+den slutar fungera.
 
 ### En PR per feature
 
@@ -165,6 +202,18 @@ Bygg klart en feature innan du öppnar PR:en, i stället för många små PR:er,
 
 ### Ersätta befintlig kod
 Bygger du något som överlappar befintlig kod: skriv i PR:en vad som ersätts och varför, eller varför båda behövs. Att ta bort kod är aldrig farligt, eftersom den finns kvar i Git-historiken, men det ska synas i PR:en.
+
+### Mobil
+De flesta använder appen på telefonen. Vi följer de vanliga riktlinjerna för formulär och knappar på telefon (Apple, Material Design, WCAG 2.2 och Baymards forskning om formulär), och intervjun (`ProfileInterview`) är exemplet att utgå från:
+- **Fält har minst 16 px text på pekskärmar**, annars zoomar iPhone in när man trycker i dem. Det sköts globalt i `index.css`, så sätt inte `!important` på en mindre storlek.
+- **Knappar och fält är minst 48 px höga** (Material 48 dp, Apple 44 pt, WCAG 2.5.8 minst 24 px), med minst 8 px mellan.
+- **En kolumn och etiketten ovanför fältet.** Fält bredvid varandra (`.form-row`) läggs under varandra.
+- **Huvudknappen störst och där tummen når**, längst ned eller till höger. På långa sidor ligger den kvar längst ned medan man scrollar.
+- **Ett formulär med några få frågor ska gå att fylla i utan att scrolla** på en vanlig telefon (390 × 844, och helst 375 × 667).
+- **Rätt tangentbord:** `type`, `autoComplete` och `enterKeyHint` på fälten (t.ex. `autoComplete="name"`, `type="email"`).
+- **Stäng aldrig av zoom med två fingrar** (`maximum-scale` eller `user-scalable=no` i viewport-taggen). Det behövs för den som ser dåligt.
+
+Testa på en riktig telefon innan merge (se [testa-pa-mobilen.md](testa-pa-mobilen.md)).
 
 ---
 

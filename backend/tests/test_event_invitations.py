@@ -71,7 +71,7 @@ def test_only_contacts_can_be_invited(client, db, user, people, event):
         response = client.post(url(event), json={"user_ids": [user_id]})
         assert response.status_code == 422, user_id
         # Samma svar för en okänd användare och en som inte är en kontakt.
-        assert response.json()["detail"] == "Du kan bara bjuda in dina kontakter"
+        assert response.json()["detail"] == "Du kan bara bjuda in dina kompisar"
     assert db.query(EventInvitation).count() == 0
 
 
@@ -278,7 +278,7 @@ def test_a_guest_can_only_invite_their_own_contacts_and_clubs(client, db, user, 
     add_contact(db, people["user2"].id, people["user3"].id)
     response = client.post(url(event), json={"user_ids": [3]})
     assert response.status_code == 422
-    assert response.json()["detail"] == "Du kan bara bjuda in dina kontakter"
+    assert response.json()["detail"] == "Du kan bara bjuda in dina kompisar"
 
     own = add_group(db, user.id, members=[people["user4"].id], name="Mina")
     other = add_group(db, people["user2"].id, members=[people["user3"].id], name="Andras")

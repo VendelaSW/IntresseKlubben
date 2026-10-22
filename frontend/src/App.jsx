@@ -19,14 +19,26 @@ import DemoProfile from './pages/demo/DemoProfile'
 import DemoApp, { DemoComingSoon, DemoOverview } from './pages/demo/DemoApp'
 import DemoPeople from './pages/demo/DemoPeople'
 import DemoClubs from './pages/demo/DemoClubs'
+import { DEV_MODE } from './devtools/devMode'
 
 // Kartbiblioteket är stort, så kartan laddas först när den behövs.
 const MapPrototype = lazy(() => import('./pages/MapPrototype'))
 
+// Testpanelen finns bara i testläget (npm run dev:test), och kommer inte ens med i en vanlig build.
+const DevPanel = DEV_MODE ? lazy(() => import('./devtools/DevPanel')) : null
+
 // Appens sidor (Brev, Personer, Klubbar, Events, profiler) finns bara som block
 // på kartan. Deras gamla adresser, t.ex. ett bokmärke eller en länk till
 // /klubbar?klubb=3, öppnar kartan med sidan i ett block (se MapPrototype).
-const MAP_PAD_PATHS = ['/klubbar', '/personer', '/events', '/meddelanden', '/meddelanden/:userId', '/anvandare/:userId']
+const MAP_PAD_PATHS = [
+  '/klubbar',
+  '/personer',
+  '/events',
+  '/meddelanden',
+  '/meddelanden/:userId',
+  '/anvandare/:userId',
+  '/notiser',
+]
 
 function OpenOnMap() {
   const { pathname, search } = useLocation()
@@ -96,6 +108,11 @@ function App() {
           </Route>
         </Route>
       </Routes>
+      {DevPanel && (
+        <Suspense fallback={null}>
+          <DevPanel />
+        </Suspense>
+      )}
     </>
   )
 }

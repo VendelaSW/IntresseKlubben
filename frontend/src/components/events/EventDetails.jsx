@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom'
 import Avatar from '../Avatar'
 import InterestTags from '../InterestTags'
 import Modal from '../Modal'
+import TextareaWithCount from '../TextareaWithCount'
 import ShowOnMapButton from '../ShowOnMapButton'
 import InvitePicker from './InvitePicker'
 import { eventTimeText, visibilityPillClass, visibilityText } from './EventList'
-import { EVENT_ANSWER, answerEvent, getEventResponses, inviteToEvent, updateEvent } from '../../services/events'
+import { EVENT_ANSWER, answerEvent, deleteEvent, getEventResponses, inviteToEvent, updateEvent } from '../../services/events'
 
 const ANSWERS = [
   { id: EVENT_ANSWER.yes, label: 'Ja' },
@@ -20,9 +21,13 @@ const ANSWERS = [
 // föräldern att hämta om eventlistorna, så att ens svar och flikarna stämmer.
 // "Bjud in" syns för den som får bjuda in (event.can_invite: skaparen, eller alla
 // om skaparen har slagit på "Gäster får bjuda in") och öppnar en popup med ens
-// kontakter och klubbar (`contacts`, `groups`). Skaparen kan slå på och av valet här.
+// kompisar och klubbar (`contacts`, `groups`). Skaparen kan slå på och av valet här.
+// Skaparen ser också Redigera (`onEdit`, formuläret visas av EventsPanel) och Radera,
+// som öppnar en ruta där man kan skriva ett meddelande till dem som har svarat Ja
+// eller Kanske (de får en notis från Intresseklubben), och sedan anropar
+// `onDeleted`. Andra ser inte knapparna (och backend låter bara skaparen ändra och radera).
 // Tillbaka-knappen ligger ovanför rutan, i EventsPanel.
-function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
+function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEdit, onDeleted }) {
   const [responses, setResponses] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -32,6 +37,11 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
   const [inviteError, setInviteError] = useState('')
   const [inviteNotice, setInviteNotice] = useState('')
   const [settingBusy, setSettingBusy] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  // Rutan "Ställ in eventet", med skaparens valfria meddelande till deltagarna.
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelMessage, setCancelMessage] = useState('')
 
   useEffect(() => {
     setResponses(null)
@@ -49,6 +59,9 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
       await onAnswered()
     } catch (err) {
       setError(err.message)
+      // Eventet har raderats (eller går inte längre att se): hämta om listan, så
+      // att vyn byts mot förklaringen i EventsPanel.
+      if (err.status === 404) await onAnswered()
     } finally {
       setBusy(false)
     }
@@ -82,6 +95,26 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
       setError(err.message)
     } finally {
       setSettingBusy(false)
+    }
+  }
+
+  // De som har svarat Ja eller Kanske (utom skaparen) får en notis när eventet
+  // ställs in, med skaparens meddelande om det finns ett.
+  const coming = (responses ?? []).filter(
+    (r) => r.id !== event.creator_id && (r.answer === EVENT_ANSWER.yes || r.answer === EVENT_ANSWER.maybe),
+  ).length
+
+  async function handleDelete(submitEvent) {
+    submitEvent.preventDefault()
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await deleteEvent(event.id, cancelMessage)
+      setCancelOpen(false)
+      onDeleted()
+    } catch (err) {
+      setDeleteError(err.message)
+      setDeleting(false)
     }
   }
 
@@ -167,15 +200,82 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered }) {
       )}
 
       {event.is_owner && (
-        <label>
-          <input
-            type="checkbox"
-            checked={event.guests_can_invite}
-            disabled={settingBusy}
-            onChange={(e) => handleGuestsCanInvite(e.target.checked)}
-          />{' '}
-          Gäster får bjuda in
-        </label>
+        <>
+          <label>
+            <input
+              type="checkbox"
+              checked={event.guests_can_invite}
+              disabled={settingBusy}
+              onChange={(e) => handleGuestsCanInvite(e.target.checked)}
+            />{' '}
+            Gäster får bjuda in
+          </label>
+          <div className="card-actions">
+            <button type="button" className="secondary-button button-small" onClick={onEdit} disabled={deleting}>
+              Redigera
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                setDeleteError('')
+                setCancelOpen(true)
+              }}
+            >
+              Radera
+            </button>
+          </div>
+          {cancelOpen && (
+            <Modal title="Radera eventet" onClose={() => !deleting && setCancelOpen(false)}>
+              <form className="auth-form form-compact" onSubmit={handleDelete}>
+                <p className="card-text">
+                  «{event.title}» tas bort, med inbjudningar och svar. Det går inte att ångra.
+                </p>
+                {/* Medan svaren laddas sägs inget om vilka som får en notis. Gick de inte att hämta vet vi
+                    inte, men backend skickar notiserna ändå, så meddelandefältet visas. */}
+                {responses === null && !failed && <p className="hint-text">Hämtar vilka som har svarat...</p>}
+                {failed && (
+                  <p className="hint-text">
+                    Kunde inte hämta vilka som har svarat. De som har svarat Ja eller Kanske får ändå en notis från
+                    Intresseklubben om att eventet är inställt.
+                  </p>
+                )}
+                {responses !== null && coming > 0 && (
+                  <p className="hint-text">
+                    {coming === 1 ? '1 person har' : `${coming} personer har`} svarat Ja eller Kanske och får en notis
+                    från Intresseklubben om att eventet är inställt.
+                  </p>
+                )}
+                {responses !== null && coming === 0 && (
+                  <p className="hint-text">Ingen har svarat Ja eller Kanske, så ingen får någon notis.</p>
+                )}
+                {(failed || coming > 0) && (
+                  <>
+                    <label htmlFor={`cancel-message-${event.id}`}>Meddelande till dem (valfritt)</label>
+                    <TextareaWithCount
+                      id={`cancel-message-${event.id}`}
+                      value={cancelMessage}
+                      onChange={(e) => setCancelMessage(e.target.value)}
+                      maxLength={300}
+                      rows={3}
+                      placeholder="T.ex. Inställt pga sjukdom, vi ses nästa vecka!"
+                    />
+                  </>
+                )}
+                {deleteError && <p className="status-error">{deleteError}</p>}
+                {/* Det säkra valet är den gula knappen, raderingen har en egen röd stil (.button-danger). */}
+                <div className="form-actions">
+                  <button type="button" onClick={() => setCancelOpen(false)} disabled={deleting}>
+                    Behåll eventet
+                  </button>
+                  <button type="submit" className="button-danger" disabled={deleting || (responses === null && !failed)}>
+                    {deleting ? 'Raderar...' : 'Radera eventet'}
+                  </button>
+                </div>
+              </form>
+            </Modal>
+          )}
+        </>
       )}
 
       <Attendees responses={responses} failed={failed} />

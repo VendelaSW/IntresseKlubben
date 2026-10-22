@@ -5,13 +5,14 @@ import { getBadges } from '../services/badges'
 import { EVENTS_SEEN, eventsSeenAt } from '../services/eventsSeen'
 import { INVITATIONS_CHANGED } from '../services/groups'
 import { MESSAGES_READ } from '../services/messages'
+import { NOTIFICATIONS_READ } from '../services/notifications'
 
 // Hur ofta siffrorna räknas om medan man står kvar. De räknas också om vid
 // varje sidbyte, så de behöver inte hämtas oftare än så här.
 const POLL_MS = 60000
 
 // Siffrorna för appens märken (lapparna på kartan):
-//   contactRequests: obesvarade kontaktförfrågningar (Personer)
+//   contactRequests: obesvarade kompisförfrågningar (Personer)
 //   clubInvitations: klubbar man är inbjuden till (Klubbar)
 //   eventNews: events man inte har svarat på som antingen är en inbjudan, eller
 //     är nya i en av ens klubbar sedan man senast tittade på Events (se
@@ -20,9 +21,11 @@ const POLL_MS = 60000
 //   unseenMessages: konversationer med brev man inte har läst, samma som
 //     fliken Nya på Brev (Brev). Räknas på servern, så siffran är densamma på
 //     alla enheter.
+//   notifications: olästa notiser från Intresseklubben, t.ex. att ett event man
+//     skulle gå på har ställts in (Notiser).
 //
 // Räknas om när `refreshKey` ändras (t.ex. vid sidbyte), när man har gått med
-// i eller avböjt en klubb, när man har tittat på Events eller läst brev, och var POLL_MS, så att något nytt syns utan att
+// i eller avböjt en klubb, när man har tittat på Events, läst brev eller notiser, och var POLL_MS, så att något nytt syns utan att
 // man gör något. Pausar när fliken inte syns eller ingen har rört appen på
 // ett tag (se services/activity.js), och räknar om direkt när man kommer
 // tillbaka. Anropen är låsta tills profilen är klar (require_profile i
@@ -70,6 +73,7 @@ export function useBadgeCounts({ refreshKey = null } = {}) {
         // inget räknas två gånger.
         eventNews: badges.event_invitations + countNew(badges.club_events, eventsSeenAt(userId)),
         unseenMessages: badges.unread_conversations,
+        notifications: badges.unread_notifications,
       }
       setCounts((current) => {
         const same = current && Object.keys(next).every((key) => current[key] === next[key])
@@ -88,6 +92,7 @@ export function useBadgeCounts({ refreshKey = null } = {}) {
     window.addEventListener(INVITATIONS_CHANGED, refresh)
     window.addEventListener(EVENTS_SEEN, refresh)
     window.addEventListener(MESSAGES_READ, refresh)
+    window.addEventListener(NOTIFICATIONS_READ, refresh)
     return () => {
       cancelled = true
       clearInterval(timer)
@@ -96,6 +101,7 @@ export function useBadgeCounts({ refreshKey = null } = {}) {
       window.removeEventListener(INVITATIONS_CHANGED, refresh)
       window.removeEventListener(EVENTS_SEEN, refresh)
       window.removeEventListener(MESSAGES_READ, refresh)
+      window.removeEventListener(NOTIFICATIONS_READ, refresh)
     }
   }, [refreshKey, profileDone, userId])
 
