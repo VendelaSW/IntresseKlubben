@@ -139,6 +139,16 @@
   text-underline-offset: 4px;
 }
 
+/* "I närheten den här veckan": en tom rad ovanför, som mellan datumet och listan. */
+.map-calm-heading-next {
+  margin-top: var(--calm-line) !important;
+}
+
+/* Den ritade punkten framför ett tips (MapCalmPage, TipLine). */
+.map-calm-dot {
+  fill: #3a2f25;
+}
+
 .map-calm-muted {
   color: var(--color-muted);
 }
