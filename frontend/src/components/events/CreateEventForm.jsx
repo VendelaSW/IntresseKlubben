@@ -63,9 +63,23 @@ const samePosition = (a, b) =>
 // in" sköts i eventets vy. Bara det som har ändrats skickas: backend vägrar en
 // starttid som har passerat, och ett event som redan har börjat ska ändå kunna
 // få t.ex. en ny beskrivning.
-function CreateEventForm({ event = null, interests, groups, contacts, initialGroupId = null, onCreated, onSaved, onCancel }) {
+// Ett nytt event kan ha intresset förvalt (`initialInterestId`, från "Inga events för … Skapa ett?").
+function CreateEventForm({
+  event = null,
+  interests,
+  groups,
+  contacts,
+  initialGroupId = null,
+  initialInterestId = null,
+  onCreated,
+  onSaved,
+  onCancel,
+}) {
   const editing = event !== null
-  const initial = useMemo(() => (event ? fieldsFrom(event) : EMPTY_FIELDS), [event])
+  const initial = useMemo(
+    () => (event ? fieldsFrom(event) : { ...EMPTY_FIELDS, interestId: initialInterestId ? String(initialInterestId) : '' }),
+    [event, initialInterestId],
+  )
   const [title, setTitle] = useState(initial.title)
   const [description, setDescription] = useState(initial.description)
   const [interestId, setInterestId] = useState(initial.interestId)

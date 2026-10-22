@@ -3,7 +3,7 @@ Vilka aktiviteter som passar ett intresse, när biblioteket inte säger det.
 
 Biblioteket har aktivitetslistor (spela, lyssna, samla...) på en del områden, och ett intresse ärver den
 närmaste listan ovanför sig. Men många intressen saknar en lista: 84 av 250, bland annat allt under
-Friluftsliv, Djur och natur, Teknik och Skapande, och alla nya intressen under sådana områden. För
+Friluftsliv, Djur och natur, Teknik och Kreativitet, och alla nya intressen under sådana områden. För
 dem låter vi modellen välja vilka av de fasta aktiviteterna som människor faktiskt gör med intresset
 ("Katter": ha. "Mynt": samla).
 

@@ -210,6 +210,8 @@ def apply_batches(db: Session, user: User, batches: list[Batch], source: str) ->
                 continue
         if new.level > MAX_LEVEL:
             raise _error(400, msg.CONFIRM_SEAL_INVALID)
+        if parent_real is not None and not index.by_id[parent_real].allow_children:
+            raise _error(400, msg.CONFIRM_PARENT_CLOSED)  # en plattform som PlayStation får inga nya underintressen
         if not (MIN_NAME_LENGTH <= len(new.name.strip()) <= MAX_NAME_LENGTH) or contains_profanity(new.name):
             raise _error(400, msg.CONFIRM_OWN_INTEREST_NAME)
         new.create = True
