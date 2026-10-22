@@ -37,6 +37,7 @@ EMBEDDING_BATCH = 256  # så många texter skickas till embeddings åt gången
 # Funktionen får köra i 30 sekunder. Ett enskilt anrop får ta högst så här länge, och ett arbete med
 # flera anrop i rad får ta högst så här länge tillsammans (se Deadline). Lämnar marginal för resten.
 PER_CALL_TIMEOUT_SECONDS = 10
+HF_TIMEOUT_SECONDS = 4
 WORK_BUDGET_SECONDS = 25
 
 
@@ -104,17 +105,19 @@ def _get_hf_client():
     return Client(
         settings.moderation_space, token=token,
         verbose=False, analytics_enabled=False,
-        httpx_kwargs={"timeout": PER_CALL_TIMEOUT_SECONDS},
+        httpx_kwargs={"timeout": HF_TIMEOUT_SECONDS},
     )
 
 
 class HuggingFaceClassifier:
     def classify(self, text: str, deadline: Deadline | None = None) -> ToxicityResult:
         job = None
+        hf_deadline = Deadline(HF_TIMEOUT_SECONDS)
         try:
             _timeout(deadline)
             job = _get_hf_client().submit(text, api_name="/moderate")
-            return ToxicityResult.model_validate(job.result(timeout=_timeout(deadline)))
+            timeout = min(_timeout(deadline), _timeout(hf_deadline))
+            return ToxicityResult.model_validate(job.result(timeout=timeout))
         except AINotConfigured:
             raise
         except Exception:

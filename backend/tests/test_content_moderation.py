@@ -36,7 +36,7 @@ def test_client_is_created_once_and_reused(client_factory):
     assert factory() is factory()
     constructor.assert_called_once_with(
         "example/moderation", token=None, verbose=False, analytics_enabled=False,
-        httpx_kwargs={"timeout": 10},
+        httpx_kwargs={"timeout": 4},
     )
 
 
@@ -81,7 +81,14 @@ def remote(monkeypatch):
 def test_clean_text_uses_named_remote_endpoint(remote):
     assert moderation.check_fields(ai=True, description="Hej") is None
     remote.submit.assert_called_once_with("Hej", api_name="/moderate")
-    remote.submit.return_value.result.assert_called_once_with(timeout=10)
+    timeout = remote.submit.return_value.result.call_args.kwargs["timeout"]
+    assert 0 < timeout <= 4
+
+
+def test_hf_job_timeout_is_capped_by_shared_deadline(remote):
+    moderation.check_fields(ai=True, description="Hej", deadline=ai_clients.Deadline(2))
+    timeout = remote.submit.return_value.result.call_args.kwargs["timeout"]
+    assert 0 < timeout <= 2
 
 
 @pytest.mark.parametrize("result", [
