@@ -63,7 +63,7 @@ const samePosition = (a, b) =>
 // in" sköts i eventets vy. Bara det som har ändrats skickas: backend vägrar en
 // starttid som har passerat, och ett event som redan har börjat ska ändå kunna
 // få t.ex. en ny beskrivning.
-// Ett nytt event kan ha intresset förvalt (`initialInterestId`, från "Inga events för … Skapa ett?").
+// Ett nytt event kan ha intresset förvalt (`initialInterestId`, från "Det finns inga events för … Vill du skapa ett?").
 function CreateEventForm({
   event = null,
   interests,

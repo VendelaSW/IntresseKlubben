@@ -4,9 +4,19 @@ import LocationPicker from '../LocationPicker'
 import MunicipalityPicker from '../MunicipalityPicker'
 import { VISIBILITY, createGroup } from '../../services/groups'
 
-function CreateGroupForm({ interests, municipalities, defaultMunicipality, onCreated, onCancel }) {
-  const [name, setName] = useState('')
-  const [interestId, setInterestId] = useState('')
+// `initialName` och `initialInterestId` (valfria): det man sökte på när det inte
+// fanns någon klubb (SCRUM-221), ifyllt från början.
+function CreateGroupForm({
+  interests,
+  municipalities,
+  defaultMunicipality,
+  initialName = '',
+  initialInterestId = null,
+  onCreated,
+  onCancel,
+}) {
+  const [name, setName] = useState(initialName)
+  const [interestId, setInterestId] = useState(initialInterestId ? String(initialInterestId) : '')
   const [municipalityCode, setMunicipalityCode] = useState(defaultMunicipality ?? '')
   const [meetingInfo, setMeetingInfo] = useState('')
   // Valfri träffplats: namn, adress och var på kartan (se LocationPicker).
