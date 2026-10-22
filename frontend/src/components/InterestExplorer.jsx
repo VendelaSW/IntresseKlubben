@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DidYouMean, MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest'
+import DrawnArrow from './DrawnArrow'
 import InterestTree, { profileTree } from './InterestTree'
 import { areaColors } from '../utils/interestColors'
 import { getChildInterests, getTopInterests, searchInterests } from '../services/interests'
@@ -232,7 +233,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
           onClick={toggleOpen}
         >
           {open ? 'Klar' : 'Lägg till intressen'}
-          <span className="explorer-arrow" aria-hidden="true" />
+          <DrawnArrow className="explorer-arrow" />
         </button>
       )}
 
@@ -308,7 +309,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
                         >
                           {area.name}
                           {/* Nedåt: går att öppna. Vänds uppåt när området är öppet. */}
-                          <span className="explorer-arrow" aria-hidden="true" />
+                          <DrawnArrow className="explorer-arrow" />
                         </button>
                       </li>
                       {/* Rutan efter sista kategorin på den öppnas rad (före mätningen: direkt efter den). */}

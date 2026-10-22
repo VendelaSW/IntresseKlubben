@@ -1,12 +1,13 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { areaColors } from '../utils/interestColors'
+import DrawnArrow from './DrawnArrow'
 
 // Första bokstaven stor, så att egna intressen ("fyrmodeller") ser ut som bibliotekets.
 const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 
 // En intressetagg med sina underintressen. Taggen har huvudområdets färg (se
 // utils/interestColors.js) och ser ut som kartans lappar: handritad form och en
-// hård skugga. Har intresset underintressen visar ▼ det, och ett tryck lägger
+// hård skugga. Har intresset underintressen visar en ritad pil det, och ett tryck lägger
 // dem i en ruta i samma färg över taggarna under (inget flyttar sig). Rutan
 // stängs med ett nytt tryck, ett tryck utanför eller Esc. Utan underintressen
 // händer inget när man trycker; taggen är bara till för att visa.
@@ -62,9 +63,7 @@ function InterestTagGroup({ group, isShared, onRemove, busyKey }) {
             onClick={() => setOpen(!open)}
           >
             {capitalize(name)}
-            <span className="interest-tag-arrow" aria-hidden="true">
-              ▼
-            </span>
+            <DrawnArrow className="interest-tag-arrow" />
             <span className="visually-hidden">, {subs.length} underintressen</span>
           </button>
         ) : (

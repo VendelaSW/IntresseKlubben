@@ -826,8 +826,49 @@ span.tag-selected:hover {
   outline-offset: 3px;
 }
 
+/* Den skissade pilen (DrawnArrow): kontur och skraffering i textens färg, som
+   blyerts. Lika stor på taggarna och under Utforska. */
+.drawn-arrow {
+  flex-shrink: 0;
+  width: 0.85em;
+  height: 0.72em;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  rotate: -4deg;
+}
+
+.drawn-arrow-hatch {
+  stroke-width: 0.7;
+  opacity: 0.85;
+}
+
+/* Pilarna lutar lite olika på taggarna bredvid varandra, som om de ritats en
+   och en. Fem vinklar som går runt, efter taggens plats i raden. */
+.interest-tags > li:nth-child(5n + 1) .drawn-arrow {
+  rotate: -7deg;
+}
+
+.interest-tags > li:nth-child(5n + 2) .drawn-arrow {
+  rotate: 4deg;
+}
+
+.interest-tags > li:nth-child(5n + 3) .drawn-arrow {
+  rotate: -2deg;
+}
+
+.interest-tags > li:nth-child(5n + 4) .drawn-arrow {
+  rotate: 8deg;
+}
+
+.interest-tags > li:nth-child(5n) .drawn-arrow {
+  rotate: -5deg;
+}
+
 .interest-tag-arrow {
-  font-size: 0.6rem;
   transition: transform 0.15s ease;
 }
 
@@ -3770,11 +3811,6 @@ label.person-list-item {
 
 /* Svart trekant: nedåt när området går att öppna, uppåt när det är öppet. */
 .explorer .explorer-arrow {
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid var(--color-text);
   transition: transform 0.15s ease;
 }
 

@@ -221,7 +221,7 @@ function StyleGuide() {
         <p className="hint-text">
           Intressen på profiler, personkort, klubbar, events och i intervjun (.interest-tag, inte .tag). Färgen följer
           huvudområdet (utils/interestColors.js): en fyllning per område och en ljusare nyans för underintressen. Mörk
-          kant, handritad form och hård skugga som kartans lappar. ▼ betyder att intresset har underintressen; ett tryck
+          kant, handritad form och hård skugga som kartans lappar. Den ritade pilen (DrawnArrow) betyder att intresset har underintressen; ett tryck
           lägger dem i en ruta över taggarna under. Allt man valt syns, och varje intresse är en egen tagg tills fler än
           tre ligger under samma kategori; då samlas de i den (utils/interestGroups.js), den närmaste kategorin först
           (fyra mysiga spel blir Mysiga spel ▼, också om man inte valt Mysiga spel). Gemensamma intressen har fetstil
