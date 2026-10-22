@@ -139,6 +139,9 @@ function MapPlaceSearch({ activities = [], onPick, onHome }) {
       const option = options[active >= 0 ? active : 0]
       if (option) choose(option)
     } else if (event.key === 'Escape') {
+      // Escape i rutan gäller bara rutan: inte vidare till ett öppet block, som
+      // annars också stängs (MapPad lyssnar på Escape på hela sidan).
+      event.stopPropagation()
       // Stänger listan; en andra Escape tömmer rutan.
       if (open && options.length > 0) setOpen(false)
       else reset()
