@@ -4,12 +4,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
+import ReportButton from '../components/ReportButton'
 import { eventTimeText } from '../components/events/EventList'
 import { memberCountText } from '../components/groups/GroupList'
 import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
 import {
   answerContactRequest,
+  blockQuestion,
   blockUser,
   cancelContactRequest,
   contactsQuery,
@@ -21,6 +23,7 @@ import { eventsQuery } from '../services/events'
 import { memberGroupsQuery } from '../services/groups'
 import { getMyInterests } from '../services/interests'
 import { getUserProfile } from '../services/profile'
+import { REPORT_TARGET } from '../services/reports'
 
 // Vem man är i förhållande till personen man tittar på, hämtat från
 // GET /contacts och matchat på id. contactId pekar på själva
@@ -72,8 +75,7 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
   }
 
   async function handleBlock() {
-    const question = `Blockera ${displayName}? Ni kan inte längre kontakta varandra. Du kan avblockera senare.`
-    if (!window.confirm(question)) return
+    if (!window.confirm(blockQuestion(displayName))) return
     if (await run(() => blockUser(userId))) onBlockedChange(true)
   }
 
@@ -97,6 +99,7 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
         <button type="button" className="secondary-button" disabled={busy} onClick={handleUnblock}>
           Avblockera
         </button>
+        <ReportButton targetType={REPORT_TARGET.profile} targetId={userId} userId={userId} name={displayName} />
         {error && <p className="form-error">{error}</p>}
       </>
     )
@@ -159,6 +162,13 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
       >
         Blockera
       </button>
+      <ReportButton
+        targetType={REPORT_TARGET.profile}
+        targetId={userId}
+        userId={userId}
+        name={displayName}
+        onBlocked={() => onBlockedChange(true)}
+      />
       {error && <p className="form-error">{error}</p>}
     </>
   )

@@ -4,12 +4,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
+import ReportButton from '../components/ReportButton'
 import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
 import { useChatScroll } from '../hooks/useChatScroll'
 import { isIdle, onUserActive } from '../services/activity'
 import { conversationQuery, markConversationRead, sendMessage } from '../services/messages'
 import { getProfile } from '../services/profile'
+import { REPORT_TARGET } from '../services/reports'
 import { formatSentAt } from '../utils/formatSentAt'
 import { startsGroup } from '../utils/messageGroups'
 
@@ -141,8 +143,12 @@ function ConversationPage() {
                 Brev i följd från samma person hamnar under samma namn (se startsGroup). */}
             {messages.map((m, index) => {
               const first = startsGroup(messages, index)
+              const theirs = m.sender_id !== user.id
               return (
-                <li key={m.id} className={`notepad-message${first ? '' : ' notepad-message-continued'}`}>
+                <li
+                  key={m.id}
+                  className={`notepad-message${first ? '' : ' notepad-message-continued'}${theirs ? ' notepad-message-reportable' : ''}`}
+                >
                   {first && (
                     <p className="notepad-message-head">
                       <ChatSender
@@ -157,6 +163,18 @@ function ConversationPage() {
                     </p>
                   )}
                   <p title={first ? undefined : formatSentAt(m.created_at)}>{m.text}</p>
+                  {/* Brev från den andra går att anmäla (se .report-link). */}
+                  {theirs && other && (
+                    <ReportButton
+                      className="report-link"
+                      label={`Anmäl brevet från ${otherName}`}
+                      targetType={REPORT_TARGET.message}
+                      targetId={m.id}
+                      userId={other.id}
+                      name={otherName}
+                      quote={m.text}
+                    />
+                  )}
                 </li>
               )
             })}

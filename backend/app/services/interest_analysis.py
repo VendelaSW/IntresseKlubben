@@ -23,6 +23,7 @@ from app.services.interest_confirm import MIN_NAME_LENGTH
 from app.services.interest_extractor import clean_tag, drop_tags, extract_interests, judge_tags, remove_flagged
 from app.services.interest_followups import FollowUp, plan
 from app.services.interest_matching import LibraryIndex, Match, Tag, exact_match, match_tags, tags_from_tree
+from app.services.interest_spelling import folded_match
 from app.services.interest_shortcut import local_tree, shortcut_tree
 
 
@@ -141,6 +142,9 @@ def analyze_phrase(text: str, index: LibraryIndex, catalog: dict[str, str], find
         raise PhraseNotAllowed()
     tree = [{"name": name, "aliases": [], "subtags": []}]
     if exact_match(Tag("t1", name), index) is None:  # ett känt intresse behöver varken kontroll eller modell
+        same = folded_match(name, index)  # samma ord med annat skrivsätt ("Pokemon TCG"): också ett känt intresse
+        if same is not None:
+            return analyze_interest(same, index, catalog)
         tree = remove_flagged(tree, deadline)
         if tree:
             tree = drop_tags(tree, judge_tags(name, [name], deadline))

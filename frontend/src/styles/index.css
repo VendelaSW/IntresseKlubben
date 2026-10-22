@@ -2183,6 +2183,50 @@ span.tag-selected:hover {
   margin-top: calc(-1 * var(--line-gap));
 }
 
+/* "Anmäl" vid ett brev eller meddelande från någon annan (ReportButton): liten
+   och grå längst till höger på meddelandets första linje, så att chatten inte
+   blir rörig. På dator syns den när man håller över meddelandet eller tabbar
+   till den, på mobil och pekskärmar (ingen hovring) alltid. Texten får luft till höger, så att
+   den inte hamnar under knappen. */
+.notepad-message-reportable {
+  position: relative;
+  padding-right: 3.2rem;
+}
+
+.report-link {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: var(--line-gap);
+  padding: 0 0.25rem;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: normal;
+  text-decoration: underline;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.notepad-message-reportable:hover .report-link,
+.report-link:focus-visible {
+  opacity: 1;
+}
+
+.report-link:hover,
+.report-link:focus-visible {
+  color: var(--color-text);
+}
+
+@media (hover: none), (max-width: 767px) {
+  .report-link {
+    opacity: 1;
+  }
+}
+
 .notepad .notepad-message-avatar {
   width: 1.3rem;
   height: 1.3rem;
@@ -2798,7 +2842,49 @@ button.board-note:focus-visible {
 .board-note-buttons {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
+}
+
+/* Rutan "Anmäl …" (ReportButton): det som anmäls överst, sedan anledningarna
+   som en lista med radioknappar och en valfri kommentar. */
+.report-quote {
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  border-left: 3px solid var(--color-line);
+  background: var(--color-accent-soft);
+  font-style: italic;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.report-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.report-reasons legend {
+  margin-bottom: 0.35rem;
+  font-weight: 700;
+}
+
+.report-reasons label {
+  font-weight: 400;
+}
+
+.report-done {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.report-done p {
+  margin: 0;
 }
 
 /* Mobil: två lappar bredvid varandra i ett rutnät, alla lappar, och tavlan har
@@ -3761,6 +3847,68 @@ label.person-list-item {
 
 .explorer .explorer-crumb-current {
   font-weight: 700;
+}
+
+/* Moderering (pages/ModerationPage.jsx, bara för moderatorer): ett kort per
+   anmälan med vem, var, varför, en kopia av texten (.report-quote) och
+   knapparna. Avstängd står i rött, och påminnelsen om tidigare avstängningar i
+   rutan "Stäng av" står i en gul ruta. */
+.moderation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 640px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Hela listans bredd (vanliga .card är smalare, max 320px). */
+.moderation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: none;
+  padding: 1rem 1.25rem;
+}
+
+.moderation-card p {
+  margin: 0;
+}
+
+.moderation-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.moderation-who {
+  overflow-wrap: anywhere;
+}
+
+.moderation-status {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.moderation-comment {
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.moderation-card .card-actions {
+  flex-wrap: wrap;
+}
+
+.moderation-reminder {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 6px;
+  background: var(--color-accent-soft);
 }
 
 /* Notiser från Intresseklubben (se NotificationsPage), som en inkorg: en

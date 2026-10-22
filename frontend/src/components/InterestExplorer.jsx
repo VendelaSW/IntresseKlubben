@@ -326,9 +326,13 @@ function InterestPicker({ selectedIds, busyId, onToggle, onAddNew, onError }) {
             onAddNew ? (
               // Först när träfflistan gäller texten som står i rutan, annars skulle man kunna lägga till något som har träffar.
               resultsFor === query.trim() && (
-                <NewInterestOffer text={resultsFor} onAddNew={onAddNew} onDone={() => setQuery('')} boxed={false}>
-                  <DidYouMean text={resultsFor} action={addButton} />
-                </NewInterestOffer>
+                <NewInterestOffer
+                  text={resultsFor}
+                  onAddNew={onAddNew}
+                  onDone={() => setQuery('')}
+                  boxed={false}
+                  similarAction={addButton}
+                />
               )
             ) : (
               <>

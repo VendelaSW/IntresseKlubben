@@ -96,12 +96,19 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.people import to_person_response
-from app.auth.security import create_access_token, get_current_user, require_profile, verify_password
+from app.auth.security import (
+    create_access_token,
+    get_current_user,
+    require_profile,
+    suspended_message,
+    verify_password,
+)
 from app.core import error_messages as msg
 from app.core import storage
 from app.core.config import settings
 from app.crud.email_token import TooManyEmails
 from app.crud.contact import blocked_user_ids, is_blocked
+from app.crud.moderation import suspended_user_ids
 from app.crud.dismissed_suggestion import (
     count_dismissed_suggestions,
     dismiss_suggestion,
@@ -196,6 +203,9 @@ def login_user(credentials: UserLogin, db: Session = Depends(get_db)) -> LoginRe
     # Först efter lösenordet, så att svaret inte avslöjar något om konton man inte har lösenordet till.
     if settings.require_email_verification and not user.email_verified:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg.EMAIL_NOT_VERIFIED)
+    suspended = suspended_message(db, user)
+    if suspended is not None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=suspended)
     return LoginResponse(access_token=create_access_token(user.id), user=user)
 
 
@@ -346,7 +356,11 @@ def read_people(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Lägsta åldern kan inte vara högre än den högsta.",
         )
-    hidden_ids = list_dismissed_user_ids(db, current_user.id) | blocked_user_ids(db, current_user.id)
+    hidden_ids = (
+        list_dismissed_user_ids(db, current_user.id)
+        | blocked_user_ids(db, current_user.id)
+        | suspended_user_ids(db)
+    )
     profiles = list_people(
         db, current_user.id, interest_id, municipality_code, hidden_ids,
         gender=gender, min_age=min_age, max_age=max_age,

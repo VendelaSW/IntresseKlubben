@@ -724,6 +724,18 @@ function StyleGuide() {
           läggs i .modal-scroll så att den rullar, och en rad med kryssruta är en
           label.person-list-item. Används t.ex. för "Bjud in" på ett event.
         </p>
+        <p className="hint-text">
+          "Anmäl" (ReportButton) öppnar en popup med det som anmäls (.report-quote), anledningarna som
+          radioknappar (.report-reasons) och en valfri kommentar, och sedan en bekräftelse med "Blockera …
+          också". Knappen finns på profiler, i popupen för en lapp och vid andras brev och
+          chattmeddelanden, där den är en liten grå länk till höger (.report-link) som syns vid hovring
+          på dator och alltid på mobil.
+        </p>
+        <p className="hint-text">
+          Moderering (ModerationPage, bara för moderatorer) visar anmälningarna som kort (.moderation-card)
+          med anledningen som .status-pill-error och texten som .report-quote. Rutan "Stäng av …" har en
+          gul påminnelse (.moderation-reminder) om personen har varit avstängd förut, och nästa steg är förvalt.
+        </p>
         <button type="button" className="secondary-button button-small" style={{ marginTop: '1rem' }} onClick={() => setModalOpen(true)}>
           Öppna exempel
         </button>

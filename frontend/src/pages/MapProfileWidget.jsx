@@ -2,10 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { moderationReportsQuery } from '../services/moderation'
 import { profileQuery } from '../services/profile'
 
-// Menyn: profilsidan, som läggs på kartan som ett block (via `onOpen`), och
-// sist Logga ut. Appens övriga sidor har egna lappar (se MapPageWidgets), och
+// Menyn: profilsidan, som läggs på kartan som ett block (via `onOpen`), för
+// moderatorer också Moderering (med antalet nya anmälningar), och sist Logga ut. Appens övriga sidor har egna lappar (se MapPageWidgets), och
 // växeln Karta | Att göra sitter på kartan (se MapPrototype).
 const MENU = [{ id: 'profil', label: 'Profilsida' }]
 
@@ -21,6 +22,9 @@ function MapProfileWidget({ onOpen }) {
   const { data: profile = null } = useQuery(profileQuery)
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
+  // Nya anmälningar, hämtas först när en moderator öppnar menyn (samma lista som på Moderering).
+  const { data: newReports } = useQuery({ ...moderationReportsQuery(false), enabled: open && Boolean(user.is_moderator) })
+  const menu = user.is_moderator ? [...MENU, { id: 'moderering', label: 'Moderering', count: newReports?.length }] : MENU
 
   // Menyn stängs med Escape eller ett klick någon annanstans (t.ex. på kartan).
   useEffect(() => {
@@ -69,7 +73,7 @@ function MapProfileWidget({ onOpen }) {
       </button>
       {open && (
         <ul className="map-profile-menu">
-          {MENU.map(({ id, label }) => (
+          {menu.map(({ id, label, count }) => (
             <li key={id}>
               <button
                 type="button"
@@ -80,6 +84,11 @@ function MapProfileWidget({ onOpen }) {
                 }}
               >
                 {label}
+                {count > 0 && (
+                  <span className="nav-badge map-profile-menu-count" aria-label={`${count} nya`}>
+                    {count}
+                  </span>
+                )}
               </button>
             </li>
           ))}

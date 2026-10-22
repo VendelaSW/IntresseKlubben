@@ -37,6 +37,7 @@ const MAP_PAD_PATHS = [
   '/meddelanden',
   '/meddelanden/:userId',
   '/anvandare/:userId',
+  '/moderering',
   '/notiser',
 ]
 

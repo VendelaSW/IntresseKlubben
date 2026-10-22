@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Index, Integer, String, func
+from sqlalchemy import Boolean, Column, DateTime, Index, Integer, String, false, func
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
@@ -22,6 +22,9 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     # När intervjun blev klar eller hoppades över. None = ska erbjudas intervjun.
     onboarding_completed_at = Column(DateTime(timezone=True), nullable=True)
+    # Moderatorer hanterar anmälningar och kan stänga av användare (SCRUM-131).
+    # Sätts med `python -m app.make_moderator <användarnamn>`, aldrig i appen.
+    is_moderator = Column(Boolean, nullable=False, default=False, server_default=false())
 
     # En rad per val, med aktivitet, styrka och egna ord (se UserInterest).
     interest_links = relationship("UserInterest", back_populates="user", cascade="all, delete-orphan")

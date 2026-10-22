@@ -31,3 +31,10 @@ class InterestBrowseItem(BaseModel):
     name: str
     path: list[str]
     has_children: bool
+
+
+class SimilarItem(InterestBrowseItem):
+    """Ett förslag i "Menade du" (GET /interests/similar). spelling säger att det liknar i stavning (felstavning eller annat
+    skrivsätt) och inte bara i betydelse: då är det troligen intresset man menade."""
+
+    spelling: bool = False
