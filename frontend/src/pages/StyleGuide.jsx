@@ -225,8 +225,11 @@ function StyleGuide() {
           lägger dem i en ruta över taggarna under. Allt man valt syns, och varje intresse är en egen tagg tills fler än
           tre ligger under samma kategori; då samlas de i den (utils/interestGroups.js), den närmaste kategorin först
           (fyra mysiga spel blir Mysiga spel ▼, också om man inte valt Mysiga spel). Gemensamma intressen har fetstil
-          och en bock på gul botten. På Min profil har taggarna × bara efter "Redigera". Tryck på Historia (fyra under
-          den) och se Fotografering (bara tre under Skapande):
+          och en bock på gul botten. På Min profil har taggarna × bara efter "Redigera", och intressen läggs till med
+          sökrutan direkt i kortet eller i Intressebiblioteket (InterestLibrary, över hela blocket). Där är intressena
+          taggar att trycka på (.interest-pick: ljus nyans och + när de inte är valda, områdets färg och ✓ när de är
+          valda), och pilen efter den streckade linjen öppnar underintressena i samma ruta som här. Tryck på Historia
+          (fyra under den) och se Fotografering (bara tre under Skapande):
         </p>
         <InterestTree
           proposals={profileTree([

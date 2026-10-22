@@ -3694,12 +3694,6 @@ label.person-list-item {
   border-radius: 4px;
 }
 
-/* Det öppna området ligger i listan med kategorier, direkt under raden med den
-   man tryckte på, och tar hela bredden (kategorierna efter hamnar under). */
-.explorer .explorer-panel {
-  flex-basis: 100%;
-}
-
 .explorer .explorer-rows {
   margin: 0;
   padding: 0;
@@ -3725,33 +3719,6 @@ label.person-list-item {
   min-height: 44px;
   justify-content: center;
   font-size: var(--text-body);
-}
-
-/* Ett intresse med underintressen: klicka för att gå ner en nivå. */
-.explorer .explorer-drill {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 44px;
-  padding: 0 0.25rem;
-  border: none;
-  border-radius: 4px;
-  background: none;
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: var(--text-body);
-  text-transform: none;
-  letter-spacing: normal;
-  text-align: left;
-  cursor: pointer;
-}
-
-.explorer .explorer-drill:hover,
-.explorer .explorer-drill:focus-visible {
-  background: var(--color-bg);
-  outline: none;
-  opacity: 1;
 }
 
 /* + / ✓: lägg till eller ta bort. Gul när det är valt, som de valda taggarna. */
@@ -3814,17 +3781,7 @@ label.person-list-item {
   transition: transform 0.15s ease;
 }
 
-/* "Lägg till intressen" / "Klar" på profilen. Triangeln vänds när den är öppen,
-   som på områdestaggarna. */
-.explorer .explorer-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  align-self: flex-start;
-}
-
-.explorer .explorer-area-open .explorer-arrow,
-.explorer .explorer-toggle-open .explorer-arrow {
+.explorer .explorer-area-open .explorer-arrow {
   transform: rotate(180deg);
 }
 
@@ -3834,38 +3791,129 @@ label.person-list-item {
   }
 }
 
-/* Var man är: "Sport och träning › Löpning". */
-.explorer .explorer-crumbs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: var(--text-small);
+/* Intressebiblioteket (InterestLibrary): det öppna området i en ruta i sin
+   ljusa färg, med intressena som taggar att trycka på. */
+.library-area {
+  margin-top: 0.9rem;
+  padding: 0.9rem 0.9rem 1rem;
+  background: var(--tag-sub, var(--color-white));
+  border: 1.5px solid #3a2f25;
+  border-radius: 225px 12px 255px 12px / 12px 255px 12px 225px;
+  box-shadow: 3px 3px 0 #3a2f25;
 }
 
-.explorer .explorer-crumb {
+.library-area-title {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  line-height: 1.1;
+}
+
+/* Ett intresse att välja (PickTag): ljus nyans och + när det inte är valt,
+   områdets färg, ✓, fetstil och nedtryckt när det är valt. */
+.interest-pick {
+  background: var(--tag-sub, var(--color-white));
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.interest-pick.is-on {
+  background: var(--tag-fill, var(--color-white));
+  font-weight: 700;
+}
+
+.interest-pick.is-on,
+.interest-pick:not(.interest-pick-group):hover,
+.interest-pick-group:has(.interest-pick-toggle:hover) {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.interest-pick:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.interest-pick:disabled {
+  cursor: progress;
+}
+
+.interest-pick-mark {
+  display: inline-block;
+  width: 0.7em;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* I rutan med underintressen (som har områdets färg) är de vita tills de är valda. */
+.interest-tag-panel .interest-pick {
+  background: var(--color-white);
+}
+
+.interest-tag-panel .interest-pick.is-on {
+  background: var(--tag-sub, var(--color-white));
+}
+
+/* Ett intresse med underintressen: själva taggen väljer, och pilen (efter en
+   streckad linje) öppnar rutan med underintressena. */
+.interest-pick-group {
+  padding: 0;
+  cursor: default;
+}
+
+.interest-pick-toggle,
+.interest-pick-drill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-}
-
-.explorer .explorer-crumb button {
-  padding: 0 0 1px;
+  gap: 0.3rem;
+  min-height: 1.75rem;
   border: none;
-  border-bottom: 2px solid var(--color-accent);
-  border-radius: 0;
   background: none;
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: var(--text-small);
-  font-weight: 700;
-  text-transform: none;
-  letter-spacing: normal;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
 }
 
-.explorer .explorer-crumb-current {
-  font-weight: 700;
+.interest-pick-toggle {
+  padding: 0.15rem 0.5rem 0.15rem 0.65rem;
+}
+
+.interest-pick-drill {
+  padding: 0 0.55rem 0 0.4rem;
+  border-left: 1.5px dashed #3a2f25;
+}
+
+.interest-pick-toggle:focus-visible,
+.interest-pick-drill:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.interest-pick-toggle:disabled {
+  cursor: progress;
+}
+
+.interest-tag-group.is-open .interest-pick-drill .interest-tag-arrow {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interest-pick {
+    transition: none;
+  }
+}
+
+/* "Intressebiblioteket →" på profilen, under sökrutan. */
+.explorer .explorer-open-library {
+  align-self: flex-start;
+}
+
+/* Intressebiblioteket över hela blocket (ProfilePage, ?bibliotek=1). */
+.explorer-library {
+  width: 100%;
+  max-width: none;
 }
 
 /* Moderering (pages/ModerationPage.jsx, bara för moderatorer): ett kort per

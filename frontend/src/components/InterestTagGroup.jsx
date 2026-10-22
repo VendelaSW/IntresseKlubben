@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useId, useRef, useState } from 'react'
+import { useDismiss } from '../hooks/useDismiss'
 import { areaColors } from '../utils/interestColors'
 import DrawnArrow from './DrawnArrow'
 
@@ -18,24 +19,14 @@ const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 // - `busyKey`: taggen vars borttagning pågår, så att × inte går att trycka på igen
 function InterestTagGroup({ group, isShared, onRemove, busyKey }) {
   const [open, setOpen] = useState(false)
+  const closePanel = useCallback(() => setOpen(false), [])
   const rootRef = useRef(null)
   const panelId = useId()
   const { key, name, area, subs } = group
   const shared = (k) => isShared?.(k) ?? false
   const hasSubs = subs.length > 0
 
-  useEffect(() => {
-    if (!open) return undefined
-    const close = (event) => {
-      if (event.type === 'keydown' ? event.key === 'Escape' : !rootRef.current?.contains(event.target)) setOpen(false)
-    }
-    document.addEventListener('pointerdown', close)
-    document.addEventListener('keydown', close)
-    return () => {
-      document.removeEventListener('pointerdown', close)
-      document.removeEventListener('keydown', close)
-    }
-  }, [open])
+  useDismiss(rootRef, open, closePanel)
 
   const remove = (k, label) =>
     onRemove && (
