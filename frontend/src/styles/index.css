@@ -407,6 +407,52 @@ button.info-link {
   margin-top: 0;
 }
 
+/* Samma röda stil på en knapp utanför ett formulär, t.ex. den lilla "Radera
+   konto" under Redigera profil (DeleteAccount, SCRUM-255). */
+.secondary-button.button-danger {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.secondary-button.button-danger:hover,
+.secondary-button.button-danger:focus-visible {
+  border-color: var(--color-error);
+  background: var(--color-error);
+  color: var(--color-white);
+}
+
+/* Raderingen i popupen (DeleteAccount): en liten knapp i mitten i stället för
+   hela formulärets bredd, så att den inte blir det mest framträdande på sidan. */
+.auth-form .delete-account-confirm {
+  align-self: center;
+  padding: 0.25rem 0.7rem;
+  font-size: var(--text-small);
+}
+
+/* Samma hover som Radera konto (.secondary-button.button-danger): fylld röd. */
+.auth-form .delete-account-confirm:hover:not(:disabled),
+.auth-form .delete-account-confirm:focus-visible {
+  background: var(--color-error);
+  color: var(--color-white);
+  opacity: 1;
+}
+
+/* En liten knapp som ändå är lätt att träffa på pekskärm: ytan man kan trycka på
+   är minst 48 px hög (se CONTRIBUTING, "Mobil"), men knappen ser lika liten ut. */
+@media (pointer: coarse) {
+  .touch-target {
+    position: relative;
+  }
+
+  .touch-target::after {
+    content: '';
+    position: absolute;
+    inset: 50% 0 auto;
+    min-height: 48px;
+    transform: translateY(-50%);
+  }
+}
+
 button.banner-button {
   border: none;
   cursor: pointer;

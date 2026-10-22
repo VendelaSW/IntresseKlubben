@@ -21,7 +21,8 @@ function MapPad({ title, wide = false, onClose, children }) {
 
   useEffect(() => {
     function onKeyDown(event) {
-      if (event.key === 'Escape') close()
+      // En popup (Modal) ovanpå blocket stänger sig själv med Escape; blocket ska ligga kvar.
+      if (event.key === 'Escape' && !document.querySelector('dialog[open]')) close()
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
