@@ -1,4 +1,4 @@
-import InterestTagGroup from './InterestTagGroup'
+import InterestTagGroup, { selectedParentOf } from './InterestTagGroup'
 
 // Intressen som taggar: varje intresse är en tagg, och det som ligger under ett intresse som också finns med
 // (Fyrmodeller under Modellbygge, Mynt under Historia) fälls ut från den med ▼ (se InterestTagGroup). Används för
@@ -7,25 +7,25 @@ import InterestTagGroup from './InterestTagGroup'
 // ligger de kvar och flyttas upp.
 
 // Förslaget ett förslag ligger under i bilden: dess parent_key (en sub under ett nytt intresse i samma analys),
-// annars ett annat förslag vars intresse heter som det sista namnet i förslagets plats i trädet. Så ligger
-// "Mynt" och "Förintelsen" under "Historia" när de föreslås tillsammans med Historia. Finns ingen sådan ligger
-// förslaget överst.
+// annars det närmaste förslaget ovanför i förslagets plats i trädet (path). Så ligger "Mynt" och "Förintelsen"
+// under "Historia" när de föreslås tillsammans med Historia, och "Animal Crossing" (Gaming › Mysiga spel) under
+// "Gaming" även när "Mysiga spel" inte är med. Finns inget sådant ligger förslaget överst.
 export function parentKeyOf(proposal, proposals) {
   if (proposal.interest.parent_key) return proposal.interest.parent_key
-  const above = proposal.interest.path?.at(-1)
-  if (!above) return null
-  const parent = proposals.find((p) => p.key !== proposal.key && p.interest.name.toLowerCase() === above.toLowerCase())
-  return parent ? parent.key : null
+  for (const above of [...(proposal.interest.path ?? [])].reverse()) {
+    const parent = proposals.find((p) => p.key !== proposal.key && p.interest.name.toLowerCase() === above.toLowerCase())
+    if (parent) return parent.key
+  }
+  return null
 }
 
-// Profilens intressen ({ id, name, parent_id }) i samma form som förslagen, så att de kan ritas som ett träd. Ett
-// intresse hamnar under sin förälder bara om personen också har valt föräldern, annars överst.
+// Profilens intressen ({ id, name, parent_id, area }) i samma form som förslagen, så att de kan ritas som ett
+// träd. Ett intresse hamnar under det närmaste valda intresset ovanför (se selectedParentOf), annars överst.
 export function profileTree(interests) {
-  const ids = new Set(interests.map((i) => i.id))
-  return interests.map((i) => ({
-    key: `id:${i.id}`,
-    interest: { ...i, parent_key: ids.has(i.parent_id) ? `id:${i.parent_id}` : null },
-  }))
+  return interests.map((i) => {
+    const parent = selectedParentOf(i, interests)
+    return { key: `id:${i.id}`, interest: { ...i, parent_key: parent ? `id:${parent.id}` : null } }
+  })
 }
 
 // Samma intresse? Ett befintligt intresse är samma om id:t är samma, ett nytt om namnet och platsen i trädet är det.

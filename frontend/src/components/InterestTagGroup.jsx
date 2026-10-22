@@ -88,14 +88,31 @@ function InterestTagGroup({ group, isShared, onRemove, busyKey }) {
   )
 }
 
-// Intressen ({ id, name, parent_id, area }) som grupper: varje intresse vars
-// förälder inte finns med blir en tagg, och allt som ligger under det (också
-// flera nivåer ner) blir dess underintressen. Nycklarna är id:na.
+// Det valda intresse som `interest` ska ligga under, eller null om det ska vara
+// en egen tagg. Först föräldern, om den är vald. Annars huvudområdet, om det är
+// valt: ett mellanled som inte är valt ska inte göra att intresset hamnar för sig
+// (Animal Crossing ligger under Gaming › Mysiga spel, och hamnar under Gaming
+// även när Mysiga spel inte är valt). Vi vet bara föräldern och huvudområdet,
+// inte hela vägen, därför de två.
+export function selectedParentOf(interest, interests) {
+  const parent = interests.find((i) => i.id === interest.parent_id)
+  if (parent) return parent
+  if (interest.area == null || interest.area === interest.name) return null
+  return interests.find((i) => i.name === interest.area && i.parent_id == null && i.id !== interest.id) ?? null
+}
+
+// Intressen ({ id, name, parent_id, area }) som grupper: varje intresse som
+// inte ligger under något valt (se selectedParentOf) blir en tagg, och allt som
+// ligger under det (också flera nivåer ner) blir dess underintressen. Nycklarna
+// är id:na.
 export function groupInterests(interests) {
-  const byId = new Map(interests.map((i) => [i.id, i]))
   const topOf = (interest) => {
     let top = interest
-    while (top.parent_id != null && byId.has(top.parent_id)) top = byId.get(top.parent_id)
+    const seen = new Set([top.id])
+    for (let up = selectedParentOf(top, interests); up && !seen.has(up.id); up = selectedParentOf(top, interests)) {
+      seen.add(up.id)
+      top = up
+    }
     return top
   }
   const groups = new Map()
