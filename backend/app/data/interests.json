@@ -1363,7 +1363,7 @@
       "slug": "datorspel",
       "name": "Datorspel",
       "parent": "tv-spel",
-      "description": "Datorspel: spela spel på dator.",
+      "description": "Datorspel: plattformen PC, att spela på dator. Enskilda spel hör under sin genre, inte här.",
       "aliases": [
         "datorspelande",
         "dator-spel"
@@ -1385,7 +1385,7 @@
       "slug": "tv-spel-konsol",
       "name": "Tv-spel",
       "parent": "tv-spel",
-      "description": "Tv-spel: spela spel på tv och konsol.",
+      "description": "Tv-spel: plattformen konsol och tv, att spela på PlayStation, Xbox och Switch. Enskilda spel hör under sin genre, inte här.",
       "aliases": [
         "tvspel",
         "tv spel"
@@ -1482,7 +1482,7 @@
     {
       "slug": "world-of-warcraft",
       "name": "World of Warcraft",
-      "parent": "rollspel-rpg",
+      "parent": "mmorpg",
       "description": "World of Warcraft: onlinerollspelet i Azeroth.",
       "aliases": [
         "wow"
@@ -1518,7 +1518,7 @@
     {
       "slug": "counter-strike",
       "name": "Counter-Strike",
-      "parent": "action",
+      "parent": "skjutspel",
       "description": "Counter-Strike: lagbaserat skjutspel, från CS 1.6 till CS2.",
       "aliases": [
         "cs",
@@ -1542,7 +1542,12 @@
       "slug": "strategi",
       "name": "Strategi",
       "parent": "tv-spel",
-      "description": "Strategispel: tv-spel där man planerar, bygger och leder arméer eller städer."
+      "description": "Strategispel: tv-spel där man planerar, bygger och leder arméer eller städer.",
+      "aliases": [
+        "strategispel",
+        "realtidsstrategi",
+        "rts"
+      ]
     },
     {
       "slug": "league-of-legends",
@@ -1741,13 +1746,16 @@
     },
     {
       "slug": "skjutspel",
-      "name": "Skjutspel",
+      "name": "FPS",
       "parent": "tv-spel",
+      "description": "FPS: skjutspel sedda genom spelarens egna ögon, som Counter-Strike och Call of Duty.",
       "aliases": [
-        "fps",
+        "skjutspel",
         "förstapersonsskjutare",
+        "first person shooter",
         "shooters",
-        "shooter"
+        "shooter",
+        "battle royale"
       ]
     },
     {
@@ -1885,6 +1893,7 @@
       "slug": "mobilspel",
       "name": "Mobilspel",
       "parent": "tv-spel",
+      "description": "Mobilspel: plattformen mobil, att spela på telefon eller surfplatta. Enskilda spel hör under sin genre, inte här.",
       "aliases": [
         "spel på mobilen",
         "mobilspelen"
@@ -1894,6 +1903,7 @@
       "slug": "vr-spel",
       "name": "VR-spel",
       "parent": "tv-spel",
+      "description": "VR-spel: plattformen virtual reality, att spela med VR-glasögon. Enskilda spel hör under sin genre, inte här.",
       "aliases": [
         "virtual reality-spel",
         "vr-gaming"
@@ -1943,9 +1953,13 @@
     },
     {
       "slug": "spel-och-pussel",
-      "name": "Spel och pussel",
+      "name": "Sällskapsspel och pussel",
       "parent": null,
-      "description": "Spel och pussel: spel som spelas runt ett bord.",
+      "description": "Sällskapsspel och pussel: spel som spelas runt ett bord, med kort och bräde, samt pussel och frågesporter.",
+      "aliases": [
+        "spel och pussel",
+        "pussel och spel"
+      ],
       "activities": [
         "spela"
       ]
@@ -5109,10 +5123,11 @@
     },
     {
       "slug": "skapande",
-      "name": "Skapande",
+      "name": "Kreativitet",
       "parent": null,
-      "description": "Skapande: göra saker med händerna och vara kreativ.",
+      "description": "Kreativitet: skapa och göra saker med händerna.",
       "aliases": [
+        "skapande",
         "kreativt"
       ]
     },
@@ -8347,6 +8362,325 @@
       "name": "Övrigt och nischat",
       "parent": null,
       "description": "Övrigt och nischat: intressen som inte passar något annat område. Sista utväg, välj ett riktigt område först."
+    },
+    {
+      "slug": "roguelike",
+      "name": "Roguelike",
+      "parent": "tv-spel",
+      "description": "Roguelike: spel med slumpade banor där man börjar om när man dör, som Hades och Slay the Spire.",
+      "aliases": [
+        "roguelite",
+        "rogue-like",
+        "roguelikes"
+      ]
+    },
+    {
+      "slug": "mmorpg",
+      "name": "MMORPG",
+      "parent": "tv-spel",
+      "description": "MMORPG: onlinerollspel där tusentals spelare delar samma värld.",
+      "aliases": [
+        "mmo",
+        "massively multiplayer",
+        "onlinerollspel"
+      ]
+    },
+    {
+      "slug": "digitala-kortspel",
+      "name": "Digitala kortspel",
+      "parent": "tv-spel",
+      "description": "Digitala kortspel: kortspel och deckbuilders på dator och mobil, som Hearthstone och Slay the Spire.",
+      "aliases": [
+        "deckbuilder",
+        "deckbuilders",
+        "deckbuilding",
+        "card battler",
+        "digitalt kortspel"
+      ]
+    },
+    {
+      "slug": "tycoon-och-stadsbyggare",
+      "name": "Tycoon och stadsbyggare",
+      "parent": "tv-spel",
+      "description": "Tycoon och stadsbyggare: spel där man bygger och driver en stad, ett företag eller en koloni, som SimCity och Cities: Skylines.",
+      "aliases": [
+        "tycoon",
+        "stadsbyggare",
+        "city builder",
+        "managerspel",
+        "managementspel"
+      ]
+    },
+    {
+      "slug": "pubg-battlegrounds",
+      "name": "PUBG: Battlegrounds",
+      "parent": "skjutspel",
+      "aliases": [
+        "pubg",
+        "playerunknowns battlegrounds",
+        "battlegrounds"
+      ]
+    },
+    {
+      "slug": "team-fortress-2",
+      "name": "Team Fortress 2",
+      "parent": "skjutspel",
+      "aliases": [
+        "tf2"
+      ]
+    },
+    {
+      "slug": "delta-force",
+      "name": "Delta Force",
+      "parent": "skjutspel"
+    },
+    {
+      "slug": "rainbow-six-siege",
+      "name": "Rainbow Six Siege",
+      "parent": "skjutspel",
+      "aliases": [
+        "r6",
+        "rainbow six",
+        "siege"
+      ]
+    },
+    {
+      "slug": "battlefield",
+      "name": "Battlefield",
+      "parent": "skjutspel",
+      "aliases": [
+        "bf"
+      ]
+    },
+    {
+      "slug": "left-4-dead-2",
+      "name": "Left 4 Dead 2",
+      "parent": "skjutspel",
+      "aliases": [
+        "l4d2",
+        "left 4 dead"
+      ]
+    },
+    {
+      "slug": "warframe",
+      "name": "Warframe",
+      "parent": "action"
+    },
+    {
+      "slug": "war-thunder",
+      "name": "War Thunder",
+      "parent": "action"
+    },
+    {
+      "slug": "naraka-bladepoint",
+      "name": "Naraka: Bladepoint",
+      "parent": "action",
+      "aliases": [
+        "naraka"
+      ]
+    },
+    {
+      "slug": "arc-raiders",
+      "name": "ARC Raiders",
+      "parent": "action"
+    },
+    {
+      "slug": "helldivers-2",
+      "name": "Helldivers 2",
+      "parent": "action",
+      "aliases": [
+        "helldivers"
+      ]
+    },
+    {
+      "slug": "cyberpunk-2077",
+      "name": "Cyberpunk 2077",
+      "parent": "rollspel-rpg",
+      "aliases": [
+        "cyberpunk"
+      ]
+    },
+    {
+      "slug": "fallout",
+      "name": "Fallout",
+      "parent": "rollspel-rpg",
+      "aliases": [
+        "fallout 4",
+        "fallout 76",
+        "fallout new vegas"
+      ]
+    },
+    {
+      "slug": "rust",
+      "name": "Rust",
+      "parent": "overlevnadsspel"
+    },
+    {
+      "slug": "valheim",
+      "name": "Valheim",
+      "parent": "overlevnadsspel"
+    },
+    {
+      "slug": "enshrouded",
+      "name": "Enshrouded",
+      "parent": "overlevnadsspel"
+    },
+    {
+      "slug": "palworld",
+      "name": "Palworld",
+      "parent": "overlevnadsspel"
+    },
+    {
+      "slug": "project-zomboid",
+      "name": "Project Zomboid",
+      "parent": "overlevnadsspel",
+      "aliases": [
+        "zomboid"
+      ]
+    },
+    {
+      "slug": "dayz",
+      "name": "DayZ",
+      "parent": "overlevnadsspel"
+    },
+    {
+      "slug": "dont-starve-together",
+      "name": "Don't Starve Together",
+      "parent": "overlevnadsspel",
+      "aliases": [
+        "dont starve",
+        "dont starve together"
+      ]
+    },
+    {
+      "slug": "once-human",
+      "name": "Once Human",
+      "parent": "overlevnadsspel"
+    },
+    {
+      "slug": "dead-by-daylight",
+      "name": "Dead by Daylight",
+      "parent": "skrackspel",
+      "aliases": [
+        "dbd"
+      ]
+    },
+    {
+      "slug": "lethal-company",
+      "name": "Lethal Company",
+      "parent": "skrackspel"
+    },
+    {
+      "slug": "geometry-dash",
+      "name": "Geometry Dash",
+      "parent": "plattformsspel",
+      "aliases": [
+        "gd"
+      ]
+    },
+    {
+      "slug": "hollow-knight",
+      "name": "Hollow Knight",
+      "parent": "plattformsspel",
+      "aliases": [
+        "silksong"
+      ]
+    },
+    {
+      "slug": "total-war",
+      "name": "Total War",
+      "parent": "strategi",
+      "aliases": [
+        "total war warhammer"
+      ]
+    },
+    {
+      "slug": "age-of-empires",
+      "name": "Age of Empires",
+      "parent": "strategi",
+      "aliases": [
+        "aoe",
+        "age of empires ii"
+      ]
+    },
+    {
+      "slug": "starcraft",
+      "name": "StarCraft",
+      "parent": "strategi",
+      "aliases": [
+        "sc2",
+        "starcraft 2"
+      ]
+    },
+    {
+      "slug": "terraria",
+      "name": "Terraria",
+      "parent": "open-world"
+    },
+    {
+      "slug": "hades",
+      "name": "Hades",
+      "parent": "roguelike",
+      "aliases": [
+        "hades 2"
+      ]
+    },
+    {
+      "slug": "the-binding-of-isaac",
+      "name": "The Binding of Isaac",
+      "parent": "roguelike",
+      "aliases": [
+        "isaac",
+        "binding of isaac"
+      ]
+    },
+    {
+      "slug": "hearthstone",
+      "name": "Hearthstone",
+      "parent": "digitala-kortspel"
+    },
+    {
+      "slug": "slay-the-spire",
+      "name": "Slay the Spire",
+      "parent": "digitala-kortspel",
+      "aliases": [
+        "slay the spire 2"
+      ]
+    },
+    {
+      "slug": "cities-skylines",
+      "name": "Cities: Skylines",
+      "parent": "tycoon-och-stadsbyggare",
+      "aliases": [
+        "cities skylines"
+      ]
+    },
+    {
+      "slug": "rimworld",
+      "name": "RimWorld",
+      "parent": "tycoon-och-stadsbyggare"
+    },
+    {
+      "slug": "factorio",
+      "name": "Factorio",
+      "parent": "tycoon-och-stadsbyggare"
+    },
+    {
+      "slug": "euro-truck-simulator-2",
+      "name": "Euro Truck Simulator 2",
+      "parent": "simulatorspel",
+      "aliases": [
+        "ets2",
+        "euro truck"
+      ]
+    },
+    {
+      "slug": "portal-2",
+      "name": "Portal 2",
+      "parent": "pusselspel",
+      "aliases": [
+        "portal"
+      ]
     }
   ]
 }

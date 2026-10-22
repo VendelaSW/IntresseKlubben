@@ -253,9 +253,12 @@ Välj bara same när det är samma sak, inte ett närliggande: "jazzpiano" är i
 - new: taggen är ett riktigt intresse eller en hobby som saknas i listan. För en tagg utan parent_key är \
 parent_id OBLIGATORISKT och måste vara ett id ur listan: id:t på det befintliga intresse eller område \
 som taggen hör under bäst (en tagg om ett kortspel hör under Kortspel, en musikgenre under Musik, \
-modellbygge under Skapande). Lämna aldrig parent_id tomt för en sådan tagg. Finns ingen exakt förälder \
+modellbygge under Kreativitet). Ett enskilt spel hör under sin genre (Action, Rollspel (RPG), FPS, \
+Strategi och så vidare), aldrig under Datorspel, Tv-spel, Mobilspel eller VR-spel: de är plattformar, \
+för maskinerna och sättet man spelar på (PlayStation, Switch, PC), inte för enskilda spel. \
+Lämna aldrig parent_id tomt för en sådan tagg. Finns ingen exakt förälder \
 väljer du det område som ligger närmast (mynt och frimärken hör närmast under Historia, \
-hantverk under Skapande). Ett riktigt intresse ska aldrig bli none bara för att området inte passar \
+hantverk under Kreativitet). Ett riktigt intresse ska aldrig bli none bara för att området inte passar \
 perfekt, utan hamna under det närmaste. Området Övrigt och nischat är den sista utvägen och får bara \
 väljas när inget annat område passar alls, aldrig för att du är osäker: välj alltid ett riktigt område \
 först. En tagg \
