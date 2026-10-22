@@ -241,6 +241,17 @@ def seed(app, db: Session) -> dict[str, int]:
         description=LONG_LETTER[:800],
     )
     api.call("POST", f"/events/{long_title}/invitations", max_, json={"user_ids": [anna], "group_ids": []})
+    # Öppna events i Annas kommun (Göteborg) den här veckan, som hon inte är inbjuden till: de syns under
+    # Förslag och under "I närheten den här veckan" på Att göra, Fotopromenaden först eftersom Anna gillar
+    # fotografering. Kommunen står i adressen, som kartan och Att göra läser den.
+    create_event(
+        api, cecilia, "Fotopromenad i Haga", 2, interest="Fotografering", place_name="Haga",
+        address="Haga Nygata 1, Göteborg", visibility="open",
+    )
+    create_event(
+        api, bertil, "Schackkväll på biblioteket", 1, interest="Schack", address="Götaplatsen 3, Göteborg",
+        visibility="open",
+    )
 
     # Alla testkonton har bekräftad e-post, så att inget mejl behövs.
     now = datetime.now(timezone.utc)

@@ -123,7 +123,27 @@ def test_create_event_in_own_group(client, db, user, interest, municipalities):
     assert response.status_code == 201
     assert response.json()["group_id"] == group.id
     assert response.json()["group_name"] == "Löparna"
+    assert response.json()["group_visible"] is True
     assert response.json()["visibility"] == "open"
+
+
+def test_group_is_only_visible_to_those_who_may_open_it(client, db, user, other, interest, municipalities):
+    # Den inbjudna till ett event i en privat klubb ser klubbens namn, men får bara en
+    # länk om klubben går att öppna (med eller inbjuden till klubben), som GET /groups/{id}.
+    public = add_group(db, other.id)
+    private = add_group(db, other.id, visibility=GroupVisibility.private, name="Hemliga")
+    for group in (public, private):
+        event = add_event(db, other.id, group_id=group.id, visibility=EventVisibility.invite_only)
+        db.add(EventInvitation(event_id=event.id, user_id=user.id))
+    db.commit()
+
+    visible = {e["group_name"]: e["group_visible"] for e in client.get("/events/").json()}
+    assert visible == {"Löparna": True, "Hemliga": False}
+
+    db.add(GroupMember(group_id=private.id, user_id=user.id))
+    db.commit()
+    visible = {e["group_name"]: e["group_visible"] for e in client.get("/events/").json()}
+    assert visible["Hemliga"] is True
 
 
 def test_event_in_private_group_cannot_be_open(client, db, user, interest, municipalities):
