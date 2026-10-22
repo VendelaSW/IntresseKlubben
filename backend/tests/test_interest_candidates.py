@@ -70,6 +70,27 @@ def test_the_nearest_to_the_tag_and_the_text_are_chosen_with_every_area_and_the_
     assert not result & {"Jazz", "Metal", "Bouldering", "Löpning"}  # det som ligger långt bort visas inte
 
 
+def test_every_subcategory_of_an_area_with_candidates_is_chosen_so_a_new_interest_can_go_under_the_right_one(db, world):
+    make(db, "Keramik", world["Skapande"])  # ingen vektor, ligger inte nära något
+    make(db, "Textil", world["Skapande"])
+    db.commit()
+    index = load_library_index(db)
+    find, _ = finder(db, per_tag=2, for_text=2)
+    result = names(db, find([Tag("t1", "stickade sockor")], TEXT, index))
+    assert {"Keramik", "Textil", "Virkning"} <= result  # alla barn till Skapande, området med kandidaterna
+    assert not result & {"Jazz", "Metal", "Bouldering", "Löpning"}  # områden utan kandidater får inga barn med
+
+
+def test_the_subcategories_never_push_the_list_over_its_maximum(db, world):
+    for i in range(10):
+        make(db, f"Skapande {i}", world["Skapande"])
+    db.commit()
+    index = load_library_index(db)
+    find, _ = finder(db, per_tag=2, for_text=2, maximum=7)
+    chosen = find([Tag("t1", "stickade sockor")], TEXT, index)
+    assert len(chosen) <= 7 and "Stickning" in names(db, chosen)
+
+
 def test_the_embedder_is_called_once_with_the_tags_and_the_whole_text(db, world):
     index = load_library_index(db)
     find, embedder = finder(db)

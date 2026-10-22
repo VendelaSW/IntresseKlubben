@@ -86,6 +86,32 @@ def test_parse_puts_parents_before_children():
     assert entries[0].aliases == ["idrott"]
 
 
+def test_allow_children_is_true_unless_the_file_says_false():
+    entries = _parse(
+        {"slug": "tv-spel", "name": "Tv-spel"},
+        {"slug": "playstation", "name": "PlayStation", "parent": "tv-spel", "allow_children": False},
+    )
+    assert {e.slug: e.allow_children for e in entries} == {"tv-spel": True, "playstation": False}
+
+
+def test_allow_children_must_be_true_or_false():
+    with pytest.raises(LibraryError, match="allow_children"):
+        _parse({"slug": "a", "name": "A", "allow_children": "nej"})
+
+
+def test_the_platforms_in_the_library_do_not_allow_new_children():
+    closed = {e.slug for e in load_library() if not e.allow_children}
+    assert {"playstation", "xbox", "nintendo-switch", "pc", "konsol", "datorspel", "tv-spel-konsol", "vr-spel"} <= closed
+    assert "mobilspel" not in closed  # mobilspel som bara finns på mobilen hör under det
+
+
+def test_sync_sets_and_updates_allow_children(db):
+    sync_library(db, _entries({"slug": "playstation", "name": "PlayStation", "allow_children": False}))
+    assert db.query(Interest).filter_by(slug="playstation").one().allow_children is False
+    result = sync_library(db, _entries({"slug": "playstation", "name": "PlayStation"}))
+    assert result.updated == 1 and db.query(Interest).filter_by(slug="playstation").one().allow_children is True
+
+
 @pytest.mark.parametrize(
     ("interests", "problem"),
     [
