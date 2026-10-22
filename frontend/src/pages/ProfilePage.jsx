@@ -294,9 +294,10 @@ function ProfilePage() {
     setMyInterests(await confirmInterests(result))
   }
 
-  // Frågar inte först: det går bara att ta bort i Redigera-popupen, och ångras
-  // med ett tryck till. Underintressen till det man tar bort ligger kvar.
+  // Frågar först. Underintressen till det man tar bort ligger kvar, och visas
+  // överst i stället.
   async function removeSavedInterest(interest) {
+    if (!window.confirm(`Vill du ta bort ${interest.name} från din profil?`)) return
     setMyInterests(await removeInterest(interest.id))
   }
 

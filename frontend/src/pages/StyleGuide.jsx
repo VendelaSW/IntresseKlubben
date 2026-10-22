@@ -225,9 +225,8 @@ function StyleGuide() {
           lägger dem i en ruta över taggarna under. Allt man valt syns, och varje intresse är en egen tagg tills fler än
           tre ligger under samma kategori; då samlas de i den (utils/interestGroups.js), den närmaste kategorin först
           (fyra mysiga spel blir Mysiga spel ▼, också om man inte valt Mysiga spel). Gemensamma intressen har fetstil
-          och en bock på gul botten. På Min profil ändras intressena i popupen "Redigera": × under Dina, och under Lägg
-          till är intressena vita taggar att trycka på (.interest-pick, i områdets färg med ✓ när de är valda, › visar
-          nivån under). Tryck på Historia (fyra under den) och se Fotografering (bara tre under Skapande):
+          och en bock på gul botten. På Min profil har taggarna × bara efter "Redigera". Tryck på Historia (fyra under
+          den) och se Fotografering (bara tre under Skapande):
         </p>
         <InterestTree
           proposals={profileTree([
@@ -537,14 +536,16 @@ function StyleGuide() {
           .card-actions. Korten i .card-grid-compact är lika höga i varje rad, och på dator fyller de
           bredden kant i kant med rubriken, så många per rad som får plats. Klubb- och eventkort är
           minst --card-height höga; namnet kortas av efter två rader och beskrivningen efter tre, med
-          "…". Personkorten är så höga som innehållet och visar högst tre intressen på en rad (så
+          "…". Ort och medlemmar (en rad) eller tid och plats (två rader) ligger nederst, ovanför
+          intresset (.list-card-meta), så att de och taggen står på samma plats på alla kort; varje rad
+          kortas med "…". Personkorten är så höga som innehållet och visar högst tre intressen på en rad (så
           många som får plats hela); fler fälls ut i en ruta med ⋯.
         </p>
         <div className="card-grid card-grid-compact" style={{ marginTop: '1rem' }}>
           <article className="card card-interactive list-card">
             <button type="button" className="list-card-link">
               <span className="card-title">Exempel</span>
-              <span className="card-subheading">Göteborg · 3 medlemmar</span>
+              <span className="card-subheading list-card-meta">Göteborg · 3 medlemmar</span>
               <span className="card-text list-card-description">
                 En kort beskrivning som visas på kortet. Är den lång kortas den av efter tre rader.
               </span>
@@ -552,6 +553,19 @@ function StyleGuide() {
             <div className="card-actions">
               <span className="status-pill status-pill-success">Medlem</span>
               <span className="status-pill">Privat</span>
+            </div>
+          </article>
+          <article className="card card-interactive list-card">
+            <button type="button" className="list-card-link">
+              <span className="card-title">Ett event med ett namn som är så långt att det kortas av</span>
+              <span className="card-subheading list-card-meta">
+                <span>lör 10 okt 13:30 – 16:00</span>
+                <span>Slottsskogen, vid stora dammen nedanför Björngårdsvillan</span>
+              </span>
+              <span className="card-text list-card-description">Tiden på en rad och platsen under.</span>
+            </button>
+            <div className="card-actions">
+              <span className="status-pill status-pill-success">Öppet</span>
             </div>
           </article>
         </div>

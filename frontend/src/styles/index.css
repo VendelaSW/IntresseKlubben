@@ -1474,17 +1474,25 @@ span.tag-selected:hover {
   margin-bottom: 0;
 }
 
-/* Intressena på personkortet (se CardInterests i PersonCard): högst tre på en
-   rad, och bara så många som får plats hela. Raden bryts aldrig. Får inte ens
-   ett namn plats (is-tight) kortas det med "…". */
+/* Intressena på personkortet (se CardInterests i PersonCard): så många som
+   får plats hela på två rader, resten bakom ⋯. Får inte ens ett namn plats
+   (is-tight) står det ensamt på raden och kortas med "…". */
 .person-card-interests {
   position: relative;
 }
 
+/* Plats för två rader alltid (luften för bockarna, två taggar på 1.75rem och
+   radavståndet), så att alla kort är lika stora och knapparna står på samma
+   höjd. Med en rad ligger den där den första av två rader ligger. */
 .person-card-interests > .interest-tags {
-  flex-wrap: nowrap;
   /* Luft för bockarna, som sticker upp ovanför taggarna. */
   padding: 0.45rem 0 0 0.45rem;
+  min-height: calc(0.45rem + 2 * 1.75rem + 0.6rem);
+  align-content: flex-start;
+}
+
+.person-card-interests.is-tight > .interest-tags {
+  flex-wrap: nowrap;
 }
 
 .person-card-interests > .interest-tags > li {
@@ -1533,14 +1541,15 @@ span.tag-selected:hover {
   margin-top: auto;
 }
 
-.person-card > .person-card-interests + .card-actions {
-  margin-top: 0;
+/* Med två rader taggar är luften ovanför (från staden, eller raden "Ni har …
+   gemensamma intressen") lika stor som luften under, ner till knapparna.
+   Padding ovanför, eftersom marginalen (auto) trycker ner raden. */
+.person-card > .person-card-interests {
+  padding-top: 0.4rem;
 }
 
-/* Utan raden om gemensamma intressen kommer intressena direkt efter staden:
-   lite extra luft där (padding, eftersom marginalen ovan trycker ner raden). */
-.person-card-link + .person-card-interests {
-  padding-top: 0.5rem;
+.person-card > .person-card-interests + .card-actions {
+  margin-top: 0.6rem;
 }
 
 /* Knapparna på personkorten: den första mot vänsterkanten och den andra mot
@@ -3226,6 +3235,41 @@ button.board-note:focus-visible {
   margin-right: -0.25em;
 }
 
+/* Ort och medlemmar (klubbar) eller tid och plats (events) längst ner i den
+   klickbara delen, precis ovanför intresset, så att de och taggen ligger på
+   samma ställe på alla kort hur lång titeln och beskrivningen än är. Luften
+   hamnar ovanför, under beskrivningen. Varje rad kortas med "…" i stället för
+   att brytas: en rad på klubbar, två (tid, och plats under) på events. */
+.list-card-link {
+  flex: 1;
+}
+
+.list-card-link .list-card-meta {
+  order: 1;
+  margin-top: auto;
+  width: 100%;
+}
+
+/* Radhöjden är lite större än titelns (1.1), så att g, j och p inte klipps
+   där raden kortas av (overflow: hidden). */
+.list-card-link .list-card-meta {
+  line-height: 1.3;
+}
+
+.list-card-meta,
+.list-card-meta > span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Lika hög knapprad på alla kort ("Gå med" är lägre än märkena), så att
+   taggen ovanför står på samma höjd. */
+.list-card > .card-actions {
+  min-height: 2.2rem;
+}
+
 /* Bara början av beskrivningen på kortet; hela syns i postens egen vy. */
 .list-card-description {
   display: -webkit-box;
@@ -3642,6 +3686,33 @@ label.person-list-item {
   font-size: var(--text-body);
 }
 
+/* Ett intresse med underintressen: klicka för att gå ner en nivå. */
+.explorer .explorer-drill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: left;
+  cursor: pointer;
+}
+
+.explorer .explorer-drill:hover,
+.explorer .explorer-drill:focus-visible {
+  background: var(--color-bg);
+  outline: none;
+  opacity: 1;
+}
+
 /* + / ✓: lägg till eller ta bort. Gul när det är valt, som de valda taggarna. */
 .explorer .explorer-add {
   flex: none;
@@ -3707,106 +3778,18 @@ label.person-list-item {
   transition: transform 0.15s ease;
 }
 
-.explorer .explorer-area-open .explorer-arrow {
-  transform: rotate(180deg);
-}
-
-/* Rutan med en kategoris intressen ("Lägg till"): kategorins ljusa färg, mörk
-   kant och handritad form, som rutan med underintressen (.interest-tag-panel). */
-.explorer .explorer-pick-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 0.7rem 0.8rem;
-  background: var(--tag-sub, var(--color-white));
-  border: 1.5px solid #3a2f25;
-  border-radius: 225px 12px 255px 12px / 12px 255px 12px 225px;
-  box-shadow: 3px 3px 0 #3a2f25;
-}
-
-.explorer .explorer-pick-panel .hint-text {
-  margin: 0;
-}
-
-/* "← Tillbaka" (en nivå upp) bredvid var man är, när man gått ner en nivå. */
-.explorer .explorer-pick-top {
-  display: flex;
-  flex-wrap: wrap;
+/* "Lägg till intressen" / "Klar" på profilen. Triangeln vänds när den är öppen,
+   som på områdestaggarna. */
+.explorer .explorer-toggle {
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem 0.75rem;
+  gap: 0.5rem;
+  align-self: flex-start;
 }
 
-/* Flikarna i Redigera-popupen: Dina får en lägsta höjd och Lägg till en rad
-   taggar mindre än förut (den rullar), så att popupen inte hoppar så mycket
-   när man byter flik. */
-.explorer.explorer-view-mine {
-  min-height: 10rem;
-}
-
-.explorer.explorer-view-add {
-  max-height: min(24.5rem, calc(85vh - 11.5rem));
-}
-
-/* På mobil är det skärmhöjden som sätter gränsen: en rad under vad som får plats. */
-@media (max-width: 767px) {
-  .explorer.explorer-view-add {
-    max-height: calc(85vh - 11.5rem);
-  }
-}
-
-/* Ett intresse att välja (PickTag): vit när det inte är valt, i områdets färg
-   och nedtryckt med ✓ när det är valt. Hela taggen är en knapp; › går en nivå ner. */
-.interest-pick {
-  background: var(--color-white);
-  padding: 0;
-}
-
-.interest-pick.is-on {
-  background: var(--tag-fill, var(--color-white));
-  box-shadow: none;
-  transform: translate(2px, 2px);
-  font-weight: 700;
-}
-
-.interest-pick-toggle,
-.interest-pick-drill {
-  min-height: 1.75rem;
-  border: none;
-  background: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-
-.interest-pick-toggle {
-  padding: 0.15rem 0.65rem;
-  text-align: left;
-}
-
-.interest-pick-drill {
-  padding: 0 0.6rem 0 0.35rem;
-  border-left: 1.5px dashed #3a2f25;
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.interest-pick:not(.is-on):has(.interest-pick-toggle:hover) {
-  box-shadow: none;
-  transform: translate(2px, 2px);
-}
-
-.interest-pick-drill:hover {
-  background: rgba(58, 47, 37, 0.08);
-}
-
-.interest-pick-toggle:focus-visible,
-.interest-pick-drill:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.interest-pick-toggle:disabled {
-  cursor: progress;
+.explorer .explorer-area-open .explorer-arrow,
+.explorer .explorer-toggle-open .explorer-arrow {
+  transform: rotate(180deg);
 }
 
 @media (prefers-reduced-motion: reduce) {

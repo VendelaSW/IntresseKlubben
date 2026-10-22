@@ -4,19 +4,18 @@ import Avatar from './Avatar'
 import { groupInterests } from '../utils/interestGroups'
 import InterestTags from './InterestTags'
 
-// Högst så många intressen (huvudintressen, med sina underintressen bakom ▼)
-// syns på kortet, på en rad. Fler fälls ut med ⋯.
-const MAX_TAGS = 3
+// Så många rader intressetaggar syns på kortet. Fler fälls ut med ⋯.
+const MAX_ROWS = 2
 
-// Intressena på ett personkort: på en rad, de gemensamma först, och bara så
-// många som får plats hela (högst MAX_TAGS). Har personen fler visar en
-// ⋯-tagg alla i en ruta som fälls ut över kortet, så att man slipper gå in på
-// profilen. Rutan stängs med ⋯ igen, ett klick utanför eller Esc.
+// Intressena på ett personkort: de gemensamma först, och så många som får plats
+// hela på MAX_ROWS rader. Har personen fler visar en ⋯-tagg alla i en ruta som
+// fälls ut över kortet, så att man slipper gå in på profilen. Rutan stängs med
+// ⋯ igen, ett klick utanför eller Esc.
 function CardInterests({ interests, sharedIds }) {
   const [open, setOpen] = useState(false)
-  // Hur många taggar som får plats på raden. Räknas ner tills raden inte är
-  // för bred, och börjar om när kortet ändrar bredd.
-  const [count, setCount] = useState(MAX_TAGS)
+  // Hur många taggar som får plats. Räknas ner tills de (med ⋯) ryms på
+  // MAX_ROWS rader, och börjar om med alla när kortet ändrar bredd.
+  const [count, setCount] = useState(Infinity)
   const boxRef = useRef(null)
   const rowRef = useRef(null)
   const panelId = useId()
@@ -26,15 +25,18 @@ function CardInterests({ interests, sharedIds }) {
 
   useLayoutEffect(() => {
     const row = rowRef.current
-    if (count > 1 && row && row.scrollWidth > row.clientWidth + 1) setCount(count - 1)
-  }, [count, interests])
+    if (!row) return
+    const rows = new Set([...row.children].map((item) => item.offsetTop)).size
+    const shown = Math.min(count, ordered.length)
+    if (shown > 1 && (rows > MAX_ROWS || row.scrollWidth > row.clientWidth + 1)) setCount(shown - 1)
+  }, [count, interests, ordered.length])
 
   useEffect(() => {
     let width = boxRef.current?.offsetWidth
     const observer = new ResizeObserver(([entry]) => {
       if (entry.contentRect.width === width) return
       width = entry.contentRect.width
-      setCount(MAX_TAGS)
+      setCount(Infinity)
     })
     observer.observe(boxRef.current)
     return () => observer.disconnect()

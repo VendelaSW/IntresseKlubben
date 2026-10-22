@@ -41,8 +41,10 @@ function EventList({ events, emptyText, myInterestIds, onSelect }) {
         <article key={event.id} className="card card-interactive list-card">
           <button type="button" className="list-card-link" onClick={() => onSelect(event)}>
             <span className="card-title">{event.title}</span>
-            <span className="card-subheading">
-              {eventTimeText(event)} · {event.place_name}
+            {/* Alltid två rader: tiden och platsen under, var och en kortad med "…" (se .list-card-meta). */}
+            <span className="card-subheading list-card-meta">
+              <span>{eventTimeText(event)}</span>
+              <span>{event.place_name}</span>
             </span>
             <span className="card-text list-card-description">{event.description}</span>
           </button>
