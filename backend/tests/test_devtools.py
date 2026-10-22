@@ -75,6 +75,18 @@ def test_seed_gives_anna_something_of_everything(seeded, client, dev_client):
     assert badges["unread_conversations"] == 2
 
 
+def test_seed_has_open_events_near_anna_this_week(seeded, client, dev_client):
+    # För Förslag och "I närheten den här veckan" på Att göra: öppna events i Göteborg som Anna inte är inbjuden till.
+    token = dev_client.post("/dev/login", json={"username": "anna"}).json()["access_token"]
+    events = client.get("/events/", headers={"Authorization": f"Bearer {token}"}).json()
+    open_nearby = {
+        e["title"]
+        for e in events
+        if e["visibility"] == "open" and not e["is_invited"] and not e["is_owner"] and "Göteborg" in e["address"]
+    }
+    assert open_nearby == {"Fotopromenad i Haga", "Schackkväll på biblioteket"}
+
+
 def test_accounts_lists_the_test_accounts(seeded, dev_client):
     accounts = dev_client.get("/dev/accounts").json()
     assert [a["username"] for a in accounts] == [account["username"] for account in ACCOUNTS]
