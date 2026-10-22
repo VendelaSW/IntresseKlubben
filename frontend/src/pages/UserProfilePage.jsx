@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
-import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
+import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import ReportButton from '../components/ReportButton'
 import { eventTimeText } from '../components/events/EventList'
@@ -340,12 +340,11 @@ function UserProfilePage() {
           <ProfileAbout text={profile.profile_text} />
           <section className="profile-interests">
             <h2>Intressen</h2>
-            {/* Som ett träd, som på Min profil. Gemensamma intressen gula; den egna profilen: alla gula. */}
+            {/* Som på Min profil: underintressen bakom ▼, gemensamma intressen med en bock (inga på den egna). */}
             {profile.interests.length > 0 ? (
               <InterestTree
                 proposals={profileTree(profile.interests)}
                 align="start"
-                maxSubs={PROFILE_MAX_SUBS}
                 highlight={isMe ? undefined : new Set([...(myInterestIds ?? [])].map((id) => `id:${id}`))}
               />
             ) : (

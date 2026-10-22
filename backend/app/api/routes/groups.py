@@ -76,6 +76,7 @@ def _to_response(group: Group, user_id: int, hidden: set[int], blocked_by_me: se
         longitude=group.longitude,
         interest_id=group.interest_id,
         interest_name=group.interest.name,
+        interest_area=group.interest.area,
         municipality_code=group.municipality_code,
         municipality_name=group.municipality.name,
         visibility=group.visibility,

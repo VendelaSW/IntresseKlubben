@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import InvitePicker from '../events/InvitePicker'
+import InterestTags from '../InterestTags'
 import Modal from '../Modal'
 import ShowOnMapButton from '../ShowOnMapButton'
 import GroupEvents from './GroupEvents'
@@ -56,11 +57,7 @@ function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecl
       {group.is_member && group.has_blocked_member && (
         <p className="soft-box soft-box-wide soft-box-text">Någon du har blockerat är med i den här klubben.</p>
       )}
-      <ul className="tags">
-        <li>
-          <span className="tag tag-selected tag-static">{group.interest_name}</span>
-        </li>
-      </ul>
+      <InterestTags interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area }]} />
       <div className="card-actions">
         <RoleBadge group={group} />
         {group.visibility === 'private' && <span className="status-pill">Privat</span>}

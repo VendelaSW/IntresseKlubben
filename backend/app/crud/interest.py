@@ -111,13 +111,8 @@ def load_library_index(db: Session) -> LibraryIndex:
 
 
 def interest_path(interest: Interest) -> list[str]:
-    """Namnen ovanför intresset i trädet, uppifrån."""
-    path = []
-    parent = interest.parent
-    while parent is not None:
-        path.insert(0, parent.name)
-        parent = parent.parent
-    return path
+    """Namnen ovanför intresset i trädet, uppifrån (se Interest.path)."""
+    return interest.path
 
 
 def ids_with_children(db: Session, interests: list[Interest]) -> set[int]:

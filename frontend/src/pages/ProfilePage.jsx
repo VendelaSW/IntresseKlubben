@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import BackButton from '../components/BackButton'
 import BirthDatePicker from '../components/BirthDatePicker'
 import BlockedUsers from '../components/BlockedUsers'
 import ChangePassword from '../components/ChangePassword'
@@ -10,6 +11,7 @@ import MunicipalityPicker from '../components/MunicipalityPicker'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { useAuth } from '../hooks/useAuth'
+import { useGoBack } from '../hooks/useCanGoBack'
 import { checkAvailability, getCurrentUser, updateAccount } from '../services/api'
 import { clearProfileDraft, loadProfileDraft, saveProfileDraft } from '../services/profileDraft'
 import { resizeProfileImage } from '../services/resizeProfileImage'
@@ -134,10 +136,14 @@ function ProfilePage() {
   const navigate = useNavigate()
   // ?lista=1: formuläret där man väljer intressen ur listan i stället för att gå igenom intervjun. Dit länkar
   // intervjun när AI:n inte kan tolka texten.
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const listMode = searchParams.has('lista')
   // ?redigera=1: öppnas direkt i "Redigera profil" (kartans profilblock länkar hit).
   const editRequested = searchParams.has('redigera')
+  // ?bibliotek=1: Intressebiblioteket över hela sidan i stället för profilen. Står i adressen, så att Tillbaka
+  // och webbläsarens bakåt går tillbaka till profilen.
+  const libraryOpen = searchParams.has('bibliotek')
+  const closeLibrary = useGoBack(() => setSearchParams({}, { replace: true }))
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   // Kontouppgifterna (användarnamn och e-post) från /users/me. Visas i
@@ -398,6 +404,21 @@ function ProfilePage() {
     )
   }
 
+  if (libraryOpen && profile && !editing) {
+    return (
+      <>
+        <BackButton onClick={closeLibrary} />
+        <InterestExplorer
+          mode="library"
+          selected={myInterests}
+          onAdd={addSavedInterest}
+          onRemove={removeSavedInterest}
+          onAddNew={addNewInterest}
+        />
+      </>
+    )
+  }
+
   if (editing) {
     const isNew = profile === null
     return (
@@ -489,7 +510,7 @@ function ProfilePage() {
               dem i "Vad gillar du?" på profilen. */}
           {isNew && (
             <InterestExplorer
-              card={false}
+              mode="form"
               selected={draftInterests}
               onAdd={(interest) => setDraftInterests((current) => [...current, interest].sort(byName))}
               onRemove={(interest) => setDraftInterests((current) => current.filter((i) => i.id !== interest.id))}
@@ -603,6 +624,7 @@ function ProfilePage() {
       onAdd={addSavedInterest}
       onRemove={removeSavedInterest}
       onAddNew={addNewInterest}
+      onOpenLibrary={() => setSearchParams({ bibliotek: '1' })}
     />
     </div>
   )

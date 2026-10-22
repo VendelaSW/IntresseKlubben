@@ -62,6 +62,7 @@ def test_create_group_makes_creator_owner(client, user, new_group):
     group = new_group(name="  Morgonlöparna  ", meeting_info="Tisdagar 06.30")
     assert group["name"] == "Morgonlöparna"
     assert group["interest_name"] == "Löpning"
+    assert group["interest_area"] == "Löpning"  # ett huvudområde är sitt eget
     assert group["municipality_name"] == "Göteborg"
     assert group["visibility"] == "public"
     assert group["member_count"] == 1
