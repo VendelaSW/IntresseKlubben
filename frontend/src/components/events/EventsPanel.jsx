@@ -14,6 +14,7 @@ import { myGroupsQuery } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
 import { useAuth } from '../../hooks/useAuth'
 import { markEventsSeen } from '../../services/eventsSeen'
+import { TIME_FILTERS, inTimeFilter } from '../../utils/eventTime'
 
 const TABS = [
   { id: 'mine', label: 'Mina events' },
@@ -119,6 +120,8 @@ function EventsPanel() {
     if (view !== 'list') setNotice('')
   }, [view])
   const [myInterestIds, setMyInterestIds] = useState(new Set())
+  // Tidsfiltret ('' = alla tider, se utils/eventTime.js). Gäller alla flikar.
+  const [timeFilter, setTimeFilter] = useState('')
 
   useEffect(() => {
     Promise.all([getAllInterests(), getMyInterests()])
@@ -154,7 +157,10 @@ function EventsPanel() {
     await loadEvents()
   }
 
-  const lists = splitEvents(events)
+  // Flikarna (och deras antal) visar bara events som passar filtret. `unfiltered`
+  // säger om en tom flik är tom på grund av filtret (då erbjuds "Rensa filter").
+  const unfiltered = splitEvents(events)
+  const lists = timeFilter ? splitEvents(events.filter((event) => inTimeFilter(event, timeFilter))) : unfiltered
   // Leta upp eventet i hela listan, så att vyn visar ens senaste svar.
   const selected = typeof view === 'number' ? events.find((e) => e.id === view) : null
   // Ett event som inte (längre) finns i listan: raderat av den som skapade det,
@@ -259,12 +265,30 @@ function EventsPanel() {
             </>
           ) : (
             <>
-              <EventList
-                events={lists[tab]}
-                emptyText={EMPTY_TEXT[tab]}
-                myInterestIds={myInterestIds}
-                onSelect={(e) => setView(e.id)}
-              />
+              <div className="filter-select-row filter-select-row-compact">
+                <select aria-label="Filtrera på tid" value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
+                  {TIME_FILTERS.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {lists[tab].length === 0 && unfiltered[tab].length > 0 ? (
+                <div className="content-stack">
+                  <p className="hint-text">Inga events matchar ditt filter.</p>
+                  <button type="button" className="secondary-button" onClick={() => setTimeFilter('')}>
+                    Rensa filter
+                  </button>
+                </div>
+              ) : (
+                <EventList
+                  events={lists[tab]}
+                  emptyText={EMPTY_TEXT[tab]}
+                  myInterestIds={myInterestIds}
+                  onSelect={(e) => setView(e.id)}
+                />
+              )}
               {tab === 'invitations' && lists.declined.length > 0 && (
                 <>
                   <h2>Nekade ({lists.declined.length})</h2>
