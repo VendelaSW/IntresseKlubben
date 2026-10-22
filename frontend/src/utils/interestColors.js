@@ -10,7 +10,7 @@ const AREA_COLORS = {
   Dans: ['#ffcdc4', '#ffeeea'],
   'Scen och teater': ['#ffd9c4', '#ffefe6'],
   'Konst och museer': ['#fed3b2', '#fff0e3'],
-  Skapande: ['#ffe0b7', '#fef1e2'],
+  Kreativitet: ['#ffe0b7', '#fef1e2'],
   'Mode och stil': ['#efdaac', '#fbf3e1'],
   'Hem och inredning': ['#efe8b7', '#f7f4e1'],
   'Mat och dryck': ['#dae2b1', '#f2f6e3'],
@@ -24,7 +24,7 @@ const AREA_COLORS = {
   Vetenskap: ['#b1e5ff', '#e3f7ff'],
   Teknik: ['#c3ecff', '#e6f6ff'],
   Gaming: ['#c4deff', '#eaf4ff'],
-  'Spel och pussel': ['#d8e4ff', '#eef3ff'],
+  'Sällskapsspel och pussel': ['#d8e4ff', '#eef3ff'],
   'Film och tv': ['#dad6ff', '#f2f1ff'],
   'Podcasts och radio': ['#efdcff', '#f7f0ff'],
   'Böcker och litteratur': ['#efd0f9', '#fbefff'],
@@ -35,11 +35,19 @@ const AREA_COLORS = {
   'Övrigt och nischat': ['#e9e4d8', '#f4f1ea'],
 }
 
+// Områden som har bytt namn i biblioteket: det gamla namnet får samma färg som
+// det nya, ifall något fortfarande har det gamla (t.ex. en databas som inte har
+// synkats än).
+const RENAMED = {
+  Skapande: 'Kreativitet',
+  'Spel och pussel': 'Sällskapsspel och pussel',
+}
+
 const NEUTRAL = AREA_COLORS['Övrigt och nischat']
 
 // CSS-variablerna för en tagg i området: --tag-fill (taggen och rutan med
 // underintressen) och --tag-sub (underintressena). Används som style på taggen.
 export function areaColors(area) {
-  const [fill, sub] = AREA_COLORS[area] ?? NEUTRAL
+  const [fill, sub] = AREA_COLORS[area] ?? AREA_COLORS[RENAMED[area]] ?? NEUTRAL
   return { '--tag-fill': fill, '--tag-sub': sub }
 }

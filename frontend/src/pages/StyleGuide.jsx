@@ -229,7 +229,7 @@ function StyleGuide() {
           sökrutan direkt i kortet eller i Intressebiblioteket (InterestLibrary, över hela blocket). Där är intressena
           taggar att trycka på (.interest-pick: ljus nyans och + när de inte är valda, områdets färg och ✓ när de är
           valda), och pilen efter den streckade linjen öppnar underintressena i samma ruta som här. Tryck på Historia
-          (fyra under den) och se Fotografering (bara tre under Skapande):
+          (fyra under den) och se Fotografering (bara tre under Kreativitet):
         </p>
         <InterestTree
           proposals={profileTree([
@@ -240,8 +240,8 @@ function StyleGuide() {
             { id: 5, name: 'Antiken', parent_id: 1, path: ['Historia'] },
             { id: 6, name: 'Metal', parent_id: 7, path: ['Musik', 'Rock'] },
             { id: 8, name: 'Löpning', parent_id: 10, path: ['Sport och träning'] },
-            { id: 9, name: 'Fotografering', parent_id: 11, path: ['Skapande'] },
-            { id: 12, name: 'Analog fotografering', parent_id: 9, path: ['Skapande', 'Fotografering'] },
+            { id: 9, name: 'Fotografering', parent_id: 11, path: ['Kreativitet'] },
+            { id: 12, name: 'Analog fotografering', parent_id: 9, path: ['Kreativitet', 'Fotografering'] },
           ])}
           align="start"
           highlight={new Set(['id:2', 'id:8'])}
