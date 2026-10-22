@@ -64,8 +64,9 @@ ACCOUNTS = [
     {
         "username": "nils",
         "name": "Nils Nyström",
-        "about": "Har en profil men inget annat: tomma listor överallt",
-        "municipality": "1480",
+        # Bor inte i Göteborg, så att de öppna eventen där (för Anna) inte hamnar på hans Att göra.
+        "about": "Har en profil men inget annat: tomma listor (öppna events syns ändå under Förslag)",
+        "municipality": "0180",
         "interests": ["Katter"],
         "text": "Precis gått med.",
     },
