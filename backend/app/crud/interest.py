@@ -103,6 +103,7 @@ def load_library_index(db: Session) -> LibraryIndex:
                 path=tuple(parent.name for parent in chain),
                 own=row.source != InterestSource.library.value,
                 activities=tuple(row.activities) if row.activities is not None else None,
+                allow_children=row.allow_children is not False,
             )
         )
     items.sort(key=lambda item: (*item.path, item.name))

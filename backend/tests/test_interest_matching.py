@@ -254,6 +254,34 @@ def test_a_new_interest_is_at_most_level_three(index):
     assert (match.kind, match.parent_id) == ("new", 7)
 
 
+def _with_closed_playstation():
+    return LibraryIndex(
+        [
+            item(4, "Tv-spel"),
+            replace(item(9, "PlayStation", parent=4, level=2, path=["Tv-spel"]), allow_children=False),
+        ]
+    )
+
+
+def test_a_new_interest_never_goes_under_an_interest_that_does_not_allow_new_children():
+    llm_says([decision("t1", "new", parent_id=9, new_name="God of War")])  # modellen väljer PlayStation
+    (match,) = match_tags([tag("God of War")], _with_closed_playstation())
+    assert (match.kind, match.parent_id) == ("new", 4)  # byts mot förälderns förälder
+
+
+def test_the_listing_marks_the_interests_that_do_not_allow_new_children():
+    listing = library_listing(_with_closed_playstation())
+    assert "9: Tv-spel > PlayStation [inga nya underintressen]" in listing and "4: Tv-spel\n" in listing + "\n"
+    assert "inga nya underintressen" in MATCH_PROMPT
+
+
+def test_the_index_reads_allow_children_from_the_database(db):
+    db.add(Interest(name="PlayStation", allow_children=False))
+    db.add(Interest(name="Katter"))
+    db.commit()
+    assert {i.name: i.allow_children for i in load_library_index(db).items} == {"PlayStation": False, "Katter": True}
+
+
 @pytest.mark.parametrize("parent_id", [1, 7])
 def test_a_new_interest_under_an_area_or_an_interest_keeps_its_parent(index, parent_id):
     llm_says([decision("t1", "new", parent_id=parent_id, new_name="Något")])
