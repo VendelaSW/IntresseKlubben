@@ -258,6 +258,8 @@ function CreateEventForm({ event = null, interests, groups, contacts, initialGro
         queries={[address, placeName]}
         value={position}
         onChange={setPosition}
+        // Nålen bestämmer adressen: den närmaste gatuadressen skrivs i fältet.
+        onAddressFound={setAddress}
         saveLabel={editing ? 'Spara' : 'Skapa event'}
         kommunCode={profile?.municipality_code}
       />

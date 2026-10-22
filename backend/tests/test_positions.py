@@ -1,5 +1,5 @@
 """Positioner på kartan för events och klubbar (schemas/position.py), och adressökningen
-(GET /geocode, services/geocoding.py). Nominatim anropas aldrig: conftest.py sätter in en fejkad
+(GET /geocode och GET /geocode/reverse, services/geocoding.py). Nominatim anropas aldrig: conftest.py sätter in en fejkad
 adressökning (FakeGeocoder) som testerna kan byta ut."""
 
 import io
@@ -170,6 +170,62 @@ def test_geocode_requires_a_profile(client, user, profile_lock):
     assert client.get("/geocode", params={"q": "Storgatan 1"}).status_code == 403
 
 
+# --- Adressen där nålen står (SCRUM-241) ---------------------------------------
+
+
+def test_reverse_geocode_returns_the_street_address(client, user):
+    fake = FakeGeocoder(address="Odelbergs väg 2")
+    set_geocoder(fake)
+    response = client.get("/geocode/reverse", params={"lat": GUSTAVSBERG["latitude"], "lon": GUSTAVSBERG["longitude"]})
+    assert response.status_code == 200
+    assert response.json() == {"address": "Odelbergs väg 2"}
+    # Bara positionen skickas vidare.
+    assert fake.positions == [(GUSTAVSBERG["latitude"], GUSTAVSBERG["longitude"])]
+
+
+def test_reverse_geocode_without_a_street_gives_no_address(client, user):
+    set_geocoder(FakeGeocoder(address=None))
+    response = client.get("/geocode/reverse", params={"lat": GUSTAVSBERG["latitude"], "lon": GUSTAVSBERG["longitude"]})
+    assert response.status_code == 200
+    assert response.json() == {"address": None}
+
+
+def test_reverse_geocode_only_in_sweden(client, user):
+    fake = FakeGeocoder(address="Unter den Linden 1")
+    set_geocoder(fake)
+    response = client.get("/geocode/reverse", params={"lat": 52.52, "lon": 13.40})  # Berlin
+    assert response.status_code == 422
+    assert response.json()["detail"] == msg.POSITION_OUTSIDE_SWEDEN
+    assert fake.positions == []
+
+
+def test_reverse_geocode_says_when_the_service_is_unavailable(client, user):
+    set_geocoder(FakeGeocoder(fail=True))
+    response = client.get("/geocode/reverse", params={"lat": GUSTAVSBERG["latitude"], "lon": GUSTAVSBERG["longitude"]})
+    assert response.status_code == 503
+    assert response.json()["detail"] == msg.GEOCODE_UNAVAILABLE
+
+
+def test_reverse_geocode_has_its_own_higher_limit(client, user):
+    from app.api.routes.geocode import RATE_LIMIT, REVERSE_RATE_LIMIT
+
+    params = {"lat": GUSTAVSBERG["latitude"], "lon": GUSTAVSBERG["longitude"]}
+    # Adressen följer nålen medan man drar den, så den får fler anrop än sökningen ...
+    for _ in range(REVERSE_RATE_LIMIT):
+        assert client.get("/geocode/reverse", params=params).status_code == 200
+    response = client.get("/geocode/reverse", params=params)
+    assert response.status_code == 429
+    assert response.json()["detail"] == msg.GEOCODE_TOO_MANY_REQUESTS
+    # ... och sökningen fungerar ändå efteråt.
+    assert REVERSE_RATE_LIMIT > RATE_LIMIT
+    assert client.get("/geocode", params={"q": "Storgatan 1"}).status_code == 200
+
+
+def test_reverse_geocode_requires_a_profile(client, user, profile_lock):
+    params = {"lat": GUSTAVSBERG["latitude"], "lon": GUSTAVSBERG["longitude"]}
+    assert client.get("/geocode/reverse", params=params).status_code == 403
+
+
 # --- Nominatim-klienten (utan nätverk) -----------------------------------------
 
 
@@ -237,3 +293,52 @@ def test_nominatim_client_turns_network_errors_into_geocoding_failed(monkeypatch
     monkeypatch.setattr(geocoding, "MIN_INTERVAL_SECONDS", 0)
     with pytest.raises(geocoding.GeocodingFailed):
         NominatimGeocoder().search("Storgatan 1")
+
+
+def test_nominatim_reverse_gives_street_and_number_and_remembers(monkeypatch):
+    requests = []
+
+    def fake_urlopen(request, timeout):
+        requests.append(request)
+        body = {"address": {"house_number": "2", "road": "Odelbergs väg", "town": "Gustavsberg"}}
+        return _Response(json.dumps(body).encode("utf-8"))
+
+    monkeypatch.setattr(geocoding.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(geocoding, "MIN_INTERVAL_SECONDS", 0)
+    client = NominatimGeocoder()
+
+    assert client.reverse(59.3266, 18.3889) == "Odelbergs väg 2"
+    assert "/reverse?" in requests[0].full_url
+    # Bara adresser, så att en nål i en park får den närmaste gatan.
+    assert "layer=address" in requests[0].full_url
+    assert "IntresseKlubben" in requests[0].get_header("User-agent")
+    # Samma plats (på en meter när) svaras ur minnet.
+    assert client.reverse(59.326601, 18.388899) == "Odelbergs väg 2"
+    assert len(requests) == 1
+
+
+@pytest.mark.parametrize(
+    "body, address",
+    [
+        ({"address": {"road": "Storgatan"}}, "Storgatan"),
+        ({"address": {"footway": "Strandpromenaden", "house_number": "4"}}, "Strandpromenaden 4"),
+        ({"address": {"park": "Slottsskogen", "city": "Göteborg"}}, None),
+        ({"error": "Unable to geocode"}, None),
+    ],
+)
+def test_nominatim_reverse_only_gives_a_street_address(monkeypatch, body, address):
+    monkeypatch.setattr(
+        geocoding.urllib.request, "urlopen", lambda request, timeout: _Response(json.dumps(body).encode("utf-8"))
+    )
+    monkeypatch.setattr(geocoding, "MIN_INTERVAL_SECONDS", 0)
+    assert NominatimGeocoder().reverse(57.69, 11.95) == address
+
+
+def test_nominatim_reverse_turns_network_errors_into_geocoding_failed(monkeypatch):
+    def broken(request, timeout):
+        raise TimeoutError()
+
+    monkeypatch.setattr(geocoding.urllib.request, "urlopen", broken)
+    monkeypatch.setattr(geocoding, "MIN_INTERVAL_SECONDS", 0)
+    with pytest.raises(geocoding.GeocodingFailed):
+        NominatimGeocoder().reverse(57.69, 11.95)
