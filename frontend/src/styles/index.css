@@ -397,6 +397,16 @@ button.info-link {
   margin-top: 0;
 }
 
+/* Något som inte går att ångra, t.ex. "Radera eventet": röd kant och text i
+   stället för gul, så att det inte ser ut som det vanliga valet. Det säkra
+   valet bredvid ("Behåll eventet") är den gula knappen. */
+.auth-form .button-danger {
+  background: transparent;
+  border: 2px solid var(--color-error);
+  color: var(--color-error);
+  margin-top: 0;
+}
+
 button.banner-button {
   border: none;
   cursor: pointer;
@@ -792,6 +802,271 @@ span.tag-selected:hover {
   padding: 0.7rem 1.6rem;
   font-size: 1.15rem;
   font-weight: 700;
+}
+
+/* Intervjun (ProfileInterview): Intressekompisen (videon och undertexten) till
+   vänster och frågan med formuläret till höger på dator, under varandra på
+   smalare skärmar. */
+.interview-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 960px;
+  margin-top: 2rem;
+}
+
+.interview-kompis {
+  flex: 0 1 380px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.interview-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+/* Undertexten. Platsen är reserverad, så att inget under hoppar när texten byts. */
+.interview-caption {
+  min-height: 3.2rem;
+  margin: 0.75rem 0 0;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.interview-main {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.interview-question {
+  text-align: left;
+  white-space: pre-line;
+}
+
+.interview-progress {
+  margin: 0.5rem 0;
+  text-align: left;
+}
+
+/* Framstegsstapeln syns bara på mobil (se nedan). */
+.interview-progress-bar {
+  display: none;
+}
+
+/* Mobil (upp till 767 px). Byggd efter de vanliga riktlinjerna för formulär på
+   telefon (se CONTRIBUTING.md, "Mobil"):
+   - en fråga och dess formulär syns utan att man scrollar
+   - en kolumn, etiketten ovanför fältet, fälten över hela bredden
+   - knappar och fält minst 48 px höga (Material 48 dp, Apple 44 pt, WCAG 2.5.8)
+   - huvudknappen ("Nästa") störst och längst till höger, där tummen når
+   - framsteget ("Fråga 2 av 5" och en stapel) ovanför frågan
+   Intressekompisen är liten och rund högst upp, med det den säger bredvid som
+   en pratbubbla. Innan intervjun startar är den större och centrerad. */
+@media (max-width: 767px) {
+  .interview-page {
+    padding: 1rem 1rem 2rem;
+    gap: 1rem;
+  }
+
+  .interview-layout {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 1.25rem;
+    margin-top: 0;
+  }
+
+  .interview-kompis,
+  .interview-main {
+    flex: none;
+  }
+
+  /* Startskärmen. */
+  .interview-kompis {
+    width: 200px;
+    max-width: 60vw;
+    margin: 0 auto;
+  }
+
+  .interview-kompis:not(.is-asking) .interview-caption {
+    min-height: 1.5rem;
+    font-size: 1.05rem;
+  }
+
+  .interview-start {
+    width: 100%;
+    min-height: 48px;
+    font-size: 1.05rem;
+  }
+
+  /* Medan frågorna ställs. */
+  .interview-kompis.is-asking {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+
+  .interview-kompis.is-asking .interview-video {
+    flex: none;
+    width: 64px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--color-line);
+    background: var(--color-white);
+  }
+
+  /* Pratbubblan, med en liten spets mot kompisen. Tom bubbla syns inte, men
+     raden behåller sin höjd (kompisen), så inget hoppar. */
+  .interview-kompis.is-asking .interview-caption {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid var(--color-line);
+    border-radius: 12px;
+    background: var(--color-white);
+    font-size: 1rem;
+    line-height: 1.35;
+    text-align: left;
+  }
+
+  .interview-kompis.is-asking .interview-caption::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    border-left: 2px solid var(--color-line);
+    border-bottom: 2px solid var(--color-line);
+    background: var(--color-white);
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .interview-kompis.is-asking .interview-caption.is-empty {
+    visibility: hidden;
+  }
+
+  /* Frågan: framsteget först, sedan frågan i en storlek som ryms på några rader. */
+  .interview-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+    text-align: left;
+  }
+
+  .interview-heading .interview-progress {
+    order: -2;
+    margin: 0;
+    font-size: var(--text-small);
+  }
+
+  .interview-progress-bar {
+    order: -1;
+    display: block;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--color-white);
+    border: 1px solid var(--color-line);
+    overflow: hidden;
+  }
+
+  .interview-progress-bar span {
+    display: block;
+    height: 100%;
+    background: var(--color-accent);
+    transition: width 0.3s ease;
+  }
+
+  .app-title.interview-question {
+    margin: 0.25rem 0 0;
+    font-size: 2rem;
+    line-height: 1.15;
+  }
+
+  /* Formuläret direkt på sidan, utan ruta runt, så att fälten får hela bredden
+     och linjerar med frågan. */
+  .interview-card.card {
+    max-width: none;
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none !important;
+  }
+
+  .interview-page .interview-card .auth-form {
+    gap: 1rem;
+  }
+
+  .interview-page .interview-card label {
+    font-size: 1rem;
+  }
+
+  .interview-page .interview-card input,
+  .interview-page .interview-card select {
+    min-height: 48px;
+  }
+
+  .interview-page .interview-card .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Knapparna: Tillbaka liten till vänster (syns inte på första frågan),
+     Nästa resten av raden. .interview-page före, så att reglerna går före
+     .form-compact, som kommer senare i filen. */
+  .interview-page .interview-actions {
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .interview-page .interview-actions button {
+    min-height: 48px;
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .interview-page .interview-back:disabled {
+    display: none;
+  }
+
+  .interview-page .interview-next {
+    flex: 1;
+  }
+
+  /* Slutskärmen (profilen och intressena): mindre rubrik och luft, och
+     "Skapa min profil" ligger kvar längst ned på skärmen medan man scrollar,
+     så att huvudknappen alltid syns. */
+  .interview-summary.card {
+    padding: 1rem;
+  }
+
+  .interview-summary .card-title {
+    font-size: 1.75rem;
+  }
+
+  .interview-summary .interview-save-buttons {
+    position: sticky;
+    bottom: 0;
+    margin: 0 -1rem -1rem;
+    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    background: var(--color-white);
+    border-top: 1px solid var(--color-line);
+  }
+
+  .interview-summary .interview-save-buttons .button-large {
+    width: 100%;
+    min-height: 48px;
+  }
 }
 
 /* Knapparna sist i intervjun (ProfileInterview): "Skapa min profil" stor och
@@ -1714,6 +1989,50 @@ span.tag-selected:hover {
   margin-top: calc(-1 * var(--line-gap));
 }
 
+/* "Anmäl" vid ett brev eller meddelande från någon annan (ReportButton): liten
+   och grå längst till höger på meddelandets första linje, så att chatten inte
+   blir rörig. På dator syns den när man håller över meddelandet eller tabbar
+   till den, på mobil och pekskärmar (ingen hovring) alltid. Texten får luft till höger, så att
+   den inte hamnar under knappen. */
+.notepad-message-reportable {
+  position: relative;
+  padding-right: 3.2rem;
+}
+
+.report-link {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: var(--line-gap);
+  padding: 0 0.25rem;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: normal;
+  text-decoration: underline;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.notepad-message-reportable:hover .report-link,
+.report-link:focus-visible {
+  opacity: 1;
+}
+
+.report-link:hover,
+.report-link:focus-visible {
+  color: var(--color-text);
+}
+
+@media (hover: none), (max-width: 767px) {
+  .report-link {
+    opacity: 1;
+  }
+}
+
 .notepad .notepad-message-avatar {
   width: 1.3rem;
   height: 1.3rem;
@@ -2329,7 +2648,49 @@ button.board-note:focus-visible {
 .board-note-buttons {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
+}
+
+/* Rutan "Anmäl …" (ReportButton): det som anmäls överst, sedan anledningarna
+   som en lista med radioknappar och en valfri kommentar. */
+.report-quote {
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  border-left: 3px solid var(--color-line);
+  background: var(--color-accent-soft);
+  font-style: italic;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.report-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.report-reasons legend {
+  margin-bottom: 0.35rem;
+  font-weight: 700;
+}
+
+.report-reasons label {
+  font-weight: 400;
+}
+
+.report-done {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.report-done p {
+  margin: 0;
 }
 
 /* Mobil: två lappar bredvid varandra i ett rutnät, alla lappar, och tavlan har
@@ -2653,6 +3014,24 @@ button.board-note:focus-visible {
   overflow: hidden;
 }
 
+/* Caveat (var(--font-heading)) lutar, så sista bokstaven och svansarna (g, j,
+   y) sticker ut utanför textens ruta. Där texten kortas av (overflow: hidden,
+   "…" eller -webkit-line-clamp) klipps de, så texten får lite luft till höger
+   och upp och ner. Den negativa marginalen håller rutan lika stor, och texten
+   får lika mycket plats som förut (luften ligger utanför). Ny Caveat-text som
+   kortas av läggs till här. Kuvertnamnet (.envelope-name) har egen luft,
+   eftersom namnet ska stå nära bilden. Regeln ligger efter list-card-reglerna
+   ovan, som nollställer marginalen på .card-title, så att den inte skrivs över. */
+.map-profile-name,
+.map-activity-name,
+.notepad-title-name,
+.list-card-link .card-title {
+  padding-block: 0.12em;
+  padding-right: 0.25em;
+  margin-block: -0.12em;
+  margin-right: -0.25em;
+}
+
 /* Bara början av beskrivningen på kortet; hela syns i postens egen vy. */
 .list-card-description {
   display: -webkit-box;
@@ -2747,6 +3126,20 @@ button.board-note:focus-visible {
   font-size: var(--text-small);
   padding: 0.3rem 0.7rem;
   margin-top: 0;
+}
+
+/* På telefoner zoomar webbläsaren (Safari på iPhone) in när man trycker i ett
+   fält med mindre text än 16 px, och zoomar inte ut igen, så att man inte längre
+   ser hela sidan. Därför har alla fält minst 16 px text på pekskärmar, oavsett
+   vilket formulär de ligger i (därav !important). På dator är de kompakta
+   fälten kvar. Zooma med två fingrar går fortfarande, med flit: viewport-taggen
+   stänger inte av det, eftersom det behövs för den som ser dåligt. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: max(1rem, 16px) !important;
+  }
 }
 
 /* Etiketten tätt ovanför sitt fält (till skillnad från mellanrummet mellan fälten). */
@@ -3181,4 +3574,218 @@ label.person-list-item {
 
 .explorer .explorer-crumb-current {
   font-weight: 700;
+}
+
+/* Moderering (pages/ModerationPage.jsx, bara för moderatorer): ett kort per
+   anmälan med vem, var, varför, en kopia av texten (.report-quote) och
+   knapparna. Avstängd står i rött, och påminnelsen om tidigare avstängningar i
+   rutan "Stäng av" står i en gul ruta. */
+.moderation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 640px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Hela listans bredd (vanliga .card är smalare, max 320px). */
+.moderation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: none;
+  padding: 1rem 1.25rem;
+}
+
+.moderation-card p {
+  margin: 0;
+}
+
+.moderation-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.moderation-who {
+  overflow-wrap: anywhere;
+}
+
+.moderation-status {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.moderation-comment {
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.moderation-card .card-actions {
+  flex-wrap: wrap;
+}
+
+.moderation-reminder {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 6px;
+  background: var(--color-accent-soft);
+}
+
+/* Notiser från Intresseklubben (se NotificationsPage), som en inkorg: en
+   kompakt rad per notis i en vit ruta, nyaste först. En oläst notis har fet
+   rubrik, en gul prick och en gul kant till vänster. Ett klick på raden öppnar
+   notisen (.notification-details), krysset tar bort den. */
+.notification-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  width: 100%;
+  max-width: 560px;
+}
+
+/* "Markera alla som lästa" när allt redan är läst: kvar på sin plats, men grå
+   och utan den gula linjen, så att den inte ser klickbar ut. */
+.notification-actions .text-button:disabled {
+  color: var(--color-muted);
+  border-bottom-color: transparent;
+  cursor: default;
+  opacity: 1;
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 560px;
+  background: var(--color-white);
+  border: 2px solid var(--color-line);
+  border-radius: 4px;
+}
+
+.notification {
+  display: flex;
+  align-items: center;
+  border-left: 4px solid transparent;
+}
+
+.notification + .notification {
+  border-top: 1px solid var(--color-line);
+}
+
+.notification.is-unread {
+  border-left-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+/* Hela raden är knappen som öppnar notisen. */
+.notification-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.25rem 0.6rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+.notification-open:hover .notification-title,
+.notification-open:focus-visible .notification-title {
+  text-decoration: underline;
+}
+
+.notification-dot {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 1px solid var(--color-text);
+}
+
+.notification-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-body);
+  font-weight: 400;
+}
+
+.notification.is-unread .notification-title {
+  font-weight: 700;
+}
+
+.notification-time {
+  flex: none;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.notification-remove {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  margin-right: 0.25rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.notification-remove:hover,
+.notification-remove:focus-visible {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* En öppnad notis. Långa ord utan mellanslag (t.ex. en länk i meddelandet)
+   bryts, så att de inte sticker ut ur rutan på mobil. */
+.notification-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 560px;
+  overflow-wrap: anywhere;
+}
+
+.notification-meta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.notification-details-title {
+  margin: 0;
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+
+.notification-quote {
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding: 0.4rem 0.75rem;
+  border-left: 3px solid var(--color-line);
+  background: var(--color-accent-soft);
+  font-style: italic;
 }

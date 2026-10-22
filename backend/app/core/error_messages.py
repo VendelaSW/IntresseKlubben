@@ -68,6 +68,7 @@ GROUP_ADDRESS_TOO_LONG = "Adress får max vara 100 tecken"
 
 # ---------- Events (routes/events.py, crud/event.py) ----------
 EVENT_NOT_FOUND = "Eventet finns inte"
+EVENT_CANCEL_MESSAGE_TOO_LONG = "Meddelandet får max vara 300 tecken"
 EVENT_ONLY_CREATOR = "Bara den som skapat eventet kan ändra det"
 EVENT_ONLY_CREATOR_CAN_INVITE = "Bara den som skapat eventet kan bjuda in"
 EVENT_IN_PRIVATE_GROUP_CANNOT_BE_OPEN = "Events i privata klubbar kan inte vara öppna"
@@ -77,6 +78,9 @@ CAN_ONLY_INVITE_CONTACTS = "Du kan bara bjuda in dina kompisar"
 PERSON_NOT_INVITED = "Personen är inte inbjuden"
 GROUP_INVITE_NOBODY = "Välj minst en person att bjuda in"
 GROUP_CANNOT_INVITE = "Du kan inte bjuda in till den här klubben"
+
+# ---------- Notiser (routes/notifications.py, crud/notification.py) ----------
+NOTIFICATION_NOT_FOUND = "Notisen finns inte"
 
 # ---------- Inlägg i klubbar (routes/groups.py, schemas/group_post.py) ----------
 GROUP_POST_EMPTY = "Inlägget får inte vara tomt"
@@ -103,6 +107,21 @@ CONFIRM_OWN_INTEREST_NAME = "Namnet på det nya intresset är inte tillåtet"
 CONFIRM_TOO_MANY_OWN_INTERESTS = "Du har lagt till många egna intressen i dag. Försök igen i morgon."
 CONFIRM_NO_INTERESTS = "Välj minst ett intresse"
 CONFIRM_UNAVAILABLE = "Vi kunde inte spara just nu. Försök igen om en stund."
+
+# ---------- Anmälningar (routes/reports.py, crud/report.py) ----------
+REPORT_TARGET_NOT_FOUND = "Det du vill anmäla finns inte längre"
+REPORT_SELF = "Du kan inte anmäla dig själv"
+REPORT_COMMENT_TOO_LONG = "Kommentaren får max vara 500 tecken"
+REPORT_ALREADY_SENT = "Du har redan anmält det här. Vi tittar på det."
+REPORT_TOO_MANY = "Du har anmält många saker på kort tid. Försök igen om en stund."
+
+# ---------- Moderering (routes/moderation.py, auth/security.py) ----------
+MODERATORS_ONLY = "Bara moderatorer kommer åt det här"
+REPORT_NOT_FOUND = "Anmälan finns inte"
+USER_NOT_FOUND = "Användaren finns inte"
+CANNOT_SUSPEND_SELF = "Du kan inte stänga av dig själv"
+SUSPENSION_DAYS_INVALID = "Välj 1, 7 eller 30 dagar, eller tills vidare"
+ACCOUNT_SUSPENDED = "Ditt konto är avstängt"
 
 # ---------- Verifiering av e-post (routes/user.py) ----------
 EMAIL_NOT_VERIFIED = "Bekräfta din e-postadress först. Länken finns i mejlet vi skickade."

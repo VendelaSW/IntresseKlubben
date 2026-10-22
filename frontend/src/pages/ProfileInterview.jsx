@@ -580,14 +580,19 @@ function ProfileInterview() {
   ].filter(([, value]) => value)
 
   return (
-    <div className="page">
+    <div className="page interview-page">
       {/* Fast bredd, så att raden inte flyttar sig när innehållet i rutan byter (.page centrerar
-            annars en rad som bara är så bred som innehållet). */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'flex-start', width: '100%', maxWidth: 960, marginTop: '2rem' }}>
-        <div style={{ flex: '0 1 380px', width: '100%', maxWidth: 380, display: finished ? 'none' : 'block' }}>
+            annars en rad som bara är så bred som innehållet). Måtten står i index.css ("Intervjun"): på mobil
+            är Intressekompisen liten med undertexten bredvid medan frågorna ställs, så att frågan och
+            formuläret syns utan att man scrollar. */}
+      <div className="interview-layout">
+        <div
+          className={`interview-kompis${started ? ' is-asking' : ''}`}
+          style={finished ? { display: 'none' } : undefined}
+        >
           {/* Alla klipp ligger i sidan, staplade ovanpå varandra (alla är 720x720). Bara det som
               syns har full opacitet, så att byten sker utan att något laddas om eller blinkar. */}
-          <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1' }}>
+          <div className="interview-video">
             {CLIP_SOURCES.map((src) => (
               <video
                 key={src}
@@ -615,11 +620,7 @@ function ProfileInterview() {
             ))}
           </div>
           {/* Undertexter. Platsen är reserverad, så att inget under hoppar när texten byts. */}
-          <p
-            className="card-text"
-            aria-live="polite"
-            style={{ minHeight: '3.2rem', margin: '0.75rem 0 0', textAlign: 'center', fontSize: '1.2rem' }}
-          >
+          <p className={`card-text interview-caption${caption ? '' : ' is-empty'}`} aria-live="polite">
             {caption}
           </p>
           {blocked && (
@@ -629,7 +630,7 @@ function ProfileInterview() {
           )}
         </div>
 
-        <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+        <div className="interview-main">
           {!started ? (
             // Rubrik, text och knapp har samma mittlinje: allt är centrerat i kolumnen.
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
@@ -637,7 +638,7 @@ function ProfileInterview() {
               <p className="card-text" style={{ margin: '0.5rem 0 1.5rem' }}>
                 Intressekompisen ställer några frågor, en i taget.
               </p>
-              <button type="button" className="primary-button" onClick={start}>
+              <button type="button" className="primary-button interview-start" onClick={start}>
                 Starta intervjun
               </button>
             </div>
@@ -664,7 +665,7 @@ function ProfileInterview() {
               <p className="card-text" style={{ textAlign: 'center', margin: '0.5rem 0 1rem' }}>
                 Nu kan vi lättare matcha dig mot andra som delar dina intressen.
               </p>
-              <div className="card sheet content-stack" style={{ ...FIXED_CARD_SHADOW, margin: '0 auto' }}>
+              <div className="card sheet content-stack interview-summary" style={{ ...FIXED_CARD_SHADOW, margin: '0 auto' }}>
                 <p className="card-title">Det här är din profil{answers.name.trim() && `, ${answers.name.trim()}`}</p>
                 {/* Det man svarade, bara det som är ifyllt. */}
                 {profileRows.length > 0 && (
@@ -753,13 +754,17 @@ function ProfileInterview() {
           ) : (
             <>
               {/* pre-line gör att \n i frågan blir en radbrytning. */}
-              <h1 className="app-title" style={{ textAlign: 'left', whiteSpace: 'pre-line' }}>
-                {step.question}
-              </h1>
-              <p className="hint-text" style={{ textAlign: 'left', margin: '0.5rem 0' }}>
-                Fråga {index + 1} av {STEPS.length}
-              </p>
-              <div className="card sheet" style={FIXED_CARD_SHADOW}>
+              {/* På mobil står framsteget ovanför frågan, med en stapel (se .interview-heading i index.css). */}
+              <div className="interview-heading">
+                <h1 className="app-title interview-question">{step.question}</h1>
+                <p className="hint-text interview-progress">
+                  Fråga {index + 1} av {STEPS.length}
+                </p>
+                <div className="interview-progress-bar" aria-hidden="true">
+                  <span style={{ width: `${((index + 1) / STEPS.length) * 100}%` }} />
+                </div>
+              </div>
+              <div className="card sheet interview-card" style={FIXED_CARD_SHADOW}>
                 <form ref={formRef} className="auth-form form-wide form-compact" onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
                   {step.id === 'namn' && (
                     <FormField id="interview-name" label="Namn">
@@ -770,6 +775,9 @@ function ProfileInterview() {
                         value={answers.name}
                         onChange={setAnswer('name')}
                         maxLength={50}
+                        autoComplete="name"
+                        autoCapitalize="words"
+                        enterKeyHint="next"
                         required
                         autoFocus
                       />
@@ -820,6 +828,9 @@ function ProfileInterview() {
                           value={answers.district}
                           onChange={setAnswer('district')}
                           maxLength={50}
+                          autoComplete="off"
+                          autoCapitalize="words"
+                          enterKeyHint="next"
                         />
                       </FormField>
                     </div>
@@ -856,11 +867,11 @@ function ProfileInterview() {
                     </FormField>
                   )}
 
-                  <div className="form-actions">
-                    <button type="button" className="button-secondary" disabled={index === 0} onClick={goBack}>
+                  <div className="form-actions interview-actions">
+                    <button type="button" className="button-secondary interview-back" disabled={index === 0} onClick={goBack}>
                       Tillbaka
                     </button>
-                    <button type="submit" disabled={checkingAbout}>
+                    <button type="submit" className="interview-next" disabled={checkingAbout}>
                       {checkingAbout ? 'Kontrollerar...' : isLast ? 'Klar' : 'Nästa'}
                     </button>
                   </div>
