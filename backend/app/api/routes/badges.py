@@ -19,6 +19,7 @@ from app.crud.contact import blocked_user_ids, incoming_request_count
 from app.crud.event import unanswered_club_events, unanswered_invitation_count
 from app.crud.group import invitation_count
 from app.crud.message import is_unread, last_read_ids, list_conversations
+from app.crud.notification import unread_count
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.badges import BadgeCounts, ClubEventActivity
@@ -32,11 +33,12 @@ def read_my_badges(current_user: User = Depends(get_current_user), db: Session =
     # Varje fråga är en resa till databasen, så blockeringarna hämtas en gång
     # och de tre räkningarna ställs i samma fråga.
     hidden = blocked_user_ids(db, user_id)
-    requests, clubs, events = db.execute(
+    requests, clubs, events, notifications = db.execute(
         select(
             incoming_request_count(user_id).scalar_subquery(),
             invitation_count(user_id).scalar_subquery(),
             unanswered_invitation_count(db, user_id, hidden).scalar_subquery(),
+            unread_count(user_id).scalar_subquery(),
         )
     ).one()
     read_ids = last_read_ids(db, user_id)
@@ -44,6 +46,7 @@ def read_my_badges(current_user: User = Depends(get_current_user), db: Session =
         contact_requests=requests,
         club_invitations=clubs,
         event_invitations=events,
+        unread_notifications=notifications,
         unread_conversations=sum(
             is_unread(message, user_id, read_ids, other_id)
             for other_id, message in list_conversations(db, user_id, hidden)

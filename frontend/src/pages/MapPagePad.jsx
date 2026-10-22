@@ -15,6 +15,7 @@ import GroupsPage from './GroupsPage'
 import InboxPage from './InboxPage'
 import MapPad from './MapPad'
 import ModerationPage from './ModerationPage'
+import NotificationsPage from './NotificationsPage'
 import PeoplePage from './PeoplePage'
 import ProfilePage from './ProfilePage'
 import UserProfilePage from './UserProfilePage'
@@ -36,6 +37,7 @@ export const MAP_PAGES = {
   klubbar: '/klubbar',
   events: '/events',
   moderering: '/moderering',
+  notiser: '/notiser',
 }
 
 // Sidorna som kan visas i blocket, och blockets rubrik för dem.
@@ -46,6 +48,7 @@ const PAD_ROUTES = [
   { path: '/anvandare/:userId', title: 'Personer', Page: UserProfilePage },
   { path: '/klubbar', title: 'Klubbar', Page: GroupsPage },
   { path: '/events', title: 'Events', Page: EventsPage },
+  { path: '/notiser', title: 'Notiser', Page: NotificationsPage },
   { path: '/profil', title: 'Min profil', Page: ProfilePage },
   { path: '/moderering', title: 'Moderering', Page: ModerationPage },
 ]

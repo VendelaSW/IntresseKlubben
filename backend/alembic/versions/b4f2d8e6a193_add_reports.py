@@ -1,14 +1,14 @@
 """add reports
 
 Revision ID: b4f2d8e6a193
-Revises: a3d9f6c2e815
+Revises: f4a6d2c8e917
 """
 from alembic import op
 import sqlalchemy as sa
 
 
 revision = 'b4f2d8e6a193'
-down_revision = 'a3d9f6c2e815'
+down_revision = 'f4a6d2c8e917'
 branch_labels = None
 depends_on = None
 

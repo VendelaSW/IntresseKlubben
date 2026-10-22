@@ -5,6 +5,7 @@ import eventIcon from '../assets/event.png'
 import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
+import notiserIcon from '../assets/notiser.svg'
 import personerIcon from '../assets/personer.png'
 import Avatar from '../components/Avatar'
 import Intressekompis from '../components/Intressekompis'
@@ -20,6 +21,7 @@ import FormField from '../components/FormField'
 import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
+import { NotificationDetails, NotificationRow } from './NotificationsPage'
 
 const NAV_ICONS = [
   { icon: hemIcon, label: 'Hem' },
@@ -49,6 +51,22 @@ const EXAMPLE_CONVERSATIONS = [
   { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), last_message_from_me: false, isNew: true },
   { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', last_message_from_me: true, isNew: false },
 ]
+
+// Exempel för Notiser-avsnittet: en oläst och en läst notis, och en öppnad med citat och länk.
+const EXAMPLE_NOTIFICATIONS = [
+  { id: 1, title: '«Fotbollsträffen» har ställts in', read: false, created_at: new Date().toISOString() },
+  { id: 2, title: '«Brädspelskväll» har fått ny tid', read: true, created_at: '2025-10-06T18:02:00Z' },
+]
+const EXAMPLE_NOTIFICATION = {
+  id: 3,
+  title: '«Fotbollsträffen» har ställts in',
+  body: 'Bob har tagit bort eventet som du skulle gå på.',
+  quote: 'Inställt pga sjukdom, vi ses nästa vecka!',
+  quote_by: 'Bob',
+  link: '/stilguide',
+  read: true,
+  created_at: new Date().toISOString(),
+}
 
 const SIZES = [
   { name: '--text-hero', rem: '5rem', label: 'Hero', font: 'heading', weight: 700 },
@@ -108,6 +126,11 @@ function StyleGuide() {
         <p className="tagline" style={{ fontSize: '2.5rem', marginTop: '1.5rem' }}>Caveat</p>
         <p className="problem-statement">
           Stora, personliga rubriker: Hero, sidrubrik (H1) och namn i boxar.
+        </p>
+        <p className="hint-text">
+          Caveat lutar, så sista bokstaven och svansarna på g, j och y sticker ut utanför textens ruta. Caveat-text
+          som kortas av (med "…" eller efter ett antal rader) ska läggas till i den gemensamma regeln i index.css
+          (se .map-profile-name där), annars klipps bokstäverna.
         </p>
         <p
           style={{
@@ -409,6 +432,49 @@ function StyleGuide() {
             </button>
           </form>
         </article>
+      </section>
+
+      <section className="style-section">
+        <h2>Notiser</h2>
+        <p className="swatch-label">Klocklappen på kartan (Notiser, notiser.svg)</p>
+        <p className="hint-text">
+          Lappen ligger sist bland sidornas lappar på kartan (MapPageWidgets) och har samma röda siffra som de andra
+          (.map-widget-badge i map.css): antalet olästa notiser. Den studsar till när siffran går upp.
+        </p>
+        <div className="swatch-grid" style={{ marginTop: '1rem' }}>
+          <div className="swatch">
+            <span className="app-nav-link" style={{ padding: 0 }}>
+              <img src={notiserIcon} alt="" className="nav-icon" />
+              <span className="app-nav-label">Notiser</span>
+            </span>
+          </div>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Listan (.notification-list med NotificationRow)
+        </p>
+        <p className="hint-text">
+          Som en inkorg: en kompakt rad per notis i en vit ruta, nyaste först. En oläst notis har gul prick, fet
+          rubrik och en gul kant till vänster. Långa rubriker kortas med ... på raden. Ett klick öppnar notisen och
+          först då räknas den som läst; krysset tar bort den. Ovanför listan står "Markera alla som lästa" (grå och
+          utan gul linje när allt redan är läst) och "Ta bort alla", som frågar först i en popup.
+        </p>
+        <ul className="notification-list" style={{ marginTop: '1rem' }}>
+          {EXAMPLE_NOTIFICATIONS.map((n) => (
+            <NotificationRow key={n.id} notification={n} onOpen={() => {}} onRemove={() => {}} />
+          ))}
+        </ul>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          En öppnad notis (NotificationDetails)
+        </p>
+        <p className="hint-text">
+          Ett vitt kort med avsändare och tid, rubriken, texten och ett citat (t.ex. skaparens meddelande när ett
+          event ställs in), och "Visa" om notisen har en länk. Långa ord bryts, så att inget sticker ut på mobil.
+        </p>
+        <div style={{ marginTop: '1rem' }}>
+          <NotificationDetails notification={EXAMPLE_NOTIFICATION} onRemove={() => {}} />
+        </div>
       </section>
 
       <section className="style-section">

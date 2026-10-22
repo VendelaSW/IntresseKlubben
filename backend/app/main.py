@@ -16,6 +16,7 @@ from app.api.routes.interview import router as interview_router
 from app.api.routes.messages import router as messages_router
 from app.api.routes.moderation import router as moderation_router
 from app.api.routes.municipalities import router as municipalities_router
+from app.api.routes.notifications import router as notifications_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.reports import router as reports_router
 from app.api.routes.user import router as user_router
@@ -51,3 +52,13 @@ app.include_router(events_router)
 app.include_router(geocode_router)
 app.include_router(reports_router)
 app.include_router(moderation_router)
+app.include_router(notifications_router)
+
+# Testläget (se app/devtools): bara när DEV_MODE är satt, vilket bara `python -m app.devtools.server` gör.
+# assert_safe stoppar starten om det skulle vara påslaget mot en riktig databas eller på Vercel.
+if settings.dev_mode:
+    from app.devtools import assert_safe
+    from app.devtools.routes import router as devtools_router
+
+    assert_safe()
+    app.include_router(devtools_router)

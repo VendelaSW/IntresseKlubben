@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest'
+import { DidYouMean, MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest'
 import InterestTree, { PROFILE_MAX_SUBS, profileTree } from './InterestTree'
 import { getChildInterests, getTopInterests, searchInterests } from '../services/interests'
 
@@ -245,10 +245,19 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
                 onAddNew ? (
                   // Först när träfflistan gäller texten som står i rutan, annars skulle man kunna lägga till något som har träffar.
                   resultsFor === query.trim() && (
-                    <NewInterestOffer text={resultsFor} onAddNew={onAddNew} onDone={() => setQuery('')} boxed={false} />
+                    <NewInterestOffer
+                      text={resultsFor}
+                      onAddNew={onAddNew}
+                      onDone={() => setQuery('')}
+                      boxed={false}
+                      similarAction={(item) => addButton(item)}
+                    />
                   )
                 ) : (
-                  <p className="hint-text">Inget intresse matchar "{query.trim()}" än.</p>
+                  <>
+                    <p className="hint-text">Inget intresse matchar "{query.trim()}" än.</p>
+                    {resultsFor === query.trim() && <DidYouMean text={resultsFor} action={(item) => addButton(item)} />}
+                  </>
                 )
               ) : (
                 <ul className="explorer-rows">
