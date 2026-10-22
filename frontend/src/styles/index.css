@@ -1635,6 +1635,13 @@ span.tag-selected:hover {
   text-align: center;
 }
 
+/* "Det finns inga klubbar för … Vill du skapa en?" (CreateOffer): en bit ner från
+   filtren, och texten nära knapparna den hör ihop med. */
+.create-offer {
+  margin-top: 1.5rem;
+  gap: 1rem;
+}
+
 /* "← Tillbaka" (components/BackButton.jsx) överst på en sida eller vy,
    ovanför rutan: vänsterställd, i samma bredd som rutorna (.sheet och
    profilkortet), så att den linjerar med rutans vänsterkant. */
