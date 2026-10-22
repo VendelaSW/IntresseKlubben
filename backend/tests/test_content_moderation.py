@@ -1,5 +1,7 @@
+from threading import Event as ThreadEvent
 from concurrent.futures import TimeoutError
 from collections import defaultdict, deque
+from time import monotonic
 from unittest.mock import Mock, patch
 
 import pytest
@@ -91,6 +93,29 @@ def test_hf_job_timeout_is_capped_by_shared_deadline(remote):
     assert 0 < timeout <= 2
 
 
+def test_client_initialization_is_bounded_by_hf_timeout(monkeypatch):
+    entered = ThreadEvent()
+    release = ThreadEvent()
+    monkeypatch.setattr(ai_clients, "HF_TIMEOUT_SECONDS", 0.05)
+
+    def slow_client_initialization():
+        entered.set()
+        release.wait()
+        return Mock()
+
+    monkeypatch.setattr(ai_clients, "_get_hf_client", slow_client_initialization)
+    started = monotonic()
+    try:
+        with pytest.raises(ai_clients.AIFailed, match="tog för lång tid"):
+            ai_clients.HuggingFaceClassifier().classify("text")
+        assert monotonic() - started < 0.25
+        assert entered.is_set()
+    finally:
+        release.set()
+        assert ai_clients._hf_call_slot.acquire(timeout=1)
+        ai_clients._hf_call_slot.release()
+
+
 @pytest.mark.parametrize("result", [
     {"flagged": True, "translated_text": "Toxic", "score": 0.9},
     {"flagged": False, "translated_text": "Toxic", "score": 0.5},
@@ -113,10 +138,9 @@ def test_invalid_remote_response_falls_back_and_logs_warning(remote, result, cap
     assert "lokal ordkontroll används" in caplog.text
 
 
-def test_timeout_falls_back_and_cancels_job(remote, caplog):
+def test_job_timeout_falls_back_and_logs_warning(remote, caplog):
     remote.submit.return_value.result.side_effect = TimeoutError()
     assert moderation.check_fields(ai=True, description="Hej") is None
-    remote.submit.return_value.cancel.assert_called_once()
     assert "lokal ordkontroll används" in caplog.text
 
 

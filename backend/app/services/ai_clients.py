@@ -16,6 +16,7 @@ import time
 import urllib.error
 import urllib.request
 from functools import lru_cache
+from threading import Event, Lock, Thread
 from typing import Protocol
 
 from pydantic import BaseModel, Field, StrictBool, StrictStr
@@ -39,6 +40,7 @@ EMBEDDING_BATCH = 256  # så många texter skickas till embeddings åt gången
 PER_CALL_TIMEOUT_SECONDS = 10
 HF_TIMEOUT_SECONDS = 4
 WORK_BUDGET_SECONDS = 25
+_hf_call_slot = Lock()
 
 
 class AINotConfigured(Exception):
@@ -111,22 +113,43 @@ def _get_hf_client():
 
 class HuggingFaceClassifier:
     def classify(self, text: str, deadline: Deadline | None = None) -> ToxicityResult:
-        job = None
-        hf_deadline = Deadline(HF_TIMEOUT_SECONDS)
+        timeout = min(HF_TIMEOUT_SECONDS, _timeout(deadline))
+        if not _hf_call_slot.acquire(blocking=False):
+            raise AIFailed("Textkontrollen pågår redan")
+
+        completed = Event()
+        outcome: dict[str, ToxicityResult | Exception] = {}
+        call_deadline = time.monotonic() + timeout
+
+        def run_request() -> None:
+            try:
+                if time.monotonic() >= call_deadline:
+                    raise AIFailed("Textkontrollen tog för lång tid")
+                job = _get_hf_client().submit(text, api_name="/moderate")
+                remaining = call_deadline - time.monotonic()
+                if remaining <= 0:
+                    raise AIFailed("Textkontrollen tog för lång tid")
+                outcome["result"] = ToxicityResult.model_validate(job.result(timeout=remaining))
+            except Exception as error:
+                outcome["error"] = error
+            finally:
+                completed.set()
+                _hf_call_slot.release()
+
         try:
-            _timeout(deadline)
-            job = _get_hf_client().submit(text, api_name="/moderate")
-            timeout = min(_timeout(deadline), _timeout(hf_deadline))
-            return ToxicityResult.model_validate(job.result(timeout=timeout))
-        except AINotConfigured:
-            raise
+            Thread(target=run_request, name="hf-moderation", daemon=True).start()
         except Exception:
-            if job is not None:
-                try:
-                    job.cancel()
-                except Exception:
-                    pass
+            _hf_call_slot.release()
+            raise AIFailed("Textkontrollen kunde inte startas") from None
+        if not completed.wait(max(0, call_deadline - time.monotonic())):
+            raise AIFailed("Textkontrollen tog för lång tid")
+
+        error = outcome.get("error")
+        if error is not None:
+            if isinstance(error, AINotConfigured):
+                raise error
             raise AIFailed("Textkontrollen misslyckades") from None
+        return outcome["result"]
 
 
 class Embedder(Protocol):
