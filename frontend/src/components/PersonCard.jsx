@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from './Avatar'
-import { groupInterests } from './InterestTagGroup'
+import { groupInterests } from '../utils/interestGroups'
 import InterestTags from './InterestTags'
 
 // Högst så många intressen (huvudintressen, med sina underintressen bakom ▼)

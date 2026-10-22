@@ -222,8 +222,11 @@ function StyleGuide() {
           Intressen på profiler, personkort, klubbar, events och i intervjun (.interest-tag, inte .tag). Färgen följer
           huvudområdet (utils/interestColors.js): en fyllning per område och en ljusare nyans för underintressen. Mörk
           kant, handritad form och hård skugga som kartans lappar. ▼ betyder att intresset har underintressen; ett tryck
-          lägger dem i en ruta över taggarna under. Gemensamma intressen har fetstil och en bock på gul botten. På Min
-          profil har taggarna × bara efter "Redigera". Tryck på Historia:
+          lägger dem i en ruta över taggarna under. Intressena grupperas per huvudområde (utils/interestGroups.js): ett
+          ensamt intresse visas direkt (Animal Crossing), flera samlas under området (Gaming ▼). Gemensamma intressen
+          har fetstil och en bock på gul botten. På Min profil ändras intressena i popupen "Redigera": × under Dina, och
+          under Lägg till är intressena vita taggar att trycka på (.interest-pick, i områdets färg med ✓ när de är valda,
+          › visar nivån under). Tryck på Historia:
         </p>
         <InterestTree
           proposals={profileTree([

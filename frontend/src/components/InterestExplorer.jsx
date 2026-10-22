@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DidYouMean, MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest'
 import InterestTree, { profileTree } from './InterestTree'
+import Modal from './Modal'
 import { areaColors } from '../utils/interestColors'
 import { getChildInterests, getTopInterests, searchInterests } from '../services/interests'
 
@@ -8,25 +9,158 @@ import { getChildInterests, getTopInterests, searchInterests } from '../services
 // bokstav blir ett anrop.
 const SEARCH_DELAY_MS = 300
 
-// "Vad gillar du?": sök och utforska intressebiblioteket och lägg till eller ta
-// bort intressen. Biblioteket är ett träd (huvudområde › intresse › mer
-// specifikt), och varje nivå går att välja, även huvudområdet självt.
+// "Vad gillar du?": de valda intressena som taggar, och sök och utforska i
+// intressebiblioteket för att lägga till fler. Biblioteket är ett träd
+// (huvudområde › intresse › mer specifikt), och varje nivå går att välja, även
+// huvudområdet självt.
 //
 // Komponenten sparar inget själv: `onAdd(interest)` och `onRemove(interest)`
 // gör det (direkt på profilen, eller i formuläret när profilen skapas). De får
 // returnera ett promise; misslyckas det visas felet här. `selected` är de valda
-// intressena ({ id, name, parent_id, area }), som visas som taggar (InterestTree):
-// ett intresse vars förälder också är vald fälls ut från den med ▼. När profilen skapas
-// kommer de valda från sökningen och utforska, som saknar parent_id, så där
-// ligger alla överst. `card` = eget vitt kort (profilen); utan ligger den direkt
-// i ett formulär (när profilen skapas). Med `onAddNew(result)` erbjuds man att lägga
-// till ett intresse som inte finns när sökningen inte ger någon träff (se
-// AddInterest.jsx); utan den visas bara att inget matchar.
+// intressena ({ id, name, parent_id, area }, eller { id, name, path } när
+// profilen skapas), som visas som taggar per huvudområde (InterestTree). Med
+// `onAddNew(result)` erbjuds man att lägga till ett intresse som inte finns när
+// sökningen inte ger någon träff (se AddInterest.jsx); utan den visas bara att
+// inget matchar.
 //
-// På profilen syns bara de valda intressena tills man trycker "Lägg till
-// intressen", då fälls sök och Utforska ut. I formuläret är allt öppet direkt,
-// eftersom man måste välja minst ett intresse där.
+// `card` = profilen: ett eget vitt kort med bara taggarna och "Redigera", som
+// öppnar en popup med flikarna Dina (taggarna med ×) och Lägg till (InterestPicker).
+// Så blir profilen aldrig lång, och inget går att ta bort av misstag. Utan `card`
+// (när profilen skapas, i ett formulär) ligger allt öppet direkt, eftersom man
+// måste välja minst ett intresse där.
 function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) {
+  const [busyId, setBusyId] = useState(null)
+  const [error, setError] = useState('')
+  const [tab, setTab] = useState(null) // null = popupen stängd, annars 'mine' eller 'add'
+  const selectedIds = new Set(selected.map((i) => i.id))
+
+  async function toggle(interest) {
+    setBusyId(interest.id)
+    setError('')
+    try {
+      if (selectedIds.has(interest.id)) await onRemove(interest)
+      else await onAdd(interest)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const tags = (removable) =>
+    selected.length === 0 ? (
+      <p className="hint-text">Inga intressen än.</p>
+    ) : (
+      <InterestTree
+        proposals={profileTree(selected)}
+        align="start"
+        busyKey={busyId === null ? null : `id:${busyId}`}
+        onRemove={removable ? (key) => toggle(selected.find((i) => `id:${i.id}` === key)) : undefined}
+      />
+    )
+  const picker = (
+    <InterestPicker selectedIds={selectedIds} busyId={busyId} onToggle={toggle} onAddNew={onAddNew} onError={setError} />
+  )
+  const errorText = error && <p className="form-error">{error}</p>
+
+  if (!card) {
+    return (
+      <section className="explorer">
+        <h2>Vad gillar du?</h2>
+        <div className="explorer-section">
+          <h3 className="explorer-heading">Dina intressen ({selected.length})</h3>
+          {tags(true)}
+        </div>
+        {errorText}
+        {picker}
+      </section>
+    )
+  }
+
+  return (
+    <section className="card card-wide explorer">
+      <h2 className="card-title">Vad gillar du?</h2>
+      <div className="explorer-section">
+        <div className="explorer-heading-row">
+          <h3 className="explorer-heading">Dina intressen ({selected.length})</h3>
+          <button type="button" className="text-button" onClick={() => setTab(selected.length > 0 ? 'mine' : 'add')}>
+            {selected.length > 0 ? 'Redigera' : 'Lägg till intressen'}
+          </button>
+        </div>
+        {tags(false)}
+      </div>
+      {tab === null && errorText}
+
+      {tab !== null && (
+        <Modal title="Dina intressen" onClose={() => setTab(null)}>
+          <div className="filter-tabs" role="tablist">
+            {[
+              ['mine', `Dina (${selected.length})`],
+              ['add', 'Lägg till'],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                className={`tag${tab === id ? ' tag-selected' : ''}`}
+                onClick={() => setTab(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className={`modal-scroll explorer explorer-view-${tab}`}>
+            {tab === 'mine' ? (
+              <>
+                {selected.length > 0 && <p className="hint-text">Tryck på × för att ta bort ett intresse.</p>}
+                {tags(true)}
+              </>
+            ) : (
+              picker
+            )}
+          </div>
+          {errorText}
+        </Modal>
+      )}
+    </section>
+  )
+}
+
+// Ett intresse att välja: en intressetagg som man trycker på för att lägga till
+// eller ta bort. Vit = inte vald, i områdets färg och nedtryckt (med ✓) = vald.
+// Med `onDrill` har den ett › som visar intressena under den.
+function PickTag({ interest, area, label = interest.name, title, on, busy, onToggle, onDrill }) {
+  return (
+    <li>
+      <span className={`interest-tag interest-pick${on ? ' is-on' : ''}`} style={areaColors(area)} title={title}>
+        <button
+          type="button"
+          className="interest-pick-toggle"
+          aria-pressed={on}
+          aria-label={on ? `Ta bort ${label}` : `Lägg till ${label}`}
+          disabled={busy}
+          onClick={onToggle}
+        >
+          {on && <span aria-hidden="true">✓ </span>}
+          {label}
+        </button>
+        {onDrill && (
+          <button type="button" className="interest-pick-drill" aria-label={`Visa intressen under ${interest.name}`} onClick={onDrill}>
+            ›
+          </button>
+        )}
+      </span>
+    </li>
+  )
+}
+
+// "Lägg till": sökning och kategorierna i biblioteket. En kategori öppnar en ruta
+// i sin färg med intressena som taggar att trycka på (PickTag), och › går en nivå
+// ner. Rutan läggs efter den sista kategorin på samma rad som den man tryckte
+// på, så att den öppnas direkt under den. `onToggle(interest)` lägger till eller
+// tar bort, `selectedIds` är de valda och `busyId` det som sparas just nu.
+function InterestPicker({ selectedIds, busyId, onToggle, onAddNew, onError }) {
   const [top, setTop] = useState([])
   const [loadError, setLoadError] = useState('')
   // Var man är när man utforskar: huvudområdet och vägen ner, [] = stängt.
@@ -35,17 +169,8 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null) // null = ingen sökning
   const [resultsFor, setResultsFor] = useState('') // texten som träfflistan gäller
-  const [busyId, setBusyId] = useState(null)
-  const [error, setError] = useState('')
-  const [open, setOpen] = useState(!card)
-  // På profilen har taggarna kryss bara efter "Redigera", så att man inte råkar ta
-  // bort ett intresse. När profilen skapas har de alltid kryss.
-  const [editing, setEditing] = useState(false)
-  const removable = !card || editing
   const searchRequest = useRef(0)
-  // Kategorierna under Utforska (li per id), och den sista kategorin på samma
-  // rad som den öppna. Rutan med underintressena läggs efter den, så att den
-  // öppnas direkt under kategorin man tryckte på och inte under alla.
+  // Kategorierna (li per id), och den sista kategorin på samma rad som den öppna.
   const areaRefs = useRef(new Map())
   const panelRef = useRef(null)
   const [rowEndId, setRowEndId] = useState(null)
@@ -88,11 +213,11 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
     let cancelled = false
     getChildInterests(path.at(-1).id)
       .then((items) => !cancelled && setLevel(items))
-      .catch(() => !cancelled && setError('Kunde inte hämta underintressena.'))
+      .catch(() => !cancelled && onError('Kunde inte hämta underintressena.'))
     return () => {
       cancelled = true
     }
-  }, [path])
+  }, [path, onError])
 
   // Sökningen, en kort stund efter senaste tangenttrycket. Ett svar på en
   // äldre sökning (som man hunnit skriva vidare på) kastas.
@@ -110,219 +235,155 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
           setResults(items)
           setResultsFor(text)
         })
-        .catch(() => request === searchRequest.current && setError('Sökningen misslyckades.'))
+        .catch(() => request === searchRequest.current && onError('Sökningen misslyckades.'))
     }, SEARCH_DELAY_MS)
     return () => clearTimeout(timer)
-  }, [query])
+  }, [query, onError])
 
-  const selectedIds = new Set(selected.map((i) => i.id))
+  const pick = (interest, area, extra = {}) => (
+    <PickTag
+      key={interest.id}
+      interest={interest}
+      area={area}
+      on={selectedIds.has(interest.id)}
+      busy={busyId === interest.id}
+      onToggle={() => onToggle(interest)}
+      {...extra}
+    />
+  )
 
-  async function toggle(interest) {
-    setBusyId(interest.id)
-    setError('')
-    try {
-      if (selectedIds.has(interest.id)) await onRemove(interest)
-      else await onAdd(interest)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  function addButton(interest, label = interest.name) {
+  // Knappen vid "Menade du" (en rad med namnet bredvid, se AddInterest.jsx).
+  function addButton(interest) {
     const isSelected = selectedIds.has(interest.id)
     return (
       <button
         type="button"
         className={`explorer-add${isSelected ? ' explorer-add-on' : ''}`}
-        aria-label={isSelected ? `Ta bort ${label}` : `Lägg till ${label}`}
+        aria-label={isSelected ? `Ta bort ${interest.name}` : `Lägg till ${interest.name}`}
         aria-pressed={isSelected}
         disabled={busyId === interest.id}
-        onClick={() => toggle(interest)}
+        onClick={() => onToggle(interest)}
       >
         {isSelected ? '✓' : '+'}
       </button>
     )
   }
 
-  // Stänger man börjar man om nästa gång: ingen gammal sökning eller öppet område.
-  function toggleOpen() {
-    if (open) {
-      setQuery('')
-      setPath([])
-    }
-    setOpen(!open)
-  }
-
   const current = path.at(-1)
+  const areaName = path[0]?.name
   const areaBox = current && (
-    <div className="explorer-box">
-      <nav aria-label="Var du är" className="explorer-crumbs">
-        {path.map((step, i) =>
-          i === path.length - 1 ? (
-            <span key={step.id} className="explorer-crumb-current">
-              {step.name}
-            </span>
-          ) : (
-            <span key={step.id} className="explorer-crumb">
-              <button type="button" onClick={() => setPath(path.slice(0, i + 1))}>
-                {step.name}
-              </button>
-              <span aria-hidden="true">›</span>
-            </span>
-          ),
-        )}
-      </nav>
-      <ul className="explorer-rows">
-        {/* Hela området/intresset, för den som inte vill välja något mer specifikt. */}
-        <li className="explorer-row">
-          <span className="explorer-name">{current.name} (allmänt)</span>
-          {addButton(current, `${current.name} (allmänt)`)}
-        </li>
-        {level.map((item) => (
-          <li key={item.id} className="explorer-row">
-            {item.has_children ? (
-              <button type="button" className="explorer-drill" onClick={() => setPath([...path, item])}>
-                <span>{item.name}</span>
-                <span aria-hidden="true">›</span>
-              </button>
-            ) : (
-              <span className="explorer-name">{item.name}</span>
+    <div className="explorer-pick-panel" style={areaColors(areaName)}>
+      {/* Tillbaka och var man är, först när man gått ner en nivå (kategorin själv stängs med sin tagg). */}
+      {path.length > 1 && (
+        <div className="explorer-pick-top">
+          <button type="button" className="secondary-button button-small" onClick={() => setPath(path.slice(0, -1))}>
+            ← Tillbaka
+          </button>
+          <nav aria-label="Var du är" className="explorer-crumbs">
+            {path.map((step, i) =>
+              i === path.length - 1 ? (
+                <span key={step.id} className="explorer-crumb-current">
+                  {step.name}
+                </span>
+              ) : (
+                <span key={step.id} className="explorer-crumb">
+                  <button type="button" onClick={() => setPath(path.slice(0, i + 1))}>
+                    {step.name}
+                  </button>
+                  <span aria-hidden="true">›</span>
+                </span>
+              ),
             )}
-            {addButton(item)}
-          </li>
-        ))}
+          </nav>
+        </div>
+      )}
+      <p className="hint-text">Tryck för att lägga till eller ta bort.</p>
+      <ul className="interest-tags">
+        {/* Hela området/intresset, för den som inte vill välja något mer specifikt. */}
+        {pick(current, areaName, { label: `${current.name} (allmänt)` })}
+        {level.map((item) =>
+          pick(item, areaName, item.has_children ? { onDrill: () => setPath([...path, item]) } : {}),
+        )}
       </ul>
     </div>
   )
 
   return (
-    <section className={card ? 'card card-wide explorer' : 'explorer'}>
-      <h2 className={card ? 'card-title' : undefined}>Vad gillar du?</h2>
+    <>
+      <input
+        type="search"
+        className="explorer-search"
+        aria-label="Sök intressen"
+        placeholder='Sök, t.ex. "springa" eller "foto"'
+        maxLength={MAX_INTEREST_LENGTH}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
 
-      <div className="explorer-section">
-        <div className="explorer-heading-row">
-          <h3 className="explorer-heading">Dina intressen ({selected.length})</h3>
-          {card && selected.length > 0 && (
-            <button type="button" className="text-button" aria-pressed={editing} onClick={() => setEditing(!editing)}>
-              {editing ? 'Klar' : 'Redigera'}
-            </button>
+      {results && (
+        <div className="explorer-box">
+          {results.length === 0 ? (
+            onAddNew ? (
+              // Först när träfflistan gäller texten som står i rutan, annars skulle man kunna lägga till något som har träffar.
+              resultsFor === query.trim() && (
+                <NewInterestOffer text={resultsFor} onAddNew={onAddNew} onDone={() => setQuery('')} boxed={false}>
+                  <DidYouMean text={resultsFor} action={addButton} />
+                </NewInterestOffer>
+              )
+            ) : (
+              <>
+                <p className="hint-text">Inget intresse matchar "{query.trim()}" än.</p>
+                {resultsFor === query.trim() && <DidYouMean text={resultsFor} action={addButton} />}
+              </>
+            )
+          ) : (
+            // Var träffen hör hemma (t.ex. "Sport och träning › Löpning") syns när man håller över den, och i färgen.
+            <ul className="interest-tags">
+              {results.map((item) =>
+                pick(item, item.path[0] ?? item.name, { title: [...item.path, item.name].join(' › ') }),
+              )}
+            </ul>
           )}
         </div>
-        {card && editing && <p className="hint-text">Tryck på × för att ta bort ett intresse.</p>}
-        {selected.length === 0 ? (
-          <p className="hint-text">Inga intressen än.</p>
+      )}
+
+      <div className="explorer-section">
+        <h3 className="explorer-heading">Utforska</h3>
+        {loadError ? (
+          <p className="status-error">{loadError}</p>
         ) : (
-          <InterestTree
-            proposals={profileTree(selected)}
-            align="start"
-            busyKey={busyId === null ? null : `id:${busyId}`}
-            onRemove={removable ? (key) => toggle(selected.find((i) => `id:${i.id}` === key)) : undefined}
-          />
+          <ul className="interest-tags">
+            {top.map((area) => {
+              const isOpen = openAreaId === area.id
+              return (
+                <Fragment key={area.id}>
+                  <li ref={(el) => (el ? areaRefs.current.set(area.id, el) : areaRefs.current.delete(area.id))}>
+                    {/* Huvudområdena som intressetaggar, i sin egen färg (se InterestTagGroup). */}
+                    <button
+                      type="button"
+                      className={`interest-tag explorer-area${isOpen ? ' explorer-area-open' : ''}`}
+                      style={areaColors(area.name)}
+                      aria-expanded={isOpen}
+                      onClick={() => setPath(isOpen ? [] : [area])}
+                    >
+                      {area.name}
+                      {/* Nedåt: går att öppna. Vänds uppåt när området är öppet. */}
+                      <span className="explorer-arrow" aria-hidden="true" />
+                    </button>
+                  </li>
+                  {/* Rutan efter sista kategorin på den öppnas rad (före mätningen: direkt efter den). */}
+                  {areaBox && area.id === (rowEndId ?? openAreaId) && (
+                    <li ref={panelRef} className="explorer-panel">
+                      {areaBox}
+                    </li>
+                  )}
+                </Fragment>
+              )
+            })}
+          </ul>
         )}
       </div>
-
-      {error && <p className="form-error">{error}</p>}
-
-      {card && (
-        <button
-          type="button"
-          className={`secondary-button explorer-toggle${open ? ' explorer-toggle-open' : ''}`}
-          aria-expanded={open}
-          onClick={toggleOpen}
-        >
-          {open ? 'Klar' : 'Lägg till intressen'}
-          <span className="explorer-arrow" aria-hidden="true" />
-        </button>
-      )}
-
-      {open && (
-        <>
-          <p className="hint-text">Sök eller utforska, och tryck på + vid det du gillar.</p>
-
-          <input
-            type="search"
-            className="explorer-search"
-            aria-label="Sök intressen"
-            placeholder='Sök, t.ex. "springa" eller "foto"'
-            maxLength={MAX_INTEREST_LENGTH}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-
-          {results && (
-            <div className="explorer-box">
-              {results.length === 0 ? (
-                onAddNew ? (
-                  // Först när träfflistan gäller texten som står i rutan, annars skulle man kunna lägga till något som har träffar.
-                  resultsFor === query.trim() && (
-                    <NewInterestOffer text={resultsFor} onAddNew={onAddNew} onDone={() => setQuery('')} boxed={false}>
-                      <DidYouMean text={resultsFor} action={(item) => addButton(item)} />
-                    </NewInterestOffer>
-                  )
-                ) : (
-                  <>
-                    <p className="hint-text">Inget intresse matchar "{query.trim()}" än.</p>
-                    {resultsFor === query.trim() && <DidYouMean text={resultsFor} action={(item) => addButton(item)} />}
-                  </>
-                )
-              ) : (
-                <ul className="explorer-rows">
-                  {results.map((item) => (
-                    <li key={item.id} className="explorer-row">
-                      <span className="explorer-name">
-                        {item.name}
-                        {/* Var träffen hör hemma, t.ex. "Sport och träning › Löpning". */}
-                        <span className="hint-text">{item.path.length ? item.path.join(' › ') : 'Huvudområde'}</span>
-                      </span>
-                      {addButton(item)}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          <div className="explorer-section">
-            <h3 className="explorer-heading">Utforska</h3>
-            {loadError ? (
-              <p className="status-error">{loadError}</p>
-            ) : (
-              <ul className="interest-tags">
-                {top.map((area) => {
-                  const isOpen = openAreaId === area.id
-                  return (
-                    <Fragment key={area.id}>
-                      <li ref={(el) => (el ? areaRefs.current.set(area.id, el) : areaRefs.current.delete(area.id))}>
-                        {/* Huvudområdena som intressetaggar, i sin egen färg (se InterestTagGroup). */}
-                        <button
-                          type="button"
-                          className={`interest-tag explorer-area${isOpen ? ' explorer-area-open' : ''}`}
-                          style={areaColors(area.name)}
-                          aria-expanded={isOpen}
-                          onClick={() => setPath(isOpen ? [] : [area])}
-                        >
-                          {area.name}
-                          {/* Nedåt: går att öppna. Vänds uppåt när området är öppet. */}
-                          <span className="explorer-arrow" aria-hidden="true" />
-                        </button>
-                      </li>
-                      {/* Rutan efter sista kategorin på den öppnas rad (före mätningen: direkt efter den). */}
-                      {areaBox && area.id === (rowEndId ?? openAreaId) && (
-                        <li ref={panelRef} className="explorer-panel">
-                          {areaBox}
-                        </li>
-                      )}
-                    </Fragment>
-                  )
-                })}
-              </ul>
-            )}
-          </div>
-        </>
-      )}
-    </section>
+    </>
   )
 }
 

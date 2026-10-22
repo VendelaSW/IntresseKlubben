@@ -1,10 +1,9 @@
-import InterestTagGroup, { selectedParentOf } from './InterestTagGroup'
+import { groupTags } from '../utils/interestGroups'
+import InterestTagGroup from './InterestTagGroup'
 
-// Intressen som taggar: varje intresse är en tagg, och det som ligger under ett intresse som också finns med
-// (Fyrmodeller under Modellbygge, Mynt under Historia) fälls ut från den med ▼ (se InterestTagGroup). Används för
-// förslagen på intervjuns sista sida och för intressena på profilen (den egna och andras, se profileTree). Med
-// `onRemove` har taggarna ett kryss. I intervjun tas ett intresses subs bort med det (se descendantKeys); på profilen
-// ligger de kvar och flyttas upp.
+// Intressen som taggar, per huvudområde (se utils/interestGroups.js och InterestTagGroup). Används för förslagen på
+// intervjuns sista sida och för intressena på profilen (den egna och andras, se profileTree). Med `onRemove` har
+// taggarna ett kryss. I intervjun tas ett intresses subs bort med det (se descendantKeys).
 
 // Förslaget ett förslag ligger under i bilden: dess parent_key (en sub under ett nytt intresse i samma analys),
 // annars det närmaste förslaget ovanför i förslagets plats i trädet (path). Så ligger "Mynt" och "Förintelsen"
@@ -19,13 +18,14 @@ export function parentKeyOf(proposal, proposals) {
   return null
 }
 
-// Profilens intressen ({ id, name, parent_id, area }) i samma form som förslagen, så att de kan ritas som ett
-// träd. Ett intresse hamnar under det närmaste valda intresset ovanför (se selectedParentOf), annars överst.
+// Profilens intressen ({ id, name, parent_id, area }) i samma form som förslagen, så att de kan ritas som taggar. Ett
+// intresse har sin förälder som parent_key om personen också har valt den.
 export function profileTree(interests) {
-  return interests.map((i) => {
-    const parent = selectedParentOf(i, interests)
-    return { key: `id:${i.id}`, interest: { ...i, parent_key: parent ? `id:${parent.id}` : null } }
-  })
+  const ids = new Set(interests.map((i) => i.id))
+  return interests.map((i) => ({
+    key: `id:${i.id}`,
+    interest: { ...i, parent_key: ids.has(i.parent_id) ? `id:${i.parent_id}` : null },
+  }))
 }
 
 // Samma intresse? Ett befintligt intresse är samma om id:t är samma, ett nytt om namnet och platsen i trädet är det.
@@ -70,25 +70,23 @@ export function descendantKeys(proposals, key) {
   return keys
 }
 
-// `proposals` är förslagen som ska visas: [{ key, interest: { name, path, parent_key, area } }]. Varje förslag utan
-// förälder blir en tagg (InterestTagGroup), och allt som ligger under det blir dess underintressen, som fälls ut med ▼.
-// Färgen följer huvudområdet: `area` om den finns (profilen), annars det översta i `path` (förslagen i intervjun).
+// `proposals` är förslagen som ska visas: [{ key, interest: { name, path, parent_key, area } }]. De blir taggar per
+// huvudområde (se utils/interestGroups.js): ett ensamt intresse visas direkt, flera samlas under huvudområdet (▼).
+// Huvudområdet är `area` om den finns (profilen), annars det översta i `path` (förslagen i intervjun).
 // - `onRemove(key)`: ger ett × på taggarna; utan den visas de utan
 // - `highlight`: nycklarna som är gemensamma med en själv (fetstil och bock); utan den markeras inga
 // - `busyKey`: taggen vars borttagning pågår, så att den inte går att trycka på igen
 // - `align`: 'center' (intervjun) eller 'start' (profilen)
 function InterestTree({ proposals, onRemove, highlight, busyKey, align = 'center' }) {
-  const groups = proposals
-    .filter((p) => !parentKeyOf(p, proposals))
-    .map((top) => ({
-      key: top.key,
-      name: top.interest.name,
-      area: top.interest.area ?? top.interest.path?.[0] ?? top.interest.name,
-      subs: [...descendantKeys(proposals, top.key)]
-        .filter((k) => k !== top.key)
-        .map((k) => proposals.find((p) => p.key === k))
-        .map((p) => ({ key: p.key, name: p.interest.name })),
-    }))
+  const groups = groupTags(
+    proposals.map((p) => ({
+      key: p.key,
+      name: p.interest.name,
+      area: p.interest.area ?? p.interest.path?.[0] ?? p.interest.name,
+      parentKey: parentKeyOf(p, proposals),
+      isArea: p.interest.parent_id !== undefined ? p.interest.parent_id == null : !p.interest.path?.length,
+    })),
+  )
   return (
     <ul className={`interest-tags${align === 'start' ? '' : ' interest-tags-center'}`}>
       {groups.map((group) => (

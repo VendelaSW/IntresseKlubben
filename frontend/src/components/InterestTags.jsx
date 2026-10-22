@@ -1,4 +1,5 @@
-import InterestTagGroup, { groupInterests } from './InterestTagGroup'
+import { groupInterests } from '../utils/interestGroups'
+import InterestTagGroup from './InterestTagGroup'
 
 // Någons intressen som taggar, bara för visning (personkort, events och klubbar).
 // `interests` är [{ id, name, parent_id, area }]; ett intresse vars förälder också
