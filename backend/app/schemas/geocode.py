@@ -7,3 +7,10 @@ class GeocodeResult(BaseModel):
     label: str
     latitude: float
     longitude: float
+
+
+class ReverseGeocodeResult(BaseModel):
+    """Den närmaste gatuadressen där nålen står (GET /geocode/reverse), t.ex. "Storgatan 1", eller
+    None när det inte finns någon i närheten."""
+
+    address: str | None
