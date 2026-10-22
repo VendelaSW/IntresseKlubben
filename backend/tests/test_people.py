@@ -96,8 +96,9 @@ def test_interests_on_person_cards_have_parent_id(client, db, user):
     assert {i["name"]: i["parent_id"] for i in body["interests"]} == {"Historia": None, "Mynt": history.id}
 
 
-def test_interests_on_person_cards_have_their_area(client, db, user):
-    # Huvudområdet är det översta i trädet, också två nivåer ner, och ett huvudområde är sitt eget.
+def test_interests_on_person_cards_have_their_area_and_path(client, db, user):
+    # Huvudområdet är det översta i trädet, också två nivåer ner, och ett huvudområde är sitt eget. path är alla
+    # namnen ovanför, också de som personen inte har valt (Fotografering).
     creative = Interest(name="Skapande")
     db.add(creative)
     db.flush()
@@ -112,6 +113,7 @@ def test_interests_on_person_cards_have_their_area(client, db, user):
     body = client.get("/users/").json()[0]
 
     assert {i["name"]: i["area"] for i in body["interests"]} == {"Skapande": "Skapande", "Porträttfoto": "Skapande"}
+    assert {i["name"]: i["path"] for i in body["interests"]} == {"Skapande": [], "Porträttfoto": ["Skapande", "Fotografering"]}
 
 
 def test_interests_are_sorted_by_name(client, db, user):

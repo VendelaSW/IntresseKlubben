@@ -13,10 +13,13 @@ class ProfileInterest(InterestResponse):
 
     parent_id är intresset ovanför i trädet, så att frontend kan rita ett
     intresse under sin förälder när personen har valt båda (Mynt under
-    Historia). area är huvudområdet (se Interest.area), som taggens färg följer.
-    Bara för visning: hur intressen sparas och filtreras ändras inte."""
+    Historia). path är namnen ovanför, uppifrån (se Interest.path), så att
+    frontend kan samla flera intressen under sin kategori. area är huvudområdet
+    (se Interest.area), som taggens färg följer. Bara för visning: hur intressen
+    sparas och filtreras ändras inte."""
 
     parent_id: int | None
+    path: list[str]
     area: str
 
 

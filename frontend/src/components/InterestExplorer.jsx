@@ -17,8 +17,8 @@ const SEARCH_DELAY_MS = 300
 // Komponenten sparar inget själv: `onAdd(interest)` och `onRemove(interest)`
 // gör det (direkt på profilen, eller i formuläret när profilen skapas). De får
 // returnera ett promise; misslyckas det visas felet här. `selected` är de valda
-// intressena ({ id, name, parent_id, area }, eller { id, name, path } när
-// profilen skapas), som visas som taggar per huvudområde (InterestTree). Med
+// intressena ({ id, name, parent_id, path, area }, eller { id, name, path } när
+// profilen skapas), som visas som taggar (InterestTree). Med
 // `onAddNew(result)` erbjuds man att lägga till ett intresse som inte finns när
 // sökningen inte ger någon träff (se AddInterest.jsx); utan den visas bara att
 // inget matchar.

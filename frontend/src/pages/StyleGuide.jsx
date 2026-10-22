@@ -222,21 +222,24 @@ function StyleGuide() {
           Intressen på profiler, personkort, klubbar, events och i intervjun (.interest-tag, inte .tag). Färgen följer
           huvudområdet (utils/interestColors.js): en fyllning per område och en ljusare nyans för underintressen. Mörk
           kant, handritad form och hård skugga som kartans lappar. ▼ betyder att intresset har underintressen; ett tryck
-          lägger dem i en ruta över taggarna under. Intressena grupperas per huvudområde (utils/interestGroups.js): ett
-          ensamt intresse visas direkt (Animal Crossing), flera samlas under området (Gaming ▼). Gemensamma intressen
-          har fetstil och en bock på gul botten. På Min profil ändras intressena i popupen "Redigera": × under Dina, och
-          under Lägg till är intressena vita taggar att trycka på (.interest-pick, i områdets färg med ✓ när de är valda,
-          › visar nivån under). Tryck på Historia:
+          lägger dem i en ruta över taggarna under. Allt man valt syns, och varje intresse är en egen tagg tills fler än
+          tre ligger under samma kategori; då samlas de i den (utils/interestGroups.js), den närmaste kategorin först
+          (fyra mysiga spel blir Mysiga spel ▼, också om man inte valt Mysiga spel). Gemensamma intressen har fetstil
+          och en bock på gul botten. På Min profil ändras intressena i popupen "Redigera": × under Dina, och under Lägg
+          till är intressena vita taggar att trycka på (.interest-pick, i områdets färg med ✓ när de är valda, › visar
+          nivån under). Tryck på Historia (fyra under den) och se Fotografering (bara tre under Skapande):
         </p>
         <InterestTree
           proposals={profileTree([
-            { id: 1, name: 'Historia', parent_id: null, area: 'Historia' },
-            { id: 2, name: 'Mynt', parent_id: 1, area: 'Historia' },
-            { id: 3, name: 'Vikingatiden', parent_id: 1, area: 'Historia' },
-            { id: 4, name: 'Medeltiden', parent_id: 1, area: 'Historia' },
-            { id: 6, name: 'Metal', parent_id: 7, area: 'Musik' },
-            { id: 8, name: 'Löpning', parent_id: null, area: 'Sport och träning' },
-            { id: 9, name: 'Fotografering', parent_id: null, area: 'Skapande' },
+            { id: 1, name: 'Historia', parent_id: null, path: [] },
+            { id: 2, name: 'Mynt', parent_id: 1, path: ['Historia'] },
+            { id: 3, name: 'Vikingatiden', parent_id: 1, path: ['Historia'] },
+            { id: 4, name: 'Medeltiden', parent_id: 1, path: ['Historia'] },
+            { id: 5, name: 'Antiken', parent_id: 1, path: ['Historia'] },
+            { id: 6, name: 'Metal', parent_id: 7, path: ['Musik', 'Rock'] },
+            { id: 8, name: 'Löpning', parent_id: 10, path: ['Sport och träning'] },
+            { id: 9, name: 'Fotografering', parent_id: 11, path: ['Skapande'] },
+            { id: 12, name: 'Analog fotografering', parent_id: 9, path: ['Skapande', 'Fotografering'] },
           ])}
           align="start"
           highlight={new Set(['id:2', 'id:8'])}

@@ -57,11 +57,19 @@ class Interest(Base):
     children = relationship("Interest", back_populates="parent")
 
     @property
+    def path(self) -> list[str]:
+        """Namnen ovanför intresset i trädet, uppifrån, t.ex. ["Skapande",
+        "Fotografering"] för Porträttfoto. Tom för ett huvudområde."""
+        path = []
+        parent = self.parent
+        while parent is not None:
+            path.insert(0, parent.name)
+            parent = parent.parent
+        return path
+
+    @property
     def area(self) -> str:
         """Namnet på huvudområdet intresset ligger i (det översta i trädet), t.ex.
         "Skapande" för Porträttfoto. Ett huvudområde är sitt eget. Frontend färgar
         taggarna efter det (se frontend/src/utils/interestColors.js)."""
-        top = self
-        while top.parent is not None:
-            top = top.parent
-        return top.name
+        return self.path[0] if self.parent is not None else self.name
