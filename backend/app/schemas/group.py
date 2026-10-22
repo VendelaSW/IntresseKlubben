@@ -87,6 +87,7 @@ class GroupResponse(BaseModel):
     longitude: float | None
     interest_id: int
     interest_name: str
+    interest_area: str  # huvudområdet, som taggens färg följer (se Interest.area)
     municipality_code: str
     municipality_name: str
     visibility: GroupVisibility

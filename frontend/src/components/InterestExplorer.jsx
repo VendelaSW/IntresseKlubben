@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DidYouMean, MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest'
-import InterestTree, { PROFILE_MAX_SUBS, profileTree } from './InterestTree'
+import InterestTree, { profileTree } from './InterestTree'
+import { areaColors } from '../utils/interestColors'
 import { getChildInterests, getTopInterests, searchInterests } from '../services/interests'
 
 // Så länge sökningen väntar efter senaste tangenttrycket, så att inte varje
@@ -14,8 +15,8 @@ const SEARCH_DELAY_MS = 300
 // Komponenten sparar inget själv: `onAdd(interest)` och `onRemove(interest)`
 // gör det (direkt på profilen, eller i formuläret när profilen skapas). De får
 // returnera ett promise; misslyckas det visas felet här. `selected` är de valda
-// intressena ({ id, name, parent_id }), som visas som ett träd (InterestTree):
-// ett intresse vars förälder också är vald ligger under den. När profilen skapas
+// intressena ({ id, name, parent_id, area }), som visas som taggar (InterestTree):
+// ett intresse vars förälder också är vald fälls ut från den med ▼. När profilen skapas
 // kommer de valda från sökningen och utforska, som saknar parent_id, så där
 // ligger alla överst. `card` = eget vitt kort (profilen); utan ligger den direkt
 // i ett formulär (när profilen skapas). Med `onAddNew(result)` erbjuds man att lägga
@@ -37,6 +38,10 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
   const [open, setOpen] = useState(!card)
+  // På profilen har taggarna kryss bara efter "Redigera", så att man inte råkar ta
+  // bort ett intresse. När profilen skapas har de alltid kryss.
+  const [editing, setEditing] = useState(false)
+  const removable = !card || editing
   const searchRequest = useRef(0)
   // Kategorierna under Utforska (li per id), och den sista kategorin på samma
   // rad som den öppna. Rutan med underintressena läggs efter den, så att den
@@ -197,16 +202,23 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
       <h2 className={card ? 'card-title' : undefined}>Vad gillar du?</h2>
 
       <div className="explorer-section">
-        <h3 className="explorer-heading">Dina intressen ({selected.length})</h3>
+        <div className="explorer-heading-row">
+          <h3 className="explorer-heading">Dina intressen ({selected.length})</h3>
+          {card && selected.length > 0 && (
+            <button type="button" className="text-button" aria-pressed={editing} onClick={() => setEditing(!editing)}>
+              {editing ? 'Klar' : 'Redigera'}
+            </button>
+          )}
+        </div>
+        {card && editing && <p className="hint-text">Tryck på × för att ta bort ett intresse.</p>}
         {selected.length === 0 ? (
           <p className="hint-text">Inga intressen än.</p>
         ) : (
           <InterestTree
             proposals={profileTree(selected)}
             align="start"
-            maxSubs={PROFILE_MAX_SUBS}
             busyKey={busyId === null ? null : `id:${busyId}`}
-            onRemove={(key) => toggle(selected.find((i) => `id:${i.id}` === key))}
+            onRemove={removable ? (key) => toggle(selected.find((i) => `id:${i.id}` === key)) : undefined}
           />
         )}
       </div>
@@ -277,15 +289,17 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, card = true }) 
             {loadError ? (
               <p className="status-error">{loadError}</p>
             ) : (
-              <ul className="tags">
+              <ul className="interest-tags">
                 {top.map((area) => {
                   const isOpen = openAreaId === area.id
                   return (
                     <Fragment key={area.id}>
                       <li ref={(el) => (el ? areaRefs.current.set(area.id, el) : areaRefs.current.delete(area.id))}>
+                        {/* Huvudområdena som intressetaggar, i sin egen färg (se InterestTagGroup). */}
                         <button
                           type="button"
-                          className={`tag explorer-area${isOpen ? ' explorer-area-open' : ''}`}
+                          className={`interest-tag explorer-area${isOpen ? ' explorer-area-open' : ''}`}
+                          style={areaColors(area.name)}
                           aria-expanded={isOpen}
                           onClick={() => setPath(isOpen ? [] : [area])}
                         >

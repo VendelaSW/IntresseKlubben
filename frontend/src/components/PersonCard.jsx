@@ -1,9 +1,11 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from './Avatar'
+import { groupInterests } from './InterestTagGroup'
 import InterestTags from './InterestTags'
 
-// Högst så många intressen syns på kortet (på en rad). Fler fälls ut med ⋯.
+// Högst så många intressen (huvudintressen, med sina underintressen bakom ▼)
+// syns på kortet, på en rad. Fler fälls ut med ⋯.
 const MAX_TAGS = 3
 
 // Intressena på ett personkort: på en rad, de gemensamma först, och bara så
@@ -18,8 +20,9 @@ function CardInterests({ interests, sharedIds }) {
   const boxRef = useRef(null)
   const rowRef = useRef(null)
   const panelId = useId()
-  const isShared = (interest) => sharedIds?.has(interest.id) ?? false
-  const ordered = [...interests.filter(isShared), ...interests.filter((interest) => !isShared(interest))]
+  const groups = groupInterests(interests)
+  const isShared = (group) => [group.key, ...group.subs.map((sub) => sub.key)].some((id) => sharedIds?.has(id))
+  const ordered = [...groups.filter(isShared), ...groups.filter((group) => !isShared(group))]
 
   useLayoutEffect(() => {
     const row = rowRef.current
@@ -52,14 +55,14 @@ function CardInterests({ interests, sharedIds }) {
 
   return (
     <div className={`person-card-interests${open ? ' is-open' : ''}${count === 1 ? ' is-tight' : ''}`} ref={boxRef}>
-      <InterestTags listRef={rowRef} interests={ordered.slice(0, count)} highlight={sharedIds}>
+      <InterestTags listRef={rowRef} groups={ordered.slice(0, count)} highlight={sharedIds}>
         {ordered.length > count && (
           <button
             type="button"
-            className="tag person-card-more"
+            className="interest-tag interest-tag-more"
             aria-expanded={open}
             aria-controls={panelId}
-            aria-label={open ? 'Dölj alla intressen' : `Visa alla ${ordered.length} intressen`}
+            aria-label={open ? 'Dölj alla intressen' : `Visa alla ${interests.length} intressen`}
             onClick={() => setOpen(!open)}
           >
             ⋯
@@ -68,7 +71,7 @@ function CardInterests({ interests, sharedIds }) {
       </InterestTags>
       {open && (
         <div id={panelId} className="person-card-interests-all">
-          <InterestTags interests={ordered} highlight={sharedIds} />
+          <InterestTags groups={ordered} highlight={sharedIds} />
         </div>
       )}
     </div>

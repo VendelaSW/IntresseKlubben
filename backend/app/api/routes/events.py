@@ -49,6 +49,7 @@ def _to_response(event: Event, user_id: int) -> EventOut:
         description=event.description,
         interest_id=event.interest_id,
         interest_name=event.interest.name,
+        interest_area=event.interest.area,
         starts_at=event.starts_at,
         ends_at=event.ends_at,
         place_name=event.place_name,

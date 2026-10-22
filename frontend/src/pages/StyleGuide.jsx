@@ -18,7 +18,7 @@ import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
 import FormField from '../components/FormField'
-import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
+import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { NotificationDetails, NotificationRow } from './NotificationsPage'
@@ -217,24 +217,26 @@ function StyleGuide() {
           <li><button type="button" className="tag tag-selected">Vald</button></li>
         </ul>
 
-        <h3>Intressen som träd (components/InterestTree.jsx)</h3>
+        <h3>Intressetaggar (components/InterestTagGroup.jsx)</h3>
         <p className="hint-text">
-          Profilens intressen. Ett intresse vars förälder också är vald ligger under den, i mindre format. Högst{' '}
-          {PROFILE_MAX_SUBS} syns, resten fälls ut med ⋯. På någon annans profil är bara gemensamma intressen gula.
+          Intressen på profiler, personkort, klubbar, events och i intervjun (.interest-tag, inte .tag). Färgen följer
+          huvudområdet (utils/interestColors.js): en fyllning per område och en ljusare nyans för underintressen. Mörk
+          kant, handritad form och hård skugga som kartans lappar. ▼ betyder att intresset har underintressen; ett tryck
+          lägger dem i en ruta över taggarna under. Gemensamma intressen har fetstil och en bock på gul botten. På Min
+          profil har taggarna × bara efter "Redigera". Tryck på Historia:
         </p>
         <InterestTree
           proposals={profileTree([
-            { id: 1, name: 'Historia', parent_id: null },
-            { id: 2, name: 'Mynt', parent_id: 1 },
-            { id: 3, name: 'Vikingatiden', parent_id: 1 },
-            { id: 4, name: 'Medeltiden', parent_id: 1 },
-            { id: 5, name: 'Antiken', parent_id: 1 },
-            { id: 6, name: 'Metal', parent_id: 7 },
-            { id: 8, name: 'Löpning', parent_id: null },
+            { id: 1, name: 'Historia', parent_id: null, area: 'Historia' },
+            { id: 2, name: 'Mynt', parent_id: 1, area: 'Historia' },
+            { id: 3, name: 'Vikingatiden', parent_id: 1, area: 'Historia' },
+            { id: 4, name: 'Medeltiden', parent_id: 1, area: 'Historia' },
+            { id: 6, name: 'Metal', parent_id: 7, area: 'Musik' },
+            { id: 8, name: 'Löpning', parent_id: null, area: 'Sport och träning' },
+            { id: 9, name: 'Fotografering', parent_id: null, area: 'Skapande' },
           ])}
           align="start"
-          maxSubs={PROFILE_MAX_SUBS}
-          highlight={new Set(['id:1', 'id:2', 'id:3', 'id:4', 'id:5', 'id:6'])}
+          highlight={new Set(['id:2', 'id:8'])}
         />
 
         <h3>Lägg till ett intresse (components/AddInterest.jsx)</h3>

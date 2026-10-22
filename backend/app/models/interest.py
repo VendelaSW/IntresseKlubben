@@ -55,3 +55,13 @@ class Interest(Base):
 
     parent = relationship("Interest", remote_side=[id], back_populates="children")
     children = relationship("Interest", back_populates="parent")
+
+    @property
+    def area(self) -> str:
+        """Namnet på huvudområdet intresset ligger i (det översta i trädet), t.ex.
+        "Skapande" för Porträttfoto. Ett huvudområde är sitt eget. Frontend färgar
+        taggarna efter det (se frontend/src/utils/interestColors.js)."""
+        top = self
+        while top.parent is not None:
+            top = top.parent
+        return top.name

@@ -96,6 +96,24 @@ def test_interests_on_person_cards_have_parent_id(client, db, user):
     assert {i["name"]: i["parent_id"] for i in body["interests"]} == {"Historia": None, "Mynt": history.id}
 
 
+def test_interests_on_person_cards_have_their_area(client, db, user):
+    # Huvudområdet är det översta i trädet, också två nivåer ner, och ett huvudområde är sitt eget.
+    creative = Interest(name="Skapande")
+    db.add(creative)
+    db.flush()
+    photo = Interest(name="Fotografering", parent_id=creative.id)
+    db.add(photo)
+    db.flush()
+    portrait = Interest(name="Porträttfoto", parent_id=photo.id)
+    db.add(portrait)
+    db.commit()
+    _create_person(db, "bob", "Bob", interests=[creative, portrait])
+
+    body = client.get("/users/").json()[0]
+
+    assert {i["name"]: i["area"] for i in body["interests"]} == {"Skapande": "Skapande", "Porträttfoto": "Skapande"}
+
+
 def test_interests_are_sorted_by_name(client, db, user):
     # Tillagda i omvänd bokstavsordning, för att inte råka stämma av misstag.
     schack = Interest(name="Schack")

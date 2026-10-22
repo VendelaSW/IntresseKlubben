@@ -81,10 +81,10 @@ def test_other_users_interests_are_visible_sorted_by_name(client, db, user):
 
     body = client.get(f"/users/{other.id}/profile").json()
 
-    # Id, namn och förälder, samma som på personkorten, sorterade på namn.
+    # Id, namn, förälder och huvudområde, samma som på personkorten, sorterade på namn.
     assert body["interests"] == [
-        {"id": board_games.id, "name": "Brädspel", "parent_id": None},
-        {"id": chess.id, "name": "Schack", "parent_id": None},
+        {"id": board_games.id, "name": "Brädspel", "parent_id": None, "area": "Brädspel"},
+        {"id": chess.id, "name": "Schack", "parent_id": None, "area": "Schack"},
     ]
 
 

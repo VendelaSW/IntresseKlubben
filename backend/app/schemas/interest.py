@@ -13,9 +13,11 @@ class ProfileInterest(InterestResponse):
 
     parent_id är intresset ovanför i trädet, så att frontend kan rita ett
     intresse under sin förälder när personen har valt båda (Mynt under
-    Historia). Bara för visning: hur intressen sparas och filtreras ändras inte."""
+    Historia). area är huvudområdet (se Interest.area), som taggens färg följer.
+    Bara för visning: hur intressen sparas och filtreras ändras inte."""
 
     parent_id: int | None
+    area: str
 
 
 class InterestBrowseItem(BaseModel):

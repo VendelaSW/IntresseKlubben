@@ -739,6 +739,198 @@ span.tag-selected:hover {
   opacity: 0.85;
 }
 
+/* ---------- Intressetaggar (InterestTagGroup, InterestTags, InterestTree) ----------
+   Varje tagg har sitt huvudområdes färg (--tag-fill, se utils/interestColors.js)
+   och ser ut som kartans lappar: mörk kant, handritad form och en hård skugga.
+   Varannan tagg har den spegelvända formen, så att raden ser handritad ut. Har
+   intresset underintressen visar ▼ det, och ett tryck lägger dem i en ruta i
+   samma färg över taggarna under (inget flyttar sig). Gemensamma intressen har
+   fetstil och en bock på gul botten uppe på vänstra kanten. Egna klasser i
+   stället för .tag, så att flikar och filter inte påverkas. */
+.interest-tags {
+  --tag-ink: #3a2f25;
+  --tag-shape: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  --tag-shape-alt: 225px 12px 255px 12px / 12px 255px 12px 225px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.interest-tags-center {
+  justify-content: center;
+}
+
+.interest-tag-group {
+  position: relative;
+}
+
+.interest-tag-group.is-open {
+  z-index: 5;
+}
+
+.interest-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  min-height: 1.75rem;
+  padding: 0.15rem 0.65rem;
+  border: 1.5px solid var(--tag-ink);
+  border-radius: var(--tag-shape);
+  background: var(--tag-fill, var(--color-white));
+  box-shadow: 2px 2px 0 var(--tag-ink);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.interest-tags > li:nth-child(even) > .interest-tag,
+.interest-tag-panel > li:nth-child(even) > .interest-tag {
+  border-radius: var(--tag-shape-alt);
+}
+
+/* Taggen med underintressen är en knapp över hela taggen. Den trycks ner vid
+   hovring och när rutan är öppen, som kartans lappar. */
+.interest-tag-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.interest-tag:has(.interest-tag-toggle) {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.interest-tag:has(.interest-tag-toggle:hover),
+.interest-tag-group.is-open > .interest-tag {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.interest-tag-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.interest-tag-arrow {
+  font-size: 0.6rem;
+  transition: transform 0.15s ease;
+}
+
+.interest-tag-group.is-open .interest-tag-arrow {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interest-tag,
+  .interest-tag-arrow {
+    transition: none;
+  }
+}
+
+.interest-tag-remove {
+  padding: 0 0 0 0.1rem;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.interest-tag-remove:hover,
+.interest-tag-remove:focus-visible {
+  opacity: 1;
+}
+
+.interest-tag.is-shared {
+  font-weight: 700;
+}
+
+.interest-tag.is-shared::after {
+  content: "";
+  position: absolute;
+  top: -0.5rem;
+  left: -0.5rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 1.5px solid var(--tag-ink);
+  border-radius: 50%;
+  background: var(--color-accent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b1d10' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 13c2 1.5 3.5 3.5 5 6 3-7 6.5-11 11-14'/%3E%3C/svg%3E")
+    center / 0.7rem no-repeat;
+  rotate: -8deg;
+}
+
+/* Medan en ruta är öppen döljs bockarna på taggarna bakom den, så att de inte
+   sticker upp ovanför rutan. */
+.interest-tags:has(.is-open) > li:not(.is-open) > .interest-tag.is-shared::after {
+  visibility: hidden;
+}
+
+/* Rutan med underintressen: taggens färg, mörk kant och lite snett, som en lapp. */
+.interest-tag-panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.4rem;
+  width: max-content;
+  max-width: min(16rem, 80vw);
+  margin: 0;
+  padding: 0.75rem 0.7rem 0.65rem;
+  list-style: none;
+  background: var(--tag-fill, var(--color-white));
+  border: 1.5px solid var(--tag-ink);
+  border-radius: var(--tag-shape-alt);
+  box-shadow: 3px 3px 0 var(--tag-ink);
+  rotate: -0.6deg;
+}
+
+.interest-tag-sub {
+  min-height: 1.5rem;
+  padding: 0.1rem 0.5rem;
+  background: var(--tag-sub, var(--color-white));
+  font-size: 0.7rem;
+}
+
+/* ⋯ på personkortet, som visar alla intressen. */
+.interest-tag-more {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.interest-tag-more:hover,
+.interest-tag-more:focus-visible {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+/* Rubriken "Dina intressen" med Redigera/Klar till höger. */
+.explorer-heading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 /* ---------- Demo-flödet (/demo) ---------- */
 
 .demo-banner {
@@ -1289,20 +1481,22 @@ span.tag-selected:hover {
   position: relative;
 }
 
-.person-card-interests > .tags {
+.person-card-interests > .interest-tags {
   flex-wrap: nowrap;
+  /* Luft för bockarna, som sticker upp ovanför taggarna. */
+  padding: 0.45rem 0 0 0.45rem;
 }
 
-.person-card-interests > .tags > li {
+.person-card-interests > .interest-tags > li {
   flex-shrink: 0;
 }
 
-.person-card-interests.is-tight > .tags > li:first-child {
+.person-card-interests.is-tight > .interest-tags > li:first-child {
   flex-shrink: 1;
   min-width: 0;
 }
 
-.person-card-interests.is-tight > .tags .tag-static {
+.person-card-interests.is-tight > .interest-tags > li:first-child .interest-tag-name {
   display: block;
   max-width: 100%;
   overflow: hidden;
@@ -3414,15 +3608,27 @@ label.person-list-item {
   font-weight: 700;
 }
 
-/* Huvudområdena som taggar. Det öppna får gul kant och fetstil; gult fyllt
-   betyder fortfarande "valt". */
-.explorer .tag {
-  text-transform: none;
-  letter-spacing: normal;
+/* Huvudområdena som intressetaggar i sin egen färg (.interest-tag). De trycks
+   ner vid hovring, och det öppna är nedtryckt och i fetstil. */
+.explorer .explorer-area {
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.explorer .explorer-area:hover,
+.explorer .explorer-area-open {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.explorer .explorer-area:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
 }
 
 .explorer .explorer-area-open {
-  border-color: var(--color-accent);
   font-weight: 700;
 }
 
