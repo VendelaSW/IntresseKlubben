@@ -1367,7 +1367,8 @@
       "aliases": [
         "datorspelande",
         "dator-spel"
-      ]
+      ],
+      "allow_children": false
     },
     {
       "slug": "pc",
@@ -1379,7 +1380,8 @@
         "pc gaming",
         "pc-gaming",
         "steam"
-      ]
+      ],
+      "allow_children": false
     },
     {
       "slug": "tv-spel-konsol",
@@ -1389,7 +1391,8 @@
       "aliases": [
         "tvspel",
         "tv spel"
-      ]
+      ],
+      "allow_children": false
     },
     {
       "slug": "konsol",
@@ -1399,7 +1402,8 @@
       "aliases": [
         "konsolspel",
         "spelkonsol"
-      ]
+      ],
+      "allow_children": false
     },
     {
       "slug": "playstation",
@@ -1412,7 +1416,8 @@
         "playstation 5",
         "playstation 4",
         "sony playstation"
-      ]
+      ],
+      "allow_children": false
     },
     {
       "slug": "xbox",
@@ -1423,7 +1428,8 @@
         "xbox one",
         "xbox series x",
         "game pass"
-      ]
+      ],
+      "allow_children": false
     },
     {
       "slug": "nintendo-switch",
@@ -1433,7 +1439,8 @@
       "aliases": [
         "nintendo switch",
         "Nintendo"
-      ]
+      ],
+      "allow_children": false
     },
     {
       "slug": "rollspel-rpg",
@@ -1893,7 +1900,7 @@
       "slug": "mobilspel",
       "name": "Mobilspel",
       "parent": "tv-spel",
-      "description": "Mobilspel: plattformen mobil, att spela på telefon eller surfplatta. Enskilda spel hör under sin genre, inte här.",
+      "description": "Mobilspel: spel på mobil och surfplatta, som Clash Royale, Candy Crush och Pokémon Go. Spel som också finns på konsol eller dator hör under sin genre.",
       "aliases": [
         "spel på mobilen",
         "mobilspelen"
@@ -1907,7 +1914,8 @@
       "aliases": [
         "virtual reality-spel",
         "vr-gaming"
-      ]
+      ],
+      "allow_children": false
     },
     {
       "slug": "speedrunning",
@@ -8680,6 +8688,433 @@
       "parent": "pusselspel",
       "aliases": [
         "portal"
+      ]
+    },
+    {
+      "slug": "wii-sports",
+      "name": "Wii Sports",
+      "parent": "sport-och-racingspel",
+      "aliases": [
+        "wii sports resort",
+        "nintendo switch sports"
+      ]
+    },
+    {
+      "slug": "human-fall-flat",
+      "name": "Human: Fall Flat",
+      "parent": "partyspel",
+      "aliases": [
+        "human fall flat"
+      ]
+    },
+    {
+      "slug": "sonic-the-hedgehog",
+      "name": "Sonic the Hedgehog",
+      "parent": "plattformsspel",
+      "aliases": [
+        "sonic"
+      ]
+    },
+    {
+      "slug": "payday-2",
+      "name": "Payday 2",
+      "parent": "skjutspel",
+      "aliases": [
+        "payday"
+      ]
+    },
+    {
+      "slug": "borderlands",
+      "name": "Borderlands",
+      "parent": "skjutspel",
+      "aliases": [
+        "borderlands 2",
+        "borderlands 3"
+      ]
+    },
+    {
+      "slug": "halo",
+      "name": "Halo",
+      "parent": "skjutspel",
+      "aliases": [
+        "halo infinite",
+        "master chief"
+      ]
+    },
+    {
+      "slug": "super-smash-bros",
+      "name": "Super Smash Bros",
+      "parent": "fightingspel",
+      "aliases": [
+        "smash",
+        "smash bros",
+        "super smash bros ultimate"
+      ]
+    },
+    {
+      "slug": "monster-hunter",
+      "name": "Monster Hunter",
+      "parent": "action",
+      "aliases": [
+        "monster hunter world",
+        "monster hunter rise"
+      ]
+    },
+    {
+      "slug": "phasmophobia",
+      "name": "Phasmophobia",
+      "parent": "skrackspel"
+    },
+    {
+      "slug": "it-takes-two",
+      "name": "It Takes Two",
+      "parent": "aventyrsspel"
+    },
+    {
+      "slug": "black-myth-wukong",
+      "name": "Black Myth: Wukong",
+      "parent": "action",
+      "aliases": [
+        "black myth wukong",
+        "wukong"
+      ]
+    },
+    {
+      "slug": "garrys-mod",
+      "name": "Garry's Mod",
+      "parent": "open-world",
+      "aliases": [
+        "gmod",
+        "garrys mod"
+      ]
+    },
+    {
+      "slug": "marvels-spider-man",
+      "name": "Marvel's Spider-Man",
+      "parent": "action",
+      "aliases": [
+        "marvels spider-man",
+        "spider-man ps4",
+        "spider-man 2 ps5"
+      ]
+    },
+    {
+      "slug": "god-of-war",
+      "name": "God of War",
+      "parent": "action",
+      "aliases": [
+        "kratos",
+        "god of war ragnarok"
+      ]
+    },
+    {
+      "slug": "horizon-zero-dawn",
+      "name": "Horizon Zero Dawn",
+      "parent": "open-world",
+      "aliases": [
+        "horizon forbidden west",
+        "horizon"
+      ]
+    },
+    {
+      "slug": "uncharted",
+      "name": "Uncharted",
+      "parent": "action",
+      "aliases": [
+        "uncharted 4",
+        "nathan drake"
+      ]
+    },
+    {
+      "slug": "the-last-of-us",
+      "name": "The Last of Us",
+      "parent": "action",
+      "aliases": [
+        "tlou",
+        "last of us"
+      ]
+    },
+    {
+      "slug": "gran-turismo",
+      "name": "Gran Turismo",
+      "parent": "sport-och-racingspel",
+      "aliases": [
+        "gt7",
+        "gran turismo 7"
+      ]
+    },
+    {
+      "slug": "ghost-of-tsushima",
+      "name": "Ghost of Tsushima",
+      "parent": "open-world",
+      "aliases": [
+        "tsushima"
+      ]
+    },
+    {
+      "slug": "bloodborne",
+      "name": "Bloodborne",
+      "parent": "rollspel-rpg"
+    },
+    {
+      "slug": "days-gone",
+      "name": "Days Gone",
+      "parent": "open-world"
+    },
+    {
+      "slug": "ratchet-clank",
+      "name": "Ratchet & Clank",
+      "parent": "plattformsspel",
+      "aliases": [
+        "ratchet and clank"
+      ]
+    },
+    {
+      "slug": "naruto-ultimate-ninja-storm",
+      "name": "Naruto Ultimate Ninja Storm",
+      "parent": "fightingspel",
+      "aliases": [
+        "naruto storm"
+      ]
+    },
+    {
+      "slug": "detroit-become-human",
+      "name": "Detroit: Become Human",
+      "parent": "aventyrsspel",
+      "aliases": [
+        "detroit become human"
+      ]
+    },
+    {
+      "slug": "littlebigplanet",
+      "name": "LittleBigPlanet",
+      "parent": "plattformsspel",
+      "aliases": [
+        "little big planet"
+      ]
+    },
+    {
+      "slug": "super-mario-party",
+      "name": "Super Mario Party",
+      "parent": "partyspel",
+      "aliases": [
+        "mario party",
+        "mario party superstars"
+      ]
+    },
+    {
+      "slug": "luigis-mansion",
+      "name": "Luigi's Mansion",
+      "parent": "aventyrsspel",
+      "aliases": [
+        "luigis mansion"
+      ]
+    },
+    {
+      "slug": "splatoon",
+      "name": "Splatoon",
+      "parent": "action",
+      "aliases": [
+        "splatoon 3"
+      ]
+    },
+    {
+      "slug": "kirby",
+      "name": "Kirby",
+      "parent": "plattformsspel",
+      "aliases": [
+        "kirby and the forgotten land"
+      ]
+    },
+    {
+      "slug": "tomodachi-life",
+      "name": "Tomodachi Life",
+      "parent": "mysiga-spel"
+    },
+    {
+      "slug": "suika-game",
+      "name": "Suika Game",
+      "parent": "pusselspel",
+      "aliases": [
+        "suika",
+        "watermelon game"
+      ]
+    },
+    {
+      "slug": "forza-horizon",
+      "name": "Forza Horizon",
+      "parent": "sport-och-racingspel",
+      "aliases": [
+        "forza",
+        "forza motorsport"
+      ]
+    },
+    {
+      "slug": "starfield",
+      "name": "Starfield",
+      "parent": "rollspel-rpg"
+    },
+    {
+      "slug": "sea-of-thieves",
+      "name": "Sea of Thieves",
+      "parent": "open-world"
+    },
+    {
+      "slug": "persona-5",
+      "name": "Persona 5",
+      "parent": "rollspel-rpg",
+      "aliases": [
+        "persona",
+        "persona 5 royal"
+      ]
+    },
+    {
+      "slug": "diablo",
+      "name": "Diablo",
+      "parent": "rollspel-rpg",
+      "aliases": [
+        "diablo 4",
+        "diablo iv",
+        "diablo 2"
+      ]
+    },
+    {
+      "slug": "genshin-impact",
+      "name": "Genshin Impact",
+      "parent": "rollspel-rpg",
+      "aliases": [
+        "genshin"
+      ]
+    },
+    {
+      "slug": "mass-effect",
+      "name": "Mass Effect",
+      "parent": "rollspel-rpg"
+    },
+    {
+      "slug": "disco-elysium",
+      "name": "Disco Elysium",
+      "parent": "rollspel-rpg"
+    },
+    {
+      "slug": "sekiro",
+      "name": "Sekiro",
+      "parent": "rollspel-rpg",
+      "aliases": [
+        "sekiro shadows die twice"
+      ]
+    },
+    {
+      "slug": "hogwarts-legacy",
+      "name": "Hogwarts Legacy",
+      "parent": "rollspel-rpg",
+      "aliases": [
+        "harry potter hogwarts legacy"
+      ]
+    },
+    {
+      "slug": "cuphead",
+      "name": "Cuphead",
+      "parent": "plattformsspel"
+    },
+    {
+      "slug": "celeste",
+      "name": "Celeste",
+      "parent": "plattformsspel"
+    },
+    {
+      "slug": "fall-guys",
+      "name": "Fall Guys",
+      "parent": "partyspel"
+    },
+    {
+      "slug": "overcooked",
+      "name": "Overcooked",
+      "parent": "partyspel",
+      "aliases": [
+        "overcooked 2"
+      ]
+    },
+    {
+      "slug": "candy-crush",
+      "name": "Candy Crush",
+      "parent": "mobilspel",
+      "aliases": [
+        "candy crush saga"
+      ]
+    },
+    {
+      "slug": "pokemon-go",
+      "name": "Pokémon Go",
+      "parent": "mobilspel",
+      "aliases": [
+        "pokemon go"
+      ]
+    },
+    {
+      "slug": "clash-royale",
+      "name": "Clash Royale",
+      "parent": "mobilspel"
+    },
+    {
+      "slug": "clash-of-clans",
+      "name": "Clash of Clans",
+      "parent": "mobilspel",
+      "aliases": [
+        "coc"
+      ]
+    },
+    {
+      "slug": "brawl-stars",
+      "name": "Brawl Stars",
+      "parent": "mobilspel"
+    },
+    {
+      "slug": "free-fire",
+      "name": "Free Fire",
+      "parent": "mobilspel",
+      "aliases": [
+        "garena free fire"
+      ]
+    },
+    {
+      "slug": "mobile-legends",
+      "name": "Mobile Legends",
+      "parent": "mobilspel",
+      "aliases": [
+        "mlbb",
+        "mobile legends bang bang"
+      ]
+    },
+    {
+      "slug": "honor-of-kings",
+      "name": "Honor of Kings",
+      "parent": "mobilspel"
+    },
+    {
+      "slug": "royal-match",
+      "name": "Royal Match",
+      "parent": "mobilspel"
+    },
+    {
+      "slug": "subway-surfers",
+      "name": "Subway Surfers",
+      "parent": "mobilspel"
+    },
+    {
+      "slug": "call-of-duty-mobile",
+      "name": "Call of Duty Mobile",
+      "parent": "mobilspel",
+      "aliases": [
+        "cod mobile"
+      ]
+    },
+    {
+      "slug": "fate-grand-order",
+      "name": "Fate/Grand Order",
+      "parent": "mobilspel",
+      "aliases": [
+        "fgo"
       ]
     }
   ]
