@@ -36,13 +36,14 @@ function GroupList({ groups, emptyText, emptyAction, myInterestIds, busy, onSele
         <article key={group.id} className="card card-interactive list-card">
           <button type="button" className="list-card-link" onClick={() => onSelect(group)}>
             <span className="card-title">{group.name}</span>
-            <span className="card-subheading">
+            {/* En rad, längre kortas med "…" (se .list-card-meta). */}
+            <span className="card-subheading list-card-meta">
               {group.municipality_name} · {memberCountText(group.member_count)}
             </span>
             {group.description && <span className="card-text list-card-description">{group.description}</span>}
           </button>
           <InterestTags
-            interests={[{ id: group.interest_id, name: group.interest_name }]}
+            interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area }]}
             highlight={myInterestIds}
           />
           <div className="card-actions">

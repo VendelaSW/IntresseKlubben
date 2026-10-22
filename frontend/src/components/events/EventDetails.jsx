@@ -134,7 +134,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
       <p className="card-text">{event.description}</p>
       <div className="detail-view-section">
         <InterestTags
-          interests={[{ id: event.interest_id, name: event.interest_name }]}
+          interests={[{ id: event.interest_id, name: event.interest_name, area: event.interest_area }]}
           highlight={myInterestIds}
         />
       </div>

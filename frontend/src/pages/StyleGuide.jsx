@@ -18,7 +18,7 @@ import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
 import FormField from '../components/FormField'
-import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
+import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { NotificationDetails, NotificationRow } from './NotificationsPage'
@@ -217,24 +217,34 @@ function StyleGuide() {
           <li><button type="button" className="tag tag-selected">Vald</button></li>
         </ul>
 
-        <h3>Intressen som träd (components/InterestTree.jsx)</h3>
+        <h3>Intressetaggar (components/InterestTagGroup.jsx)</h3>
         <p className="hint-text">
-          Profilens intressen. Ett intresse vars förälder också är vald ligger under den, i mindre format. Högst{' '}
-          {PROFILE_MAX_SUBS} syns, resten fälls ut med ⋯. På någon annans profil är bara gemensamma intressen gula.
+          Intressen på profiler, personkort, klubbar, events och i intervjun (.interest-tag, inte .tag). Färgen följer
+          huvudområdet (utils/interestColors.js): en fyllning per område och en ljusare nyans för underintressen. Mörk
+          kant, handritad form och hård skugga som kartans lappar. Den ritade pilen (DrawnArrow) betyder att intresset har underintressen; ett tryck
+          lägger dem i en ruta över taggarna under. Allt man valt syns, och varje intresse är en egen tagg tills fler än
+          tre ligger under samma kategori; då samlas de i den (utils/interestGroups.js), den närmaste kategorin först
+          (fyra mysiga spel blir Mysiga spel ▼, också om man inte valt Mysiga spel). Gemensamma intressen har fetstil
+          och en bock på gul botten. På Min profil har taggarna × bara efter "Redigera", och intressen läggs till med
+          sökrutan direkt i kortet eller i Intressebiblioteket (InterestLibrary, över hela blocket). Där är intressena
+          taggar att trycka på (.interest-pick: ljus nyans och + när de inte är valda, områdets färg och ✓ när de är
+          valda), och pilen efter den streckade linjen öppnar underintressena i samma ruta som här. Tryck på Historia
+          (fyra under den) och se Fotografering (bara tre under Kreativitet):
         </p>
         <InterestTree
           proposals={profileTree([
-            { id: 1, name: 'Historia', parent_id: null },
-            { id: 2, name: 'Mynt', parent_id: 1 },
-            { id: 3, name: 'Vikingatiden', parent_id: 1 },
-            { id: 4, name: 'Medeltiden', parent_id: 1 },
-            { id: 5, name: 'Antiken', parent_id: 1 },
-            { id: 6, name: 'Metal', parent_id: 7 },
-            { id: 8, name: 'Löpning', parent_id: null },
+            { id: 1, name: 'Historia', parent_id: null, path: [] },
+            { id: 2, name: 'Mynt', parent_id: 1, path: ['Historia'] },
+            { id: 3, name: 'Vikingatiden', parent_id: 1, path: ['Historia'] },
+            { id: 4, name: 'Medeltiden', parent_id: 1, path: ['Historia'] },
+            { id: 5, name: 'Antiken', parent_id: 1, path: ['Historia'] },
+            { id: 6, name: 'Metal', parent_id: 7, path: ['Musik', 'Rock'] },
+            { id: 8, name: 'Löpning', parent_id: 10, path: ['Sport och träning'] },
+            { id: 9, name: 'Fotografering', parent_id: 11, path: ['Kreativitet'] },
+            { id: 12, name: 'Analog fotografering', parent_id: 9, path: ['Kreativitet', 'Fotografering'] },
           ])}
           align="start"
-          maxSubs={PROFILE_MAX_SUBS}
-          highlight={new Set(['id:1', 'id:2', 'id:3', 'id:4', 'id:5', 'id:6'])}
+          highlight={new Set(['id:2', 'id:8'])}
         />
 
         <h3>Lägg till ett intresse (components/AddInterest.jsx)</h3>
@@ -529,14 +539,16 @@ function StyleGuide() {
           .card-actions. Korten i .card-grid-compact är lika höga i varje rad, och på dator fyller de
           bredden kant i kant med rubriken, så många per rad som får plats. Klubb- och eventkort är
           minst --card-height höga; namnet kortas av efter två rader och beskrivningen efter tre, med
-          "…". Personkorten är så höga som innehållet och visar högst tre intressen på en rad (så
+          "…". Ort och medlemmar (en rad) eller tid och plats (två rader) ligger nederst, ovanför
+          intresset (.list-card-meta), så att de och taggen står på samma plats på alla kort; varje rad
+          kortas med "…". Personkorten är så höga som innehållet och visar högst tre intressen på en rad (så
           många som får plats hela); fler fälls ut i en ruta med ⋯.
         </p>
         <div className="card-grid card-grid-compact" style={{ marginTop: '1rem' }}>
           <article className="card card-interactive list-card">
             <button type="button" className="list-card-link">
               <span className="card-title">Exempel</span>
-              <span className="card-subheading">Göteborg · 3 medlemmar</span>
+              <span className="card-subheading list-card-meta">Göteborg · 3 medlemmar</span>
               <span className="card-text list-card-description">
                 En kort beskrivning som visas på kortet. Är den lång kortas den av efter tre rader.
               </span>
@@ -544,6 +556,19 @@ function StyleGuide() {
             <div className="card-actions">
               <span className="status-pill status-pill-success">Medlem</span>
               <span className="status-pill">Privat</span>
+            </div>
+          </article>
+          <article className="card card-interactive list-card">
+            <button type="button" className="list-card-link">
+              <span className="card-title">Ett event med ett namn som är så långt att det kortas av</span>
+              <span className="card-subheading list-card-meta">
+                <span>lör 10 okt 13:30 – 16:00</span>
+                <span>Slottsskogen, vid stora dammen nedanför Björngårdsvillan</span>
+              </span>
+              <span className="card-text list-card-description">Tiden på en rad och platsen under.</span>
+            </button>
+            <div className="card-actions">
+              <span className="status-pill status-pill-success">Öppet</span>
             </div>
           </article>
         </div>
