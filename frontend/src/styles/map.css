@@ -1190,6 +1190,12 @@
   background: var(--color-accent-soft);
 }
 
+/* Antalet nya anmälningar vid Moderering (samma röda märke som i menyn). */
+.map-profile-menu-count {
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
 .map-profile-menu li + li {
   border-top: 1.5px dashed #3a2f25;
 }

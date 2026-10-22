@@ -6,6 +6,8 @@ import { getGroupMembers, getGroupMessages, sendGroupMessage } from '../../servi
 import { formatSentAt } from '../../utils/formatSentAt'
 import { startsGroup } from '../../utils/messageGroups'
 import ChatSender from '../ChatSender'
+import { REPORT_TARGET } from '../../services/reports'
+import ReportButton from '../ReportButton'
 
 // Hur ofta chatten hämtas igen medan den är öppen, så att nya meddelanden syns utan att man laddar om sidan.
 // Inte när ingen har rört appen på ett tag (se services/activity.js).
@@ -177,8 +179,12 @@ function GroupChat({ groupId }) {
             const mine = message.sender_id === user?.id
             const sender = senderOf(message.sender_id)
             const name = sender ? (sender.name ?? sender.username) : 'Tidigare medlem'
+            const reportable = !mine && sender
             return (
-              <li key={message.id} className={`notepad-message${first ? '' : ' notepad-message-continued'}`}>
+              <li
+                key={message.id}
+                className={`notepad-message${first ? '' : ' notepad-message-continued'}${reportable ? ' notepad-message-reportable' : ''}`}
+              >
                 {first && (
                   <p className="notepad-message-head">
                     <ChatSender userId={sender?.id} mine={mine} name={name} imageUrl={sender?.image_url} />{' '}
@@ -188,6 +194,18 @@ function GroupChat({ groupId }) {
                   </p>
                 )}
                 <p title={first ? undefined : formatSentAt(message.created_at)}>{message.content}</p>
+                {/* Andras meddelanden går att anmäla (se .report-link). */}
+                {reportable && (
+                  <ReportButton
+                    className="report-link"
+                    label={`Anmäl meddelandet från ${name}`}
+                    targetType={REPORT_TARGET.groupMessage}
+                    targetId={message.id}
+                    userId={sender.id}
+                    name={name}
+                    quote={message.content}
+                  />
+                )}
               </li>
             )
           })}

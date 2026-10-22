@@ -108,6 +108,21 @@ CONFIRM_TOO_MANY_OWN_INTERESTS = "Du har lagt till många egna intressen i dag. 
 CONFIRM_NO_INTERESTS = "Välj minst ett intresse"
 CONFIRM_UNAVAILABLE = "Vi kunde inte spara just nu. Försök igen om en stund."
 
+# ---------- Anmälningar (routes/reports.py, crud/report.py) ----------
+REPORT_TARGET_NOT_FOUND = "Det du vill anmäla finns inte längre"
+REPORT_SELF = "Du kan inte anmäla dig själv"
+REPORT_COMMENT_TOO_LONG = "Kommentaren får max vara 500 tecken"
+REPORT_ALREADY_SENT = "Du har redan anmält det här. Vi tittar på det."
+REPORT_TOO_MANY = "Du har anmält många saker på kort tid. Försök igen om en stund."
+
+# ---------- Moderering (routes/moderation.py, auth/security.py) ----------
+MODERATORS_ONLY = "Bara moderatorer kommer åt det här"
+REPORT_NOT_FOUND = "Anmälan finns inte"
+USER_NOT_FOUND = "Användaren finns inte"
+CANNOT_SUSPEND_SELF = "Du kan inte stänga av dig själv"
+SUSPENSION_DAYS_INVALID = "Välj 1, 7 eller 30 dagar, eller tills vidare"
+ACCOUNT_SUSPENDED = "Ditt konto är avstängt"
+
 # ---------- Verifiering av e-post (routes/user.py) ----------
 EMAIL_NOT_VERIFIED = "Bekräfta din e-postadress först. Länken finns i mejlet vi skickade."
 EMAIL_MISSING = "Lägg till en e-postadress först"
