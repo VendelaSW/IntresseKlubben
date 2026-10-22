@@ -1,8 +1,11 @@
-import { Suspense, lazy, useState } from 'react'
-import { searchPlaces } from '../services/geocode'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { addressAt, searchPlaces } from '../services/geocode'
 
 // Kartbiblioteket är stort, så kartan laddas först när formuläret visas.
 const LocationPickerMap = lazy(() => import('./LocationPickerMap'))
+// Medan nålen dras hämtas adressen högst så här ofta: Nominatim tar högst ett
+// anrop i sekunden (se backend/app/services/geocoding.py).
+const DRAG_LOOKUP_MS = 1000
 
 // Var på kartan något är, för events och klubbarnas träffplats: sök fram
 // adressen och välj en träff, så hamnar en nål där. Nålen går sedan att dra,
@@ -17,12 +20,60 @@ const LocationPickerMap = lazy(() => import('./LocationPickerMap'))
 // det framgår när nålen sparas. `kommunCode` är kommunen kartan visar innan
 // det finns en nål. Utan nål visas eventet eller klubben mitt i sin kommun på
 // kartan.
-function LocationPicker({ id, queries, value, onChange, saveLabel, kommunCode }) {
+//
+// Nålen bestämmer adressen (SCRUM-241): varje gång nålen sätts eller flyttas får
+// `onAddressFound(adress)` den närmaste gatuadressen, och formuläret skriver den i
+// adressfältet. Medan nålen dras följer adressen med (en gång i sekunden), och när
+// man släpper hämtas den för just där nålen hamnade. Nålen står kvar där man satte
+// den. Bara det senaste svaret räknas, och går det inte att hitta någon adress
+// händer ingenting: det är en hjälp, aldrig ett hinder.
+function LocationPicker({ id, queries, value, onChange, saveLabel, kommunCode, onAddressFound }) {
   const [results, setResults] = useState(null) // null = inte sökt än
   const [searched, setSearched] = useState('')
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState('')
   const candidates = [...new Set(queries.map((q) => (q ?? '').trim()).filter((q) => q.length >= 3))]
+  // Räknas upp vid varje ny nål, så att ett sent svar för en gammal nål inte fyller i adressen.
+  const lookup = useRef(0)
+  const onAddressFoundRef = useRef(onAddressFound)
+  onAddressFoundRef.current = onAddressFound
+  // Medan nålen dras: den senaste positionen, en väntande sökning och när den förra gjordes.
+  const dragPosition = useRef(null)
+  const dragTimer = useRef(null)
+  const lastDragLookup = useRef(0)
+
+  useEffect(() => () => clearTimeout(dragTimer.current), [])
+
+  // Under dragningen: högst en sökning per DRAG_LOOKUP_MS, alltid för där nålen är just då.
+  function followDrag(position) {
+    dragPosition.current = position
+    if (dragTimer.current) return
+    const wait = Math.max(0, lastDragLookup.current + DRAG_LOOKUP_MS - Date.now())
+    dragTimer.current = setTimeout(() => {
+      dragTimer.current = null
+      lastDragLookup.current = Date.now()
+      fillAddress(dragPosition.current)
+    }, wait)
+  }
+
+  // Varje ny nål (klick, drag eller en träff i sökningen) hämtar adressen där den
+  // står. "Ta bort nålen" lämnar adressen som den är.
+  function setPin(position) {
+    onChange(position)
+    if (position) fillAddress(position)
+    else lookup.current += 1
+  }
+
+  async function fillAddress(position) {
+    const current = ++lookup.current
+    if (!onAddressFoundRef.current) return
+    try {
+      const address = await addressAt(position.latitude, position.longitude)
+      if (address && current === lookup.current) onAddressFoundRef.current?.(address)
+    } catch {
+      // Ingen adress: fältet lämnas som det är.
+    }
+  }
 
   async function search() {
     if (candidates.length === 0) {
@@ -40,7 +91,7 @@ function LocationPicker({ id, queries, value, onChange, saveLabel, kommunCode })
       setResults(places)
       setSearched(candidates[0])
       // En enda träff: sätt nålen direkt.
-      if (places.length === 1) onChange({ latitude: places[0].latitude, longitude: places[0].longitude })
+      if (places.length === 1) setPin({ latitude: places[0].latitude, longitude: places[0].longitude })
     } catch (err) {
       setError(err.message)
       setResults(null)
@@ -49,10 +100,14 @@ function LocationPicker({ id, queries, value, onChange, saveLabel, kommunCode })
     }
   }
 
-  // Sätts nålen för hand (klick eller drag) är sökträffarna inte längre aktuella.
+  // Sätts nålen för hand (klick, eller när man släpper den efter att ha dragit) är
+  // sökträffarna inte längre aktuella. En väntande sökning från dragningen behövs inte:
+  // nu hämtas adressen för där nålen hamnade.
   function placePin(position) {
+    clearTimeout(dragTimer.current)
+    dragTimer.current = null
     setResults(null)
-    onChange(position)
+    setPin(position)
   }
 
   return (
@@ -65,7 +120,7 @@ function LocationPicker({ id, queries, value, onChange, saveLabel, kommunCode })
           {searching ? 'Söker...' : 'Hitta adressen på kartan'}
         </button>
         {value && (
-          <button type="button" className="text-button" onClick={() => onChange(null)}>
+          <button type="button" className="text-button" onClick={() => setPin(null)}>
             Ta bort nålen
           </button>
         )}
@@ -84,7 +139,7 @@ function LocationPicker({ id, queries, value, onChange, saveLabel, kommunCode })
               <button
                 type="button"
                 className="text-button"
-                onClick={() => onChange({ latitude: place.latitude, longitude: place.longitude })}
+                onClick={() => setPin({ latitude: place.latitude, longitude: place.longitude })}
               >
                 {place.label}
               </button>
@@ -94,7 +149,7 @@ function LocationPicker({ id, queries, value, onChange, saveLabel, kommunCode })
       )}
 
       <Suspense fallback={<div className="location-picker-map" aria-hidden="true" />}>
-        <LocationPickerMap value={value} onChange={placePin} kommunCode={kommunCode} />
+        <LocationPickerMap value={value} onChange={placePin} onDrag={followDrag} kommunCode={kommunCode} />
       </Suspense>
       <p className="hint-text">
         {value

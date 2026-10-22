@@ -67,6 +67,7 @@
 .map-sketch.is-calm .map-sketch-thread,
 .map-sketch.is-calm .map-sketch-compass,
 .map-sketch.is-calm .map-sketch-tools,
+.map-sketch.is-calm .map-place-search,
 .map-sketch.is-calm .map-sketch-hint,
 .map-sketch.is-calm .map-levels {
   visibility: hidden;
@@ -884,6 +885,104 @@
   flex-wrap: wrap;
 }
 
+/* Sökrutan "Sök en ort" och Min kommun (MapPlaceSearch, SCRUM-220): under
+   växeln Karta | Att göra, med samma bläckkant och hårda skugga som knapparna.
+   Förslagen fälls ut under rutan. */
+.map-place-search {
+  position: relative;
+  z-index: 4;
+  width: 18rem;
+  max-width: 100%;
+  pointer-events: auto;
+}
+
+.map-place-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.map-place-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.6rem;
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  background: var(--color-white);
+  box-shadow: 2px 2px 0 #3a2f25;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  line-height: 1.2;
+}
+
+.map-place-search-list {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  right: 0;
+  /* Aldrig längre än skärmen (t.ex. en liggande telefon): resten rullas. */
+  max-height: calc(100vh - 7rem);
+  max-height: calc(100dvh - 7rem);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.2rem 0;
+  list-style: none;
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  background: var(--color-white);
+  box-shadow: 2px 2px 0 #3a2f25;
+}
+
+.map-place-search-option {
+  padding: 0.35rem 0.6rem;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  cursor: pointer;
+}
+
+.map-place-search-option:hover,
+.map-place-search-option.is-active {
+  background: var(--color-accent-soft);
+}
+
+/* Vad förslaget är (Kommun, Län, Klubb · Göteborg, Värmdö kommun ...), under namnet. */
+.map-place-search-name,
+.map-place-search-sub {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.map-place-search-sub {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.map-place-search-pending {
+  padding: 0.35rem 0.6rem;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+}
+
+/* På pekskärm är fältet och Min kommun lättare att träffa (se CONTRIBUTING,
+   "Mobil"): fältet blir högre, och knappen får en osynlig yta (.touch-target). */
+@media (pointer: coarse) {
+  .map-place-search-input {
+    min-height: 44px;
+  }
+}
+
+.map-place-search-message {
+  margin: 0.3rem 0 0;
+  color: #3a2f25;
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
+}
+
 .map-tool {
   display: inline-flex;
   align-items: center;
@@ -1470,6 +1569,7 @@
 
   .map-view-toggle,
   .map-sketch-tools,
+  .map-place-search,
   .map-sketch-hint,
   .map-levels {
     position: absolute;
@@ -1497,6 +1597,17 @@
     /* Plats för zoomknapparna och profilbilden uppe till höger. */
     right: calc(3.4rem + 54px);
     gap: 0.35rem;
+  }
+
+  /* Sökrutan på nålknapparnas plats under växeln (nålarna är dolda, SCRUM-270):
+     på telefonen lika bred som utrymmet fram till zoomknapparna och
+     profilbilden, på surfplattan högst så bred som på datorn. */
+  .map-place-search {
+    top: calc(2.5rem + env(safe-area-inset-top));
+    left: calc(0.6rem + env(safe-area-inset-left));
+    right: calc(3.4rem + 54px);
+    width: auto;
+    max-width: 22rem;
   }
 
   /* Bara profilbilden på smala skärmar; namnet finns för skärmläsare i aria-label. */
@@ -1576,6 +1687,7 @@
      sidornas lappar nedtill (ingen lutning, som är svår att läsa på liten
      skärm), och kartans övriga knappar och tips göms så länge. */
   .map-sketch.has-pad .map-sketch-tools,
+  .map-sketch.has-pad .map-place-search,
   .map-sketch.has-pad .map-levels,
   .map-sketch.has-pad .map-sketch-hint,
   .map-sketch.has-pad .map-sketch-compass {

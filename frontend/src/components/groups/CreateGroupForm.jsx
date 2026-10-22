@@ -139,6 +139,8 @@ function CreateGroupForm({
         ]}
         value={position}
         onChange={setPosition}
+        // Nålen bestämmer adressen: den närmaste gatuadressen skrivs i fältet.
+        onAddressFound={setAddress}
         saveLabel="Skapa klubb"
         kommunCode={municipalityCode}
       />
