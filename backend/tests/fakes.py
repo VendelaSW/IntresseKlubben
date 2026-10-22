@@ -79,18 +79,27 @@ class FakeEmailSender:
 
 @dataclass
 class FakeGeocoder:
-    """Fejkad adressökning (app/services/geocoding.py): svarar med `places` för varje sökning, eller
-    kastar GeocodingFailed om `fail` är satt. `queries` får varje söktext."""
+    """Fejkad adressökning (app/services/geocoding.py): svarar med `places` för varje sökning och
+    `address` för varje omvänd sökning, eller kastar GeocodingFailed om `fail` är satt. `queries` får
+    varje söktext och `positions` varje (latitud, longitud)."""
 
     places: list[Place] = field(default_factory=list)
+    address: str | None = None
     fail: bool = False
     queries: list[str] = field(default_factory=list)
+    positions: list[tuple[float, float]] = field(default_factory=list)
 
     def search(self, query):
         self.queries.append(query)
         if self.fail:
             raise GeocodingFailed("fejkat fel")
         return list(self.places)
+
+    def reverse(self, latitude, longitude):
+        self.positions.append((latitude, longitude))
+        if self.fail:
+            raise GeocodingFailed("fejkat fel")
+        return self.address
 
 
 def fake_vector(text: str) -> list[float]:
