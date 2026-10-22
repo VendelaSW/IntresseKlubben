@@ -39,6 +39,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.contact import ContactUser
 from app.schemas.message import ConversationDetail, ConversationResponse, MessageCreate, MessageOut
+from app.services.text_moderation import censor_message
 
 # Låst tills profilen är klar (se require_profile).
 router = APIRouter(prefix="/messages", tags=["messages"], dependencies=[Depends(require_profile)])
@@ -92,7 +93,7 @@ def create_message(
 ) -> MessageOut:
     recipient = _reachable_user_or_404(db, current_user.id, message_in.recipient_id)
     try:
-        return send_message(db, current_user.id, recipient.id, message_in.text)
+        return send_message(db, current_user.id, recipient.id, censor_message(message_in.text))
     except CannotMessageSelfError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

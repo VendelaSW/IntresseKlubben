@@ -4,7 +4,6 @@ from typing import Literal
 from pydantic import BaseModel, field_validator
 
 from app.core import error_messages as msg
-from app.core.profanity import validate_clean_text
 from app.models.profile import GenderEnum
 from app.schemas.interest import ProfileInterest
 
@@ -15,7 +14,6 @@ def _clean_name(v: str) -> str:
         raise ValueError(msg.NAME_EMPTY)
     if len(v) > 50:
         raise ValueError(msg.NAME_TOO_LONG)
-    validate_clean_text(v, "Namnet")
     return v
 
 
@@ -47,7 +45,6 @@ def _clean_profile_text(v: str) -> str:
         raise ValueError(msg.PROFILE_TEXT_EMPTY)
     if len(v) > 800:
         raise ValueError(msg.PROFILE_TEXT_TOO_LONG)
-    validate_clean_text(v, "Om mig-texten")
     return v
 
 

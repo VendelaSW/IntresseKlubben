@@ -1,7 +1,6 @@
 from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session
 
-from app.core.profanity import censor_text
 from app.crud.contact import blocked_user_ids
 from app.models.conversation_read import ConversationRead
 from app.models.message import Message
@@ -15,7 +14,7 @@ def send_message(db: Session, sender_id: int, recipient_id: int, text: str) -> M
     if sender_id == recipient_id:
         raise CannotMessageSelfError(sender_id)
 
-    message = Message(sender_id=sender_id, recipient_id=recipient_id, text=censor_text(text))
+    message = Message(sender_id=sender_id, recipient_id=recipient_id, text=text)
     db.add(message)
     db.commit()
     db.refresh(message)

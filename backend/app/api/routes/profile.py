@@ -30,6 +30,7 @@ from app.schemas.profile import (
     ProfileUpdate,
 )
 from app.services.text_policy import TextCheckUnavailable, TextNotAllowed, check_text
+from app.services.text_moderation import check_fields
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
@@ -132,6 +133,7 @@ def add_profile(
     # Finns profilen redan ska det inte kosta ett AI-anrop att få veta det (som i intervjun, interest_confirm.py).
     if get_profile(db, current_user.id) is not None:
         raise HTTPException(status_code=409, detail=msg.PROFILE_ALREADY_EXISTS)
+    check_fields(name=data.name, profile_text=data.profile_text, district=data.district)
     _check_profile_text(data.profile_text, current_user.id)
     try:
         profile = create_profile(db, current_user.id, data)
@@ -164,6 +166,7 @@ def edit_profile(
     # ett databasfel (500) från främmande nyckeln.
     if data.municipality_code is not None and db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
+    check_fields(name=data.name, profile_text=data.profile_text, district=data.district)
     if data.profile_text is not None:
         _check_profile_text(data.profile_text, current_user.id)
     try:
