@@ -46,8 +46,8 @@ function DeleteAccount() {
         Radera konto
       </button>
       {open && (
-        // Medan kontot raderas går popupen inte att stänga.
-        <Modal title="Radera konto" onClose={() => !busy && close()}>
+        // Medan kontot raderas går popupen inte att stänga (inte heller med Esc).
+        <Modal title="Radera konto" onClose={close} locked={busy}>
           <form className="auth-form form-compact" onSubmit={handleSubmit}>
             <p className="form-error">
               Din profil, dina meddelanden, kompisar och events raderas för gott. Klubbar du äger går
