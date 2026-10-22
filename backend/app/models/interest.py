@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, func, true
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -40,6 +40,9 @@ class Interest(Base):
     # Strängar i stället för databas-enum, så att nya värden inte kräver en migration.
     status = Column(String, nullable=False, default=InterestStatus.active.value, server_default="active")
     source = Column(String, nullable=False, default=InterestSource.library.value, server_default="library")
+    # Får intresset få nya underintressen (av AI:n eller en användare)? Falskt för det som är en plattform eller något annat som
+    # inte kan delas upp (PlayStation, PC). Bibliotekets egna underintressen påverkas inte, bara nya.
+    allow_children = Column(Boolean, nullable=False, default=True, server_default=true())
     # Hur intresset kan utövas: slugs ur bibliotekets aktivitetslista, t.ex.
     # ["spela", "samla"]. None = inga angivna.
     activities = Column(JSON, nullable=True)

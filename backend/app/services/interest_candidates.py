@@ -8,6 +8,8 @@ vara rätt (ca 1 700 tokens). Kandidaterna är, bästa först:
 2. De K_PER_TAG närmaste till varje tagg, enligt embeddings.
 3. De K_FOR_TEXT närmaste till hela texten (fångar sammanhang och sådant utläsningen tagit konstigt).
 4. Alltid: alla huvudområden och föräldrarna till varje kandidat, så att AI:n kan lägga ett nytt intresse på rätt ställe.
+5. Alla underkategorier (direkta barn) till områdena som har kandidater: ett nytt spel ska kunna läggas under rätt genre
+   (Action, Rollspel) och inte bara under Gaming, och en genre ska synas även när inget av dess spel ligger nära.
 
 Totalt högst MAX_CANDIDATES. Går det inte att räkna kandidaterna (ingen nyckel, OpenAI nere, vektorerna saknas eller
 tabellen finns inte än) ger CandidateFinder None, och då får AI:n hela biblioteket som förut. Filtret kan alltså aldrig
@@ -58,6 +60,14 @@ def _with_ancestors(item_id: int, index: LibraryIndex) -> set[int]:
     return chain
 
 
+def _area_of(item_id: int, index: LibraryIndex):
+    """Huvudområdet (nivå 1) som intresset hör under."""
+    item = index.by_id.get(item_id)
+    while item is not None and item.parent_id is not None and item.parent_id in index.by_id:
+        item = index.by_id[item.parent_id]
+    return item
+
+
 @dataclass
 class CandidateFinder:
     """Ger id:na på intressena som visas för AI:n för några oklara taggar i en text, eller None (då visas hela
@@ -99,4 +109,13 @@ class CandidateFinder:
             chain = _with_ancestors(item_id, index)
             if len(chosen | chain) <= self.maximum:  # det som inte ryms hoppas över, de bästa kom först
                 chosen |= chain
+        handled: set[int] = set()
+        for item_id in ordered:  # området med den bästa kandidaten först
+            area = _area_of(item_id, index)
+            if area is None or area.id in handled:
+                continue
+            handled.add(area.id)
+            subcategories = {item.id for item in index.items if item.parent_id == area.id}
+            if len(chosen | subcategories) <= self.maximum:
+                chosen |= subcategories
         return chosen

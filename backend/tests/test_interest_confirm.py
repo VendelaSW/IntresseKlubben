@@ -297,6 +297,22 @@ def test_a_new_interest_is_created_under_its_parent_with_its_creator_and_shows_o
     assert rows(db, user.id) == [("Besöka återvinningscentraler", "", "free_text")]
 
 
+def test_a_new_interest_cannot_be_created_under_an_interest_that_does_not_allow_new_children(client, user, profile, library, db):
+    library["metal"].allow_children = False  # t.ex. en plattform som PlayStation
+    db.commit()
+    claims = [claim_new("p1", "Black metal", library["metal"])]
+    response = confirm(client, batch(user, claims, [{"key": "p1"}]))
+    assert response.status_code == 400 and response.json()["detail"] == "Det intresset kan inte få underintressen. Tolka texten igen."
+    assert new_interests(db) == []
+
+
+def test_a_new_interest_can_still_be_created_under_one_that_allows_it(client, user, profile, library, db):
+    library["jazz"].allow_children = True
+    db.commit()
+    response = confirm(client, batch(user, [claim_new("p1", "Bebop", library["jazz"])], [{"key": "p1"}]))
+    assert response.status_code == 200 and [i.name for i in new_interests(db)] == ["Bebop"]
+
+
 def test_a_new_interest_is_active_so_it_can_be_used_in_matching_right_away(client, user, profile, library, db):
     from app.crud.interest import load_library_index
 

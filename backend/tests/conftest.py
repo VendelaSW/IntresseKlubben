@@ -76,9 +76,11 @@ def fake_geocoder():
 
     set_geocoder(FakeGeocoder())
     geocode_route._recent.clear()
+    geocode_route._recent_reverse.clear()
     yield
     set_geocoder()
     geocode_route._recent.clear()
+    geocode_route._recent_reverse.clear()
 
 
 @pytest.fixture(autouse=True)

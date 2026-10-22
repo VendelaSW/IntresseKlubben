@@ -20,6 +20,7 @@ from app.crud.event import (
     set_answer,
     update_event,
 )
+from app.crud.group import get_membership, is_invited
 from app.crud.interest import get_active_interest
 from app.crud.notification import notify_event_cancelled, notify_event_changed
 from app.db.session import get_db
@@ -43,6 +44,19 @@ from app.services.text_moderation import check_fields
 router = APIRouter(prefix="/events", tags=["events"], dependencies=[Depends(require_profile)])
 
 
+def _group_visible(event: Event, user_id: int) -> bool:
+    """Går klubben att öppna för användaren? En öppen klubb alltid, en privat bara för
+    den som är med eller inbjuden (samma regel som GET /groups/{id})."""
+    group = event.group
+    if group is None:
+        return False
+    return (
+        group.visibility != GroupVisibility.private
+        or get_membership(group, user_id) is not None
+        or is_invited(group, user_id)
+    )
+
+
 def _to_response(event: Event, user_id: int) -> EventOut:
     creator = event.creator
     return EventOut(
@@ -60,6 +74,7 @@ def _to_response(event: Event, user_id: int) -> EventOut:
         visibility=event.visibility,
         group_id=event.group_id,
         group_name=event.group.name if event.group else None,
+        group_visible=_group_visible(event, user_id),
         creator_id=creator.id,
         creator_username=creator.username,
         creator_name=creator.profile.name if creator.profile else None,

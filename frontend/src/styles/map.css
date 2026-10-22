@@ -67,6 +67,7 @@
 .map-sketch.is-calm .map-sketch-thread,
 .map-sketch.is-calm .map-sketch-compass,
 .map-sketch.is-calm .map-sketch-tools,
+.map-sketch.is-calm .map-place-search,
 .map-sketch.is-calm .map-sketch-hint,
 .map-sketch.is-calm .map-levels {
   visibility: hidden;
@@ -76,10 +77,10 @@
 /* Utan zoomknapparna behövs ingen plats för dem uppe till höger (på mobil
    sitter profillappen ensam där, se längre ned). */
 .map-sketch.is-calm .map-top-widgets {
-  right: 10px;
+  margin-right: 0;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 1100px), (pointer: coarse) and (max-width: 1366px) {
   .map-sketch.is-calm .map-profile-wrap {
     right: 10px;
   }
@@ -137,6 +138,16 @@
   text-decoration: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 4px;
+}
+
+/* "I närheten den här veckan": en tom rad ovanför, som mellan datumet och listan. */
+.map-calm-heading-next {
+  margin-top: var(--calm-line) !important;
+}
+
+/* Den ritade punkten framför ett tips (MapCalmPage, TipLine). */
+.map-calm-dot {
+  fill: #3a2f25;
 }
 
 .map-calm-muted {
@@ -794,12 +805,10 @@
 
 /* Tips om vad man kan göra med nålarna, handskrivet under knapparna. */
 .map-sketch-hint {
-  position: absolute;
-  top: 5.6rem;
-  left: 84px;
+  position: relative;
   z-index: 3;
   max-width: 320px;
-  margin: 0;
+  margin: 0.2rem 0 0;
   color: #3a2f25;
   font-family: var(--font-heading);
   font-size: 1.3rem;
@@ -811,21 +820,55 @@
 /* Knappar för nålar och trådens stil uppe till vänster. Som stilguidens
    knappar (Inter, versaler, gul när vald), men med bläckkant och hård skugga
    så att de syns på kartan. */
-/* Växeln Karta | Att göra uppe till vänster, efter marginallinjen. Syns i båda
-   lägena: ovanpå att göra-sidan (z-index 3) men under ett öppet block (5).
-   Nålknapparna (bara på kartan) ligger på raden under. */
-.map-view-toggle {
+/* Raden upptill (SCRUM-267): växeln, nålknapparna och tipset i en kolumn till
+   vänster (efter marginallinjen), sidornas lappar, profillappen och snabbzoomen
+   till höger. Eftersom de står i samma flexrad kan de inte hamna på varandra:
+   blir fönstret smalare radbryts nålknapparna och lapparna i stället. Raden
+   själv tar inga klick (de går igenom till kartan), bara knapparna gör det,
+   och den bildar ingen egen stapel, så knapparnas z-index gäller som förut. */
+.map-top-bar {
   position: absolute;
-  top: 0.9rem;
+  top: 10px;
   left: 84px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  pointer-events: none;
+}
+
+/* Vänstersidan ger med sig först (nålknapparna radbryts), men aldrig smalare
+   än växeln. */
+.map-top-left {
+  display: flex;
+  flex: 0 100 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.map-top-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+/* Växeln Karta | Att göra högst upp till vänster. Syns i båda lägena: ovanpå
+   att göra-sidan (z-index 3) men under ett öppet block (5). Nålknapparna (bara
+   på kartan) ligger på raden under. */
+.map-view-toggle {
+  position: relative;
   z-index: 4;
+  pointer-events: auto;
 }
 
 .map-sketch-tools {
-  position: absolute;
-  top: 3.3rem;
-  left: 84px;
+  position: relative;
   z-index: 3;
+  pointer-events: auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -834,6 +877,110 @@
 
 .map-tool-group {
   display: flex;
+}
+
+/* Trådens stil får radbrytas på smala fönster, så att nålknapparna aldrig är
+   bredare än växeln (se .map-top-left). */
+.map-sketch-tools .map-tool-group {
+  flex-wrap: wrap;
+}
+
+/* Sökrutan "Sök en ort" och Min kommun (MapPlaceSearch, SCRUM-220): under
+   växeln Karta | Att göra, med samma bläckkant och hårda skugga som knapparna.
+   Förslagen fälls ut under rutan. */
+.map-place-search {
+  position: relative;
+  z-index: 4;
+  width: 18rem;
+  max-width: 100%;
+  pointer-events: auto;
+}
+
+.map-place-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.map-place-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.6rem;
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  background: var(--color-white);
+  box-shadow: 2px 2px 0 #3a2f25;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  line-height: 1.2;
+}
+
+.map-place-search-list {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  right: 0;
+  /* Aldrig längre än skärmen (t.ex. en liggande telefon): resten rullas. */
+  max-height: calc(100vh - 7rem);
+  max-height: calc(100dvh - 7rem);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.2rem 0;
+  list-style: none;
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  background: var(--color-white);
+  box-shadow: 2px 2px 0 #3a2f25;
+}
+
+.map-place-search-option {
+  padding: 0.35rem 0.6rem;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  cursor: pointer;
+}
+
+.map-place-search-option:hover,
+.map-place-search-option.is-active {
+  background: var(--color-accent-soft);
+}
+
+/* Vad förslaget är (Kommun, Län, Klubb · Göteborg, Värmdö kommun ...), under namnet. */
+.map-place-search-name,
+.map-place-search-sub {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.map-place-search-sub {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.map-place-search-pending {
+  padding: 0.35rem 0.6rem;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+}
+
+/* På pekskärm är fältet och Min kommun lättare att träffa (se CONTRIBUTING,
+   "Mobil"): fältet blir högre, och knappen får en osynlig yta (.touch-target). */
+@media (pointer: coarse) {
+  .map-place-search-input {
+    min-height: 44px;
+  }
+}
+
+.map-place-search-message {
+  margin: 0.3rem 0 0;
+  color: #3a2f25;
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
 }
 
 .map-tool {
@@ -852,6 +999,7 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
   line-height: 1.2;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -922,14 +1070,21 @@
 /* Raden uppe till höger: sidornas lappar och profillappen, till vänster om
    zoomknapparna. Ovanför ett öppet block (z-index 5), så att man kan byta
    sida direkt. */
+/* Lapparna slutar vid zoomknapparna (MapLibres, 10px in och 29px breda) och
+   radbryts hellre än krockar med växeln. Raden är minst så hög att snabbzoomen
+   under den hamnar under zoomknapparna. */
 .map-top-widgets {
-  position: absolute;
-  top: 10px;
-  right: 54px;
+  position: relative;
   z-index: 6;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: flex-start;
   gap: 0.6rem;
+  max-width: 100%;
+  min-height: 74px;
+  margin-right: 44px;
+  pointer-events: auto;
 }
 
 /* TEST: intressekompisen nere i högra hörnet, ovanför kartans källhänvisning. Rent dekorativ, men klick på honom
@@ -950,6 +1105,8 @@
 
 .map-profile-wrap {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -959,6 +1116,8 @@
    appens ikoner. Den öppna sidans lapp är nedtryckt. */
 .map-page-widgets {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.5rem;
 }
 
@@ -1089,7 +1248,8 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  max-width: 16rem;
+  /* Namnet förkortas (…) hellre än att lappen trycker in i växeln. */
+  max-width: min(16rem, 100%);
   padding: 0.3rem 0.35rem 0.3rem 0.9rem;
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
@@ -1137,6 +1297,12 @@
 .map-profile-menu-item:hover,
 .map-profile-menu-item:focus-visible {
   background: var(--color-accent-soft);
+}
+
+/* Antalet nya anmälningar vid Moderering (samma röda märke som i menyn). */
+.map-profile-menu-count {
+  margin-left: 0.4rem;
+  vertical-align: middle;
 }
 
 .map-profile-menu li + li {
@@ -1363,10 +1529,9 @@
    kontroller sitter 10px in och är två knappar höga). Namnet på området
    man zoomade till står under knapparna som en liten lapp. */
 .map-levels {
-  position: absolute;
-  top: 84px;
-  right: 10px;
+  position: relative;
   z-index: 3;
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -1387,9 +1552,33 @@
   text-align: right;
 }
 
-/* ---------- Kartprototyp på mobil ---------- */
+/* ---------- Kartprototyp på mobil och surfplatta ---------- */
 
-@media (max-width: 600px) {
+/* Surfplattor (och smala fönster) får mobilens upplägg: sidornas lappar som en
+   flikrad längst ned, bara profilbilden uppe till höger och öppna sidor som
+   ett rakt ark. Med pekskärm gäller det även liggande surfplattor upp till
+   1366px. Mobilens mindre text och knappar ligger i blocket efter det här. */
+@media (max-width: 1100px), (pointer: coarse) and (max-width: 1366px) {
+  /* Raden upptill upplöses (se .map-top-bar): på mobil har knapparna och
+     lapparna egna platser runt kanterna. */
+  .map-top-bar,
+  .map-top-left,
+  .map-top-right {
+    display: contents;
+  }
+
+  .map-view-toggle,
+  .map-sketch-tools,
+  .map-place-search,
+  .map-sketch-hint,
+  .map-levels {
+    position: absolute;
+  }
+
+  .map-levels {
+    right: 10px;
+  }
+
   /* Knapparna från kanten (inte efter marginallinjen), mindre, och utan att
      krocka med zoomknapparna uppe till höger. Tar hänsyn till skärmens hack. */
   .map-view-toggle {
@@ -1408,6 +1597,17 @@
     /* Plats för zoomknapparna och profilbilden uppe till höger. */
     right: calc(3.4rem + 54px);
     gap: 0.35rem;
+  }
+
+  /* Sökrutan på nålknapparnas plats under växeln (nålarna är dolda, SCRUM-270):
+     på telefonen lika bred som utrymmet fram till zoomknapparna och
+     profilbilden, på surfplattan högst så bred som på datorn. */
+  .map-place-search {
+    top: calc(2.5rem + env(safe-area-inset-top));
+    left: calc(0.6rem + env(safe-area-inset-left));
+    right: calc(3.4rem + 54px);
+    width: auto;
+    max-width: 22rem;
   }
 
   /* Bara profilbilden på smala skärmar; namnet finns för skärmläsare i aria-label. */
@@ -1441,19 +1641,26 @@
     pointer-events: none;
   }
 
+  /* Flikraden har en fast plats mellan kompassen och högerkanten. Fler lappar
+     än det får plats gör lapparna smalare (etiketten förkortas med "…") i
+     stället för att raden växer ut över kompassen. */
   .map-page-widgets {
     position: absolute;
-    left: 50%;
+    left: calc(0.6rem + 56px + 0.4rem + env(safe-area-inset-left));
+    right: calc(0.6rem + env(safe-area-inset-right));
     bottom: calc(2.8rem + env(safe-area-inset-bottom));
     z-index: 6;
+    flex-wrap: nowrap;
+    justify-content: center;
     gap: 0.4rem;
-    transform: translateX(-50%);
   }
 
   .map-page-widget {
     flex-direction: column;
     justify-content: center;
     gap: 0;
+    flex: 0 1 auto;
+    min-width: 0;
     height: 50px;
     padding: 0 0.5rem;
     font-size: 0.95rem;
@@ -1462,17 +1669,25 @@
 
   .map-page-widget-label {
     display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
+  /* Ikonen krymper med lappen när raden är full. */
   .map-page-widget-icon {
     width: 26px;
-    height: 26px;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 1;
   }
 
   /* Ett öppet block på mobil: ett rakt ark mellan profilraden upptill och
      sidornas lappar nedtill (ingen lutning, som är svår att läsa på liten
      skärm), och kartans övriga knappar och tips göms så länge. */
   .map-sketch.has-pad .map-sketch-tools,
+  .map-sketch.has-pad .map-place-search,
   .map-sketch.has-pad .map-levels,
   .map-sketch.has-pad .map-sketch-hint,
   .map-sketch.has-pad .map-sketch-compass {
@@ -1494,20 +1709,11 @@
   .map-pad-page {
     flex: 1;
     min-height: 0;
-    padding: 1.3rem 0.9rem 1rem;
-  }
-
-  .map-pad-title {
-    font-size: 2rem;
   }
 
   .map-levels {
     top: calc(84px + env(safe-area-inset-top));
     gap: 0.3rem;
-  }
-
-  .map-level-name {
-    font-size: 1.1rem;
   }
 
   .map-profile {
@@ -1519,11 +1725,6 @@
     display: none;
   }
 
-  .map-tool {
-    padding: 0.2rem 0.5rem;
-    font-size: 0.72rem;
-  }
-
   /* Tipset längst ned, bredvid kompassen, i stället för över kartan. */
   .map-sketch-hint {
     top: auto;
@@ -1532,7 +1733,6 @@
     /* Ovanför sidornas lappar och källhänvisningen. */
     bottom: calc(6.8rem + env(safe-area-inset-bottom));
     max-width: none;
-    font-size: 1.1rem;
   }
 
   .map-sketch-compass {
@@ -1540,6 +1740,26 @@
     bottom: calc(1.6rem + env(safe-area-inset-bottom));
     width: 56px;
     height: 56px;
+  }
+}
+
+/* Mobil: mindre text och knappar än på surfplattan, så att allt får plats. */
+@media (max-width: 600px) {
+  .map-pad-page {
+    padding: 1.3rem 0.9rem 1rem;
+  }
+
+  .map-pad-title {
+    font-size: 2rem;
+  }
+
+  .map-level-name {
+    font-size: 1.1rem;
+  }
+
+  .map-tool {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.72rem;
   }
 
   /* Smalare bordskant, annars tar den halva skärmen. */
@@ -1572,6 +1792,10 @@
   /* Källhänvisningen till OpenStreetMap måste synas, men kan vara mindre. */
   .map-sketch .maplibregl-ctrl-attrib {
     font-size: 9px;
+  }
+
+  .map-sketch-hint {
+    font-size: 1.1rem;
   }
 }
 

@@ -192,6 +192,8 @@ class CurrentUserOut(UserOut):
     # Har man bekräftat e-postadressen via länken i mejlet? (Se POST /users/me/email-verification.)
     email_verified: bool
     profile_completed: bool
+    # Moderatorer ser sidan Moderering (se routes/moderation.py).
+    is_moderator: bool
 
 
 class LoginResponse(BaseModel):

@@ -143,7 +143,20 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
         <Link to={`/anvandare/${event.creator_id}`} className="info-link">
           {creatorName}
         </Link>
-        {event.group_name && ` i ${event.group_name}`}
+        {event.group_name && (
+          <>
+            {' i '}
+            {/* Klubbens namn går till klubben, där man kan gå med. En privat klubb man inte är
+                med eller inbjuden i går inte att öppna, så då är det bara text. */}
+            {event.group_visible ? (
+              <Link to={`/klubbar?klubb=${event.group_id}`} className="info-link">
+                {event.group_name}
+              </Link>
+            ) : (
+              event.group_name
+            )}
+          </>
+        )}
       </p>
 
       <div className="detail-view-section">
@@ -226,7 +239,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
             </button>
           </div>
           {cancelOpen && (
-            <Modal title="Radera eventet" onClose={() => !deleting && setCancelOpen(false)}>
+            <Modal title="Radera eventet" onClose={() => setCancelOpen(false)} locked={deleting}>
               <form className="auth-form form-compact" onSubmit={handleDelete}>
                 <p className="card-text">
                   «{event.title}» tas bort, med inbjudningar och svar. Det går inte att ångra.
