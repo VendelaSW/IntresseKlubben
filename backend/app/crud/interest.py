@@ -1,4 +1,4 @@
-from sqlalchemy import or_
+from sqlalchemy import distinct, func, or_, select
 from sqlalchemy.orm import Session
 
 # Samma skydd mot jokertecken (% och _) som klubbsökningen.
@@ -11,9 +11,27 @@ from app.services.interest_matching import LibraryIndex, LibraryItem
 # Hur många träffar en sökning ger som mest.
 SEARCH_LIMIT = 20
 
+# Så många användare ska ha ett eget intresse (skaparen räknas med) innan det syns för andra i Utforska och sökningen.
+# Ett eget intresse som färre har hittas i stället på betydelse ("Menade du", se services/interest_embeddings.py).
+MIN_USERS_FOR_OWN_INTEREST = 3
+
 
 def _active(db: Session):
     return db.query(Interest).filter(Interest.status == InterestStatus.active.value)
+
+
+def _visible_to(viewer_id: int):
+    """Villkoret för vilka intressen `viewer_id` får se när hen bläddrar och söker: bibliotekets, sina egna, och egna intressen
+    som minst MIN_USERS_FOR_OWN_INTEREST användare har. Räkningen görs bara för egna intressen och bara för raderna som
+    frågan annars skulle ge (indexet på user_interests.interest_id)."""
+    users = (
+        select(func.count(distinct(UserInterest.user_id))).where(UserInterest.interest_id == Interest.id).scalar_subquery()
+    )
+    return or_(
+        Interest.source == InterestSource.library.value,
+        Interest.created_by_user_id == viewer_id,
+        users >= MIN_USERS_FOR_OWN_INTEREST,
+    )
 
 
 def list_interests(db: Session) -> list[Interest]:
@@ -22,17 +40,17 @@ def list_interests(db: Session) -> list[Interest]:
     return _active(db).order_by(Interest.name).all()
 
 
-def list_top_interests(db: Session) -> list[Interest]:
+def list_top_interests(db: Session, viewer_id: int) -> list[Interest]:
     """Huvudområdena (intressen utan förälder), för "Utforska"."""
-    return _active(db).filter(Interest.parent_id.is_(None)).order_by(Interest.name).all()
+    return _active(db).filter(Interest.parent_id.is_(None), _visible_to(viewer_id)).order_by(Interest.name).all()
 
 
-def list_child_interests(db: Session, interest: Interest) -> list[Interest]:
-    return _active(db).filter(Interest.parent_id == interest.id).order_by(Interest.name).all()
+def list_child_interests(db: Session, interest: Interest, viewer_id: int) -> list[Interest]:
+    return _active(db).filter(Interest.parent_id == interest.id, _visible_to(viewer_id)).order_by(Interest.name).all()
 
 
-def search_interests(db: Session, query: str, limit: int = SEARCH_LIMIT) -> list[Interest]:
-    """Aktiva intressen vars namn eller alias innehåller söktexten (oavsett
+def search_interests(db: Session, query: str, viewer_id: int, limit: int = SEARCH_LIMIT) -> list[Interest]:
+    """Aktiva intressen som `viewer_id` får se (se _visible_to) vars namn eller alias innehåller söktexten (oavsett
     stora/små bokstäver). Bästa träffarna först: exakt namn, namnet börjar med
     texten, namnet innehåller texten, sist bara alias."""
     text = " ".join(query.split()).lower()
@@ -40,7 +58,8 @@ def search_interests(db: Session, query: str, limit: int = SEARCH_LIMIT) -> list
         return []
     pattern = f"%{_escape_like(text)}%"
     candidates = _active(db).filter(
-        or_(Interest.name.ilike(pattern, escape="\\"), Interest.aliases.ilike(pattern, escape="\\"))
+        or_(Interest.name.ilike(pattern, escape="\\"), Interest.aliases.ilike(pattern, escape="\\")),
+        _visible_to(viewer_id),
     ).all()
 
     def rank(interest: Interest) -> tuple[int, str]:
@@ -84,6 +103,7 @@ def load_library_index(db: Session) -> LibraryIndex:
                 path=tuple(parent.name for parent in chain),
                 own=row.source != InterestSource.library.value,
                 activities=tuple(row.activities) if row.activities is not None else None,
+                allow_children=row.allow_children is not False,
             )
         )
     items.sort(key=lambda item: (*item.path, item.name))
@@ -91,13 +111,8 @@ def load_library_index(db: Session) -> LibraryIndex:
 
 
 def interest_path(interest: Interest) -> list[str]:
-    """Namnen ovanför intresset i trädet, uppifrån."""
-    path = []
-    parent = interest.parent
-    while parent is not None:
-        path.insert(0, parent.name)
-        parent = parent.parent
-    return path
+    """Namnen ovanför intresset i trädet, uppifrån (se Interest.path)."""
+    return interest.path
 
 
 def ids_with_children(db: Session, interests: list[Interest]) -> set[int]:

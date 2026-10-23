@@ -218,14 +218,17 @@ function createNote(map, layer, feature, onClose) {
 }
 
 // Kopplar lapparna till ett symbollager. `layer` är elementet lapparna läggs i.
+// Returnerar { showSearchNote }: en lapp för det man sökte fram i sökrutan.
 export function attachPlaceNotes(map, layerId, layer) {
   let preview = null // förhandslappen när man hovrar
   let previewId = null
   const stuck = new Map() // id -> fastklistrad lapp
+  let searchNote = null // lappen för det senaste man sökte fram (se showSearchNote)
 
   map.on('move', () => {
     preview?.update()
     for (const note of stuck.values()) note.update()
+    searchNote?.update()
   })
 
   function removePreview() {
@@ -288,4 +291,25 @@ export function attachPlaceNotes(map, layerId, layer) {
       if (stuck.get(id) === note) render(details)
     })
   })
+
+  // Sökrutan (SCRUM-220, se MapPlaceSearch): en lapp vid platsen man sökte fram,
+  // med namnet och vad det är ("Värmdö kommun, Stockholms län"). En ny sökning
+  // byter ut den, och krysset tar bort den.
+  function showSearchNote({ name, sub, lngLat }) {
+    searchNote?.remove()
+    const note = createNote(map, layer, { geometry: { coordinates: lngLat } }, () => {
+      note.remove()
+      if (searchNote === note) searchNote = null
+    })
+    searchNote = note
+    const content = el('div', 'map-note')
+    const close = el('button', 'map-note-close', '×')
+    close.type = 'button'
+    close.setAttribute('aria-label', 'Ta bort lappen')
+    content.append(close, el('p', 'map-note-title', name))
+    if (sub) content.append(el('p', 'map-note-type', sub))
+    note.setContent(content)
+  }
+
+  return { showSearchNote }
 }

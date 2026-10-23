@@ -26,7 +26,7 @@ async function changingBlocks(request) {
   return result
 }
 
-// Egna kontakter, inkommande och skickade förfrågningar.
+// Egna kompisar, inkommande och skickade förfrågningar.
 export function getContacts() {
   return queryClient.fetchQuery(contactsQuery)
 }
@@ -47,6 +47,11 @@ export function cancelContactRequest(contactId) {
 
 export function removeContact(contactId) {
   return changingContacts(apiDelete(`/contacts/${contactId}`))
+}
+
+// Frågan innan man blockerar någon (profilen och "Blockera … också" efter en anmälan).
+export function blockQuestion(name) {
+  return `Blockera ${name}? Ni kan inte längre kontakta varandra. Du kan avblockera senare.`
 }
 
 export function blockUser(userId) {

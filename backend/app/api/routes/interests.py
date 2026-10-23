@@ -6,11 +6,19 @@ GET /interests/top - huvudområdena, för "Utforska" på intressesidan.
 GET /interests/{id}/children - underintressena till ett intresse.
 GET /interests/search?q= - intressen vars namn eller alias innehåller texten,
   bästa träffarna först, var och en med var den hör hemma (path).
+  Utforska, underintressen och sökningen visar bibliotekets intressen, ens egna, och andras egna intressen först när minst
+  tre användare har dem (se crud/interest.py). De som är dolda hittas ändå på betydelse med /interests/similar.
+GET /interests/similar?q= - "Menade du": högst tre intressen som liknar texten, för när sökningen inte gav någon träff.
+  Först de som liknar i stavning (felstavningar och skrivsätt, i kod: services/interest_spelling.py), sedan de med liknande
+  betydelse (ett embedding-anrop). Tom lista om inget liknar.
 
 GET /profile/interests, PUT/DELETE /profile/interests/{id} - ens egna intressen.
 Bara aktiva intressen går att lägga till; ett inaktivt som man redan har går
 att ta bort.
 """
+
+import time
+from collections import defaultdict, deque
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -27,15 +35,37 @@ from app.crud.interest import (
     list_child_interests,
     list_interests,
     list_top_interests,
+    load_library_index,
     remove_user_interest,
     search_interests,
     sorted_interests,
 )
 from app.db.session import get_db
 from app.models.interest import Interest
-from app.schemas.interest import InterestBrowseItem, InterestResponse, ProfileInterest
+from app.schemas.interest import InterestBrowseItem, InterestResponse, ProfileInterest, SimilarItem
+from app.services.interest_embeddings import similar_interests
+from app.services.interest_spelling import spelling_matches
 
 router = APIRouter(tags=["interests"])
+
+# "Menade du" kostar ett embedding-anrop, så högst så här många per användare under så här många sekunder. Gränsen är
+# i minnet per serverinstans, en spärr och inget mer.
+SIMILAR_RATE_LIMIT = 20
+SIMILAR_RATE_WINDOW_SECONDS = 60
+SIMILAR_MAX = 3
+MIN_SIMILAR_LENGTH = 3
+
+_recent_similar: dict[int, deque[float]] = defaultdict(deque)
+
+
+def _check_similar_rate_limit(user_id: int) -> None:
+    now = time.monotonic()
+    calls = _recent_similar[user_id]
+    while calls and now - calls[0] > SIMILAR_RATE_WINDOW_SECONDS:
+        calls.popleft()
+    if len(calls) >= SIMILAR_RATE_LIMIT:
+        raise HTTPException(status_code=429, detail=msg.INTERVIEW_TOO_MANY_REQUESTS)
+    calls.append(now)
 
 
 def _current_db_user(current_user, db: Session):
@@ -67,7 +97,7 @@ def read_interests(db: Session = Depends(get_db)):
 
 @router.get("/interests/top", response_model=list[InterestBrowseItem])
 def read_top_interests(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return _browse_items(db, list_top_interests(db))
+    return _browse_items(db, list_top_interests(db, current_user.id))
 
 
 @router.get("/interests/search", response_model=list[InterestBrowseItem])
@@ -76,7 +106,29 @@ def search(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return _browse_items(db, search_interests(db, q))
+    return _browse_items(db, search_interests(db, q, current_user.id))
+
+
+@router.get("/interests/similar", response_model=list[SimilarItem])
+def similar(
+    q: str = Query(min_length=MIN_SIMILAR_LENGTH, max_length=100),
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    text = " ".join(q.split())
+    if len(text) < MIN_SIMILAR_LENGTH:
+        return []
+    _check_similar_rate_limit(current_user.id)
+    # Stavning först (billigt, ingen OpenAI), betydelsen fyller på. Räcker stavningen hoppas embedding-anropet över.
+    spelled = spelling_matches(text, load_library_index(db))
+    ids = list(spelled)
+    if len(ids) < SIMILAR_MAX:
+        ids += [i.id for i, _ in similar_interests(db, text) if i.id not in ids]
+    by_id = {i.id: i for i in db.query(Interest).filter(Interest.id.in_(ids)).all()}
+    items = _browse_items(db, [by_id[i] for i in ids if i in by_id])
+    # Ett tomt huvudområde (utan underintressen) är ingen sak att föreslå.
+    shown = [item for item in items if item.path or item.has_children][:SIMILAR_MAX]
+    return [SimilarItem(**item.model_dump(), spelling=item.id in spelled) for item in shown]
 
 
 @router.get("/interests/{interest_id}/children", response_model=list[InterestBrowseItem])
@@ -88,7 +140,7 @@ def read_child_interests(
     interest = get_active_interest(db, interest_id)
     if interest is None:
         raise HTTPException(status_code=404, detail="Intresset finns inte")
-    return _browse_items(db, list_child_interests(db, interest))
+    return _browse_items(db, list_child_interests(db, interest, current_user.id))
 
 
 @router.get("/profile/interests", response_model=list[ProfileInterest])

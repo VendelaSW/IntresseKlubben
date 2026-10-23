@@ -252,3 +252,231 @@ def test_removing_a_parent_keeps_its_sub_interests(client, user, library):
 def test_the_interest_list_is_unchanged_without_parent_id(client, user, library):
     # Övriga ställen som använder InterestResponse (listor, filter, klubbar) påverkas inte.
     assert all(set(i) == {"id", "name"} for i in client.get("/interests/").json())
+
+
+# --- "Menade du": intressen med liknande betydelse ----------------------------
+
+
+SIMILAR_URL = "/interests/similar"
+
+
+def _embedded(db, library, vectors=None):
+    """Ger alla intressen i biblioteket en vektor och sätter in en falsk Embedder som svarar på frågor."""
+    from app.services.ai_clients import set_clients
+    from app.services.interest_embeddings import embed_interests, embedding_text
+    from tests.fakes import FakeEmbedder
+
+    active = [i for i in library.values() if i.status == "active"]
+    wanted = {embedding_text(library[name]): vector for name, vector in (vectors or {}).items()}
+    embedder = FakeEmbedder(vectors=wanted)
+    embed_interests(db, active, embedder)
+    db.commit()
+    embedder.calls.clear()
+    set_clients(embedder=embedder)
+    return embedder
+
+
+def _vector(*first):
+    """En vektor som pekar åt ett håll: de första talen är `first`, resten 0 (inte normaliserad, men likheten räknas rätt)."""
+    from app.models.interest_embedding import EMBEDDING_DIMENSIONS
+
+    return [*first, *([0.0] * (EMBEDDING_DIMENSIONS - len(first)))]
+
+
+def test_similar_finds_an_interest_by_meaning(client, db, user, library):
+    nature = _vector(1.0, 0.0)
+    embedder = _embedded(db, library, {"Löpning": nature})
+    embedder.vectors["vara ute i naturen"] = nature
+    response = client.get(SIMILAR_URL, params={"q": "vara ute i naturen"})
+    assert response.status_code == 200
+    assert _browse(response) == [("Löpning", ["Sport och träning"], True)]
+    assert embedder.calls == [["vara ute i naturen"]]
+
+
+def test_similar_leaves_out_what_is_not_close_enough(client, db, user, library):
+    embedder = _embedded(db, library, {"Löpning": _vector(1.0, 0.0)})
+    embedder.vectors["något helt annat"] = _vector(0.0, 1.0)  # rätvinkligt: likhet 0
+    assert client.get(SIMILAR_URL, params={"q": "något helt annat"}).json() == []
+
+
+def test_similar_gives_at_most_three_and_closest_first(client, db, user, library):
+    _embedded(db, library, {"Löpning": _vector(1.0, 0.0), "Traillöpning": _vector(0.9, 0.1), "Gym": _vector(0.8, 0.2), "Musik": _vector(0.7, 0.3)})
+    from app.services.ai_clients import get_embedder
+
+    get_embedder().vectors["spring"] = _vector(1.0, 0.0)
+    names = [name for name, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "spring"}))]
+    assert names == ["Löpning", "Traillöpning", "Gym"]
+
+
+def test_similar_leaves_out_an_empty_main_area_and_inactive_interests(client, db, user, library):
+    vector = _vector(1.0, 0.0)
+    embedder = _embedded(db, library, {"Musik": vector})  # Musik är ett huvudområde utan underintressen
+    embedder.vectors["lyssna"] = vector
+    assert client.get(SIMILAR_URL, params={"q": "lyssna"}).json() == []
+
+
+def test_similar_gives_an_empty_list_when_the_embedding_fails(client, db, user, library):
+    from app.services.ai_clients import AIFailed
+
+    embedder = _embedded(db, library)
+    embedder.error = AIFailed("URLError")
+    response = client.get(SIMILAR_URL, params={"q": "vara ute i naturen"})
+    assert response.status_code == 200 and response.json() == []
+
+
+def test_similar_gives_an_empty_list_without_vectors_or_a_key(client, user, library):
+    response = client.get(SIMILAR_URL, params={"q": "vara ute i naturen"})
+    assert response.status_code == 200 and response.json() == []
+
+
+def test_similar_needs_three_characters(client, user, library):
+    assert client.get(SIMILAR_URL, params={"q": "ab"}).status_code == 422
+    assert client.get(SIMILAR_URL, params={"q": "  a  b "}).json() == []
+
+
+def test_similar_has_a_minute_limit_per_user(client, db, user, library, monkeypatch):
+    from app.api.routes import interests as route
+
+    _embedded(db, library)
+    monkeypatch.setattr(route, "SIMILAR_RATE_LIMIT", 2)
+    statuses = [client.get(SIMILAR_URL, params={"q": f"text {i}"}).status_code for i in range(3)]
+    assert statuses == [200, 200, 429]
+
+
+def test_similar_needs_login(client, library):
+    assert client.get(SIMILAR_URL, params={"q": "vara ute"}).status_code == 401
+
+
+# --- Egna intressen syns för andra först när minst tre användare har dem ------
+
+
+def _people(db, count):
+    """`count` andra användare (id 2 och uppåt), den inloggade (id 1) är user-fixturen."""
+    from app.models import User
+
+    people = [User(id=i, username=f"person{i}", password_hash="unused") for i in range(2, 2 + count)]
+    db.add_all(people)
+    db.commit()
+    return people
+
+
+def _own_interest(db, library, creator_id, holders=(), name="Kubb", parent="Sport och träning"):
+    """Ett eget intresse (source user_suggestion) skapat av `creator_id`, som `holders` har på sin profil."""
+    from app.models.user_interest import UserInterest
+
+    interest = Interest(
+        name=name, parent_id=library[parent].id, source="user_suggestion", created_by_user_id=creator_id
+    )
+    db.add(interest)
+    db.flush()
+    for holder in holders:
+        db.add(UserInterest(user_id=holder, interest_id=interest.id))
+    db.commit()
+    return interest
+
+
+def _children_names(client, interest):
+    return [name for name, _, _ in _browse(client.get(f"/interests/{interest.id}/children"))]
+
+
+def test_someone_elses_own_interest_is_hidden_with_fewer_than_three_users(client, db, user, library):
+    _people(db, 3)
+    _own_interest(db, library, creator_id=2, holders=[2, 3])  # skaparen och en till: två
+    assert "Kubb" not in _children_names(client, library["Sport och träning"])
+    assert client.get("/interests/search", params={"q": "kubb"}).json() == []
+
+
+def test_someone_elses_own_interest_shows_when_three_users_have_it(client, db, user, library):
+    _people(db, 3)
+    _own_interest(db, library, creator_id=2, holders=[2, 3, 4])  # skaparen plus två till
+    assert "Kubb" in _children_names(client, library["Sport och träning"])
+    assert _browse(client.get("/interests/search", params={"q": "kubb"})) == [("Kubb", ["Sport och träning"], False)]
+
+
+def test_the_creator_always_sees_their_own_interest(client, db, user, library):
+    _own_interest(db, library, creator_id=user.id)  # ingen har det på sin profil
+    assert "Kubb" in _children_names(client, library["Sport och träning"])
+    assert [name for name, _, _ in _browse(client.get("/interests/search", params={"q": "kubb"}))] == ["Kubb"]
+
+
+def test_one_user_with_two_activities_counts_once(client, db, user, library):
+    from app.models.user_interest import UserInterest
+
+    _people(db, 2)
+    own = _own_interest(db, library, creator_id=2, holders=[2, 3])
+    db.add(UserInterest(user_id=3, interest_id=own.id, activity="spela"))  # samma person, annan aktivitet
+    db.commit()
+    assert "Kubb" not in _children_names(client, library["Sport och träning"])
+
+
+def test_library_interests_are_always_visible(client, user, library):
+    assert "Löpning" in _children_names(client, library["Sport och träning"])
+    assert _browse(client.get("/interests/search", params={"q": "löpning"}))
+
+
+def test_a_hidden_interest_is_still_found_by_meaning(client, db, user, library):
+    from app.services.ai_clients import set_clients
+    from app.services.interest_embeddings import embed_interests, embedding_text
+    from tests.fakes import FakeEmbedder
+
+    _people(db, 1)
+    own = _own_interest(db, library, creator_id=2, holders=[2])
+    vector = _vector(1.0, 0.0)
+    embedder = FakeEmbedder(vectors={embedding_text(own): vector, "gårdsspel": vector})
+    embed_interests(db, [own], embedder)
+    db.commit()
+    set_clients(embedder=embedder)
+    assert client.get("/interests/search", params={"q": "kubb"}).json() == []  # dolt i sökningen
+    assert [name for name, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "gårdsspel"}))] == ["Kubb"]
+
+
+# --- "Menade du": stavningskontrollen kommer före betydelsen ------------------
+
+
+def test_similar_finds_a_misspelled_interest_without_any_embedding_call(client, user, library):
+    from app.services.ai_clients import set_clients
+    from tests.fakes import FakeEmbedder
+
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    response = client.get(SIMILAR_URL, params={"q": "lopnig"})  # Löpning, felstavat och utan prickar
+    assert _browse(response) == [("Löpning", ["Sport och träning"], True)]
+    assert embedder.calls == [["lopnig"]]  # tre träffar saknas, så betydelsen fyller på (inget fanns att lägga till)
+
+
+def test_similar_finds_an_alias_with_a_typo_and_a_different_spelling(client, user, library):
+    assert [n for n, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "joga"}))] == ["Löpning"]  # alias jogga
+    assert [n for n, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "Trail-löpning"}))] == ["Traillöpning"]
+
+
+def test_similar_puts_spelling_before_meaning(client, db, user, library):
+    vector = _vector(1.0, 0.0)
+    embedder = _embedded(db, library, {"Gym": vector})
+    embedder.vectors["lopnig"] = vector  # betydelsen pekar på Gym, stavningen på Löpning
+    names = [n for n, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "lopnig"}))]
+    assert names == ["Löpning", "Gym"]
+
+
+def test_similar_skips_the_embedding_call_when_spelling_fills_the_list(client, db, user, library):
+    from app.models import Interest as I
+
+    for name in ("Löpnings", "Löpningn"):
+        db.add(I(name=name, parent_id=library["Sport och träning"].id))
+    db.commit()
+    embedder = _embedded(db, library)
+    names = [n for n, _, _ in _browse(client.get(SIMILAR_URL, params={"q": "lopning"}))]
+    assert set(names) == {"Löpning", "Löpnings", "Löpningn"} and embedder.calls == []
+
+
+def test_similar_does_not_suggest_by_spelling_for_short_or_distant_words(client, user, library):
+    assert client.get(SIMILAR_URL, params={"q": "gum"}).json() == []  # för kort för stavningsförslag (Gym)
+    assert client.get(SIMILAR_URL, params={"q": "lopningsbana"}).json() == []  # fem tecken ifrån Löpning
+    assert client.get(SIMILAR_URL, params={"q": "lopni"}).json() == []  # två tecken ifrån ett sjutecknat ord: för långt
+
+
+def test_similar_marks_what_matches_in_spelling(client, db, user, library):
+    vector = _vector(1.0, 0.0)
+    embedder = _embedded(db, library, {"Gym": vector})
+    embedder.vectors["lopnig"] = vector
+    by_name = {i["name"]: i["spelling"] for i in client.get(SIMILAR_URL, params={"q": "lopnig"}).json()}
+    assert by_name == {"Löpning": True, "Gym": False}

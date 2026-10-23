@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import FormField from '../FormField'
 import LocationPicker from '../LocationPicker'
 import Modal from '../Modal'
 import TextareaWithCount from '../TextareaWithCount'
 import InvitePicker from './InvitePicker'
-import { EVENT_VISIBILITY, createEvent, inviteToEvent } from '../../services/events'
+import { EVENT_VISIBILITY, createEvent, inviteToEvent, updateEvent } from '../../services/events'
 import { profileQuery } from '../../services/profile'
 
 // Värdet ett <input type="datetime-local"> vill ha: lokal tid utan tidszon.
@@ -22,22 +22,73 @@ function inviteSummary({ userIds, groupIds }) {
   return parts.length > 0 ? `${parts.join(' och ')} valda. Skickas när eventet har skapats.` : 'Valfritt.'
 }
 
-// Formuläret för att skapa ett event. Ett nytt event är alltid "endast
+// Formulärets fält för ett befintligt event, i den form fälten vill ha.
+function fieldsFrom(event) {
+  return {
+    title: event.title,
+    description: event.description,
+    interestId: String(event.interest_id),
+    startsAt: localInputValue(new Date(event.starts_at)),
+    endsAt: event.ends_at ? localInputValue(new Date(event.ends_at)) : '',
+    placeName: event.place_name,
+    address: event.address,
+    position:
+      event.latitude != null && event.longitude != null ? { latitude: event.latitude, longitude: event.longitude } : null,
+  }
+}
+
+const EMPTY_FIELDS = {
+  title: '',
+  description: '',
+  interestId: '',
+  startsAt: '',
+  endsAt: '',
+  placeName: '',
+  address: '',
+  position: null,
+}
+
+const samePosition = (a, b) =>
+  (a?.latitude ?? null) === (b?.latitude ?? null) && (a?.longitude ?? null) === (b?.longitude ?? null)
+
+// Formuläret för att skapa ett event, eller med `event` för att redigera det
+// (bara skaparen ser Redigera, se EventDetails). Ett nytt event är alltid "endast
 // inbjudna" om man inte väljer att göra det öppet, och ett event i en privat
 // klubb kan inte vara öppet (backend avvisar det, här stängs valet av).
 // Tiden skickas som ISO med tidszon, tolkad som webbläsarens lokala tid.
 // "Bjud in" öppnar samma popup som på eventets egen vy. Valen sparas bara här, och
 // inbjudningarna skickas direkt efter att eventet har skapats.
-function CreateEventForm({ interests, groups, contacts, initialGroupId = null, onCreated, onCancel }) {
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [interestId, setInterestId] = useState('')
-  const [startsAt, setStartsAt] = useState('')
-  const [endsAt, setEndsAt] = useState('')
-  const [placeName, setPlaceName] = useState('')
-  const [address, setAddress] = useState('')
+// Vid redigering kan titel, beskrivning, intresse, tid, plats och nålen ändras.
+// Klubb och synlighet går inte att ändra, och inbjudningar och "Gäster får bjuda
+// in" sköts i eventets vy. Bara det som har ändrats skickas: backend vägrar en
+// starttid som har passerat, och ett event som redan har börjat ska ändå kunna
+// få t.ex. en ny beskrivning.
+// Ett nytt event kan ha intresset förvalt (`initialInterestId`, från "Det finns inga events för … Vill du skapa ett?").
+function CreateEventForm({
+  event = null,
+  interests,
+  groups,
+  contacts,
+  initialGroupId = null,
+  initialInterestId = null,
+  onCreated,
+  onSaved,
+  onCancel,
+}) {
+  const editing = event !== null
+  const initial = useMemo(
+    () => (event ? fieldsFrom(event) : { ...EMPTY_FIELDS, interestId: initialInterestId ? String(initialInterestId) : '' }),
+    [event, initialInterestId],
+  )
+  const [title, setTitle] = useState(initial.title)
+  const [description, setDescription] = useState(initial.description)
+  const [interestId, setInterestId] = useState(initial.interestId)
+  const [startsAt, setStartsAt] = useState(initial.startsAt)
+  const [endsAt, setEndsAt] = useState(initial.endsAt)
+  const [placeName, setPlaceName] = useState(initial.placeName)
+  const [address, setAddress] = useState(initial.address)
   // Var på kartan: { latitude, longitude } eller null (se LocationPicker).
-  const [position, setPosition] = useState(null)
+  const [position, setPosition] = useState(initial.position)
   // Ens egen kommun, som kartan visar innan nålen är satt (profilen finns redan
   // i det delade minnet, se services/queryClient.js).
   const { data: profile } = useQuery(profileQuery)
@@ -59,10 +110,41 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
     if (chosen?.visibility === 'private') setIsOpen(false)
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault()
+  // Det som har ändrats jämfört med eventet, i den form PATCH /events/{id} vill ha.
+  function changedFields() {
+    const changes = {}
+    if (title !== initial.title) changes.title = title
+    if (description !== initial.description) changes.description = description
+    if (interestId !== initial.interestId) changes.interest_id = Number(interestId)
+    if (startsAt !== initial.startsAt) changes.starts_at = new Date(startsAt).toISOString()
+    if (endsAt !== initial.endsAt) changes.ends_at = endsAt ? new Date(endsAt).toISOString() : null
+    if (placeName !== initial.placeName) changes.place_name = placeName
+    if (address !== initial.address) changes.address = address
+    if (!samePosition(position, initial.position)) {
+      changes.latitude = position?.latitude ?? null
+      changes.longitude = position?.longitude ?? null
+    }
+    return changes
+  }
+
+  async function handleSave() {
+    const changes = changedFields()
+    onSaved(Object.keys(changes).length > 0 ? await updateEvent(event.id, changes) : event)
+  }
+
+  async function handleSubmit(submitEvent) {
+    submitEvent.preventDefault()
     setSaving(true)
     setError('')
+    if (editing) {
+      try {
+        await handleSave()
+      } catch (err) {
+        setError(err.message)
+        setSaving(false)
+      }
+      return
+    }
     try {
       const created = await createEvent({
         title,
@@ -95,7 +177,12 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
 
   return (
     <form className="auth-form form-wide form-compact" onSubmit={handleSubmit}>
-      <h2>Skapa event</h2>
+      <h2>{editing ? 'Redigera event' : 'Skapa event'}</h2>
+      {editing && (
+        <p className="hint-text">
+          Ändrar du tid eller plats får de som har svarat Ja eller Kanske en notis från Intresseklubben.
+        </p>
+      )}
 
       <FormField id="event-title" label="Titel">
         <input
@@ -137,7 +224,9 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
             id="event-starts-at"
             type="datetime-local"
             value={startsAt}
-            min={localInputValue(new Date())}
+            // En ny tid måste vara framåt. En oförändrad tid på ett event som
+            // redan har börjat ska inte stoppa att resten sparas.
+            min={!editing || startsAt !== initial.startsAt ? localInputValue(new Date()) : undefined}
             onChange={(e) => setStartsAt(e.target.value)}
             required
           />
@@ -183,68 +272,74 @@ function CreateEventForm({ interests, groups, contacts, initialGroupId = null, o
         queries={[address, placeName]}
         value={position}
         onChange={setPosition}
-        saveLabel="Skapa event"
+        // Nålen bestämmer adressen: den närmaste gatuadressen skrivs i fältet.
+        onAddressFound={setAddress}
+        saveLabel={editing ? 'Spara' : 'Skapa event'}
         kommunCode={profile?.municipality_code}
       />
 
-      <FormField id="event-group" label="Klubb (valfritt)">
-        <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
-          <option value="">Ingen klubb</option>
-          {groups.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
-            </option>
-          ))}
-        </select>
-      </FormField>
+      {!editing && (
+        <>
+          <FormField id="event-group" label="Klubb (valfritt)">
+            <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
+              <option value="">Ingen klubb</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          </FormField>
 
-      <label>
-        <input
-          type="checkbox"
-          checked={isOpen && !inPrivateGroup}
-          disabled={inPrivateGroup}
-          onChange={(e) => setIsOpen(e.target.checked)}
-        />{' '}
-        Öppet event (syns för alla)
-      </label>
-      <p className="hint-text">
-        {inPrivateGroup
-          ? 'Events i privata klubbar är alltid bara för inbjudna.'
-          : 'Utan bockning syns eventet bara för dem du bjuder in.'}
-      </p>
+          <label>
+            <input
+              type="checkbox"
+              checked={isOpen && !inPrivateGroup}
+              disabled={inPrivateGroup}
+              onChange={(e) => setIsOpen(e.target.checked)}
+            />{' '}
+            Öppet event (syns för alla)
+          </label>
+          <p className="hint-text">
+            {inPrivateGroup
+              ? 'Events i privata klubbar är alltid bara för inbjudna.'
+              : 'Utan bockning syns eventet bara för dem du bjuder in.'}
+          </p>
 
-      <div className="detail-view-section">
-        <button type="button" className="secondary-button button-small" onClick={() => setInviteOpen(true)}>
-          Bjud in
-        </button>
-        <p className="hint-text">{inviteSummary(invites)}</p>
-        <label>
-          <input type="checkbox" checked={guestsCanInvite} onChange={(e) => setGuestsCanInvite(e.target.checked)} /> Gäster får
-          bjuda in
-        </label>
-        <p className="hint-text">Utan bockning kan bara du bjuda in. Du kan ändra det senare.</p>
-      </div>
-      {inviteOpen && (
-        <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
-          <InvitePicker
-            contacts={contacts}
-            groups={groups}
-            initial={invites}
-            submitLabel="Klar"
-            onSubmit={(selection) => {
-              setInvites(selection)
-              setInviteOpen(false)
-            }}
-            onCancel={() => setInviteOpen(false)}
-          />
-        </Modal>
+          <div className="detail-view-section">
+            <button type="button" className="secondary-button button-small" onClick={() => setInviteOpen(true)}>
+              Bjud in
+            </button>
+            <p className="hint-text">{inviteSummary(invites)}</p>
+            <label>
+              <input type="checkbox" checked={guestsCanInvite} onChange={(e) => setGuestsCanInvite(e.target.checked)} /> Gäster får
+              bjuda in
+            </label>
+            <p className="hint-text">Utan bockning kan bara du bjuda in. Du kan ändra det senare.</p>
+          </div>
+          {inviteOpen && (
+            <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
+              <InvitePicker
+                contacts={contacts}
+                groups={groups}
+                initial={invites}
+                submitLabel="Klar"
+                onSubmit={(selection) => {
+                  setInvites(selection)
+                  setInviteOpen(false)
+                }}
+                onCancel={() => setInviteOpen(false)}
+              />
+            </Modal>
+          )}
+        </>
       )}
 
       {error && <p className="status-error">{error}</p>}
 
       <div className="form-actions">
         <button type="submit" disabled={saving}>
-          {saving ? 'Skapar...' : 'Skapa event'}
+          {editing ? (saving ? 'Sparar...' : 'Spara') : saving ? 'Skapar...' : 'Skapa event'}
         </button>
         <button type="button" className="button-secondary" onClick={onCancel}>
           Avbryt

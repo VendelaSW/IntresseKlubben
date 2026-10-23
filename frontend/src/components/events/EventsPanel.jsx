@@ -2,8 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
+import { useTabParam } from '../../hooks/useTabParam'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
+import CreateButton from '../CreateButton'
+import CreateOffer from '../CreateOffer'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
 import { contactsQuery } from '../../services/contacts'
@@ -12,6 +15,7 @@ import { myGroupsQuery } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
 import { useAuth } from '../../hooks/useAuth'
 import { markEventsSeen } from '../../services/eventsSeen'
+import { TIME_FILTERS, inTimeFilter } from '../../utils/eventTime'
 
 const TABS = [
   { id: 'mine', label: 'Mina events' },
@@ -22,7 +26,7 @@ const TABS = [
 const EMPTY_TEXT = {
   mine: 'Du har inga events ännu.',
   invitations: 'Du har inga inbjudningar just nu.',
-  suggested: 'Inga förslag just nu. Lägg till fler intressen på din profil för att få fler.',
+  suggested: 'Det finns inga events att föreslå just nu.',
 }
 
 // Delar upp alla events man får se i flikarna:
@@ -53,16 +57,20 @@ const NONE = []
 function EventsPanel() {
   // Intressena (för formuläret och för att markera ens egna) hämtas ur minnet.
   const [interestsStatus, setInterestsStatus] = useState('loading') // 'loading' | 'ready' | 'error'
-  const [tab, setTab] = useState('mine')
+  // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
+  const [urlTab, setTab] = useTabParam(TABS)
+  const tab = urlTab ?? 'mine'
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   // 'list', 'create' eller id för det event som visas. Vyn står i adressen
   // (/events?event=ID, /events?skapa=1), så att Tillbaka och webbläsarens bakåt går
   // till sidan innan, och andra sidor kan öppna en vy direkt. En klubb kan stå med
   // (?skapa=1&klubb=ID eller ?event=ID&klubb=ID): då är klubben förvald i formuläret,
-  // och det är dit Tillbaka går om sidan öppnades via en länk.
+  // och det är dit Tillbaka går om sidan öppnades via en länk. Ett intresse kan stå
+  // med när man skapar (?skapa=1&intresse=ID, från "Vill du skapa ett?"): då är det förvalt.
   const view = Number(searchParams.get('event')) || (searchParams.get('skapa') ? 'create' : 'list')
   const fromGroupId = Number(searchParams.get('klubb')) || null
+  const createInterestId = Number(searchParams.get('intresse')) || null
   // `replace` byter ut sidan i historiken i stället för att lägga till en.
   function setView(next, { replace = false } = {}) {
     if (next === view) return
@@ -79,7 +87,7 @@ function EventsPanel() {
   useEffect(() => {
     if (user) markEventsSeen(user.id)
   }, [user?.id])
-  // Alla events man får se, ens klubbar (formuläret) och ens kontakter (för att
+  // Alla events man får se, ens klubbar (formuläret) och ens kompisar (för att
   // bjuda in), ur det delade minnet (se services/queryClient.js): har man varit
   // här nyss visas de direkt och hämtas om i bakgrunden. Det som ändrar ett event
   // (skapa, svara, bjuda in) säger själv till minnet (se services/events.js).
@@ -106,7 +114,28 @@ function EventsPanel() {
   const [interests, setInterests] = useState([])
   // Fel från inbjudningarna när eventet skapades (eventet skapades ändå).
   const [inviteProblem, setInviteProblem] = useState('')
+  // Visas formuläret för att redigera eventet som är öppet? Stängs när man byter vy.
+  const [editing, setEditing] = useState(false)
+  // "Eventet är raderat." ovanför listan, tills man öppnar något annat.
+  const [notice, setNotice] = useState('')
+  useEffect(() => {
+    setEditing(false)
+    if (view !== 'list') setNotice('')
+  }, [view])
   const [myInterestIds, setMyInterestIds] = useState(new Set())
+  // Filtren ('' = alla): tid (se utils/eventTime.js) och intresse. Gäller alla flikar.
+  const [timeFilter, setTimeFilter] = useState('')
+  const [interestFilter, setInterestFilter] = useState('')
+  const filtering = Boolean(timeFilter || interestFilter)
+  function clearFilters() {
+    setTimeFilter('')
+    setInterestFilter('')
+  }
+  // Formuläret, med intresset förvalt om det finns ett.
+  function openCreate(interestId = null) {
+    setInviteProblem('')
+    setSearchParams(interestId ? { skapa: '1', intresse: String(interestId) } : { skapa: '1' })
+  }
 
   useEffect(() => {
     Promise.all([getAllInterests(), getMyInterests()])
@@ -119,33 +148,60 @@ function EventsPanel() {
   }, [])
 
   async function handleCreated(created, problem) {
-    setTab('mine')
     setInviteProblem(problem ? `Eventet skapades, men inbjudningarna gick inte att skicka: ${problem}` : '')
     await loadEvents()
     // Från en klubb går man tillbaka dit, om inte något gick fel som ska synas här.
-    // Annars byts formuläret ut mot listan, så att Tillbaka inte öppnar det igen.
+    // Annars byts formuläret ut mot listan på Mina events, så att Tillbaka inte
+    // öppnar formuläret igen.
     if (fromGroupId && !problem) goBack()
-    else setView('list', { replace: true })
+    else setTab('mine')
   }
 
-  const lists = splitEvents(events)
+  // Eventet finns inte längre: tillbaka till klubben om man kom därifrån, annars
+  // till listan (och inte bakåt till eventet, som är borta).
+  // Vyn byts först, så att förklaringen för ett event som inte finns (se `missing`)
+  // inte hinner visas när listan hämtas om.
+  async function handleDeleted() {
+    if (fromGroupId) {
+      goBack()
+    } else {
+      setView('list', { replace: true })
+      setNotice('Eventet är raderat.')
+    }
+    await loadEvents()
+  }
+
+  // Flikarna (och deras antal) visar bara events som passar filtren. `unfiltered`
+  // säger om en tom flik är tom på grund av filtren (då erbjuds "Rensa filter").
+  const unfiltered = splitEvents(events)
+  const lists = filtering
+    ? splitEvents(
+        events.filter(
+          (event) =>
+            inTimeFilter(event, timeFilter) && (!interestFilter || event.interest_id === Number(interestFilter)),
+        ),
+      )
+    : unfiltered
+  // Förslag: events för ens egna intressen först, annars efter tid (som listan kommer).
+  const suggested = [
+    ...lists.suggested.filter((event) => myInterestIds.has(event.interest_id)),
+    ...lists.suggested.filter((event) => !myInterestIds.has(event.interest_id)),
+  ]
+  const shown = { ...lists, suggested }
+  const interestName = interests.find((i) => i.id === Number(interestFilter))?.name
   // Leta upp eventet i hela listan, så att vyn visar ens senaste svar.
   const selected = typeof view === 'number' ? events.find((e) => e.id === view) : null
+  // Ett event som inte (längre) finns i listan: raderat av den som skapade det,
+  // eller passerat. Visas med en förklaring i stället för att listan dyker upp
+  // utan att man förstår varför (t.ex. via en gammal länk eller kartan).
+  const missing = typeof view === 'number' && !selected && eventsResult.isSuccess
 
   return (
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Events</h1>
         {view !== 'create' && (
-          <button
-            type="button"
-            className="primary-button round-button"
-            aria-label="Skapa event"
-            onClick={() => {
-              setInviteProblem('')
-              setView('create')
-            }}
-          />
+          <CreateButton label="Skapa event" onClick={() => openCreate()} />
         )}
       </div>
 
@@ -162,6 +218,7 @@ function EventsPanel() {
               groups={myGroups}
               contacts={contacts}
               initialGroupId={fromGroupId}
+              initialInterestId={createInterestId}
               onCreated={handleCreated}
               onCancel={goBack}
             />
@@ -177,10 +234,7 @@ function EventsPanel() {
                 role="tab"
                 aria-selected={tab === t.id}
                 className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-                onClick={() => {
-                  setTab(t.id)
-                  setView('list')
-                }}
+                onClick={() => setTab(t.id)}
               >
                 {t.label} ({lists[t.id].length})
               </button>
@@ -188,8 +242,35 @@ function EventsPanel() {
           </div>
 
           {inviteProblem && <p className="status-error">{inviteProblem}</p>}
+          {notice && <p className="status-success">{notice}</p>}
           {eventsFailed ? (
             <p className="status-error">Kunde inte hämta events. Försök igen senare.</p>
+          ) : selected && editing && selected.is_owner ? (
+            <>
+              <BackButton onClick={() => setEditing(false)} />
+              <div className="card sheet">
+                <CreateEventForm
+                  // key: ett nytt formulär (med eventets uppgifter) varje gång man börjar redigera.
+                  key={selected.id}
+                  event={selected}
+                  interests={interests}
+                  groups={myGroups}
+                  contacts={contacts}
+                  onSaved={async () => {
+                    await loadEvents()
+                    setEditing(false)
+                  }}
+                  onCancel={() => setEditing(false)}
+                />
+              </div>
+            </>
+          ) : missing ? (
+            <>
+              <BackButton onClick={goBack} />
+              <p className="hint-text">
+                Eventet finns inte längre. Det kan ha raderats av den som skapade det, eller redan ha varit.
+              </p>
+            </>
           ) : selected ? (
             <>
               <BackButton onClick={goBack} />
@@ -200,17 +281,57 @@ function EventsPanel() {
                   contacts={contacts}
                   groups={myGroups}
                   onAnswered={loadEvents}
+                  onEdit={() => setEditing(true)}
+                  onDeleted={handleDeleted}
                 />
               </div>
             </>
           ) : (
             <>
-              <EventList
-                events={lists[tab]}
-                emptyText={EMPTY_TEXT[tab]}
-                myInterestIds={myInterestIds}
-                onSelect={(e) => setView(e.id)}
-              />
+              <div className="filter-select-row filter-select-row-compact">
+                <select aria-label="Filtrera på tid" value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
+                  {TIME_FILTERS.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  aria-label="Filtrera på intresse"
+                  value={interestFilter}
+                  onChange={(e) => setInterestFilter(e.target.value)}
+                >
+                  <option value="">Alla intressen</option>
+                  {interests.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {shown[tab].length === 0 && interestName ? (
+                <CreateOffer
+                  text={`Det finns inga events för ${interestName}. Vill du skapa ett?`}
+                  createLabel="Skapa event"
+                  onCreate={() => openCreate(Number(interestFilter))}
+                  onClear={clearFilters}
+                />
+              ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
+                <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
+              ) : shown[tab].length === 0 && tab === 'suggested' ? (
+                <CreateOffer
+                  text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}
+                  createLabel="Skapa event"
+                  onCreate={() => openCreate()}
+                />
+              ) : (
+                <EventList
+                  events={shown[tab]}
+                  emptyText={EMPTY_TEXT[tab]}
+                  myInterestIds={myInterestIds}
+                  onSelect={(e) => setView(e.id)}
+                />
+              )}
               {tab === 'invitations' && lists.declined.length > 0 && (
                 <>
                   <h2>Nekade ({lists.declined.length})</h2>

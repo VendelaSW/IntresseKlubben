@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { deleteAccount } from '../services/api'
+import Modal from './Modal'
 
-// Längst ner under Redigera profil. Först en knapp, sedan en bekräftelse där
-// lösenordet krävs, så att ingen raderar kontot av misstag. Efteråt loggas man
-// ut och hamnar på startsidan.
+// Längst ner under Redigera profil. Först en liten röd knapp (inte större än de
+// andra valen, SCRUM-255), sedan en bekräftelse i en popup där lösenordet krävs,
+// så att ingen raderar kontot av misstag. Efteråt loggas man ut och hamnar på
+// startsidan.
 function DeleteAccount() {
   const { logout } = useAuth()
   const navigate = useNavigate()
@@ -34,39 +36,42 @@ function DeleteAccount() {
     }
   }
 
-  if (!open) {
-    return (
-      <button type="button" className="secondary-button" onClick={() => setOpen(true)}>
+  return (
+    <>
+      <button
+        type="button"
+        className="secondary-button button-small button-danger touch-target"
+        onClick={() => setOpen(true)}
+      >
         Radera konto
       </button>
-    )
-  }
-
-  return (
-    <form className="auth-form" onSubmit={handleSubmit}>
-      <h2>Radera konto</h2>
-      <p className="form-error">
-        Din profil, dina meddelanden, kontakter och events raderas för gott. Klubbar du äger går
-        vidare till den som varit med längst. Det går inte att ångra.
-      </p>
-      <label htmlFor="delete-account-password">Skriv ditt lösenord för att bekräfta</label>
-      <input
-        id="delete-account-password"
-        type="password"
-        autoComplete="current-password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      {error && <p className="form-error">{error}</p>}
-      <button type="submit" disabled={busy || password === ''}>
-        {busy ? 'Raderar...' : 'Radera kontot för gott'}
-      </button>
-      {/* Heter inte "Avbryt": under Redigera profil finns redan en Avbryt för redigeringen, och de två ligger nära varandra. */}
-      <button type="button" className="button-secondary" onClick={close} disabled={busy}>
-        Behåll kontot
-      </button>
-    </form>
+      {open && (
+        // Medan kontot raderas går popupen inte att stänga (inte heller med Esc).
+        <Modal title="Radera konto" onClose={close} locked={busy}>
+          <form className="auth-form form-compact" onSubmit={handleSubmit}>
+            <p className="form-error">
+              Din profil, dina meddelanden, kompisar och events raderas för gott. Klubbar du äger går
+              vidare till den som varit med längst. Det går inte att ångra.
+            </p>
+            <label htmlFor="delete-account-password">Skriv ditt lösenord för att bekräfta</label>
+            <input
+              id="delete-account-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            {error && <p className="form-error">{error}</p>}
+            {/* Ingen egen Avbryt-knapp: popupens Stäng (och Escape) behåller kontot. Knappen ser ut som Radera konto
+                (inte bleknad medan lösenordet saknas): ett tomt fält stoppas av required på fältet. */}
+            <button type="submit" className="button-danger delete-account-confirm touch-target" disabled={busy}>
+              {busy ? 'Raderar...' : 'Radera kontot för gott'}
+            </button>
+          </form>
+        </Modal>
+      )}
+    </>
   )
 }
 

@@ -121,6 +121,41 @@ export async function updateAccount(changes) {
   return queryClient.setQueryData(CURRENT_USER_KEY, await apiPatch('/users/me', changes))
 }
 
+// Skickar en ny länk för att bekräfta e-postadressen till den inloggades e-post.
+// 429 om ett mejl skickades nyss.
+export function sendVerificationEmail() {
+  return apiPost('/users/me/email-verification')
+}
+
+// Bekräftar e-postadressen med koden från länken i mejlet. Kräver ingen
+// inloggning. Är man inloggad hämtas kontot om, så att profilen visar det.
+export async function verifyEmail(token) {
+  await apiPost('/users/verify-email', { token })
+  queryClient.invalidateQueries({ queryKey: CURRENT_USER_KEY })
+}
+
+// Glömt lösenord: skickar en länk för att välja ett nytt till kontots e-post.
+// Svarar likadant oavsett om kontot finns.
+export function forgotPassword(usernameOrEmail) {
+  return apiPost('/users/forgot-password', { username_or_email: usernameOrEmail })
+}
+
+// Nytt lösenord med koden från återställningsmejlet. Andra inloggningar slutar gälla.
+export function resetPassword(token, newPassword) {
+  return apiPost('/users/reset-password', { token, new_password: newPassword })
+}
+
+// Byt lösenord: det nya gäller först när bytet bekräftats via mejlet. Fel
+// nuvarande lösenord ger 403 (inte 401), så man loggas inte ut av ett felskrivet lösenord.
+export function requestPasswordChange(currentPassword, newPassword) {
+  return apiPost('/users/me/password', { current_password: currentPassword, new_password: newPassword })
+}
+
+// Bekräftar bytet med koden från mejlet. Andra inloggningar slutar gälla.
+export function confirmPasswordChange(token) {
+  return apiPost('/users/confirm-password-change', { token })
+}
+
 // Om ett användarnamn och/eller en e-post redan används av någon annan:
 // { username, email } med samma meddelanden som när man sparar, null = ledigt.
 export function checkAvailability({ username = '', email = '' }) {

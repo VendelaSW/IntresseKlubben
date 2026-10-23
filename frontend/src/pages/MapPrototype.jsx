@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import '../styles/map.css'
 import { LngLat, Map as MapLibreMap, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -10,13 +11,16 @@ import { attachPlaceSigns } from './mapPrototypeSigns'
 import logo from '../assets/intresseklubben.png'
 import Intressekompis from '../components/Intressekompis'
 import MapCalmPage from './MapCalmPage'
-import MapPagePad, { MAP_PAGES } from './MapPagePad'
+import MapPagePad, { MAP_PAGES, widgetFor } from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
+import MapPlaceSearch from './MapPlaceSearch'
 import MapProfileWidget from './MapProfileWidget'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
 import { getEvents } from '../services/events'
+import { searchPlaces } from '../services/geocode'
 import { getGroups, getMyGroups } from '../services/groups'
 import { getProfile } from '../services/profile'
+import { HOUR, cachedInBrowser } from '../services/queryClient'
 import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
 import {
   ZOOM_LEVELS,
@@ -135,12 +139,36 @@ const normalizePlace = (text) =>
     .replace(/\s+/g, ' ')
     .trim()
 
+// Stadsdelen via adressökningen (GET /geocode), när kartans egna ortnamn inte
+// räcker: i översikten av en stor kommun finns bara de största orterna i
+// kartans data, så t.ex. Hägersten i Stockholm hittas inte där. Bara en träff
+// inom kommunen räknas. Svaret sparas i webbläsaren en vecka, så det söks inte
+// varje gång kartan öppnas. Ger [lng, lat] eller null.
+async function findDistrict(district, kommun) {
+  try {
+    const places = await cachedInBrowser(
+      ['stadsdel', kommun.kod, normalizePlace(district)],
+      () => searchPlaces(`${district}, ${kommun.name}`),
+      7 * 24 * HOUR,
+    )
+    const hit = places.find((p) => isInside(kommun.geometry, [p.longitude, p.latitude]))
+    return hit ? [hit.longitude, hit.latitude] : null
+  } catch {
+    // Sökningen gick inte (t.ex. för många sökningar): kartan stannar på kommunen.
+    return null
+  }
+}
+
 // Kartans nivåer. På 'sverige' och 'landskap' är zoomen låst: man tar sig
 // vidare genom att klicka (på ett landskap, eller i landskapet för att komma
 // till länet där) eller med + och −, som då stegar mellan nivåerna. På
 // 'free' (län, kommun och närmare) zoomar man fritt, och nålarna finns bara
 // där. Zoomar man ut förbi landskapets storlek fastnar kartan på landskapet.
 const LEVEL_PADDING = 48 // luft runt området när man zoomar till en nivå
+// Nålarna och tråden mellan dem (Sätt ut nålar, Längs vägen, Nålar i svängar)
+// är avstängda tills vidare: de förvirrade användarna. Sätt till true
+// för att visa dem igen (se attachPinsAndThread).
+const PINS_ENABLED = false
 // Lager som döljs på Sverige-nivån, så att landskapen och deras namn syns
 // tydligt: skog, vattnets skraffering, vattendrag och vägar. Kustlinjen och
 // sjöarnas konturer, landskapens färger och gränser blir kvar, som i en atlas.
@@ -433,6 +461,7 @@ function syncPlaceLabels(
     '.map-page-widgets',
     '.maplibregl-ctrl-top-right',
     '.map-sketch-tools',
+    '.map-place-search',
   ]
 
   // Namnens placering räknas om bara när zoomen eller storleken ändras (det
@@ -731,8 +760,8 @@ function syncPlaceLabels(
   return { render }
 }
 
-// Lugnt läge sparas i webbläsaren. Går det inte (t.ex. privat läge) visas
-// kartan som vanligt.
+// Att göra-läget (växeln Karta | Att göra) sparas i webbläsaren. Går det inte
+// (t.ex. privat läge) visas kartan som vanligt.
 const CALM_KEY = 'karta-lugnt-lage'
 
 function readCalm() {
@@ -766,11 +795,11 @@ function MapPrototype() {
   // Sidan som ligger som block på kartan: 'profil' (Min profil, den egna sidan med
   // Lägg till intressen), 'brev', 'personer', 'klubbar', 'events' eller null.
   const [openPage, setOpenPage] = useState(null)
-  // Lugnt läge: kartan göms och bara pappret, widgetarna och blocken syns
-  // (för den som vill ha en lugnare bakgrund, eller en långsam dator). Valet
-  // sparas i webbläsaren.
+  // Att göra-läget (`calm`): kartan göms och en sida i blocket med dagens att
+  // göra visas i stället (MapCalmPage). Widgetarna och blocken ligger kvar. För
+  // den som vill ha en lugnare bakgrund, eller har en långsam dator. Byts med
+  // växeln Karta | Att göra, och valet sparas i webbläsaren.
   const [calm, setCalm] = useState(readCalm)
-  const toggleCalm = () => setCalm((was) => !was)
   useEffect(() => saveCalm(calm), [calm])
   // Adressen blocket öppnas på (se MapPagePad), t.ex. '/klubbar?klubb=3'.
   const [padStart, setPadStart] = useState(null)
@@ -780,6 +809,18 @@ function MapPrototype() {
     setOpenPage(page)
     setPadStart(start)
   }
+
+  // En gammal adress till en av sidorna (t.ex. /klubbar?klubb=3) skickas hit
+  // med sidan i `state.pad` (se OpenOnMap i App.jsx). Den öppnas i ett block,
+  // och tas sedan bort ur historiken så att den inte öppnas igen vid omladdning.
+  const location = useLocation()
+  const navigate = useNavigate()
+  useEffect(() => {
+    const pad = location.state?.pad
+    if (!pad) return
+    openPad(widgetFor(pad), pad)
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location])
   const mapRef = useRef(null)
   const labelsApiRef = useRef(null) // för att rita om namnen när nivån byts
   const outsideApiRef = useRef(null) // för att rita om papperet när nivån byts
@@ -815,7 +856,10 @@ function MapPrototype() {
       ])
       const groups = [...new Map([...publicGroups, ...myGroups].map((g) => [g.id, g])).values()]
       kommunerRef.current = kommuner
-      activitiesRef.current?.setItems(activitiesFrom({ groups, events, kommuner }))
+      const items = activitiesFrom({ groups, events, kommuner })
+      activitiesRef.current?.setItems(items)
+      // Samma klubbar och events går att söka fram i sökrutan (se MapPlaceSearch).
+      setActivityItems(items)
     } catch {
       // Kartan fungerar utan lapparna.
     }
@@ -888,10 +932,16 @@ function MapPrototype() {
   const fitRef = useRef(null) // mitt och zoom för hela Sverige (se fitSweden)
   // Namnet på området man senast zoomade till med nivåknapparna.
   const [levelName, setLevelName] = useState('')
+  // Har profilen en kommun? Då visas Min kommun vid sökrutan (se startAtHome).
+  const [hasHome, setHasHome] = useState(false)
+  // Klubbarna och eventen på kartan, för sökrutan (se loadActivities).
+  const [activityItems, setActivityItems] = useState([])
+  // Platslapparna (se attachPlaceNotes), för lappen vid det man sökte fram.
+  const placeNotesRef = useRef(null)
   // Kartans nivå: 'sverige', 'landskap' eller 'free' (se LEVEL_PADDING ovan).
   const [mode, setModeState] = useState('free')
   const modeRef = useRef('free')
-  const pinsShown = mode === 'free'
+  const pinsShown = PINS_ENABLED && mode === 'free'
 
   // Byt nivå: lås eller släpp zoomen med mus, fingrar och tangentbord.
   // `lan`: länskoden på fri nivå (länsvyn och kommuner i den), annars null.
@@ -987,26 +1037,38 @@ function MapPrototype() {
   }
 
   // Från översikten av en kommun ner till husnivå: till stadsdelen om den
-  // finns och hittas, annars till centralorten (en stad eller tätort med
-  // kommunens namn, annars den största i kommunen), annars till kommunens
-  // mittpunkt. Ortnamnen finns först när kartrutorna har laddats, så det
-  // görs när översikten är klar.
+  // finns och hittas (i kartans data, annars via adressökningen), annars till
+  // centralorten (en stad eller tätort med kommunens namn, annars den största
+  // i kommunen), annars till kommunens mittpunkt. Ortnamnen finns först när
+  // kartrutorna har laddats, så det görs när översikten är klar. `district`
+  // är stadsdelen som den står i profilen.
   function flyToPlaceIn(map, kommun, district = null) {
     const token = (flyTokenRef.current += 1)
-    map.once('idle', () => {
-      if (mapRef.current !== map || flyTokenRef.current !== token) return
+    const stale = () => mapRef.current !== map || flyTokenRef.current !== token
+    map.once('idle', async () => {
+      if (stale()) return
       const places = map
         .querySourceFeatures('openmaptiles', { sourceLayer: 'place' })
         .filter((f) => f.properties.name && kommun.geometry && isInside(kommun.geometry, f.geometry.coordinates))
       const name = (f) => normalizePlace(f.properties['name:sv'] ?? f.properties.name)
       let match = null
       if (district) {
+        const wanted = normalizePlace(district)
         const candidates = places.filter((f) => DISTRICT_CLASSES.includes(f.properties.class))
         // Helst exakt samma namn, annars ett namn som börjar med texten (eller
         // tvärtom, t.ex. "Gustavsberg centrum" -> Gustavsberg).
         match =
-          candidates.find((f) => name(f) === district) ??
-          candidates.find((f) => name(f).startsWith(district) || district.startsWith(name(f)))
+          candidates.find((f) => name(f) === wanted) ??
+          candidates.find((f) => name(f).startsWith(wanted) || wanted.startsWith(name(f)))
+        if (!match) {
+          const found = await findDistrict(district, kommun)
+          if (stale()) return
+          if (found) {
+            map.easeTo({ center: found, zoom: DISTRICT_ZOOM, duration: 1600 })
+            setLevelName(`${district.trim()}, ${kommun.name}`)
+            return
+          }
+        }
       }
       if (!match) {
         const kommunName = normalizePlace(kommun.name.replace(/ kommun$/, ''))
@@ -1044,8 +1106,9 @@ function MapPrototype() {
   // från en fast lista, så den hittas alltid), sedan stadsdelen (fritext) om
   // ett ortnamn i kartans egen data inom kommunen stämmer med den. Hittas
   // ingen stadsdel blir kartan kvar på kommunen. Ingen profil eller kommun:
-  // kartan börjar där den gör nu.
-  async function startAtHome(map) {
+  // kartan börjar där den gör nu. `animate`: flyg dit (knappen Min kommun) i
+  // stället för att hoppa (när kartan öppnas).
+  async function startAtHome(map, animate = false) {
     let profile
     try {
       profile = await getProfile()
@@ -1054,11 +1117,59 @@ function MapPrototype() {
     }
     const kommun = profile?.municipality_code && (await kommunByCode(profile.municipality_code))
     if (!kommun || mapRef.current !== map) return
+    setHasHome(true)
     setMode('free', null, kommun.lan, kommun.kod)
     const camera = map.cameraForBounds(kommun.bounds, { padding: LEVEL_PADDING, pitch: TILT })
-    if (camera) map.jumpTo({ center: camera.center, zoom: camera.zoom })
+    if (camera && animate) map.easeTo({ center: camera.center, zoom: camera.zoom, duration: 900 })
+    else if (camera) map.jumpTo({ center: camera.center, zoom: camera.zoom })
     setLevelName(kommun.name)
-    flyToPlaceIn(map, kommun, profile.district ? normalizePlace(profile.district) : null)
+    flyToPlaceIn(map, kommun, profile.district?.trim() || null)
+  }
+
+  // Sökrutan (SCRUM-220, se MapPlaceSearch): till det man valde bland förslagen,
+  // som när man klickar sig dit. En klubb eller ett event öppnas när kartan är
+  // framme (som ett klick på lappen), och en plats får en lapp med namnet.
+  function goToSearchResult(option) {
+    if (option.kind === 'kommun') goToKommun(option.kod)
+    else if (option.kind === 'lan') goToLan(option.kod)
+    else if (option.kind === 'landskap') enterLandskap(landskapAt(option.lngLat))
+    else if (option.kind === 'klubb' || option.kind === 'event') {
+      flyToActivity(option.item)
+      mapRef.current?.once('moveend', () => openActivity(option.item))
+    } else if (option.kind === 'place') goToPlace(option.place, option)
+  }
+
+  // Ett län: hela länet, som länsknappen.
+  async function goToLan(kod) {
+    const lan = await lanByCode(kod)
+    if (!lan || !mapRef.current) return
+    setMode('free', null, kod, null)
+    zoomToRegion(lan)
+  }
+
+  // En kommun: dit, som när man klickar sig dit genom nivåerna.
+  async function goToKommun(kod) {
+    const map = mapRef.current
+    const kommun = await kommunByCode(kod)
+    if (!map || !kommun || mapRef.current !== map) return
+    setMode('free', null, kommun.lan, kommun.kod)
+    zoomToRegion(kommun)
+    flyToPlaceIn(map, kommun)
+  }
+
+  // En ort, plats eller adress från adressökningen: länet och kommunen den ligger
+  // i, som vid goToKommun, men kartan flyger till själva platsen.
+  // `note` ({ name, sub }) blir en lapp vid platsen när kartan är framme.
+  async function goToPlace({ label, latitude, longitude }, note = null) {
+    const map = mapRef.current
+    if (!map) return
+    const lngLat = [longitude, latitude]
+    const kommun = await regionAt('kommun', lngLat)
+    if (mapRef.current !== map) return
+    setMode('free', null, kommun.lan, kommun.kod)
+    map.easeTo({ center: lngLat, zoom: DISTRICT_ZOOM, duration: 1600 })
+    setLevelName(`${label.split(',')[0]}, ${kommun.name}`)
+    if (note) map.once('moveend', () => placeNotesRef.current?.showSearchNote({ ...note, lngLat }))
   }
 
   const zoomToLevelRef = useRef(zoomToLevel)
@@ -1134,9 +1245,16 @@ function MapPrototype() {
       map.easeTo({ center: fit.center, zoom: fit.zoom, duration: 500 })
     })
     mapRef.current = map
-    // Klick på kartan på en låst nivå: ett steg in, där man klickade.
+    // Klick på kartan på en låst nivå: ett steg in, där man klickade. Bara i
+    // Sverige, och på landskapsnivån bara i det valda landskapet: runt om ligger
+    // bara papper, och landskapet närmast klicket (se landskapAt) är inte det
+    // man menade.
     map.on('click', (event) => {
-      if (modeRef.current !== 'free') stepLevelRef.current(1, event.lngLat.toArray())
+      if (modeRef.current === 'free') return
+      const point = event.lngLat.toArray()
+      if (!inSweden(...point)) return
+      if (modeRef.current === 'landskap' && landskapAt(point).name !== selectedLandskapRef.current) return
+      stepLevelRef.current(1, point)
     })
     // + och − stegar mellan nivåerna när zoomen är låst (fångas innan
     // MapLibres egna knappar hinner zooma).
@@ -1231,7 +1349,7 @@ function MapPrototype() {
     labelsApiRef.current = labelsApi
     // Mätt innan Caveat hann laddas blir listans bredd fel: räkna om då.
     document.fonts?.ready.then(() => mapRef.current === map && fitSweden())
-    attachPlaceNotes(map, 'places', notesRef.current)
+    placeNotesRef.current = attachPlaceNotes(map, 'places', notesRef.current)
     // Efter lapparna, så att hovringen redan är markerad när skyltarna ritas om.
     attachPlaceSigns(map, 'places', signsRef.current)
     routeRef.current = attachPinsAndThread(map, threadRef.current, setRoute)
@@ -1304,68 +1422,101 @@ function MapPrototype() {
         <path className="map-sketch-compass-north" d="M40 22 L46 44 L34 44 Z" />
         <text x="40" y="14">N</text>
       </svg>
-      <div className="map-levels" role="group" aria-label="Zooma till">
-        {ZOOM_LEVELS.map(({ id, label }) => (
-          <button key={id} type="button" className="map-tool" onClick={() => zoomToLevel(id)}>
-            {label}
-          </button>
-        ))}
-        {levelName && <p className="map-level-name">{levelName}</p>}
-      </div>
-      <div className="map-sketch-tools" role="toolbar" aria-label="Nålar och väg" hidden={!pinsShown}>
-        <button
-          type="button"
-          className={`map-tool${route.placing ? ' is-on' : ''}`}
-          aria-pressed={route.placing}
-          onClick={() => routeRef.current?.setPlacing(!route.placing)}
-        >
-          <svg className="map-tool-pin" viewBox="0 0 10 16" aria-hidden="true">
-            <path d="M5 8 L5.4 15.5" stroke="#3a2f25" strokeWidth="1.4" strokeLinecap="round" />
-            <circle cx="5" cy="5" r="3.8" fill="#a32d2d" stroke="#3a2f25" strokeWidth="1.2" />
-          </svg>
-          {route.placing ? 'Klar' : 'Sätt ut nålar'}
-        </button>
-        <div className="map-tool-group" role="group" aria-label="Trådens stil">
-          <button
-            type="button"
-            className={`map-tool${route.style === 'road' ? ' is-on' : ''}`}
-            aria-pressed={route.style === 'road'}
-            onClick={() => routeRef.current?.setStyle('road')}
-          >
-            Längs vägen
-          </button>
-          <button
-            type="button"
-            className={`map-tool${route.style === 'pins' ? ' is-on' : ''}`}
-            aria-pressed={route.style === 'pins'}
-            onClick={() => routeRef.current?.setStyle('pins')}
-          >
-            Nålar i svängar
-          </button>
+      {/* Raden upptill: växeln och nålknapparna till vänster, sidornas lappar,
+          profillappen och snabbzoomen till höger. De ligger i samma rad så att
+          de aldrig kan hamna på varandra, hur smalt fönstret än är (se
+          .map-top-bar i map.css; på mobil sprids de ut som förut). */}
+      <div className="map-top-bar">
+        <div className="map-top-left">
+          {/* Kartan eller dagens att göra (se `calm`). Den valda är nedtryckt. */}
+          <div className="map-view-toggle map-tool-group" role="group" aria-label="Visa">
+            <button
+              type="button"
+              className={`map-tool${calm ? '' : ' is-on'}`}
+              aria-pressed={!calm}
+              onClick={() => setCalm(false)}
+            >
+              Karta
+            </button>
+            <button
+              type="button"
+              className={`map-tool${calm ? ' is-on' : ''}`}
+              aria-pressed={calm}
+              onClick={() => setCalm(true)}
+            >
+              Att göra
+            </button>
+          </div>
+          <MapPlaceSearch
+            activities={activityItems}
+            onPick={goToSearchResult}
+            onHome={hasHome ? () => startAtHome(mapRef.current, true) : undefined}
+          />
+          <div className="map-sketch-tools" role="toolbar" aria-label="Nålar och väg" hidden={!pinsShown}>
+            <button
+              type="button"
+              className={`map-tool${route.placing ? ' is-on' : ''}`}
+              aria-pressed={route.placing}
+              onClick={() => routeRef.current?.setPlacing(!route.placing)}
+            >
+              <svg className="map-tool-pin" viewBox="0 0 10 16" aria-hidden="true">
+                <path d="M5 8 L5.4 15.5" stroke="#3a2f25" strokeWidth="1.4" strokeLinecap="round" />
+                <circle cx="5" cy="5" r="3.8" fill="#a32d2d" stroke="#3a2f25" strokeWidth="1.2" />
+              </svg>
+              {route.placing ? 'Klar' : 'Sätt ut nålar'}
+            </button>
+            <div className="map-tool-group" role="group" aria-label="Trådens stil">
+              <button
+                type="button"
+                className={`map-tool${route.style === 'road' ? ' is-on' : ''}`}
+                aria-pressed={route.style === 'road'}
+                onClick={() => routeRef.current?.setStyle('road')}
+              >
+                Längs vägen
+              </button>
+              <button
+                type="button"
+                className={`map-tool${route.style === 'pins' ? ' is-on' : ''}`}
+                aria-pressed={route.style === 'pins'}
+                onClick={() => routeRef.current?.setStyle('pins')}
+              >
+                Nålar i svängar
+              </button>
+            </div>
+            {route.pinCount > 0 && (
+              <button type="button" className="map-tool" onClick={() => routeRef.current?.clear()}>
+                Ta bort nålar
+              </button>
+            )}
+          </div>
+          {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}
         </div>
-        {route.pinCount > 0 && (
-          <button type="button" className="map-tool" onClick={() => routeRef.current?.clear()}>
-            Ta bort nålar
-          </button>
-        )}
+        <div className="map-top-right">
+          <div className="map-top-widgets">
+            <MapPageWidgets openPage={openPage} onOpen={(page) => (page ? openPad(page) : setOpenPage(null))} />
+            <MapProfileWidget onOpen={openPad} />
+          </div>
+          <div className="map-levels" role="group" aria-label="Zooma till">
+            {ZOOM_LEVELS.map(({ id, label }) => (
+              <button key={id} type="button" className="map-tool" onClick={() => zoomToLevel(id)}>
+                {label}
+              </button>
+            ))}
+            {levelName && <p className="map-level-name">{levelName}</p>}
+          </div>
+        </div>
       </div>
       {/* TEST: dator: kompisen nere i högra hörnet. Mobil: den vanliga loggan uppe i vänstra hörnet. */}
       <div className="map-kompis">
         <Intressekompis alt="" />
       </div>
       <img src={logo} alt="Intresseklubben" className="map-logo" />
-      <div className="map-top-widgets">
-        <MapPageWidgets openPage={openPage} onOpen={(page) => (page ? openPad(page) : setOpenPage(null))} />
-        <MapProfileWidget onOpen={openPad} calm={calm} onToggleCalm={toggleCalm} />
-      </div>
       {calm && (
         <MapCalmPage
           onOpen={openPad}
           onOpenEvent={(id) => openActivityRef.current({ type: 'event', id })}
-          onShowMap={toggleCalm}
         />
       )}
-      {pinsShown && route.hint && <p className="map-sketch-hint">{route.hint}</p>}
       <div className="map-sketch-table" aria-hidden="true" />
       {openPage && padStart && (
         // key: byter man sida landar ett nytt block.

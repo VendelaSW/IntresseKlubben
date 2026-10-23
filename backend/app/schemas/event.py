@@ -208,6 +208,7 @@ class EventOut(BaseModel):
     description: str
     interest_id: int
     interest_name: str
+    interest_area: str  # huvudområdet, som taggens färg följer (se Interest.area)
     starts_at: datetime
     ends_at: datetime | None
     place_name: str
@@ -217,6 +218,8 @@ class EventOut(BaseModel):
     visibility: EventVisibility
     group_id: int | None
     group_name: str | None
+    # Går klubben att öppna för den inloggade? Då är namnet en länk till klubben.
+    group_visible: bool
     # Skaparens publika uppgifter: aldrig e-post eller födelsedatum. creator_id
     # används för länken till skaparens profil.
     creator_id: int

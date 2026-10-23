@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import InvitePicker from '../events/InvitePicker'
+import InterestTags from '../InterestTags'
 import Modal from '../Modal'
 import ShowOnMapButton from '../ShowOnMapButton'
 import GroupEvents from './GroupEvents'
@@ -12,7 +13,7 @@ import { inviteToGroup } from '../../services/groups'
 // skapa ett event i klubben (öppnar eventformuläret med klubben vald), och "Gå ur"
 // och "Radera" (för ägaren) ligger längst ner i kortet. "Bjud in" syns för den som
 // får bjuda in (group.can_invite: ägaren, eller alla medlemmar om ägaren har slagit
-// på det) och öppnar en popup med ens kontakter (`contacts`). Den som är inbjuden kan
+// på det) och öppnar en popup med ens kompisar (`contacts`). Den som är inbjuden kan
 // gå med eller avböja. Tillbaka-knappen ligger ovanför rutan, i GroupsPanel.
 function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecline }) {
   const navigate = useNavigate()
@@ -45,20 +46,18 @@ function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecl
       <p className="card-subheading">
         {group.municipality_name} · {memberCountText(group.member_count)}
       </p>
-      <ShowOnMapButton type="klubb" id={group.id} data={group} />
-      {group.is_member && group.has_blocked_member && (
-        <p className="soft-box soft-box-wide soft-box-text">Någon du har blockerat är med i den här klubben.</p>
-      )}
+      {/* Beskrivningen högt upp, direkt efter kommun och medlemmar, så att man ser
+          vad klubben handlar om. Träffar och träffplats kommer efter. */}
       <p className="card-text">{group.description}</p>
       {group.meeting_info && <p className="hint-text">Träffas: {group.meeting_info}</p>}
       {(group.place_name || group.address) && (
         <p className="hint-text">Träffplats: {[group.place_name, group.address].filter(Boolean).join(', ')}</p>
       )}
-      <ul className="tags">
-        <li>
-          <span className="tag tag-selected tag-static">{group.interest_name}</span>
-        </li>
-      </ul>
+      <ShowOnMapButton type="klubb" id={group.id} data={group} />
+      {group.is_member && group.has_blocked_member && (
+        <p className="soft-box soft-box-wide soft-box-text">Någon du har blockerat är med i den här klubben.</p>
+      )}
+      <InterestTags interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area }]} />
       <div className="card-actions">
         <RoleBadge group={group} />
         {group.visibility === 'private' && <span className="status-pill">Privat</span>}

@@ -30,6 +30,7 @@ from app.schemas.profile import (
     ProfileUpdate,
 )
 from app.services.text_policy import TextCheckUnavailable, TextNotAllowed, check_text
+from app.services.text_moderation import check_fields
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
@@ -79,8 +80,12 @@ def _check_profile_text(text: str, user_id: int | None = None) -> None:
     """Om mig-texten får inte vara nazistisk, pedofil eller hatisk eller våldsam (se
     app/services/text_policy.py). Kontrollen är fail-closed: går den inte att köra sparas inget. Är det
     samma text som användaren nyss har fått godkänd av förhandskontrollen (user_id) görs den inte om."""
-    if user_id is not None and _already_checked(user_id, text):
-        return
+    if user_id is not None:
+        if _already_checked(user_id, text):
+            return
+        # En ny kontroll kostar ett AI-anrop, så den räknas mot samma minutgräns som förhandskontrollen. En text som
+        # redan är godkänd (ovan) räknas inte. Förhandskontrollen själv (utan user_id) räknar redan i sin route.
+        _check_text_rate_limit(user_id)
     try:
         check_text(text)
     except TextNotAllowed:
@@ -125,6 +130,10 @@ def add_profile(
     # ett databasfel (500) från främmande nyckeln.
     if db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
+    # Finns profilen redan ska det inte kosta ett AI-anrop att få veta det (som i intervjun, interest_confirm.py).
+    if get_profile(db, current_user.id) is not None:
+        raise HTTPException(status_code=409, detail=msg.PROFILE_ALREADY_EXISTS)
+    check_fields(name=data.name, profile_text=data.profile_text, district=data.district)
     _check_profile_text(data.profile_text, current_user.id)
     try:
         profile = create_profile(db, current_user.id, data)
@@ -157,6 +166,7 @@ def edit_profile(
     # ett databasfel (500) från främmande nyckeln.
     if data.municipality_code is not None and db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
+    check_fields(name=data.name, profile_text=data.profile_text, district=data.district)
     if data.profile_text is not None:
         _check_profile_text(data.profile_text, current_user.id)
     try:

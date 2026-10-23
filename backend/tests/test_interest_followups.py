@@ -296,6 +296,14 @@ def test_the_model_is_not_asked_when_the_library_has_a_list(index):
     assert result.allowed == {"t1": ["lyssna", "spela", "skapa", "besoka"], "t2": ["spela", "samla"]}
 
 
+def test_without_the_model_nothing_is_asked_and_a_gap_gets_no_activities(index):
+    llm, _ = clarify_says([dec("t1", activity="spela")], activities=[suggestion("t2", "ha")])
+    result = plan([same(2, "t1"), same(14, "t2")], index, CATALOG, text="Jag spelar metal och har katter", use_model=False)
+    assert llm.calls == []
+    assert result.allowed == {"t1": ["lyssna", "spela", "skapa", "besoka"], "t2": []}
+    assert [m.activity for m in result.matches] == ["", ""]
+
+
 def test_an_explicitly_empty_list_in_the_library_is_not_a_gap(index):
     llm = model_says([suggestion("t1", "spela")])
     result = plan([same(11, "t1")], index, CATALOG)  # "Stilla" har uttryckligen inga

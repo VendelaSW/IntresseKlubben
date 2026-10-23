@@ -254,6 +254,34 @@ def test_a_new_interest_is_at_most_level_three(index):
     assert (match.kind, match.parent_id) == ("new", 7)
 
 
+def _with_closed_playstation():
+    return LibraryIndex(
+        [
+            item(4, "Tv-spel"),
+            replace(item(9, "PlayStation", parent=4, level=2, path=["Tv-spel"]), allow_children=False),
+        ]
+    )
+
+
+def test_a_new_interest_never_goes_under_an_interest_that_does_not_allow_new_children():
+    llm_says([decision("t1", "new", parent_id=9, new_name="God of War")])  # modellen väljer PlayStation
+    (match,) = match_tags([tag("God of War")], _with_closed_playstation())
+    assert (match.kind, match.parent_id) == ("new", 4)  # byts mot förälderns förälder
+
+
+def test_the_listing_marks_the_interests_that_do_not_allow_new_children():
+    listing = library_listing(_with_closed_playstation())
+    assert "9: Tv-spel > PlayStation [inga nya underintressen]" in listing and "4: Tv-spel\n" in listing + "\n"
+    assert "inga nya underintressen" in MATCH_PROMPT
+
+
+def test_the_index_reads_allow_children_from_the_database(db):
+    db.add(Interest(name="PlayStation", allow_children=False))
+    db.add(Interest(name="Katter"))
+    db.commit()
+    assert {i.name: i.allow_children for i in load_library_index(db).items} == {"PlayStation": False, "Katter": True}
+
+
 @pytest.mark.parametrize("parent_id", [1, 7])
 def test_a_new_interest_under_an_area_or_an_interest_keeps_its_parent(index, parent_id):
     llm_says([decision("t1", "new", parent_id=parent_id, new_name="Något")])
@@ -593,6 +621,63 @@ def test_a_sub_nested_under_a_new_interest_that_became_none_becomes_none(index):
     llm_says([decision("t1", "new", parent_id=20, new_name="x"), decision("t2", "new", parent_id=20, new_name="x"), decision("t3", "new")])
     kinds = [m.kind for m in match_tags(tags, index)]
     assert kinds == ["new", "none", "none"]
+
+
+# ---------- Kandidatfilter: modellen ser bara kandidaterna ----------
+
+
+def listing_of(call):
+    return call.user.split("\n\nTaggar:\n")[0]
+
+
+def test_with_candidates_the_model_only_sees_the_candidates_not_the_whole_library(index):
+    llm = llm_says([decision("t1", "none")])
+    match_tags([tag("kortspelsvariant", "t1")], index, candidates=lambda unresolved: {1, 7})
+    (call,) = llm.calls_named("match")
+    library = listing_of(call)
+    assert "7: Spel och pussel > Kortspel" in library and "1: Musik" in library
+    assert "Metal" not in library and "Pokémon" not in library and "Fantasy" not in library
+
+
+def test_the_candidate_function_gets_only_the_unresolved_tags(index):
+    llm = llm_says([decision("t2", "none")])
+    seen = []
+
+    def candidates(unresolved):
+        seen.append([t.name for t in unresolved])
+        return {1}
+
+    match_tags([tag("jazz", "t1"), tag("social", "t2")], index, candidates=candidates)
+    assert seen == [["social"]]  # Jazz hittades exakt och behöver inget filter
+
+
+def test_the_candidate_function_is_not_called_when_every_tag_is_an_exact_match(index):
+    llm = llm_says([])
+    seen = []
+    match_tags([tag("jazz", "t1")], index, candidates=lambda unresolved: seen.append(unresolved) or {1})
+    assert seen == [] and llm.calls == []
+
+
+@pytest.mark.parametrize("answer", [None, set()])
+def test_no_candidates_means_the_whole_library_as_before(index, answer):
+    llm = llm_says([decision("t1", "none")])
+    match_tags([tag("social", "t1")], index, candidates=lambda unresolved: answer)
+    library = listing_of(llm.calls_named("match")[0])
+    assert "Metal" in library and "Pokémon TCG" in library and "Cosplay" in library
+
+
+def test_the_interests_the_parents_already_became_stay_in_the_listing(index):
+    llm = llm_says([decision("t2", "none")])
+    match_tags(tree("musik", "synthwave"), index, candidates=lambda unresolved: {20})  # Musik (id 1) är inte med
+    library = listing_of(llm.calls_named("match")[0])
+    assert "1: Musik" in library and "20: Skapande" in library and "Kortspel" not in library
+
+
+def test_the_models_answer_is_still_checked_against_the_whole_library(index):
+    # Modellen svarar med ett id som inte stod i listan (ett som finns i biblioteket): koden godtar det, men aldrig ett som inte finns.
+    llm_says([decision("t1", "same", interest_id=2), decision("t2", "same", interest_id=9999)])
+    result = match_tags([tag("tungt", "t1"), tag("skräp", "t2")], index, candidates=lambda unresolved: {1})
+    assert [m.kind for m in result] == ["same", "none"]
 
 
 def test_the_model_is_told_which_interests_the_parents_already_became(index):

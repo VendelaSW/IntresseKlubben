@@ -13,9 +13,9 @@ riktiga personer. Ett ensamt ord räcker inte för att avgöra det ("nazist" i "
    intressen och historia, men missar att någon säger att den är nazist eller pedofil.
 3. POLICY_PROMPT: en modellkörning som får policyn ovan och avgör om texten får publiceras.
 
-Är OPENAI_API_KEY eller OPENAI_MODEL inte satta (t.ex. lokalt) körs bara lager 1. Är de satta men
-ett anrop misslyckas kastas TextCheckUnavailable och texten ska inte sparas, så att inget släpps
-igenom ogranskat.
+Den gemensamma lokala ordkontrollen och HF-kontrollen körs genom text_moderation före OpenAI.
+HF-kontrollen är fail-closed även när OpenAI inte är konfigurerat. Om OpenAI är konfigurerat
+körs även lager 2 och 3; misslyckade OpenAI-anrop ger TextCheckUnavailable.
 
 Texten är data från en användare och kan innehålla instruktioner till modellen. Därför ligger den
 i ett eget meddelande, avgränsad, svaret tvingas till ett JSON-schema och är bara sant eller falskt.
@@ -24,6 +24,7 @@ i ett eget meddelande, avgränsad, svaret tvingas till ett JSON-schema och är b
 import re
 
 from app.services.ai_clients import AIFailed, AINotConfigured, Deadline, ai_configured, get_llm, get_moderator
+from app.services.text_moderation import check_fields
 
 # Ord eller ordbörjor som aldrig är okej, hela ord eller sammansättningar som börjar så.
 ALWAYS_BLOCKED_PREFIXES = ("pedofil", "pedofili", "barnporr", "barnpornograf", "barnsex", "barnvåldtäkt")
@@ -80,10 +81,11 @@ def check_text(text: str) -> None:
     kontrollen inte gick att köra. Annars returnerar den utan något."""
     if _has_always_blocked(text):
         raise TextNotAllowed()
-    if not ai_configured():
-        return  # inte inställt (lokalt): bara orden ovan kontrolleras
-
     deadline = Deadline()
+    check_fields(ai=True, deadline=deadline, profile_text=text)
+    if not ai_configured():
+        return
+
     try:
         if get_moderator().flagged([text], deadline)[0]:
             raise TextNotAllowed()

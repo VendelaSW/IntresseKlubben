@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useChatScroll } from '../../hooks/useChatScroll'
+import { isIdle, onUserActive } from '../../services/activity'
 import { getGroupMembers, getGroupMessages, sendGroupMessage } from '../../services/groups'
 import { formatSentAt } from '../../utils/formatSentAt'
+import { startsGroup } from '../../utils/messageGroups'
 import ChatSender from '../ChatSender'
+import { REPORT_TARGET } from '../../services/reports'
+import ReportButton from '../ReportButton'
 
 // Hur ofta chatten hämtas igen medan den är öppen, så att nya meddelanden syns utan att man laddar om sidan.
+// Inte när ingen har rört appen på ett tag (se services/activity.js).
 const POLL_MS = 5000
 
 // Samma brytpunkt som i index.css: under den vill man se det senaste och svarsraden.
@@ -90,12 +95,14 @@ function GroupChat({ groupId }) {
     }
 
     refresh()
-    const timer = setInterval(refresh, POLL_MS)
+    const timer = setInterval(() => isIdle() || refresh(), POLL_MS)
+    const stopListening = onUserActive(refresh)
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       cancelled = true
       mounted.current = false
       clearInterval(timer)
+      stopListening()
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [groupId])
@@ -165,20 +172,40 @@ function GroupChat({ groupId }) {
       {status === 'ready' && messages.length === 0 && <p className="hint-text">Inga meddelanden än.</p>}
       {messages.length > 0 && (
         <ol className="notepad-messages" ref={listRef} onScroll={onScroll}>
-          {/* Namn och tid som en rad överst, meddelandet under, som i brevtråden. */}
-          {messages.map((message) => {
+          {/* Namn och tid som en rad överst, meddelandet under, som i brevtråden. Meddelanden i
+              följd från samma person hamnar under samma namn (se startsGroup). */}
+          {messages.map((message, index) => {
+            const first = startsGroup(messages, index)
             const mine = message.sender_id === user?.id
             const sender = senderOf(message.sender_id)
             const name = sender ? (sender.name ?? sender.username) : 'Tidigare medlem'
+            const reportable = !mine && sender
             return (
-              <li key={message.id} className="notepad-message">
-                <p>
-                  <ChatSender userId={sender?.id} mine={mine} name={name} imageUrl={sender?.image_url} />{' '}
-                  <time className="hint-text" dateTime={message.created_at}>
-                    {formatSentAt(message.created_at)}
-                  </time>
-                </p>
-                <p>{message.content}</p>
+              <li
+                key={message.id}
+                className={`notepad-message${first ? '' : ' notepad-message-continued'}${reportable ? ' notepad-message-reportable' : ''}`}
+              >
+                {first && (
+                  <p className="notepad-message-head">
+                    <ChatSender userId={sender?.id} mine={mine} name={name} imageUrl={sender?.image_url} />{' '}
+                    <time className="hint-text" dateTime={message.created_at}>
+                      {formatSentAt(message.created_at)}
+                    </time>
+                  </p>
+                )}
+                <p title={first ? undefined : formatSentAt(message.created_at)}>{message.content}</p>
+                {/* Andras meddelanden går att anmäla (se .report-link). */}
+                {reportable && (
+                  <ReportButton
+                    className="report-link"
+                    label={`Anmäl meddelandet från ${name}`}
+                    targetType={REPORT_TARGET.groupMessage}
+                    targetId={message.id}
+                    userId={sender.id}
+                    name={name}
+                    quote={message.content}
+                  />
+                )}
               </li>
             )
           })}

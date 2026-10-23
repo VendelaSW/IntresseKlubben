@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user, require_profile
 from app.core import error_messages as msg
 from app.core import storage
+from app.core.profanity import censor_text
 from app.crud.event import (
     EventRuleError,
     can_invite,
@@ -19,7 +20,9 @@ from app.crud.event import (
     set_answer,
     update_event,
 )
+from app.crud.group import get_membership, is_invited
 from app.crud.interest import get_active_interest
+from app.crud.notification import notify_event_cancelled, notify_event_changed
 from app.db.session import get_db
 from app.models.event import Event, EventVisibility
 from app.models.group import GroupVisibility
@@ -33,9 +36,25 @@ from app.schemas.event import (
     EventOut,
     EventUpdate,
 )
+from app.schemas.notification import EventCancel
+
+from app.services.text_moderation import check_fields
 
 # Låst tills profilen är klar (se require_profile).
 router = APIRouter(prefix="/events", tags=["events"], dependencies=[Depends(require_profile)])
+
+
+def _group_visible(event: Event, user_id: int) -> bool:
+    """Går klubben att öppna för användaren? En öppen klubb alltid, en privat bara för
+    den som är med eller inbjuden (samma regel som GET /groups/{id})."""
+    group = event.group
+    if group is None:
+        return False
+    return (
+        group.visibility != GroupVisibility.private
+        or get_membership(group, user_id) is not None
+        or is_invited(group, user_id)
+    )
 
 
 def _to_response(event: Event, user_id: int) -> EventOut:
@@ -46,6 +65,7 @@ def _to_response(event: Event, user_id: int) -> EventOut:
         description=event.description,
         interest_id=event.interest_id,
         interest_name=event.interest.name,
+        interest_area=event.interest.area,
         starts_at=event.starts_at,
         ends_at=event.ends_at,
         place_name=event.place_name,
@@ -55,6 +75,7 @@ def _to_response(event: Event, user_id: int) -> EventOut:
         visibility=event.visibility,
         group_id=event.group_id,
         group_name=event.group.name if event.group else None,
+        group_visible=_group_visible(event, user_id),
         creator_id=creator.id,
         creator_username=creator.username,
         creator_name=creator.profile.name if creator.profile else None,
@@ -120,6 +141,14 @@ def create(
         # avvisas hellre än rättas tyst, så att felet syns direkt.
         if group.visibility == GroupVisibility.private and data.visibility == EventVisibility.open:
             raise HTTPException(status_code=422, detail=msg.EVENT_IN_PRIVATE_GROUP_CANNOT_BE_OPEN)
+    check_fields(
+        ai=True,
+        ai_text=f"{data.title}\n{data.description}",
+        title=data.title,
+        description=data.description,
+        place_name=data.place_name,
+        address=data.address,
+    )
     event = create_event(db, current_user.id, data)
     return _to_response(event, current_user.id)
 
@@ -144,20 +173,46 @@ def edit_event(
     event = _own_event_or_error(db, event_id, current_user.id)
     if data.interest_id is not None and get_active_interest(db, data.interest_id) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
+    changes = data.model_dump(exclude_unset=True)
+    public_text = [changes[field] for field in ("title", "description") if field in changes]
+    check_fields(
+        ai=True,
+        ai_text="\n".join(public_text),
+        **{
+            field: changes[field]
+            for field in ("title", "description", "place_name", "address")
+            if field in changes
+        },
+    )
+    # Tid och plats före ändringen, för att se om deltagarna ska få en notis.
+    time_before, place_before = _time_of(event), _place_of(event)
     try:
         event = update_event(db, event, data)
     except EventRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=err.detail)
+    notify_event_changed(db, event, _time_of(event) != time_before, _place_of(event) != place_before)
     return _to_response(event, current_user.id)
 
 
+def _time_of(event: Event) -> tuple:
+    return (event.starts_at, event.ends_at)
+
+
+def _place_of(event: Event) -> tuple:
+    return (event.place_name, event.address, event.latitude, event.longitude)
+
+
+# Body är valfri: utan den (eller utan meddelande) får deltagarna bara beskedet att eventet är inställt.
 @router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_event(
     event_id: int,
+    data: EventCancel | None = Body(default=None),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     event = _own_event_or_error(db, event_id, current_user.id)
+    message = data.message if data else None
+    notify_event_cancelled(db, event, censor_text(message) if message else None)
     delete_event(db, event)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

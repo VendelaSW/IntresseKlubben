@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import BackButton from '../components/BackButton'
+import BirthDatePicker from '../components/BirthDatePicker'
 import BlockedUsers from '../components/BlockedUsers'
+import ChangePassword from '../components/ChangePassword'
 import DeleteAccount from '../components/DeleteAccount'
+import EmailVerification from '../components/EmailVerification'
 import InterestExplorer from '../components/InterestExplorer'
+import MunicipalityPicker from '../components/MunicipalityPicker'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { useAuth } from '../hooks/useAuth'
+import { useGoBack } from '../hooks/useCanGoBack'
 import { checkAvailability, getCurrentUser, updateAccount } from '../services/api'
 import { clearProfileDraft, loadProfileDraft, saveProfileDraft } from '../services/profileDraft'
 import { resizeProfileImage } from '../services/resizeProfileImage'
-import { addInterest, getMyInterests, getTopInterests, removeInterest } from '../services/interests'
+import { addInterest, confirmInterests, getMyInterests, getTopInterests, removeInterest } from '../services/interests'
 import {
   GENDER_OPTIONS,
   createProfile,
@@ -24,14 +30,6 @@ import {
 // Så länge kontrollen av användarnamn/e-post väntar efter senaste
 // tangenttrycket, så att inte varje bokstav blir ett anrop.
 const AVAILABILITY_DELAY_MS = 400
-
-// Dagens datum som YYYY-MM-DD i lokal tid (toISOString ger UTC och kan
-// visa fel dag runt midnatt).
-function todayString() {
-  const d = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
 
 // Felmeddelanden från servern saknar ibland punkt i slutet, och då skulle en
 // mening som läggs efter dem gå ihop med dem.
@@ -138,10 +136,14 @@ function ProfilePage() {
   const navigate = useNavigate()
   // ?lista=1: formuläret där man väljer intressen ur listan i stället för att gå igenom intervjun. Dit länkar
   // intervjun när AI:n inte kan tolka texten.
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const listMode = searchParams.has('lista')
   // ?redigera=1: öppnas direkt i "Redigera profil" (kartans profilblock länkar hit).
   const editRequested = searchParams.has('redigera')
+  // ?bibliotek=1: Intressebiblioteket över hela sidan i stället för profilen. Står i adressen, så att Tillbaka
+  // och webbläsarens bakåt går tillbaka till profilen.
+  const libraryOpen = searchParams.has('bibliotek')
+  const closeLibrary = useGoBack(() => setSearchParams({}, { replace: true }))
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [profile, setProfile] = useState(null) // null = ingen profil skapad än
   // Kontouppgifterna (användarnamn och e-post) från /users/me. Visas i
@@ -293,6 +295,11 @@ function ProfilePage() {
     setMyInterests(await addInterest(interest.id))
   }
 
+  // Ett nytt intresse med egna ord (godkänt av backend, se AddInterest). Listan hämtas om, så att det syns under sin förälder.
+  async function addNewInterest(result) {
+    setMyInterests(await confirmInterests(result))
+  }
+
   // Frågar först. Underintressen till det man tar bort ligger kvar, och visas
   // överst i stället.
   async function removeSavedInterest(interest) {
@@ -311,7 +318,9 @@ function ProfilePage() {
     setSaving(true)
 
     // Namn, födelsedatum, kön, kommun och Om mig är obligatoriska och skickas
-    // alltid med. Stadsdel är valfri och skickas bara om den är ifylld.
+    // alltid med. Stadsdel är valfri: en ny profil får den bara om den är
+    // ifylld, och en befintlig får null när fältet är tomt, så att en gammal
+    // stadsdel tas bort.
     const data = {
       name,
       birth_date: birthDate,
@@ -321,6 +330,7 @@ function ProfilePage() {
       profile_text: aboutText,
     }
     if (district.trim()) data.district = district
+    else if (!isNew) data.district = null
 
     // 0. Kontouppgifterna, om de ändrats. De sparas först, så att fel lösenord
     //    eller ett upptaget namn (de vanligaste felen) stoppar allt innan
@@ -394,6 +404,21 @@ function ProfilePage() {
     )
   }
 
+  if (libraryOpen && profile && !editing) {
+    return (
+      <>
+        <BackButton onClick={closeLibrary} />
+        <InterestExplorer
+          mode="library"
+          selected={myInterests}
+          onAdd={addSavedInterest}
+          onRemove={removeSavedInterest}
+          onAddNew={addNewInterest}
+        />
+      </>
+    )
+  }
+
   if (editing) {
     const isNew = profile === null
     return (
@@ -433,14 +458,7 @@ function ProfilePage() {
           />
 
           <label htmlFor="profile-birth-date">Födelsedatum</label>
-          <input
-            id="profile-birth-date"
-            type="date"
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            max={todayString()}
-            required
-          />
+          <BirthDatePicker id="profile-birth-date" value={birthDate} onChange={setBirthDate} required />
 
           <label htmlFor="profile-gender">Kön</label>
           <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)} required>
@@ -461,19 +479,14 @@ function ProfilePage() {
           </label>
 
           <label htmlFor="profile-municipality">Kommun</label>
-          <select
+          <MunicipalityPicker
             id="profile-municipality"
+            municipalities={municipalities}
             value={municipalityCode}
-            onChange={(e) => setMunicipalityCode(e.target.value)}
+            onChange={setMunicipalityCode}
             required
-          >
-            <option value="">Välj...</option>
-            {municipalities.map((m) => (
-              <option key={m.code} value={m.code}>
-                {m.name}
-              </option>
-            ))}
-          </select>
+          />
+          <p className="hint-text">Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke.</p>
 
           <label htmlFor="profile-district">Stadsdel (valfritt)</label>
           <input
@@ -497,7 +510,7 @@ function ProfilePage() {
               dem i "Vad gillar du?" på profilen. */}
           {isNew && (
             <InterestExplorer
-              card={false}
+              mode="form"
               selected={draftInterests}
               onAdd={(interest) => setDraftInterests((current) => [...current, interest].sort(byName))}
               onRemove={(interest) => setDraftInterests((current) => current.filter((i) => i.id !== interest.id))}
@@ -564,6 +577,7 @@ function ProfilePage() {
         </form>
         {/* Utanför formuläret ovan: Radera konto har ett eget formulär, och formulär går inte att lägga i varandra.
             Bara för en befintlig profil, en ny har inget att radera än. */}
+        {!isNew && <ChangePassword email={account?.email} />}
         {!isNew && <DeleteAccount />}
       </div>
     )
@@ -596,6 +610,7 @@ function ProfilePage() {
         <dd>{account?.email ?? 'Ingen e-post sparad'}</dd>
       </dl>
       <p className="hint-text">E-posten syns bara för dig.</p>
+      <EmailVerification account={account} />
       <ProfileAbout text={profile.profile_text} />
       <BlockedUsers />
       <button type="button" className="primary-button" onClick={() => startEditing()}>
@@ -604,7 +619,13 @@ function ProfilePage() {
     </div>
     {/* Intressena som ett eget vitt kort bredvid profilen (under på mobil).
         Ändringar sparas direkt. */}
-    <InterestExplorer selected={myInterests} onAdd={addSavedInterest} onRemove={removeSavedInterest} />
+    <InterestExplorer
+      selected={myInterests}
+      onAdd={addSavedInterest}
+      onRemove={removeSavedInterest}
+      onAddNew={addNewInterest}
+      onOpenLibrary={() => setSearchParams({ bibliotek: '1' })}
+    />
     </div>
   )
 }

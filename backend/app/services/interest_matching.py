@@ -68,6 +68,7 @@ class LibraryItem:
     own: bool = False  # ett eget intresse som en användare skapat, inte ur biblioteket
     # Hur intresset kan utövas, som slugs. None = inget eget val, då gäller det närmaste överliggande.
     activities: tuple[str, ...] | None = None
+    allow_children: bool = True  # False = får inte få nya underintressen (en plattform som PlayStation, se Interest.allow_children)
 
 
 class LibraryIndex:
@@ -253,9 +254,14 @@ Välj bara same när det är samma sak, inte ett närliggande: "jazzpiano" är i
 - new: taggen är ett riktigt intresse eller en hobby som saknas i listan. För en tagg utan parent_key är \
 parent_id OBLIGATORISKT och måste vara ett id ur listan: id:t på det befintliga intresse eller område \
 som taggen hör under bäst (en tagg om ett kortspel hör under Kortspel, en musikgenre under Musik, \
-modellbygge under Skapande). Lämna aldrig parent_id tomt för en sådan tagg. Finns ingen exakt förälder \
+modellbygge under Kreativitet). Ett enskilt spel hör under sin genre (Action, Rollspel (RPG), FPS, \
+Strategi och så vidare), aldrig under Datorspel, Tv-spel eller VR-spel: de är plattformar, för maskinerna \
+och sättet man spelar på (PlayStation, Switch, PC), inte för enskilda spel. Rader som är markerade \
+[inga nya underintressen] får aldrig vara förälder. Ett spel som bara finns på \
+mobilen (Clash Royale, Candy Crush) hör under Mobilspel. \
+Lämna aldrig parent_id tomt för en sådan tagg. Finns ingen exakt förälder \
 väljer du det område som ligger närmast (mynt och frimärken hör närmast under Historia, \
-hantverk under Skapande). Ett riktigt intresse ska aldrig bli none bara för att området inte passar \
+hantverk under Kreativitet). Ett riktigt intresse ska aldrig bli none bara för att området inte passar \
 perfekt, utan hamna under det närmaste. Området Övrigt och nischat är den sista utvägen och får bara \
 väljas när inget annat område passar alls, aldrig för att du är osäker: välj alltid ett riktigt område \
 först. En tagg \
@@ -314,7 +320,8 @@ def library_listing(index: LibraryIndex) -> str:
             continue
         where = " > ".join([*item.path, item.name])
         also = f" (även: {', '.join(item.aliases[:3])})" if item.aliases else ""
-        lines.append(f"{item.id}: {where}{also}")
+        closed = "" if item.allow_children else " [inga nya underintressen]"
+        lines.append(f"{item.id}: {where}{also}{closed}")
     return "\n".join(lines)
 
 
@@ -337,11 +344,19 @@ def match_message(tags: list[Tag], index: LibraryIndex, parent_interests: dict[s
 
 
 def _ask_model(
-    tags: list[Tag], index: LibraryIndex, deadline: Deadline | None, parent_interests: dict[str, int]
+    tags: list[Tag],
+    index: LibraryIndex,
+    deadline: Deadline | None,
+    parent_interests: dict[str, int],
+    candidate_ids: set[int] | None = None,
 ) -> list[dict]:
+    listing = index
+    if candidate_ids:  # bara kandidaterna visas i stället för hela biblioteket (se interest_candidates.py)
+        wanted = candidate_ids | set(parent_interests.values())
+        listing = LibraryIndex([item for item in index.items if item.id in wanted])
     answer = get_llm().complete_json(
         system=MATCH_PROMPT,
-        user=match_message(tags, index, parent_interests),
+        user=match_message(tags, listing, parent_interests),
         name="match",
         schema=MATCH_SCHEMA,
         deadline=deadline,
@@ -360,11 +375,12 @@ def _ask_model(
 
 def _allowed_parent(parent_id, index: LibraryIndex) -> LibraryItem | None:
     """Föräldern ett nytt intresse får ha: den måste finnas, och intresset hamnar högst på nivå 3, så en
-    förälder på nivå 3 byts mot sin förälder."""
+    förälder på nivå 3 byts mot sin förälder. Ett intresse som inte tillåter nya underintressen (en plattform som
+    PlayStation) byts likadant mot sin förälder, så att ett spel aldrig hamnar under en plattform."""
     if not isinstance(parent_id, int) or isinstance(parent_id, bool):
         return None
     parent = index.by_id.get(parent_id)
-    while parent is not None and parent.level >= MAX_LEVEL:
+    while parent is not None and (parent.level >= MAX_LEVEL or not parent.allow_children):
         parent = index.by_id.get(parent.parent_id) if parent.parent_id is not None else None
     return parent
 
@@ -459,10 +475,14 @@ def _merge_duplicates(matches: list[Match]) -> list[Match]:
     ]
 
 
-def match_tags(tags: list[Tag], index: LibraryIndex, deadline: Deadline | None = None) -> list[Match]:
+def match_tags(
+    tags: list[Tag], index: LibraryIndex, deadline: Deadline | None = None, candidates=None
+) -> list[Match]:
     """Vad varje tagg är, i samma ordning som `tags`. Överst i trädet avgörs först, och en sub avgörs sedan
     under det dess överordnade blev. Kastar AIFailed om modellen behövs men inte svarar eller svarar något
-    som inte går att läsa. Finns allt som exakta träffar görs inget anrop."""
+    som inte går att läsa. Finns allt som exakta träffar görs inget anrop. Med `candidates` (en funktion som får de
+    oklara taggarna och ger id:na på intressena att visa, eller None för hela biblioteket) ser modellen bara
+    kandidaterna. Svaret kontrolleras ändå mot hela biblioteket."""
     ordered = [t for t in tags if t.parent_key is None] + [t for t in tags if t.parent_key is not None]
     matches: dict[str, Match] = {}
     unresolved: list[Tag] = []
@@ -481,7 +501,8 @@ def match_tags(tags: list[Tag], index: LibraryIndex, deadline: Deadline | None =
         }
         by_key = {tag.key: tag for tag in unresolved}
         decided: dict[str, dict] = {}
-        for decision in _ask_model(unresolved, index, deadline, parent_interests):
+        candidate_ids = candidates(unresolved) if candidates is not None else None
+        for decision in _ask_model(unresolved, index, deadline, parent_interests, candidate_ids):
             key = decision.get("key")
             if key in by_key and key not in decided:
                 decided[key] = decision

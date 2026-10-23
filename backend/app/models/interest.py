@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, func, true
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -40,6 +40,9 @@ class Interest(Base):
     # Strängar i stället för databas-enum, så att nya värden inte kräver en migration.
     status = Column(String, nullable=False, default=InterestStatus.active.value, server_default="active")
     source = Column(String, nullable=False, default=InterestSource.library.value, server_default="library")
+    # Får intresset få nya underintressen (av AI:n eller en användare)? Falskt för det som är en plattform eller något annat som
+    # inte kan delas upp (PlayStation, PC). Bibliotekets egna underintressen påverkas inte, bara nya.
+    allow_children = Column(Boolean, nullable=False, default=True, server_default=true())
     # Hur intresset kan utövas: slugs ur bibliotekets aktivitetslista, t.ex.
     # ["spela", "samla"]. None = inga angivna.
     activities = Column(JSON, nullable=True)
@@ -55,3 +58,21 @@ class Interest(Base):
 
     parent = relationship("Interest", remote_side=[id], back_populates="children")
     children = relationship("Interest", back_populates="parent")
+
+    @property
+    def path(self) -> list[str]:
+        """Namnen ovanför intresset i trädet, uppifrån, t.ex. ["Skapande",
+        "Fotografering"] för Porträttfoto. Tom för ett huvudområde."""
+        path = []
+        parent = self.parent
+        while parent is not None:
+            path.insert(0, parent.name)
+            parent = parent.parent
+        return path
+
+    @property
+    def area(self) -> str:
+        """Namnet på huvudområdet intresset ligger i (det översta i trädet), t.ex.
+        "Skapande" för Porträttfoto. Ett huvudområde är sitt eget. Frontend färgar
+        taggarna efter det (se frontend/src/utils/interestColors.js)."""
+        return self.path[0] if self.parent is not None else self.name

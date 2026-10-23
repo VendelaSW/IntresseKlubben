@@ -78,7 +78,13 @@ def test_registration_rejects_profanity_with_swedish_error(client, db, word):
         "/users/register",
         json={"username": word, "email": "new@example.com", "password": "hemligt123"},
     )
-    _assert_profanity_error(response, "username", "Användarnamnet")
+    if "@" in word:
+        assert response.status_code == 422
+        error = response.json()["detail"][0]
+        assert error["loc"] == ["body", "username"]
+        assert error["msg"] == "Value error, Användarnamnet får inte innehålla @"
+    else:
+        _assert_profanity_error(response, "username", "Användarnamnet")
     assert db.query(User).count() == 0
 
 

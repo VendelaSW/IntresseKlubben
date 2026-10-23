@@ -117,7 +117,7 @@ export const DEMO_PEOPLE = [
 ]
 
 // Hur relationen till varje person ser ut när demon startar, så att
-// förfrågningar och kontakter inte är tomma första gången man tittar.
+// förfrågningar och kompisar inte är tomma första gången man tittar.
 // 'incoming' = personen har skickat en förfrågan till dig.
 export const DEMO_START_RELATIONS = {
   3: 'incoming',

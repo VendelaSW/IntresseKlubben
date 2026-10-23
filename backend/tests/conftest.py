@@ -14,6 +14,7 @@ själva låset slår på det igen med fixturen `profile_lock` (se test_require_p
 """
 
 import os
+from unittest.mock import Mock
 
 # Måste sättas innan appen importeras. En miljövariabel går före backend/.env,
 # så den riktiga DATABASE_URL läses aldrig in under tester.
@@ -28,6 +29,13 @@ for _name in ("S3_BUCKET", "AWS_ENDPOINT_URL_S3", "AWS_ACCESS_KEY_ID", "AWS_SECR
 # råka anropa OpenAI på riktigt.
 os.environ["OPENAI_API_KEY"] = ""
 os.environ["OPENAI_MODEL"] = ""
+os.environ["MODERATION_SPACE"] = ""
+os.environ["HF_TOKEN"] = ""
+
+# Samma sak för mejlen: ingen riktig Resend-nyckel, och kravet på bekräftad e-post av som standard.
+os.environ["RESEND_API_KEY"] = ""
+os.environ["REQUIRE_EMAIL_VERIFICATION"] = ""
+os.environ["VERCEL_ENV"] = ""
 
 # Egen nyckel för inloggningstoken i tester, aldrig den riktiga från .env.
 os.environ["JWT_SECRET"] = "test-secret-only-for-tests-0123456789"
@@ -40,12 +48,24 @@ from sqlalchemy.pool import StaticPool  # noqa: E402
 
 from app.auth.security import get_current_user, require_profile  # noqa: E402
 from app.services.ai_clients import set_clients  # noqa: E402
+from app.services.email import set_email_sender  # noqa: E402
 from app.services.geocoding import set_geocoder  # noqa: E402
-from tests.fakes import FakeGeocoder  # noqa: E402
+from tests.fakes import FakeEmailSender, FakeGeocoder  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Municipality, User  # noqa: E402
+from app.services import ai_clients  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def fake_moderation_client(monkeypatch):
+    remote = Mock()
+    remote.submit.return_value.result.return_value = {
+        "flagged": False, "translated_text": "Clean test text", "score": 0.01,
+    }
+    monkeypatch.setattr(ai_clients, "_get_hf_client", lambda: remote)
+    return remote
 
 
 @pytest.fixture(autouse=True)
@@ -56,17 +76,41 @@ def fake_geocoder():
 
     set_geocoder(FakeGeocoder())
     geocode_route._recent.clear()
+    geocode_route._recent_reverse.clear()
     yield
     set_geocoder()
     geocode_route._recent.clear()
+    geocode_route._recent_reverse.clear()
+
+
+@pytest.fixture(autouse=True)
+def sent_emails():
+    """Inget test ska skicka riktiga mejl: utskicket är en fejkad version som sparar mejlen. Testerna som gäller
+    mejlen ber om fixturen och läser `sent_emails.sent`."""
+    sender = FakeEmailSender()
+    set_email_sender(sender)
+    yield sender
+    set_email_sender()
 
 
 @pytest.fixture(autouse=True)
 def reset_ai_clients():
-    """Inget test ska råka behålla en fejkad AI-klient från ett annat test, eller anropa OpenAI."""
+    """Inget test ska råka behålla en fejkad AI-klient från ett annat test, eller anropa OpenAI. Spärren för antal
+    Om mig-kontroller och minnet av redan kontrollerade texter nollställs också, så att ett test som sparar många
+    profiltexter inte stoppar nästa."""
+    from app.api.routes import profile as profile_route
+
     set_clients()
+    from app.api.routes import interests as interests_route
+
+    profile_route._recent_text_checks.clear()
+    profile_route._checked_texts.clear()
+    interests_route._recent_similar.clear()
     yield
     set_clients()
+    profile_route._recent_text_checks.clear()
+    profile_route._checked_texts.clear()
+    interests_route._recent_similar.clear()
 
 
 @pytest.fixture

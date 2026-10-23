@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { getBadges } from '../services/badges'
 import { getEvents } from '../services/events'
-import { countUnseenConversations } from '../services/messages'
+import { getGroups, getMyGroups } from '../services/groups'
+import { getMyInterests } from '../services/interests'
 import { getProfile } from '../services/profile'
+import { activitiesFrom } from './mapPrototypeActivities'
+import { allKommuner } from './mapPrototypeZoomLevels'
 
 const today = new Intl.DateTimeFormat('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })
 const eventTime = new Intl.DateTimeFormat('sv-SE', {
@@ -14,26 +17,61 @@ const eventTime = new Intl.DateTimeFormat('sv-SE', {
   minute: '2-digit',
 })
 
+// Så många kommande events och events i närheten står på sidan, så att den inte blir lång.
+const MAX_LINES = 3
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+
+const notOver = (event, now) => new Date(event.ends_at ?? event.starts_at).getTime() >= now
+const byStart = (a, b) => new Date(a.starts_at) - new Date(b.starts_at)
+
 // Ens bokade events: samma som "Mina events" i appen (skapat, eller svarat Ja
-// eller Kanske). Det närmaste som inte har tagit slut, eller null.
-function nextBookedEvent(events) {
-  const now = Date.now()
-  return (
-    events
-      .filter((e) => e.is_owner || e.my_answer === 'yes' || e.my_answer === 'maybe')
-      .filter((e) => new Date(e.ends_at ?? e.starts_at).getTime() >= now)
-      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))[0] ?? null
+// eller Kanske). De som inte har tagit slut, närmast först.
+function bookedEvents(events, now) {
+  return events
+    .filter((e) => e.is_owner || e.my_answer === 'yes' || e.my_answer === 'maybe')
+    .filter((e) => notOver(e, now))
+    .sort(byStart)
+}
+
+// Inbjudningar man inte har svarat på (samma som fliken Inbjudningar).
+function unansweredInvitations(events, now) {
+  return events.filter((e) => !e.is_owner && e.is_invited && e.my_answer === null && notOver(e, now))
+}
+
+// "I närheten den här veckan": öppna events i ens kommun som pågår någon gång de
+// närmaste sju dagarna och som man varken har skapat, blivit inbjuden till eller
+// svarat på. Kommunen räknas ut som på kartan (se activitiesFrom): nålen,
+// klubbens kommun eller ett kommunnamn i adressen. De som har ett av ens
+// intressen först, sedan närmast först.
+function nearbyEvents({ events, groups, kommuner, municipalityCode, interestIds, now }) {
+  const candidates = events.filter(
+    (e) =>
+      e.visibility === 'open' &&
+      !e.is_owner &&
+      !e.is_invited &&
+      e.my_answer === null &&
+      notOver(e, now) &&
+      new Date(e.starts_at).getTime() < now + WEEK_MS,
   )
+  const inMyKommun = new Set(
+    activitiesFrom({ groups, events: candidates, kommuner })
+      .filter((item) => item.type === 'event' && item.kommun === municipalityCode)
+      .map((item) => item.id),
+  )
+  const nearby = candidates.filter((e) => inMyKommun.has(e.id)).sort(byStart)
+  return [...nearby.filter((e) => interestIds.has(e.interest_id)), ...nearby.filter((e) => !interestIds.has(e.interest_id))]
 }
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 
-// Lugnt läge (se MapPrototype.jsx): i stället för kartan en sida i ett
+// Att göra-läget (se MapPrototype.jsx): i stället för kartan en sida i ett
 // anteckningsblock. Överst en hälsning och dagens datum, och på linjerna
-// dagens att göra: nästa bokade event, nya brev, klubbinbjudningar och
-// kontaktförfrågningar. Varje rad öppnar rätt block (`onOpen(sida)` eller
+// dagens att göra: de närmaste bokade eventen (och en länk till Mina events),
+// obesvarade eventinbjudningar, nya brev, klubbinbjudningar och
+// kompisförfrågningar. Under det "I närheten den här veckan", tips på events i
+// ens kommun. Varje rad öppnar rätt block (`onOpen(sida, adress)` eller
 // `onOpenEvent(id)`). Runt omkring några klotter i marginalen.
-function MapCalmPage({ onOpen, onOpenEvent, onShowMap }) {
+function MapCalmPage({ onOpen, onOpenEvent }) {
   const { user } = useAuth()
   const [name, setName] = useState(null)
   const [todo, setTodo] = useState(null) // null = laddar
@@ -41,16 +79,42 @@ function MapCalmPage({ onOpen, onOpenEvent, onShowMap }) {
   useEffect(() => {
     let cancelled = false
     // Siffrorna kommer i ett anrop, samma som appens märken (se useBadgeCounts).
-    Promise.allSettled([getProfile(), getEvents(), getBadges()]).then(([profile, events, badges]) => {
+    // Klubbarna och kommunerna behövs för att veta vilka events som är i ens kommun.
+    Promise.allSettled([
+      getProfile(),
+      getEvents(),
+      getBadges(),
+      getMyInterests(),
+      getGroups(),
+      getMyGroups(),
+      allKommuner(),
+    ]).then(([profile, events, badges, interests, publicGroups, myGroups, kommuner]) => {
       if (cancelled) return
       const value = (result, fallback) => (result.status === 'fulfilled' ? result.value : fallback)
       const counts = value(badges, null)
-      setName(value(profile, null)?.name ?? null)
+      const me = value(profile, null)
+      const allEvents = value(events, [])
+      const now = Date.now()
+      setName(me?.name ?? null)
       setTodo({
-        event: nextBookedEvent(value(events, [])),
-        letters: countUnseenConversations(counts?.conversations ?? []),
+        booked: bookedEvents(allEvents, now),
+        eventInvitations: unansweredInvitations(allEvents, now).length,
+        // Utan kommunerna eller ens kommun går det inte att veta vad som är i närheten.
+        nearby:
+          kommuner.status === 'fulfilled' && me?.municipality_code
+            ? nearbyEvents({
+                events: allEvents,
+                groups: [...value(publicGroups, []), ...value(myGroups, [])],
+                kommuner: kommuner.value,
+                municipalityCode: me.municipality_code,
+                interestIds: new Set(value(interests, []).map((i) => i.id)),
+                now,
+              })
+            : [],
+        letters: counts?.unread_conversations ?? 0,
         invitations: counts?.club_invitations ?? 0,
         requests: counts?.contact_requests ?? 0,
+        notifications: counts?.unread_notifications ?? 0,
       })
     })
     return () => {
@@ -71,36 +135,62 @@ function MapCalmPage({ onOpen, onOpenEvent, onShowMap }) {
         {todo === null ? (
           <p className="map-calm-muted">Bläddrar i blocket...</p>
         ) : (
-          <ul className="map-calm-todo">
-            {todo.event ? (
-              <TodoLine onClick={() => onOpenEvent(todo.event.id)} done={false}>
-                Nästa event: <strong>{todo.event.title}</strong>, {eventTime.format(new Date(todo.event.starts_at))}
+          <>
+            <ul className="map-calm-todo">
+              {todo.booked.length > 0 ? (
+                <>
+                  {todo.booked.slice(0, MAX_LINES).map((event) => (
+                    <TodoLine key={event.id} onClick={() => onOpenEvent(event.id)} done={false}>
+                      <strong>{event.title}</strong>, {eventTime.format(new Date(event.starts_at))}
+                    </TodoLine>
+                  ))}
+                  <TodoLine onClick={() => onOpen('events', '/events?flik=mina-events')} done={false}>
+                    Alla mina events →
+                  </TodoLine>
+                </>
+              ) : (
+                <TodoLine onClick={() => onOpen('events')} done={false}>
+                  Inga bokade events. Kika på Events?
+                </TodoLine>
+              )}
+              {todo.eventInvitations > 0 && (
+                <TodoLine onClick={() => onOpen('events', '/events?flik=inbjudningar')} done={false}>
+                  Svara på {plural(todo.eventInvitations, 'eventinbjudan', 'eventinbjudningar')}
+                </TodoLine>
+              )}
+              <TodoLine onClick={() => onOpen('brev')} done={todo.letters === 0}>
+                {todo.letters > 0 ? `Läs ${plural(todo.letters, 'nytt brev', 'nya brev')}` : 'Inga nya brev'}
               </TodoLine>
-            ) : (
-              <TodoLine onClick={() => onOpen('events')} done={false}>
-                Inga bokade events. Kika på Events?
-              </TodoLine>
+              {todo.invitations > 0 && (
+                <TodoLine onClick={() => onOpen('klubbar')} done={false}>
+                  Svara på {plural(todo.invitations, 'klubbinbjudan', 'klubbinbjudningar')}
+                </TodoLine>
+              )}
+              {todo.requests > 0 && (
+                <TodoLine onClick={() => onOpen('personer')} done={false}>
+                  {plural(todo.requests, 'person vill', 'personer vill')} bli din kompis
+                </TodoLine>
+              )}
+              {todo.notifications > 0 && (
+                <TodoLine onClick={() => onOpen('notiser')} done={false}>
+                  Läs {plural(todo.notifications, 'ny notis', 'nya notiser')}
+                </TodoLine>
+              )}
+            </ul>
+            {todo.nearby.length > 0 && (
+              <>
+                <p className="map-calm-heading map-calm-heading-next">I närheten den här veckan</p>
+                <ul className="map-calm-todo">
+                  {todo.nearby.slice(0, MAX_LINES).map((event) => (
+                    <TipLine key={event.id} onClick={() => onOpenEvent(event.id)}>
+                      {event.title}, {eventTime.format(new Date(event.starts_at))}
+                    </TipLine>
+                  ))}
+                </ul>
+              </>
             )}
-            <TodoLine onClick={() => onOpen('brev')} done={todo.letters === 0}>
-              {todo.letters > 0 ? `Läs ${plural(todo.letters, 'nytt brev', 'nya brev')}` : 'Inga nya brev'}
-            </TodoLine>
-            {todo.invitations > 0 && (
-              <TodoLine onClick={() => onOpen('klubbar')} done={false}>
-                Svara på {plural(todo.invitations, 'klubbinbjudan', 'klubbinbjudningar')}
-              </TodoLine>
-            )}
-            {todo.requests > 0 && (
-              <TodoLine onClick={() => onOpen('personer')} done={false}>
-                {plural(todo.requests, 'person vill', 'personer vill')} bli din kontakt
-              </TodoLine>
-            )}
-          </ul>
+          </>
         )}
-
-        <p className="map-calm-paused">Kartan är pausad.</p>
-        <button type="button" className="map-tool" onClick={onShowMap}>
-          Visa kartan
-        </button>
       </div>
     </div>
   )
@@ -115,6 +205,21 @@ function TodoLine({ onClick, done, children }) {
         <svg className="map-calm-box" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M3 4 L17 3 L16.5 17 L3.5 16.5 Z" />
           {done && <path className="map-calm-check" d="M5.5 10 L9 14 L18 1" />}
+        </svg>
+        <span>{children}</span>
+      </button>
+    </li>
+  )
+}
+
+// En rad under "I närheten den här veckan": ett tips, inte något man måste
+// göra, så en ritad punkt i stället för en ruta. Öppnar eventet.
+function TipLine({ onClick, children }) {
+  return (
+    <li>
+      <button type="button" className="map-calm-line" onClick={onClick}>
+        <svg className="map-calm-box" viewBox="0 0 20 20" aria-hidden="true">
+          <path className="map-calm-dot" d="M10 7.5 C12 7, 13 9, 12.5 10.5 C12 12.5, 9 13, 8 11.5 C7 10, 8 7.8, 10 7.5 Z" />
         </svg>
         <span>{children}</span>
       </button>

@@ -67,6 +67,17 @@ export function getMyGroups() {
   return queryClient.fetchQuery(myGroupsQuery)
 }
 
+// Klubbarna en person är med i, som man själv får se (öppna, och privata man
+// själv är med i), för personens profil. Ligger under ['groups'], så den hämtas
+// om när man går med i eller lämnar en klubb (se changingMyGroups).
+export function memberGroupsQuery(userId) {
+  return {
+    queryKey: ['groups', 'member', String(userId)],
+    queryFn: () => apiGet(`/groups/member/${userId}`),
+    staleTime: 15 * SECOND,
+  }
+}
+
 // Klubbsidans tre listor (mina, förslag och inbjudningar) i ett anrop. Sparas
 // i minnet som mina klubbar.
 export const groupsOverviewQuery = {
@@ -97,6 +108,31 @@ export function sendGroupMessage(id, content) {
   return apiPost(`/groups/${id}/messages`, { content })
 }
 
+// Klubbens inlägg (nyheter, regler): det fastnålade först, sedan nyaste först.
+// Bara för medlemmar.
+export function getGroupPosts(id) {
+  return apiGet(`/groups/${id}/posts`)
+}
+
+export function createGroupPost(id, content) {
+  return apiPost(`/groups/${id}/posts`, { content })
+}
+
+// Bara den som skrev inlägget och klubbens ägare får radera det. Ett
+// fastnålat inlägg får bara ägaren radera.
+export function deleteGroupPost(id, postId) {
+  return apiDelete(`/groups/${id}/posts/${postId}`)
+}
+
+// Bara ägaren. Ett inlägg i taget är fastnålat, så ett annat fastnålat tas loss.
+export function pinGroupPost(id, postId) {
+  return apiPut(`/groups/${id}/posts/${postId}/pin`)
+}
+
+export function unpinGroupPost(id, postId) {
+  return apiDelete(`/groups/${id}/posts/${postId}/pin`)
+}
+
 export function createGroup(data) {
   return changingMyGroups(apiPost('/groups/', data))
 }
@@ -114,7 +150,7 @@ export function deleteGroup(id) {
   return changingMyGroups(apiDelete(`/groups/${id}`))
 }
 
-// Bjuder in kontakter (userIds). Svaret är de som blev inbjudna den här gången.
+// Bjuder in kompisar (userIds). Svaret är de som blev inbjudna den här gången.
 export function inviteToGroup(id, userIds) {
   return apiPost(`/groups/${id}/invitations`, { user_ids: userIds })
 }

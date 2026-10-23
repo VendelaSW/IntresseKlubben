@@ -47,6 +47,8 @@ class LibraryEntry:
     # Hur intresset kan utövas (slugs ur aktivitetslistan). None = inget eget
     # val, då gäller förälderns. En tom lista = uttryckligen inga.
     activities: list[str] | None = None
+    # Får intresset få nya underintressen? Falskt för plattformar (PlayStation, PC). Bibliotekets egna barn är inte nya.
+    allow_children: bool = True
 
 
 def slugify(name: str) -> str:
@@ -96,6 +98,10 @@ def parse_library(data: dict) -> list[LibraryEntry]:
                 errors.append(f"{slug!r} har aktiviteten {activity!r}, som inte finns i aktivitetslistan.")
         if activities is not None and len(set(activities)) != len(activities):
             errors.append(f"{slug!r} har samma aktivitet flera gånger.")
+        allow_children = raw.get("allow_children", True)
+        if not isinstance(allow_children, bool):
+            errors.append(f"{slug!r} har allow_children {allow_children!r}, men det ska vara true eller false.")
+            allow_children = True
         entries.append(LibraryEntry(
             slug=slug,
             name=name.strip(),
@@ -103,6 +109,7 @@ def parse_library(data: dict) -> list[LibraryEntry]:
             description=raw.get("description"),
             aliases=[a.strip() for a in raw.get("aliases", []) if a.strip()],
             activities=activities,
+            allow_children=allow_children,
         ))
 
     by_slug = {}
@@ -192,6 +199,7 @@ def sync_library(db: Session, entries: list[LibraryEntry]) -> SyncResult:
             "description": entry.description,
             "aliases": "\n".join(entry.aliases) or None,
             "activities": entry.activities,
+            "allow_children": entry.allow_children,
             "status": InterestStatus.active.value,
             "source": InterestSource.library.value,
         }

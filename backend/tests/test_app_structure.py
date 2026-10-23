@@ -77,6 +77,12 @@ PUBLIC_ENDPOINTS = {
     ("GET", "/health/db"),
     ("POST", "/users/register"),
     ("POST", "/users/login"),
+    # Länken i bekräftelsemejlet ska fungera även i en webbläsare där man inte är inloggad.
+    ("POST", "/users/verify-email"),
+    # Glömt lösenord och länkarna i lösenordsmejlen: man är inte inloggad, eller i en annan webbläsare.
+    ("POST", "/users/forgot-password"),
+    ("POST", "/users/reset-password"),
+    ("POST", "/users/confirm-password-change"),
     ("GET", "/municipalities/"),
     ("GET", "/interests/"),
 }

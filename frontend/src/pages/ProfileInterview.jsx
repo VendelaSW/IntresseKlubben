@@ -1,11 +1,15 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import AddInterest, { AddInterestError } from '../components/AddInterest'
 import FormField from '../components/FormField'
 import InterestTree, { descendantKeys, withoutDuplicates } from '../components/InterestTree'
 import TextareaWithCount from '../components/TextareaWithCount'
+import BirthDatePicker from '../components/BirthDatePicker'
+import MunicipalityPicker from '../components/MunicipalityPicker'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
+import { sealInterest, suggestInterest } from '../services/interests'
 import { GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
 
 // Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions`
@@ -146,9 +150,6 @@ function ProfileInterview() {
   const analyzedText = useRef(null)
   const nextBatchId = useRef(1)
   // "Lägg till intresse"
-  const [addText, setAddText] = useState('')
-  const [adding, setAdding] = useState(false)
-  const [addError, setAddError] = useState('')
   // Att spara profilen
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -379,7 +380,7 @@ function ProfileInterview() {
     analyzeInterests(trimmed)
       .then((data) => {
         if (analysisId.current !== id) return
-        setBatches([{ id: 0, text: trimmed, token: data.token, proposals: data.proposals }])
+        setBatches([{ id: 0, kind: 'text', text: trimmed, token: data.token, proposals: data.proposals }])
         setAnalysisStatus('done')
       })
       .catch((error) => {
@@ -408,30 +409,29 @@ function ProfileInterview() {
     setSaveError('')
   }
 
-  // Tolkar en text till ett eget tillägg: ännu en omgång med eget sigill.
-  async function handleAdd(event) {
-    event.preventDefault()
-    const text = addText.trim()
-    if (!text || adding) return
-    setAdding(true)
-    setAddError('')
-    try {
-      const data = await analyzeInterests(text)
-      // Det som redan finns bland intressena läggs inte till igen (de som tagits bort räknas inte).
-      const fresh = withoutDuplicates(data.proposals, visibleProposals)
-      if (data.proposals.length === 0) {
-        setAddError('Jag hittade inget intresse i det du skrev.')
-      } else if (fresh.length === 0) {
-        setAddError('Det intresset finns redan bland dina intressen.')
-      } else {
-        setBatches((current) => [...current, { id: nextBatchId.current++, text, token: data.token, proposals: fresh }])
-        setAddText('')
-      }
-    } catch (error) {
-      setAddError(messageOf(error))
-    } finally {
-      setAdding(false)
-    }
+  // Intressena som redan är valda (id), så att sökningen visar dem som valda.
+  const selectedIds = visibleProposals.map((p) => p.interest.id).filter((id) => id !== null)
+
+  // Ett nytt intresse med egna ord, godkänt av backend (se AddInterest): ännu en omgång med eget sigill. Det som redan finns
+  // bland intressena (de som tagits bort räknas inte) läggs inte till igen.
+  async function addNewInterest(result) {
+    const fresh = withoutDuplicates(result.proposals, visibleProposals)
+    if (fresh.length === 0) throw new AddInterestError('Det intresset finns redan bland dina intressen.')
+    setBatches((current) => [
+      ...current,
+      { id: nextBatchId.current++, kind: 'phrase', text: result.text, token: result.token, proposals: fresh },
+    ])
+  }
+
+  // Ett befintligt intresse valt ur sökningen: det får ett sigill (utan AI) och läggs som en egen omgång, eftersom
+  // intervjun bara sparar förslag med sigill.
+  async function pickExistingInterest(interest) {
+    if (selectedIds.includes(interest.id)) return
+    const result = await sealInterest(interest)
+    setBatches((current) => [
+      ...current,
+      { id: nextBatchId.current++, kind: 'pick', interestId: interest.id, token: result.token, proposals: result.proposals },
+    ])
   }
 
   // Går tillbaka till sista frågan för att ändra sin text (t.ex. när "Om mig" nekades). Intressena man valt bort och
@@ -455,7 +455,13 @@ function ProfileInterview() {
     try {
       const fresh = await Promise.all(
         batches.map(async (batch) => {
-          const data = await analyzeInterests(batch.text)
+          // Varje sorts omgång tolkas om på sitt sätt: intressetexten, ett nytt intresse med egna ord, eller ett befintligt.
+          const data =
+            batch.kind === 'phrase'
+              ? await suggestInterest(batch.text)
+              : batch.kind === 'pick'
+                ? await sealInterest({ id: batch.interestId })
+                : await analyzeInterests(batch.text)
           return { ...batch, token: data.token, proposals: data.proposals }
         }),
       )
@@ -550,8 +556,6 @@ function ProfileInterview() {
     setRemoved(new Set())
     setAnalysisStatus('idle')
     setAnalysisError('')
-    setAddText('')
-    setAddError('')
     setSaveError('')
     setExpired(false)
     setIndex(0)
@@ -576,14 +580,19 @@ function ProfileInterview() {
   ].filter(([, value]) => value)
 
   return (
-    <div className="page">
+    <div className="page interview-page">
       {/* Fast bredd, så att raden inte flyttar sig när innehållet i rutan byter (.page centrerar
-            annars en rad som bara är så bred som innehållet). */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'flex-start', width: '100%', maxWidth: 960, marginTop: '2rem' }}>
-        <div style={{ flex: '0 1 380px', width: '100%', maxWidth: 380, display: finished ? 'none' : 'block' }}>
+            annars en rad som bara är så bred som innehållet). Måtten står i index.css ("Intervjun"): på mobil
+            är Intressekompisen liten med undertexten bredvid medan frågorna ställs, så att frågan och
+            formuläret syns utan att man scrollar. */}
+      <div className="interview-layout">
+        <div
+          className={`interview-kompis${started ? ' is-asking' : ''}`}
+          style={finished ? { display: 'none' } : undefined}
+        >
           {/* Alla klipp ligger i sidan, staplade ovanpå varandra (alla är 720x720). Bara det som
               syns har full opacitet, så att byten sker utan att något laddas om eller blinkar. */}
-          <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1' }}>
+          <div className="interview-video">
             {CLIP_SOURCES.map((src) => (
               <video
                 key={src}
@@ -611,11 +620,7 @@ function ProfileInterview() {
             ))}
           </div>
           {/* Undertexter. Platsen är reserverad, så att inget under hoppar när texten byts. */}
-          <p
-            className="card-text"
-            aria-live="polite"
-            style={{ minHeight: '3.2rem', margin: '0.75rem 0 0', textAlign: 'center', fontSize: '1.2rem' }}
-          >
+          <p className={`card-text interview-caption${caption ? '' : ' is-empty'}`} aria-live="polite">
             {caption}
           </p>
           {blocked && (
@@ -625,7 +630,7 @@ function ProfileInterview() {
           )}
         </div>
 
-        <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+        <div className="interview-main">
           {!started ? (
             // Rubrik, text och knapp har samma mittlinje: allt är centrerat i kolumnen.
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
@@ -633,7 +638,7 @@ function ProfileInterview() {
               <p className="card-text" style={{ margin: '0.5rem 0 1.5rem' }}>
                 Intressekompisen ställer några frågor, en i taget.
               </p>
-              <button type="button" className="primary-button" onClick={start}>
+              <button type="button" className="primary-button interview-start" onClick={start}>
                 Starta intervjun
               </button>
             </div>
@@ -660,7 +665,7 @@ function ProfileInterview() {
               <p className="card-text" style={{ textAlign: 'center', margin: '0.5rem 0 1rem' }}>
                 Nu kan vi lättare matcha dig mot andra som delar dina intressen.
               </p>
-              <div className="card sheet content-stack" style={{ ...FIXED_CARD_SHADOW, margin: '0 auto' }}>
+              <div className="card sheet content-stack interview-summary" style={{ ...FIXED_CARD_SHADOW, margin: '0 auto' }}>
                 <p className="card-title">Det här är din profil{answers.name.trim() && `, ${answers.name.trim()}`}</p>
                 {/* Det man svarade, bara det som är ifyllt. */}
                 {profileRows.length > 0 && (
@@ -698,26 +703,9 @@ function ProfileInterview() {
                     <InterestTree proposals={visibleProposals} onRemove={removeProposal} />
                   )}
                   {analysisStatus !== 'pending' && analysisStatus !== 'failed' && (
-                    <form onSubmit={handleAdd} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-                      <input
-                        type="text"
-                        className="field-large"
-                        aria-label="Lägg till ett intresse"
-                        placeholder="Lägg till ett intresse"
-                        value={addText}
-                        onChange={(event) => setAddText(event.target.value)}
-                        maxLength={200}
-                        style={{ flex: 1, minWidth: 0 }}
-                      />
-                      <button type="submit" className="secondary-button" disabled={adding || !addText.trim()}>
-                        {adding ? 'Tolkar...' : 'Lägg till'}
-                      </button>
-                    </form>
-                  )}
-                  {addError && (
-                    <p className="form-error" style={{ marginTop: '0.5rem' }}>
-                      {addError}
-                    </p>
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <AddInterest selectedIds={selectedIds} onPickExisting={pickExistingInterest} onAddNew={addNewInterest} />
+                    </div>
                   )}
                 </div>
                 {answers.about.trim() && (
@@ -740,35 +728,43 @@ function ProfileInterview() {
                     Ändra mina svar
                   </button>
                 )}
-                {expired ? (
-                  <button type="button" className="primary-button" disabled={saving} onClick={reanalyze}>
-                    {saving ? 'Tolkar...' : 'Tolka om'}
+                {/* Huvudknappen störst, och "Börja om" liten och tätt under, så att
+                    man inte trycker på den av misstag. */}
+                <div className="interview-save-buttons">
+                  {expired ? (
+                    <button type="button" className="primary-button button-large" disabled={saving} onClick={reanalyze}>
+                      {saving ? 'Tolkar...' : 'Tolka om'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="primary-button button-large"
+                      disabled={saving || analysisStatus === 'pending' || visibleProposals.length === 0}
+                      onClick={handleSave}
+                    >
+                      {saving ? 'Sparar...' : 'Skapa min profil'}
+                    </button>
+                  )}
+                  <button type="button" className="secondary-button button-small" disabled={saving} onClick={restart}>
+                    Börja om
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="primary-button"
-                    disabled={saving || analysisStatus === 'pending' || visibleProposals.length === 0}
-                    onClick={handleSave}
-                  >
-                    {saving ? 'Sparar...' : 'Skapa min profil'}
-                  </button>
-                )}
-                <button type="button" className="secondary-button" disabled={saving} onClick={restart}>
-                  Börja om
-                </button>
+                </div>
               </div>
             </>
           ) : (
             <>
               {/* pre-line gör att \n i frågan blir en radbrytning. */}
-              <h1 className="app-title" style={{ textAlign: 'left', whiteSpace: 'pre-line' }}>
-                {step.question}
-              </h1>
-              <p className="hint-text" style={{ textAlign: 'left', margin: '0.5rem 0' }}>
-                Fråga {index + 1} av {STEPS.length}
-              </p>
-              <div className="card sheet" style={FIXED_CARD_SHADOW}>
+              {/* På mobil står framsteget ovanför frågan, med en stapel (se .interview-heading i index.css). */}
+              <div className="interview-heading">
+                <h1 className="app-title interview-question">{step.question}</h1>
+                <p className="hint-text interview-progress">
+                  Fråga {index + 1} av {STEPS.length}
+                </p>
+                <div className="interview-progress-bar" aria-hidden="true">
+                  <span style={{ width: `${((index + 1) / STEPS.length) * 100}%` }} />
+                </div>
+              </div>
+              <div className="card sheet interview-card" style={FIXED_CARD_SHADOW}>
                 <form ref={formRef} className="auth-form form-wide form-compact" onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
                   {step.id === 'namn' && (
                     <FormField id="interview-name" label="Namn">
@@ -779,6 +775,9 @@ function ProfileInterview() {
                         value={answers.name}
                         onChange={setAnswer('name')}
                         maxLength={50}
+                        autoComplete="name"
+                        autoCapitalize="words"
+                        enterKeyHint="next"
                         required
                         autoFocus
                       />
@@ -788,12 +787,10 @@ function ProfileInterview() {
                   {step.id === 'fodelse' && (
                     <div className="form-row">
                       <FormField id="interview-birth" label="Födelsedatum">
-                        <input
+                        <BirthDatePicker
                           id="interview-birth"
-                          type="date"
                           value={answers.birthDate}
-                          onChange={setAnswer('birthDate')}
-                          max={new Date().toISOString().slice(0, 10)}
+                          onChange={(birthDate) => setAnswers((current) => ({ ...current, birthDate }))}
                           required
                           autoFocus
                         />
@@ -813,21 +810,16 @@ function ProfileInterview() {
 
                   {step.id === 'plats' && (
                     <div className="form-row">
-                      <FormField id="interview-municipality" label="Stad">
-                        <select
+                      <FormField id="interview-municipality" label="Kommun">
+                        <MunicipalityPicker
                           id="interview-municipality"
+                          municipalities={municipalities}
                           value={answers.municipality}
-                          onChange={setAnswer('municipality')}
+                          onChange={(code) => setAnswers((current) => ({ ...current, municipality: code }))}
                           required
                           autoFocus
-                        >
-                          <option value="">Välj...</option>
-                          {municipalities.map((m) => (
-                            <option key={m.code} value={m.code}>
-                              {m.name}
-                            </option>
-                          ))}
-                        </select>
+                        />
+                        <p className="hint-text">Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke.</p>
                       </FormField>
                       <FormField id="interview-district" label="Stadsdel (valfritt)">
                         <input
@@ -836,6 +828,9 @@ function ProfileInterview() {
                           value={answers.district}
                           onChange={setAnswer('district')}
                           maxLength={50}
+                          autoComplete="off"
+                          autoCapitalize="words"
+                          enterKeyHint="next"
                         />
                       </FormField>
                     </div>
@@ -872,11 +867,11 @@ function ProfileInterview() {
                     </FormField>
                   )}
 
-                  <div className="form-actions">
-                    <button type="button" className="button-secondary" disabled={index === 0} onClick={goBack}>
+                  <div className="form-actions interview-actions">
+                    <button type="button" className="button-secondary interview-back" disabled={index === 0} onClick={goBack}>
                       Tillbaka
                     </button>
-                    <button type="submit" disabled={checkingAbout}>
+                    <button type="submit" className="interview-next" disabled={checkingAbout}>
                       {checkingAbout ? 'Kontrollerar...' : isLast ? 'Klar' : 'Nästa'}
                     </button>
                   </div>
