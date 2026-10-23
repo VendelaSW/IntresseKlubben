@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useTabParam } from '../../hooks/useTabParam'
 import CreateGroupForm from './CreateGroupForm'
+import CreateOffer from '../CreateOffer'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
 import GroupChat from './GroupChat'
@@ -65,6 +66,10 @@ function GroupsPanel() {
   // (/klubbar?klubb=ID, /klubbar?skapa=1), så att Tillbaka och webbläsarens bakåt
   // går till sidan innan, och andra sidor kan öppna en klubb direkt.
   const view = searchParams.get('skapa') ? 'create' : Number(searchParams.get('klubb')) || 'list'
+  // Från "Det finns inga klubbar för … Vill du skapa en?" (SCRUM-221): formuläret med
+  // det man sökte på ifyllt, som namn (?namn=…) och intresse (?intresse=ID).
+  const createInterestId = Number(searchParams.get('intresse')) || null
+  const createName = searchParams.get('namn') ?? ''
   // `replace` byter ut sidan i historiken i stället för att lägga till en, t.ex.
   // efter att man har raderat klubben man tittade på.
   function setView(next, { replace = false } = {}) {
@@ -187,6 +192,24 @@ function GroupsPanel() {
     }
   }
 
+  // Formuläret för en ny klubb med det man sökte på ifyllt: sökordet som namn, och
+  // intresset man filtrerat på, eller annars ett intresse som heter som sökordet
+  // eller börjar med det som ett eget ord ("stickning" ger "Stickning och virkning").
+  function openCreateFromSearch() {
+    const q = filters.q.trim()
+    const word = q.toLocaleLowerCase('sv')
+    const name = (i) => i.name.toLocaleLowerCase('sv')
+    const interestId =
+      filters.interestId ||
+      (word &&
+        (interests.find((i) => name(i) === word) ?? interests.find((i) => name(i).startsWith(`${word} `)))?.id)
+    setSearchParams({
+      skapa: '1',
+      ...(q && { namn: q }),
+      ...(interestId && { intresse: String(interestId) }),
+    })
+  }
+
   function clearFilters() {
     setSearch('')
     setFilters({ ...filters, interestId: '', municipalityCode: '', q: '' })
@@ -275,6 +298,12 @@ function GroupsPanel() {
     invitations,
   }
   const filtering = filters && (filters.q || filters.interestId || filters.municipalityCode)
+  // Vad man letade efter, för "Det finns inga klubbar för … Vill du skapa en?": intresset man filtrerat på,
+  // annars sökordet. Erbjuds bara när ingen klubb alls matchar (varken bland ens egna eller under Alla, som
+  // har alla andra), så att den inte säger "inga klubbar" när det finns en på en annan flik.
+  const searchedFor =
+    filters && (interests.find((i) => i.id === Number(filters.interestId))?.name ?? filters.q.trim())
+  const offerToCreate = Boolean(searchedFor) && shown.mine.length === 0 && shown.all.length === 0
 
   // Leta upp gruppen i listorna, så att den visar senaste antal medlemmar och roll.
   const selected =
@@ -300,6 +329,8 @@ function GroupsPanel() {
               interests={interests}
               municipalities={municipalities}
               defaultMunicipality={myMunicipality}
+              initialName={createName}
+              initialInterestId={createInterestId}
               onCreated={handleCreated}
               onCancel={goBack}
             />
@@ -409,15 +440,15 @@ function GroupsPanel() {
                   emptyLabel="Alla kommuner"
                 />
               </div>
-              {shown[tab].length === 0 && filtering ? (
-                <div className="content-stack">
-                  <p className="hint-text">
-                    Inga klubbar matchar din sökning eller dina filter.
-                  </p>
-                  <button type="button" className="secondary-button" onClick={clearFilters}>
-                    Rensa filter
-                  </button>
-                </div>
+              {shown[tab].length === 0 && offerToCreate && tab !== 'invitations' ? (
+                <CreateOffer
+                  text={`Det finns inga klubbar för ${searchedFor}. Vill du skapa en?`}
+                  createLabel="Skapa klubb"
+                  onCreate={openCreateFromSearch}
+                  onClear={clearFilters}
+                />
+              ) : shown[tab].length === 0 && filtering ? (
+                <CreateOffer text="Inga klubbar matchar din sökning eller dina filter." onClear={clearFilters} />
               ) : (
                 <GroupList
                   groups={shown[tab]}

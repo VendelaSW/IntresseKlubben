@@ -38,6 +38,8 @@ from app.schemas.event import (
 )
 from app.schemas.notification import EventCancel
 
+from app.services.text_moderation import check_fields
+
 # Låst tills profilen är klar (se require_profile).
 router = APIRouter(prefix="/events", tags=["events"], dependencies=[Depends(require_profile)])
 
@@ -63,6 +65,7 @@ def _to_response(event: Event, user_id: int) -> EventOut:
         description=event.description,
         interest_id=event.interest_id,
         interest_name=event.interest.name,
+        interest_area=event.interest.area,
         starts_at=event.starts_at,
         ends_at=event.ends_at,
         place_name=event.place_name,
@@ -138,6 +141,14 @@ def create(
         # avvisas hellre än rättas tyst, så att felet syns direkt.
         if group.visibility == GroupVisibility.private and data.visibility == EventVisibility.open:
             raise HTTPException(status_code=422, detail=msg.EVENT_IN_PRIVATE_GROUP_CANNOT_BE_OPEN)
+    check_fields(
+        ai=True,
+        ai_text=f"{data.title}\n{data.description}",
+        title=data.title,
+        description=data.description,
+        place_name=data.place_name,
+        address=data.address,
+    )
     event = create_event(db, current_user.id, data)
     return _to_response(event, current_user.id)
 
@@ -162,6 +173,17 @@ def edit_event(
     event = _own_event_or_error(db, event_id, current_user.id)
     if data.interest_id is not None and get_active_interest(db, data.interest_id) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
+    changes = data.model_dump(exclude_unset=True)
+    public_text = [changes[field] for field in ("title", "description") if field in changes]
+    check_fields(
+        ai=True,
+        ai_text="\n".join(public_text),
+        **{
+            field: changes[field]
+            for field in ("title", "description", "place_name", "address")
+            if field in changes
+        },
+    )
     # Tid och plats före ändringen, för att se om deltagarna ska få en notis.
     time_before, place_before = _time_of(event), _place_of(event)
     try:

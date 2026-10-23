@@ -3,7 +3,6 @@ from datetime import datetime
 from pydantic import BaseModel, field_validator, model_validator
 
 from app.core import error_messages as msg
-from app.core.profanity import validate_clean_text
 from app.models.group import GroupRole, GroupVisibility
 from app.schemas.position import check_position
 
@@ -37,14 +36,12 @@ class GroupCreate(BaseModel):
     @classmethod
     def name_not_empty_or_too_long(cls, v: str) -> str:
         value = _required_text(v, "Namn", 30, "Namn får inte vara tomt")
-        validate_clean_text(value, "Gruppnamnet")
         return value
 
     @field_validator("description")
     @classmethod
     def description_not_empty_or_too_long(cls, v: str) -> str:
         value = _required_text(v, "Beskrivning", 200, "Beskrivning får inte vara tom")
-        validate_clean_text(value, "Beskrivningen")
         return value
 
     @field_validator("meeting_info")
@@ -55,7 +52,6 @@ class GroupCreate(BaseModel):
             return None
         # Tom text hanteras ovan, så empty_message används aldrig här.
         value = _required_text(v, "När och var ni träffas", 100, "")
-        validate_clean_text(value, "Mötesinformationen")
         return value
 
     @field_validator("place_name", "address")
@@ -67,7 +63,6 @@ class GroupCreate(BaseModel):
         value = v.strip()
         if len(value) > 100:
             raise ValueError(msg.GROUP_PLACE_NAME_TOO_LONG if info.field_name == "place_name" else msg.GROUP_ADDRESS_TOO_LONG)
-        validate_clean_text(value, "Platsnamnet" if info.field_name == "place_name" else "Adressen")
         return value
 
     @model_validator(mode="after")
@@ -87,6 +82,7 @@ class GroupResponse(BaseModel):
     longitude: float | None
     interest_id: int
     interest_name: str
+    interest_area: str  # huvudområdet, som taggens färg följer (se Interest.area)
     municipality_code: str
     municipality_name: str
     visibility: GroupVisibility

@@ -1,37 +1,42 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from './Avatar'
+import { groupInterests } from '../utils/interestGroups'
 import InterestTags from './InterestTags'
 
-// Högst så många intressen syns på kortet (på en rad). Fler fälls ut med ⋯.
-const MAX_TAGS = 3
+// Så många rader intressetaggar syns på kortet. Fler fälls ut med ⋯.
+const MAX_ROWS = 2
 
-// Intressena på ett personkort: på en rad, de gemensamma först, och bara så
-// många som får plats hela (högst MAX_TAGS). Har personen fler visar en
-// ⋯-tagg alla i en ruta som fälls ut över kortet, så att man slipper gå in på
-// profilen. Rutan stängs med ⋯ igen, ett klick utanför eller Esc.
+// Intressena på ett personkort: de gemensamma först, och så många som får plats
+// hela på MAX_ROWS rader. Har personen fler visar en ⋯-tagg alla i en ruta som
+// fälls ut över kortet, så att man slipper gå in på profilen. Rutan stängs med
+// ⋯ igen, ett klick utanför eller Esc.
 function CardInterests({ interests, sharedIds }) {
   const [open, setOpen] = useState(false)
-  // Hur många taggar som får plats på raden. Räknas ner tills raden inte är
-  // för bred, och börjar om när kortet ändrar bredd.
-  const [count, setCount] = useState(MAX_TAGS)
+  // Hur många taggar som får plats. Räknas ner tills de (med ⋯) ryms på
+  // MAX_ROWS rader, och börjar om med alla när kortet ändrar bredd.
+  const [count, setCount] = useState(Infinity)
   const boxRef = useRef(null)
   const rowRef = useRef(null)
   const panelId = useId()
-  const isShared = (interest) => sharedIds?.has(interest.id) ?? false
-  const ordered = [...interests.filter(isShared), ...interests.filter((interest) => !isShared(interest))]
+  const groups = groupInterests(interests)
+  const isShared = (group) => [group.key, ...group.subs.map((sub) => sub.key)].some((id) => sharedIds?.has(id))
+  const ordered = [...groups.filter(isShared), ...groups.filter((group) => !isShared(group))]
 
   useLayoutEffect(() => {
     const row = rowRef.current
-    if (count > 1 && row && row.scrollWidth > row.clientWidth + 1) setCount(count - 1)
-  }, [count, interests])
+    if (!row) return
+    const rows = new Set([...row.children].map((item) => item.offsetTop)).size
+    const shown = Math.min(count, ordered.length)
+    if (shown > 1 && (rows > MAX_ROWS || row.scrollWidth > row.clientWidth + 1)) setCount(shown - 1)
+  }, [count, interests, ordered.length])
 
   useEffect(() => {
     let width = boxRef.current?.offsetWidth
     const observer = new ResizeObserver(([entry]) => {
       if (entry.contentRect.width === width) return
       width = entry.contentRect.width
-      setCount(MAX_TAGS)
+      setCount(Infinity)
     })
     observer.observe(boxRef.current)
     return () => observer.disconnect()
@@ -52,14 +57,14 @@ function CardInterests({ interests, sharedIds }) {
 
   return (
     <div className={`person-card-interests${open ? ' is-open' : ''}${count === 1 ? ' is-tight' : ''}`} ref={boxRef}>
-      <InterestTags listRef={rowRef} interests={ordered.slice(0, count)} highlight={sharedIds}>
+      <InterestTags listRef={rowRef} groups={ordered.slice(0, count)} highlight={sharedIds}>
         {ordered.length > count && (
           <button
             type="button"
-            className="tag person-card-more"
+            className="interest-tag interest-tag-more"
             aria-expanded={open}
             aria-controls={panelId}
-            aria-label={open ? 'Dölj alla intressen' : `Visa alla ${ordered.length} intressen`}
+            aria-label={open ? 'Dölj alla intressen' : `Visa alla ${interests.length} intressen`}
             onClick={() => setOpen(!open)}
           >
             ⋯
@@ -68,7 +73,7 @@ function CardInterests({ interests, sharedIds }) {
       </InterestTags>
       {open && (
         <div id={panelId} className="person-card-interests-all">
-          <InterestTags interests={ordered} highlight={sharedIds} />
+          <InterestTags groups={ordered} highlight={sharedIds} />
         </div>
       )}
     </div>

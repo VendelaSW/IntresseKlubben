@@ -6,6 +6,7 @@ import { useTabParam } from '../../hooks/useTabParam'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
+import CreateOffer from '../CreateOffer'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
 import { contactsQuery } from '../../services/contacts'
@@ -25,28 +26,7 @@ const TABS = [
 const EMPTY_TEXT = {
   mine: 'Du har inga events ännu.',
   invitations: 'Du har inga inbjudningar just nu.',
-  suggested: 'Inga events att föreslå just nu.',
-}
-
-// En tom lista som erbjuder att skapa ett event: "Inga events för
-// Brädspel. Skapa ett?" eller "Inga events att föreslå just nu. Skapa ett?".
-// `onClear` (valfri) ger också "Rensa filter".
-function CreateOffer({ text, onCreate, onClear }) {
-  return (
-    <div className="content-stack">
-      <p className="hint-text">{text} Skapa ett?</p>
-      <div className="form-actions">
-        <button type="button" className="primary-button" onClick={onCreate}>
-          Skapa event
-        </button>
-        {onClear && (
-          <button type="button" className="secondary-button" onClick={onClear}>
-            Rensa filter
-          </button>
-        )}
-      </div>
-    </div>
-  )
+  suggested: 'Det finns inga events att föreslå just nu.',
 }
 
 // Delar upp alla events man får se i flikarna:
@@ -87,7 +67,7 @@ function EventsPanel() {
   // till sidan innan, och andra sidor kan öppna en vy direkt. En klubb kan stå med
   // (?skapa=1&klubb=ID eller ?event=ID&klubb=ID): då är klubben förvald i formuläret,
   // och det är dit Tillbaka går om sidan öppnades via en länk. Ett intresse kan stå
-  // med när man skapar (?skapa=1&intresse=ID, från "Skapa ett?"): då är det förvalt.
+  // med när man skapar (?skapa=1&intresse=ID, från "Vill du skapa ett?"): då är det förvalt.
   const view = Number(searchParams.get('event')) || (searchParams.get('skapa') ? 'create' : 'list')
   const fromGroupId = Number(searchParams.get('klubb')) || null
   const createInterestId = Number(searchParams.get('intresse')) || null
@@ -331,19 +311,19 @@ function EventsPanel() {
               </div>
               {shown[tab].length === 0 && interestName ? (
                 <CreateOffer
-                  text={`Inga events för ${interestName}.`}
+                  text={`Det finns inga events för ${interestName}. Vill du skapa ett?`}
+                  createLabel="Skapa event"
                   onCreate={() => openCreate(Number(interestFilter))}
                   onClear={clearFilters}
                 />
               ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
-                <div className="content-stack">
-                  <p className="hint-text">Inga events matchar ditt filter.</p>
-                  <button type="button" className="secondary-button" onClick={clearFilters}>
-                    Rensa filter
-                  </button>
-                </div>
+                <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
               ) : shown[tab].length === 0 && tab === 'suggested' ? (
-                <CreateOffer text={EMPTY_TEXT.suggested} onCreate={() => openCreate()} />
+                <CreateOffer
+                  text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}
+                  createLabel="Skapa event"
+                  onCreate={() => openCreate()}
+                />
               ) : (
                 <EventList
                   events={shown[tab]}

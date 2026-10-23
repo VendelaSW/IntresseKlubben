@@ -5,7 +5,9 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 // Kartan i LocationPicker, i en egen fil så att kartbiblioteket laddas först
 // när någon öppnar ett formulär med en karta. En vanlig, platt karta från
 // OpenFreeMap (samma kartdata som den stora kartan, men utan skissen).
-// Klick på kartan flyttar nålen dit, och nålen går att dra.
+// Klick på kartan flyttar nålen dit, och nålen går att dra. Medan den dras får
+// `onDrag` positionen hela tiden (så att adressen kan följa med), och när man
+// släpper får `onChange` den nya positionen.
 //
 // Utan nål visas `kommunCode`:s kommun (t.ex. klubbens eller ens egen), annars
 // hela Sverige. Kommunens yta kommer från den stora kartans data, som laddas
@@ -18,12 +20,14 @@ const SWEDEN_BOUNDS = [
   [24.5, 69.3],
 ]
 
-function LocationPickerMap({ value, onChange, kommunCode }) {
+function LocationPickerMap({ value, onChange, onDrag, kommunCode }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
+  const onDragRef = useRef(onDrag)
+  onDragRef.current = onDrag
 
   useEffect(() => {
     const map = new MapLibreMap({
@@ -40,6 +44,10 @@ function LocationPickerMap({ value, onChange, kommunCode }) {
       onChangeRef.current({ latitude: round(event.lngLat.lat), longitude: round(event.lngLat.lng) })
     })
     const marker = new Marker({ color: '#d0352f', draggable: true })
+    marker.on('drag', () => {
+      const { lng, lat } = marker.getLngLat()
+      onDragRef.current?.({ latitude: round(lat), longitude: round(lng) })
+    })
     marker.on('dragend', () => {
       const { lng, lat } = marker.getLngLat()
       onChangeRef.current({ latitude: round(lat), longitude: round(lng) })

@@ -30,9 +30,6 @@ from email_validator import EmailNotValidError, validate_email
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core import error_messages as msg
-from app.core.profanity import validate_clean_text
-
-
 def normalize_email(v: str) -> str:
     """Kontrollerar och normaliserar en e-postadress. Delas av registreringen
     och PATCH /users/me, så att samma regler gäller överallt."""
@@ -49,7 +46,6 @@ def normalize_email(v: str) -> str:
 def validate_username(value: str) -> str:
     """Reglerna för ett användarnamn (utöver längden, som sätts med Field).
     Delas av registreringen och PATCH /users/me."""
-    validate_clean_text(value, "Användarnamnet")
     # Inloggningen tolkar allt med @ som en e-postadress (se UserLogin).
     if "@" in value:
         raise ValueError("Användarnamnet får inte innehålla @")

@@ -1,10 +1,10 @@
 """
-Klienter mot OpenAI: en språkmodell (get_llm), OpenAI:s modererings-API (get_moderator) och embeddings (get_embedder).
+Klienter mot OpenAI och Hugging Face, bakom utbytbara gränssnitt.
 
-Resten av backenden pratar bara med gränssnitten LLM, Moderator och Embedder, aldrig med OpenAI
-direkt. Då kan testerna byta ut dem mot fejkade versioner (tests/fakes.py, via set_clients) och
-fler delar av appen kan använda dem. Anropen görs med urllib, så att backend inte får ett nytt
-beroende. Nyckeln läses ur inställningarna och hamnar aldrig i fel, loggar eller svar.
+LLM och Moderator använder OpenAI; ToxicityClassifier använder den fristående HF-spacen via
+gradio_client, och Embedder använder OpenAI embeddings. Tester kan ersätta alla klienter via
+set_clients. OpenAI-anropen använder urllib. Nycklar läses ur inställningarna och hamnar aldrig i fel,
+loggar eller svar.
 
 Tidsgränser: backendens funktion får köra i högst 30 sekunder (maxDuration i backend/vercel.json),
 så inget anrop får överleva den. Varje anrop väntar högst PER_CALL_TIMEOUT_SECONDS, och ett
@@ -15,7 +15,11 @@ import json
 import time
 import urllib.error
 import urllib.request
+from functools import lru_cache
+from threading import Event, Lock, Thread
 from typing import Protocol
+
+from pydantic import BaseModel, Field, StrictBool, StrictStr
 
 from app.core.config import settings
 from app.models.interest_embedding import EMBEDDING_DIMENSIONS
@@ -34,7 +38,9 @@ EMBEDDING_BATCH = 256  # så många texter skickas till embeddings åt gången
 # Funktionen får köra i 30 sekunder. Ett enskilt anrop får ta högst så här länge, och ett arbete med
 # flera anrop i rad får ta högst så här länge tillsammans (se Deadline). Lämnar marginal för resten.
 PER_CALL_TIMEOUT_SECONDS = 10
+HF_TIMEOUT_SECONDS = 4
 WORK_BUDGET_SECONDS = 25
+_hf_call_slot = Lock()
 
 
 class AINotConfigured(Exception):
@@ -78,6 +84,72 @@ class Moderator(Protocol):
     def flagged(self, texts: list[str], deadline: Deadline | None = None) -> list[bool]:
         """Om varje text flaggas (hat, våld, sexuellt, självskada osv.), i samma ordning som
         `texts`. Kastar AIFailed om anropet misslyckas eller svaret inte går att använda."""
+
+
+class ToxicityResult(BaseModel):
+    flagged: StrictBool
+    translated_text: StrictStr
+    score: float = Field(ge=0, le=1, strict=True, allow_inf_nan=False)
+
+
+class ToxicityClassifier(Protocol):
+    def classify(self, text: str, deadline: Deadline | None = None) -> ToxicityResult:
+        ...
+
+
+@lru_cache(maxsize=1)
+def _get_hf_client():
+    from gradio_client import Client
+
+    if not settings.moderation_space.strip():
+        raise AINotConfigured()
+    token = settings.hf_token.strip() or None
+    return Client(
+        settings.moderation_space, token=token,
+        verbose=False, analytics_enabled=False,
+        httpx_kwargs={"timeout": HF_TIMEOUT_SECONDS},
+    )
+
+
+class HuggingFaceClassifier:
+    def classify(self, text: str, deadline: Deadline | None = None) -> ToxicityResult:
+        timeout = min(HF_TIMEOUT_SECONDS, _timeout(deadline))
+        if not _hf_call_slot.acquire(blocking=False):
+            raise AIFailed("Textkontrollen pågår redan")
+
+        completed = Event()
+        outcome: dict[str, ToxicityResult | Exception] = {}
+        call_deadline = time.monotonic() + timeout
+
+        def run_request() -> None:
+            try:
+                if time.monotonic() >= call_deadline:
+                    raise AIFailed("Textkontrollen tog för lång tid")
+                job = _get_hf_client().submit(text, api_name="/moderate")
+                remaining = call_deadline - time.monotonic()
+                if remaining <= 0:
+                    raise AIFailed("Textkontrollen tog för lång tid")
+                outcome["result"] = ToxicityResult.model_validate(job.result(timeout=remaining))
+            except Exception as error:
+                outcome["error"] = error
+            finally:
+                completed.set()
+                _hf_call_slot.release()
+
+        try:
+            Thread(target=run_request, name="hf-moderation", daemon=True).start()
+        except Exception:
+            _hf_call_slot.release()
+            raise AIFailed("Textkontrollen kunde inte startas") from None
+        if not completed.wait(max(0, call_deadline - time.monotonic())):
+            raise AIFailed("Textkontrollen tog för lång tid")
+
+        error = outcome.get("error")
+        if error is not None:
+            if isinstance(error, AINotConfigured):
+                raise error
+            raise AIFailed("Textkontrollen misslyckades") from None
+        return outcome["result"]
 
 
 class Embedder(Protocol):
@@ -138,6 +210,27 @@ class OpenAIModerator:
         return flags
 
 
+# Fejkade versioner som testerna sätter in med set_clients.
+_llm_override: LLM | None = None
+_moderator_override: Moderator | None = None
+_toxicity_override: ToxicityClassifier | None = None
+_embedder_override: Embedder | None = None
+
+
+def set_clients(
+    llm: LLM | None = None, moderator: Moderator | None = None,
+    embedder: Embedder | None = None, toxicity: ToxicityClassifier | None = None,
+) -> None:
+    """Byter ut klienterna (bara för tester). Utan argument återställs de."""
+    global _llm_override, _moderator_override, _toxicity_override, _embedder_override
+    _llm_override, _moderator_override = llm, moderator
+    _embedder_override, _toxicity_override = embedder, toxicity
+
+
+def get_toxicity_classifier() -> ToxicityClassifier:
+    return _toxicity_override if _toxicity_override is not None else HuggingFaceClassifier()
+
+
 class OpenAIEmbedder:
     def embed(self, texts: list[str], deadline: Deadline | None = None) -> list[list[float]]:
         vectors: list[list[float]] = []
@@ -153,18 +246,6 @@ class OpenAIEmbedder:
                 raise AIFailed("Oväntat svar från embeddings")
             vectors.extend(chunk)
         return vectors
-
-
-# Fejkade versioner som testerna sätter in (set_clients). Är något satt används det i stället för OpenAI.
-_llm_override: LLM | None = None
-_moderator_override: Moderator | None = None
-_embedder_override: Embedder | None = None
-
-
-def set_clients(llm: LLM | None = None, moderator: Moderator | None = None, embedder: Embedder | None = None) -> None:
-    """Byter ut klienterna (bara för tester). Utan argument återställs de."""
-    global _llm_override, _moderator_override, _embedder_override
-    _llm_override, _moderator_override, _embedder_override = llm, moderator, embedder
 
 
 def ai_configured() -> bool:

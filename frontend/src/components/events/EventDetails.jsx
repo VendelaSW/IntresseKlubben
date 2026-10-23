@@ -134,7 +134,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
       <p className="card-text">{event.description}</p>
       <div className="detail-view-section">
         <InterestTags
-          interests={[{ id: event.interest_id, name: event.interest_name }]}
+          interests={[{ id: event.interest_id, name: event.interest_name, area: event.interest_area }]}
           highlight={myInterestIds}
         />
       </div>
@@ -239,7 +239,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
             </button>
           </div>
           {cancelOpen && (
-            <Modal title="Radera eventet" onClose={() => !deleting && setCancelOpen(false)}>
+            <Modal title="Radera eventet" onClose={() => setCancelOpen(false)} locked={deleting}>
               <form className="auth-form form-compact" onSubmit={handleDelete}>
                 <p className="card-text">
                   «{event.title}» tas bort, med inbjudningar och svar. Det går inte att ångra.

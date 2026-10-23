@@ -407,6 +407,52 @@ button.info-link {
   margin-top: 0;
 }
 
+/* Samma röda stil på en knapp utanför ett formulär, t.ex. den lilla "Radera
+   konto" under Redigera profil (DeleteAccount, SCRUM-255). */
+.secondary-button.button-danger {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.secondary-button.button-danger:hover,
+.secondary-button.button-danger:focus-visible {
+  border-color: var(--color-error);
+  background: var(--color-error);
+  color: var(--color-white);
+}
+
+/* Raderingen i popupen (DeleteAccount): en liten knapp i mitten i stället för
+   hela formulärets bredd, så att den inte blir det mest framträdande på sidan. */
+.auth-form .delete-account-confirm {
+  align-self: center;
+  padding: 0.25rem 0.7rem;
+  font-size: var(--text-small);
+}
+
+/* Samma hover som Radera konto (.secondary-button.button-danger): fylld röd. */
+.auth-form .delete-account-confirm:hover:not(:disabled),
+.auth-form .delete-account-confirm:focus-visible {
+  background: var(--color-error);
+  color: var(--color-white);
+  opacity: 1;
+}
+
+/* En liten knapp som ändå är lätt att träffa på pekskärm: ytan man kan trycka på
+   är minst 48 px hög (se CONTRIBUTING, "Mobil"), men knappen ser lika liten ut. */
+@media (pointer: coarse) {
+  .touch-target {
+    position: relative;
+  }
+
+  .touch-target::after {
+    content: '';
+    position: absolute;
+    inset: 50% 0 auto;
+    min-height: 48px;
+    transform: translateY(-50%);
+  }
+}
+
 button.banner-button {
   border: none;
   cursor: pointer;
@@ -737,6 +783,239 @@ span.tag-selected:hover {
 .tag-selected:hover,
 .tag-selected:focus-visible {
   opacity: 0.85;
+}
+
+/* ---------- Intressetaggar (InterestTagGroup, InterestTags, InterestTree) ----------
+   Varje tagg har sitt huvudområdes färg (--tag-fill, se utils/interestColors.js)
+   och ser ut som kartans lappar: mörk kant, handritad form och en hård skugga.
+   Varannan tagg har den spegelvända formen, så att raden ser handritad ut. Har
+   intresset underintressen visar ▼ det, och ett tryck lägger dem i en ruta i
+   samma färg över taggarna under (inget flyttar sig). Gemensamma intressen har
+   fetstil och en bock på gul botten uppe på vänstra kanten. Egna klasser i
+   stället för .tag, så att flikar och filter inte påverkas. */
+.interest-tags {
+  --tag-ink: #3a2f25;
+  --tag-shape: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  --tag-shape-alt: 225px 12px 255px 12px / 12px 255px 12px 225px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.interest-tags-center {
+  justify-content: center;
+}
+
+.interest-tag-group {
+  position: relative;
+}
+
+.interest-tag-group.is-open {
+  z-index: 5;
+}
+
+.interest-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  min-height: 1.75rem;
+  padding: 0.15rem 0.65rem;
+  border: 1.5px solid var(--tag-ink);
+  border-radius: var(--tag-shape);
+  background: var(--tag-fill, var(--color-white));
+  box-shadow: 2px 2px 0 var(--tag-ink);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.interest-tags > li:nth-child(even) > .interest-tag,
+.interest-tag-panel > li:nth-child(even) > .interest-tag {
+  border-radius: var(--tag-shape-alt);
+}
+
+/* Taggen med underintressen är en knapp över hela taggen. Den trycks ner vid
+   hovring och när rutan är öppen, som kartans lappar. */
+.interest-tag-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.interest-tag:has(.interest-tag-toggle) {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.interest-tag:has(.interest-tag-toggle:hover),
+.interest-tag-group.is-open > .interest-tag {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.interest-tag-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+/* Den skissade pilen (DrawnArrow): kontur och skraffering i textens färg, som
+   blyerts. Lika stor på taggarna och under Utforska. */
+.drawn-arrow {
+  flex-shrink: 0;
+  width: 0.85em;
+  height: 0.72em;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  rotate: -4deg;
+}
+
+.drawn-arrow-hatch {
+  stroke-width: 0.7;
+  opacity: 0.85;
+}
+
+/* Pilarna lutar lite olika på taggarna bredvid varandra, som om de ritats en
+   och en. Fem vinklar som går runt, efter taggens plats i raden. */
+.interest-tags > li:nth-child(5n + 1) .drawn-arrow {
+  rotate: -7deg;
+}
+
+.interest-tags > li:nth-child(5n + 2) .drawn-arrow {
+  rotate: 4deg;
+}
+
+.interest-tags > li:nth-child(5n + 3) .drawn-arrow {
+  rotate: -2deg;
+}
+
+.interest-tags > li:nth-child(5n + 4) .drawn-arrow {
+  rotate: 8deg;
+}
+
+.interest-tags > li:nth-child(5n) .drawn-arrow {
+  rotate: -5deg;
+}
+
+.interest-tag-arrow {
+  transition: transform 0.15s ease;
+}
+
+.interest-tag-group.is-open .interest-tag-arrow {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interest-tag,
+  .interest-tag-arrow {
+    transition: none;
+  }
+}
+
+.interest-tag-remove {
+  padding: 0 0 0 0.1rem;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.interest-tag-remove:hover,
+.interest-tag-remove:focus-visible {
+  opacity: 1;
+}
+
+.interest-tag.is-shared {
+  font-weight: 700;
+}
+
+.interest-tag.is-shared::after {
+  content: "";
+  position: absolute;
+  top: -0.5rem;
+  left: -0.5rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 1.5px solid var(--tag-ink);
+  border-radius: 50%;
+  background: var(--color-accent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b1d10' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 13c2 1.5 3.5 3.5 5 6 3-7 6.5-11 11-14'/%3E%3C/svg%3E")
+    center / 0.7rem no-repeat;
+  rotate: -8deg;
+}
+
+/* Medan en ruta är öppen döljs bockarna på taggarna bakom den, så att de inte
+   sticker upp ovanför rutan. */
+.interest-tags:has(.is-open) > li:not(.is-open) > .interest-tag.is-shared::after {
+  visibility: hidden;
+}
+
+/* Rutan med underintressen: taggens färg, mörk kant och lite snett, som en lapp. */
+.interest-tag-panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.4rem;
+  width: max-content;
+  max-width: min(16rem, 80vw);
+  margin: 0;
+  padding: 0.75rem 0.7rem 0.65rem;
+  list-style: none;
+  background: var(--tag-fill, var(--color-white));
+  border: 1.5px solid var(--tag-ink);
+  border-radius: var(--tag-shape-alt);
+  box-shadow: 3px 3px 0 var(--tag-ink);
+  rotate: -0.6deg;
+}
+
+.interest-tag-sub {
+  min-height: 1.5rem;
+  padding: 0.1rem 0.5rem;
+  background: var(--tag-sub, var(--color-white));
+  font-size: 0.7rem;
+}
+
+/* ⋯ på personkortet, som visar alla intressen. */
+.interest-tag-more {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.interest-tag-more:hover,
+.interest-tag-more:focus-visible {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+/* Rubriken "Dina intressen" med Redigera/Klar till höger. */
+.explorer-heading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 /* ---------- Demo-flödet (/demo) ---------- */
@@ -1282,27 +1561,37 @@ span.tag-selected:hover {
   margin-bottom: 0;
 }
 
-/* Intressena på personkortet (se CardInterests i PersonCard): högst tre på en
-   rad, och bara så många som får plats hela. Raden bryts aldrig. Får inte ens
-   ett namn plats (is-tight) kortas det med "…". */
+/* Intressena på personkortet (se CardInterests i PersonCard): så många som
+   får plats hela på två rader, resten bakom ⋯. Får inte ens ett namn plats
+   (is-tight) står det ensamt på raden och kortas med "…". */
 .person-card-interests {
   position: relative;
 }
 
-.person-card-interests > .tags {
+/* Plats för två rader alltid (luften för bockarna, två taggar på 1.75rem och
+   radavståndet), så att alla kort är lika stora och knapparna står på samma
+   höjd. Med en rad ligger den där den första av två rader ligger. */
+.person-card-interests > .interest-tags {
+  /* Luft för bockarna, som sticker upp ovanför taggarna. */
+  padding: 0.45rem 0 0 0.45rem;
+  min-height: calc(0.45rem + 2 * 1.75rem + 0.6rem);
+  align-content: flex-start;
+}
+
+.person-card-interests.is-tight > .interest-tags {
   flex-wrap: nowrap;
 }
 
-.person-card-interests > .tags > li {
+.person-card-interests > .interest-tags > li {
   flex-shrink: 0;
 }
 
-.person-card-interests.is-tight > .tags > li:first-child {
+.person-card-interests.is-tight > .interest-tags > li:first-child {
   flex-shrink: 1;
   min-width: 0;
 }
 
-.person-card-interests.is-tight > .tags .tag-static {
+.person-card-interests.is-tight > .interest-tags > li:first-child .interest-tag-name {
   display: block;
   max-width: 100%;
   overflow: hidden;
@@ -1339,14 +1628,15 @@ span.tag-selected:hover {
   margin-top: auto;
 }
 
-.person-card > .person-card-interests + .card-actions {
-  margin-top: 0;
+/* Med två rader taggar är luften ovanför (från staden, eller raden "Ni har …
+   gemensamma intressen") lika stor som luften under, ner till knapparna.
+   Padding ovanför, eftersom marginalen (auto) trycker ner raden. */
+.person-card > .person-card-interests {
+  padding-top: 0.4rem;
 }
 
-/* Utan raden om gemensamma intressen kommer intressena direkt efter staden:
-   lite extra luft där (padding, eftersom marginalen ovan trycker ner raden). */
-.person-card-link + .person-card-interests {
-  padding-top: 0.5rem;
+.person-card > .person-card-interests + .card-actions {
+  margin-top: 0.6rem;
 }
 
 /* Knapparna på personkorten: den första mot vänsterkanten och den andra mot
@@ -1587,6 +1877,13 @@ span.tag-selected:hover {
   align-items: center;
   gap: 2rem;
   text-align: center;
+}
+
+/* "Det finns inga klubbar för … Vill du skapa en?" (CreateOffer): en bit ner från
+   filtren, och texten nära knapparna den hör ihop med. */
+.create-offer {
+  margin-top: 1.5rem;
+  gap: 1rem;
 }
 
 /* "← Tillbaka" (components/BackButton.jsx) överst på en sida eller vy,
@@ -3032,6 +3329,41 @@ button.board-note:focus-visible {
   margin-right: -0.25em;
 }
 
+/* Ort och medlemmar (klubbar) eller tid och plats (events) längst ner i den
+   klickbara delen, precis ovanför intresset, så att de och taggen ligger på
+   samma ställe på alla kort hur lång titeln och beskrivningen än är. Luften
+   hamnar ovanför, under beskrivningen. Varje rad kortas med "…" i stället för
+   att brytas: en rad på klubbar, två (tid, och plats under) på events. */
+.list-card-link {
+  flex: 1;
+}
+
+.list-card-link .list-card-meta {
+  order: 1;
+  margin-top: auto;
+  width: 100%;
+}
+
+/* Radhöjden är lite större än titelns (1.1), så att g, j och p inte klipps
+   där raden kortas av (overflow: hidden). */
+.list-card-link .list-card-meta {
+  line-height: 1.3;
+}
+
+.list-card-meta,
+.list-card-meta > span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Lika hög knapprad på alla kort ("Gå med" är lägre än märkena), så att
+   taggen ovanför står på samma höjd. */
+.list-card > .card-actions {
+  min-height: 2.2rem;
+}
+
 /* Bara början av beskrivningen på kortet; hela syns i postens egen vy. */
 .list-card-description {
   display: -webkit-box;
@@ -3323,6 +3655,12 @@ button.board-note:focus-visible {
   min-height: 0;
 }
 
+/* Bara listan krymper och rullar när popupen blir för hög; resten (rubrik,
+   flikar, knappar) behåller sin höjd i stället för att klippas. */
+.modal-content > :not(.modal-scroll) {
+  flex-shrink: 0;
+}
+
 /* En rad som hela går att klicka på för att bocka i (kryssruta först). */
 label.person-list-item {
   cursor: pointer;
@@ -3409,12 +3747,6 @@ label.person-list-item {
   border-radius: 4px;
 }
 
-/* Det öppna området ligger i listan med kategorier, direkt under raden med den
-   man tryckte på, och tar hela bredden (kategorierna efter hamnar under). */
-.explorer .explorer-panel {
-  flex-basis: 100%;
-}
-
 .explorer .explorer-rows {
   margin: 0;
   padding: 0;
@@ -3440,33 +3772,6 @@ label.person-list-item {
   min-height: 44px;
   justify-content: center;
   font-size: var(--text-body);
-}
-
-/* Ett intresse med underintressen: klicka för att gå ner en nivå. */
-.explorer .explorer-drill {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 44px;
-  padding: 0 0.25rem;
-  border: none;
-  border-radius: 4px;
-  background: none;
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: var(--text-body);
-  text-transform: none;
-  letter-spacing: normal;
-  text-align: left;
-  cursor: pointer;
-}
-
-.explorer .explorer-drill:hover,
-.explorer .explorer-drill:focus-visible {
-  background: var(--color-bg);
-  outline: none;
-  opacity: 1;
 }
 
 /* + / ✓: lägg till eller ta bort. Gul när det är valt, som de valda taggarna. */
@@ -3500,39 +3805,36 @@ label.person-list-item {
   font-weight: 700;
 }
 
-/* Huvudområdena som taggar. Det öppna får gul kant och fetstil; gult fyllt
-   betyder fortfarande "valt". */
-.explorer .tag {
-  text-transform: none;
-  letter-spacing: normal;
+/* Huvudområdena som intressetaggar i sin egen färg (.interest-tag). De trycks
+   ner vid hovring, och det öppna är nedtryckt och i fetstil. */
+.explorer .explorer-area {
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.explorer .explorer-area:hover,
+.explorer .explorer-area-open {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.explorer .explorer-area:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
 }
 
 .explorer .explorer-area-open {
-  border-color: var(--color-accent);
   font-weight: 700;
 }
 
 /* Svart trekant: nedåt när området går att öppna, uppåt när det är öppet. */
 .explorer .explorer-arrow {
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid var(--color-text);
   transition: transform 0.15s ease;
 }
 
-/* "Lägg till intressen" / "Klar" på profilen. Triangeln vänds när den är öppen,
-   som på områdestaggarna. */
-.explorer .explorer-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  align-self: flex-start;
-}
-
-.explorer .explorer-area-open .explorer-arrow,
-.explorer .explorer-toggle-open .explorer-arrow {
+.explorer .explorer-area-open .explorer-arrow {
   transform: rotate(180deg);
 }
 
@@ -3542,38 +3844,129 @@ label.person-list-item {
   }
 }
 
-/* Var man är: "Sport och träning › Löpning". */
-.explorer .explorer-crumbs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: var(--text-small);
+/* Intressebiblioteket (InterestLibrary): det öppna området i en ruta i sin
+   ljusa färg, med intressena som taggar att trycka på. */
+.library-area {
+  margin-top: 0.9rem;
+  padding: 0.9rem 0.9rem 1rem;
+  background: var(--tag-sub, var(--color-white));
+  border: 1.5px solid #3a2f25;
+  border-radius: 225px 12px 255px 12px / 12px 255px 12px 225px;
+  box-shadow: 3px 3px 0 #3a2f25;
 }
 
-.explorer .explorer-crumb {
+.library-area-title {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  line-height: 1.1;
+}
+
+/* Ett intresse att välja (PickTag): ljus nyans och + när det inte är valt,
+   områdets färg, ✓, fetstil och nedtryckt när det är valt. */
+.interest-pick {
+  background: var(--tag-sub, var(--color-white));
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.interest-pick.is-on {
+  background: var(--tag-fill, var(--color-white));
+  font-weight: 700;
+}
+
+.interest-pick.is-on,
+.interest-pick:not(.interest-pick-group):hover,
+.interest-pick-group:has(.interest-pick-toggle:hover) {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.interest-pick:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.interest-pick:disabled {
+  cursor: progress;
+}
+
+.interest-pick-mark {
+  display: inline-block;
+  width: 0.7em;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* I rutan med underintressen (som har områdets färg) är de vita tills de är valda. */
+.interest-tag-panel .interest-pick {
+  background: var(--color-white);
+}
+
+.interest-tag-panel .interest-pick.is-on {
+  background: var(--tag-sub, var(--color-white));
+}
+
+/* Ett intresse med underintressen: själva taggen väljer, och pilen (efter en
+   streckad linje) öppnar rutan med underintressena. */
+.interest-pick-group {
+  padding: 0;
+  cursor: default;
+}
+
+.interest-pick-toggle,
+.interest-pick-drill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-}
-
-.explorer .explorer-crumb button {
-  padding: 0 0 1px;
+  gap: 0.3rem;
+  min-height: 1.75rem;
   border: none;
-  border-bottom: 2px solid var(--color-accent);
-  border-radius: 0;
   background: none;
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: var(--text-small);
-  font-weight: 700;
-  text-transform: none;
-  letter-spacing: normal;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
 }
 
-.explorer .explorer-crumb-current {
-  font-weight: 700;
+.interest-pick-toggle {
+  padding: 0.15rem 0.5rem 0.15rem 0.65rem;
+}
+
+.interest-pick-drill {
+  padding: 0 0.55rem 0 0.4rem;
+  border-left: 1.5px dashed #3a2f25;
+}
+
+.interest-pick-toggle:focus-visible,
+.interest-pick-drill:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.interest-pick-toggle:disabled {
+  cursor: progress;
+}
+
+.interest-tag-group.is-open .interest-pick-drill .interest-tag-arrow {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interest-pick {
+    transition: none;
+  }
+}
+
+/* "Intressebiblioteket →" på profilen, under sökrutan. */
+.explorer .explorer-open-library {
+  align-self: flex-start;
+}
+
+/* Intressebiblioteket över hela blocket (ProfilePage, ?bibliotek=1). */
+.explorer-library {
+  width: 100%;
+  max-width: none;
 }
 
 /* Moderering (pages/ModerationPage.jsx, bara för moderatorer): ett kort per
