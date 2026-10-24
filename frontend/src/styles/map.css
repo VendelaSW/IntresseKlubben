@@ -1443,7 +1443,21 @@
 /* Bredare block för appens sidor med kort i rutnät (Brev, Personer,
    Klubbar, Events). */
 .map-pad.is-wide {
-  width: min(64rem, 100%);
+  width: min(calc(64rem + 50px), 100%);
+}
+
+/* Alla block lika stora, oavsett hur mycket som står i dem (Brev, Personer,
+   Klubbar, Events, Notiser, profilen): samma bredd och samma fasta höjd, och
+   innehållet scrollar inuti. Som ett riktigt anteckningsblock, som inte
+   ändrar storlek efter vad man skriver. På mobil fyller blocket redan skärmen
+   (se nedan). */
+.map-pad.is-wide {
+  height: min(100%, calc(46rem + 50px));
+}
+
+.map-pad.is-wide .map-pad-page {
+  flex: 1;
+  min-height: 0;
 }
 
 /* Sidan inuti blocket: appens egna sidrubriker behövs inte (blocket har sin
