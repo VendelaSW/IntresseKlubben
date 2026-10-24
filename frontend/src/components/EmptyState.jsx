@@ -6,12 +6,12 @@ import Intressekompis from './Intressekompis'
 // variant, för en del av en sida (t.ex. Skickade under Förfrågningar). Används i alla block (Brev, Personer,
 // Klubbar, Events och Notiser), så att en tom sida ser likadan ut överallt. `image` (valfri) är en annan bild på
 // kompisen i stället för den vanliga, t.ex. med glasögon på Personer eller "Ha det!" när man har loggat ut.
-function EmptyState({ text, title = 'Här var det tomt', image = null, compact = false, children }) {
+function EmptyState({ text, title = 'Här var det tomt', image = null, compact = false, className = '', children }) {
   const ref = useRef(null)
   useSteadyPlace(ref, !compact)
 
   return (
-    <div ref={ref} className={`empty-state${compact ? ' is-compact' : ''}`}>
+    <div ref={ref} className={`empty-state${compact ? ' is-compact' : ''}${className ? ` ${className}` : ''}`}>
       <div className="empty-state-kompis" aria-hidden="true">
         {image ? <img src={image} alt="" /> : <Intressekompis alt="" />}
       </div>

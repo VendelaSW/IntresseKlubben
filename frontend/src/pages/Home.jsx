@@ -35,7 +35,7 @@ function Home() {
   if (user) return <Navigate to="/hem" replace />
 
   return (
-    <div className="page" style={view === null ? undefined : { gap: '1.25rem' }}>
+    <div className="page home-page" style={view === null ? undefined : { gap: '1.25rem' }}>
       <section className="hero">
         {/* Mindre logga i inloggnings-/registreringsvyerna så att hela formuläret
             syns utan att man behöver scrolla. */}
@@ -47,7 +47,12 @@ function Home() {
         {view === null && <p className="tagline">Vi antecknar, ni träffas.</p>}
       </section>
       {loggedOut && view === null && (
-        <EmptyState image={kompisHaDet} title="Du är utloggad" text="Välkommen tillbaka när du vill!" />
+        <EmptyState
+          className="home-farewell"
+          image={kompisHaDet}
+          title="Du är utloggad"
+          text="Välkommen tillbaka när du vill!"
+        />
       )}
       {view === null && <ProblemStatement centered />}
 

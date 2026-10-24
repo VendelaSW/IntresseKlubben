@@ -209,6 +209,58 @@ h2 {
   text-align: center;
 }
 
+/* Startsidan på mobil: loggan, devisen (högst två rader), texten och
+   knapparna får plats på en skärm utan att scrolla, också med "Ha det!" efter
+   utloggning. Testlägets inloggning kommer under. */
+@media (max-width: 480px) {
+  .home-page {
+    gap: 1rem;
+    padding: 1.25rem 1rem;
+  }
+
+  .home-page .hero {
+    gap: 0.4rem;
+  }
+
+  .home-page .logo {
+    max-width: 120px;
+  }
+
+  .home-page .tagline {
+    font-size: 2.6rem;
+  }
+
+  .home-page .problem-statement {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  /* "Ha det!": kompisen bredvid lappen, som på dator, i stället för ovanför. */
+  .home-page .home-farewell {
+    flex-direction: row;
+    gap: 0.75rem;
+    margin: 0;
+  }
+
+  .home-page .home-farewell .empty-state-kompis {
+    width: 92px;
+  }
+
+  .home-page .home-farewell .empty-state-note {
+    padding: 0.8rem 0.9rem 0.7rem;
+  }
+
+  .home-page .home-farewell .empty-state-title {
+    font-size: 1.4rem;
+  }
+
+  .home-page .home-farewell .empty-state-note::after {
+    left: -9px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+  }
+}
+
 .info-link {
   display: inline-block;
   font-family: var(--font-body);
