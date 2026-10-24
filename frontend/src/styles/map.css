@@ -1271,8 +1271,18 @@
   transform: translate(3px, 3px);
 }
 
-/* Menyn: en liten lapp under profillappen, högerställd. */
+/* Menyn: en liten lapp under profillappen, högerställd. Ligger ovanpå det som
+   finns under (nivåknapparna Sverige–Kommun) i stället för i flödet: annars
+   gjorde den raden bredare, så att lapparna Brev–Events flyttade sig åt
+   vänster, och knuffade ner nivåknapparna. Högerkanten i linje med
+   nivåknapparnas, som sitter 44 px längre ut än profillappen (där
+   zoomknapparna står ovanför, se margin-right på .map-top-widgets och
+   right på .map-profile-wrap på mobil), så att menyn täcker dem helt i stället
+   för att de sticker ut vid sidan. */
 .map-profile-menu {
+  position: absolute;
+  top: 100%;
+  right: -44px;
   min-width: 10rem;
   margin: 0.6rem 0 0;
   padding: 0.3rem 0;
