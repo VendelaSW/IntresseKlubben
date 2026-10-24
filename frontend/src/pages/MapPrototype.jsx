@@ -15,6 +15,7 @@ import MapPagePad, { MAP_PAGES, widgetFor } from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
 import MapPlaceSearch from './MapPlaceSearch'
 import MapProfileWidget from './MapProfileWidget'
+import { useBadgeCounts } from '../hooks/useBadgeCounts'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
 import { getEvents } from '../services/events'
 import { searchPlaces } from '../services/geocode'
@@ -795,6 +796,10 @@ function MapPrototype() {
   // Sidan som ligger som block på kartan: 'profil' (Min profil, den egna sidan med
   // Lägg till intressen), 'brev', 'personer', 'klubbar', 'events' eller null.
   const [openPage, setOpenPage] = useState(null)
+  // Siffrorna på lapparna och olästa notiser på profillappen, i en hämtning som de delar. Räknas om när ett block
+  // öppnas eller stängs, eftersom man kan ha läst brev eller svarat på en inbjudan i det. null tills första
+  // hämtningen är klar (se useBadgeCounts).
+  const badgeCounts = useBadgeCounts({ refreshKey: openPage })
   // Att göra-läget (`calm`): kartan göms och en sida i blocket med dagens att
   // göra visas i stället (MapCalmPage). Widgetarna och blocken ligger kvar. För
   // den som vill ha en lugnare bakgrund, eller har en långsam dator. Byts med
@@ -1065,7 +1070,7 @@ function MapPrototype() {
           if (stale()) return
           if (found) {
             map.easeTo({ center: found, zoom: DISTRICT_ZOOM, duration: 1600 })
-            setLevelName(`${district.trim()}, ${kommun.name}`)
+            setLevelName(district.trim())
             return
           }
         }
@@ -1082,7 +1087,7 @@ function MapPrototype() {
       const center = match?.geometry.coordinates ?? kommun.label
       if (!center) return
       map.easeTo({ center, zoom: DISTRICT_ZOOM, duration: 1600 })
-      if (match) setLevelName(`${match.properties['name:sv'] ?? match.properties.name}, ${kommun.name}`)
+      if (match) setLevelName(match.properties['name:sv'] ?? match.properties.name)
     })
   }
 
@@ -1493,8 +1498,12 @@ function MapPrototype() {
         </div>
         <div className="map-top-right">
           <div className="map-top-widgets">
-            <MapPageWidgets openPage={openPage} onOpen={(page) => (page ? openPad(page) : setOpenPage(null))} />
-            <MapProfileWidget onOpen={openPad} />
+            <MapPageWidgets
+              openPage={openPage}
+              counts={badgeCounts}
+              onOpen={(page) => (page ? openPad(page) : setOpenPage(null))}
+            />
+            <MapProfileWidget onOpen={openPad} notifications={badgeCounts?.notifications ?? 0} />
           </div>
           <div className="map-levels" role="group" aria-label="Zooma till">
             {ZOOM_LEVELS.map(({ id, label }) => (
@@ -1502,7 +1511,8 @@ function MapPrototype() {
                 {label}
               </button>
             ))}
-            {levelName && <p className="map-level-name">{levelName}</p>}
+            {/* Bara det mest exakta namnet: "Göteborg", inte "Göteborg kommun" eller "Majorna, Göteborg kommun". */}
+            {levelName && <p className="map-level-name">{levelName.replace(/ kommun$/, '')}</p>}
           </div>
         </div>
       </div>

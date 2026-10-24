@@ -1244,7 +1244,11 @@
   }
 }
 
+/* relative: för siffran med olästa notiser, samma röda märke som på lapparna och
+   i samma hörn (i vänstra hörnet hamnade den intill Events siffra och lästes
+   ihop med den). Borta medan menyn är öppen, då står siffran vid Notiser. */
 .map-profile {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.6rem;
