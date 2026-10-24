@@ -1,3 +1,4 @@
+import EmptyState from '../EmptyState'
 import InterestTags from '../InterestTags'
 
 export function memberCountText(count) {
@@ -28,12 +29,7 @@ export function RoleBadge({ group }) {
 // `emptyAction` (valfri) är en knapp vidare under texten när listan är tom.
 function GroupList({ groups, emptyText, emptyAction, myInterestIds, busy, onSelect, onJoin, onDecline }) {
   if (groups.length === 0) {
-    return (
-      <div className="content-stack">
-        <p className="hint-text">{emptyText}</p>
-        {emptyAction}
-      </div>
-    )
+    return <EmptyState text={emptyText}>{emptyAction}</EmptyState>
   }
 
   return (

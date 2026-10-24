@@ -1,3 +1,4 @@
+import EmptyState from '../EmptyState'
 import InterestTags from '../InterestTags'
 
 const startFormat = new Intl.DateTimeFormat('sv-SE', {
@@ -35,7 +36,7 @@ export function VisibilityStamp({ event }) {
 // som GroupList). `myInterestIds` (en Set) markerar intresset om det är ett av
 // ens egna.
 function EventList({ events, emptyText, myInterestIds, onSelect }) {
-  if (events.length === 0) return <p className="hint-text">{emptyText}</p>
+  if (events.length === 0) return emptyText ? <EmptyState text={emptyText} /> : null
 
   return (
     <div className="card-grid card-grid-compact">

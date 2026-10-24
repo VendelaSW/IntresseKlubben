@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
+import EmptyState from '../components/EmptyState'
 import FilterTabs from '../components/FilterTabs'
 import PersonCard from '../components/PersonCard'
 import { useTabParam } from '../hooks/useTabParam'
@@ -45,11 +46,12 @@ function parseAge(value) {
 // Så länge "Ångra" syns efter att man tagit bort ett förslag.
 const UNDO_MS = 8000
 
+// Vad fliken är till för, när den är tom (se EmptyState).
 const EMPTY_TEXT = {
-  suggested: 'Inga fler förslag just nu. Lägg till fler intressen på din profil för fler träffar.',
-  incoming: 'Inga kompisförfrågningar att svara på just nu.',
-  outgoing: 'Inga skickade kompisförfrågningar.',
-  contacts: 'Inga kompisar än. Skicka en kompisförfrågan till någon under Förslag.',
+  suggested: 'Här föreslår vi personer som gillar samma saker som du. Lägg till fler intressen på din profil för fler träffar.',
+  incoming: 'När någon vill bli din kompis hamnar förfrågan här.',
+  outgoing: 'Kompisförfrågningar du har skickat och som väntar på svar hamnar här.',
+  contacts: 'Här samlas dina kompisar. Skicka en kompisförfrågan till någon under Förslag.',
 }
 
 function sharedCountOf(person, myInterestIds) {
@@ -378,7 +380,7 @@ function PeoplePage() {
         <>
           <h2>Inkommande</h2>
           {contactsData.incoming_requests.length === 0 ? (
-            <p className="hint-text">{EMPTY_TEXT.incoming}</p>
+            <EmptyState compact text={EMPTY_TEXT.incoming} />
           ) : (
             <div className="card-grid card-grid-compact">
               {contactsData.incoming_requests.map((request) => (
@@ -402,7 +404,7 @@ function PeoplePage() {
 
           <h2>Skickade</h2>
           {contactsData.outgoing_requests.length === 0 ? (
-            <p className="hint-text">{EMPTY_TEXT.outgoing}</p>
+            <EmptyState compact text={EMPTY_TEXT.outgoing} />
           ) : (
             <div className="card-grid card-grid-compact">
               {contactsData.outgoing_requests.map((request) => (
@@ -424,7 +426,7 @@ function PeoplePage() {
           )}
         </>
       ) : lists[tab].length === 0 ? (
-        <p className="hint-text">{EMPTY_TEXT[tab]}</p>
+        <EmptyState text={EMPTY_TEXT[tab]} />
       ) : tab === 'suggested' ? (
         // Riktiga förslag (minst ett gemensamt intresse) först, i grupper efter
         // antal. Övriga visas under en egen rubrik, så att det inte ser ut som

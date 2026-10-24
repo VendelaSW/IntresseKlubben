@@ -7,6 +7,7 @@ import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
 import CreateOffer from '../CreateOffer'
+import EmptyState from '../EmptyState'
 import FilterTabs from '../FilterTabs'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
@@ -24,9 +25,10 @@ const TABS = [
   { id: 'suggested', label: 'Förslag' },
 ]
 
+// Vad fliken är till för, när den är tom (se EmptyState).
 const EMPTY_TEXT = {
-  mine: 'Du har inga events ännu.',
-  invitations: 'Du har inga inbjudningar just nu.',
+  mine: 'Här samlas events du ordnar eller ska gå på. Hitta något under Förslag, eller skapa ett eget.',
+  invitations: 'När någon bjuder in dig till ett event hamnar inbjudan här, så att du kan svara.',
   suggested: 'Det finns inga events att föreslå just nu.',
 }
 
@@ -315,11 +317,12 @@ function EventsPanel() {
               ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
                 <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
               ) : shown[tab].length === 0 && tab === 'suggested' ? (
-                <CreateOffer
-                  text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}
-                  createLabel="Skapa event"
-                  onCreate={() => openCreate()}
-                />
+                // Inga förslag alls: Intressekompisen erbjuder att skapa ett (SCRUM-221), som de andra tomma flikarna.
+                <EmptyState text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}>
+                  <button type="button" className="primary-button" onClick={() => openCreate()}>
+                    Skapa event
+                  </button>
+                </EmptyState>
               ) : (
                 <EventList
                   events={shown[tab]}

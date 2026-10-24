@@ -41,11 +41,12 @@ const TABS = [
 // Flikarna som visar antalet.
 const COUNTED_TABS = new Set(['suggested', 'invitations'])
 
+// Vad fliken är till för, när den är tom (se EmptyState).
 const EMPTY_TEXT = {
-  mine: 'Du är inte med i någon klubb än.',
-  suggested: 'Inga förslag just nu. Lägg till fler intressen på din profil för att få fler.',
-  all: 'Inga klubbar hittades.',
-  invitations: 'Du har inga inbjudningar just nu.',
+  mine: 'Här samlas klubbarna du är med i. Hitta en klubb för något du gillar under Alla, eller starta en egen.',
+  suggested: 'Här föreslår vi klubbar för dina intressen. Lägg till fler intressen på din profil för att få fler förslag.',
+  all: 'Här finns alla klubbar, men det finns inga än. Starta den första!',
+  invitations: 'När någon bjuder in dig till en klubb hamnar inbjudan här.',
 }
 
 // "Alla" hämtas så här många åt gången, med "Visa fler" för nästa.

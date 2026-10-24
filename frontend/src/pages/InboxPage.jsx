@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import ConversationCard from '../components/ConversationCard'
+import EmptyState from '../components/EmptyState'
 import FilterTabs from '../components/FilterTabs'
 import { useTabParam } from '../hooks/useTabParam'
 import { conversationsQuery } from '../services/messages'
@@ -49,7 +50,7 @@ function InboxPage() {
       {status === 'loading' ? (
         <p className="hint-text">Laddar brev...</p>
       ) : conversations.length === 0 ? (
-        <p className="hint-text">Inga brev än.</p>
+        <EmptyState text="Här hamnar brev mellan dig och dina kompisar. Skriv till någon från deras profil under Personer." />
       ) : (
         <>
           {/* Antalet bara på Nya, det som är nytt att läsa. */}
