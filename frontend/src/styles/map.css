@@ -1873,3 +1873,135 @@
   z-index: 1;
   pointer-events: none;
 }
+
+/* ---------- TILLFÄLLIGT: blockets nya rubrik i testläget ----------
+   Bara när den är vald i testpanelen (data-pad-head="ny", se MapPad och
+   PadHead.jsx): rubriken blir en tillbaka-knapp ("← Klubbar") inne i en
+   klubb, ett event eller en profil, och skapa-knappen står i rubrikraden
+   (Events) eller flyter nere i hörnet (Klubbar). Annars är blocken som vanligt. */
+:root[data-pad-head='ny'] .map-pad-head {
+  align-items: center;
+  /* Lite luft mellan rubriken och det som kommer under (knapp, flikar eller ruta). */
+  margin-bottom: 0.9rem;
+}
+
+/* Sidans egen rubrikrad behövs inte i blocket: rubriken står i blockets rad
+   och skapa-knappen flyttas dit. */
+:root[data-pad-head='ny'] .map-pad-app-page .page-header {
+  display: none;
+}
+
+/* Sidans knappar bredvid rubriken, t.ex. "+ Skapa event". Krysset ligger kvar
+   längst till höger. */
+.map-pad-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: auto;
+}
+
+.map-pad-head-actions:empty {
+  display: none;
+}
+
+/* Mobil: rubriken och skapa-knappen tillsammans i mitten. */
+@media (max-width: 767px) {
+  .map-pad.is-wide .map-pad-head-actions {
+    margin-right: 0;
+  }
+}
+
+/* Rubriken som tillbaka-knapp, i stället för en egen Tillbaka-rad. */
+.map-pad-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.map-pad-back > span {
+  font-family: var(--font-body);
+  font-size: 0.7em;
+}
+
+.map-pad-back:hover,
+.map-pad-back:focus-visible {
+  text-decoration: underline;
+  text-decoration-color: var(--color-accent);
+  text-decoration-thickness: 3px;
+}
+
+/* Skapa-knappen i rubrikraden eller nere i hörnet: en gul lapp i samma
+   handritade stil som lapparna i kartans meny (bläckkant, ojämna hörn och en
+   hård skugga som trycks ner vid hover), med handskriven text, så att den hör
+   ihop med rubriken. */
+.map-pad .map-pad-head-actions .create-button,
+.map-pad-float .create-button {
+  min-height: 2.4rem;
+  padding: 0.1rem 0.85rem 0.1rem 0.6rem;
+  border: 1.5px solid #3a2f25;
+  border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  box-shadow: 2px 2px 0 #3a2f25;
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.map-pad .map-pad-head-actions .create-button:hover,
+.map-pad .map-pad-head-actions .create-button:focus-visible,
+.map-pad-float .create-button:hover,
+.map-pad-float .create-button:focus-visible {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.map-pad .map-pad-head-actions .create-button img,
+.map-pad-float .create-button img {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+/* Knappar som flyter nere i blockets högra hörn (PadFloatAction), ovanpå
+   innehållet, och ligger kvar där när man scrollar. Sidan får luft nertill, så
+   att knappen inte täcker det sista kortet när man har scrollat längst ner. */
+.map-pad-float {
+  position: absolute;
+  right: 3rem;
+  bottom: 2.6rem;
+  z-index: 3;
+}
+
+.map-pad-float:empty {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .map-pad-float {
+    right: 1.2rem;
+    bottom: 1.4rem;
+  }
+}
+
+.map-pad:has(.map-pad-float:not(:empty)) .map-pad-page {
+  padding-bottom: 6rem;
+}
+
+.map-pad-float .create-button {
+  min-height: 2.8rem;
+  padding-inline: 0.75rem 1rem;
+}
+
+/* TILLFÄLLIGT: Gå med och Avböj på de nya klubbkorten (testläget) lite smalare, så att båda och pilen får plats
+   på smala kort. */
+.map-pad .club-card-buttons .primary-button,
+.map-pad .club-card-buttons .secondary-button {
+  padding-inline: 0.6rem;
+}

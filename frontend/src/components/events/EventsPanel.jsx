@@ -3,10 +3,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useTabParam } from '../../hooks/useTabParam'
+import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
 import CreateOffer from '../CreateOffer'
+import { PadHeadAction } from '../PadHead'
 import EmptyState from '../EmptyState'
 import FilterTabs from '../FilterTabs'
 import EventDetails from './EventDetails'
@@ -198,13 +200,18 @@ function EventsPanel() {
   // eller passerat. Visas med en förklaring i stället för att listan dyker upp
   // utan att man förstår varför (t.ex. via en gammal länk eller kartan).
   const missing = typeof view === 'number' && !selected && eventsResult.isSuccess
+  const newPadHead = useDesignChoice('padHead') !== PRE_DEV
 
   return (
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Events</h1>
-        {view !== 'create' && (
-          <CreateButton label="Skapa event" onClick={() => openCreate()} />
+        {/* TILLFÄLLIGT: med den nya rubriken i testläget (useDesignChoice('padHead')) står knappen i blockets
+            rubrikrad, och inte i ett events vy. Annars här, som vanligt. */}
+        {view !== 'create' && !(newPadHead && (selected || missing)) && (
+          <PadHeadAction>
+            <CreateButton label="Skapa event" onClick={() => openCreate()} />
+          </PadHeadAction>
         )}
       </div>
 

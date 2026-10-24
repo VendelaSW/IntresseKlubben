@@ -44,6 +44,13 @@
   --color-white: #ffffff;
   --color-muted: #6b6b6b;
   --color-ink: #3a2f25;
+  /* TILLFÄLLIGT: mjuka bakgrundsfärger för de nya klubbkorten i testläget (se .club-card). */
+  --color-pastel-green: #e4efd8;
+  --color-pastel-peach: #fae3cc;
+  --color-pastel-blue: #dfeaf5;
+  --color-pastel-yellow: #faf0cf;
+  --color-pastel-lilac: #ebe4f4;
+  --color-pastel-rose: #f7e1e1;
   --color-success: #3b6d11;
   --color-error: #a32d2d;
   /* Brev: pappret (aningen mörkare än bakgrunden, som ett gammalt papper), dess
@@ -3656,6 +3663,112 @@ button.board-note:focus-visible {
   max-width: 300px;
 }
 
+/* Klubbar: sök och filter på en rad (GroupsPanel). Ett brett, runt sökfält
+   med förstoringsglas, och intresse, kommun och sortering som rundade knappar
+   bredvid, med en liten pil. På mobil hamnar knapparna på en egen rad under. */
+.club-filters {
+  display: flex;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.club-search {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  min-height: 2.9rem;
+  padding: 0 1.1rem;
+  border: 1.5px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-white);
+  color: var(--color-muted);
+  cursor: text;
+}
+
+.club-search:focus-within {
+  border-color: var(--color-ink);
+}
+
+.club-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+}
+
+.club-filter-pills {
+  display: flex;
+  flex: none;
+  gap: 0.5rem;
+}
+
+select.club-filter,
+.club-filter-kommun input {
+  min-height: 2.9rem;
+  padding: 0 2.1rem 0 1.1rem;
+  border: 1.5px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M3.5 2 L6.5 5 L3.5 8' fill='none' stroke='%233a2f25' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.9rem center / 0.7rem;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  appearance: none;
+  cursor: pointer;
+}
+
+select.club-filter {
+  max-width: 12rem;
+}
+
+.club-filter-kommun input {
+  width: 10.5rem;
+}
+
+select.club-filter:focus-visible,
+.club-filter-kommun input:focus-visible {
+  outline: none;
+  border-color: var(--color-ink);
+}
+
+/* Kommunlistan får plats med långa namn, fast fältet är smalt. */
+.club-filter-kommun .municipality-picker-list {
+  right: auto;
+  min-width: 14rem;
+}
+
+.club-filters .sort-menu-button {
+  width: 2.9rem;
+  height: 2.9rem;
+  border-width: 1.5px;
+  border-radius: 999px;
+}
+
+@media (max-width: 767px) {
+  .club-filters {
+    flex-direction: column;
+  }
+
+  .club-filter-pills {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  select.club-filter,
+  .club-filter-kommun input {
+    width: 100%;
+    max-width: none;
+    padding: 0 1.6rem 0 0.8rem;
+    background-position: right 0.65rem center;
+  }
+}
+
 /* Sökfältet för klubbar med sorteringsknappen bredvid, ovanför filtren. */
 .search-row {
   display: flex;
@@ -3853,6 +3966,134 @@ button.board-note:focus-visible {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* TILLFÄLLIGT, de nya klubbkorten i testläget (ClubCards i GroupList): mjuk färg i stället för vitt (en av fyra, efter
+   klubbens id), rundade hörn och en tunn kant i en mörkare ton av färgen.
+   Klubbikonen överst, och nertill ens roll eller Gå med till vänster och en
+   pil till höger. Lyfts lite vid hover, med en skugga i samma ton. */
+.card.club-card {
+  --tone: var(--color-pastel-blue);
+  position: relative;
+  /* Klubbikonen tar en rad till, så klubbkorten är lite högre än eventkorten,
+     men alla klubbkort är lika höga. */
+  min-height: 19.5rem;
+  padding: 1.2rem 1.3rem 1rem;
+  border: 1.5px solid color-mix(in srgb, var(--tone) 72%, var(--color-ink));
+  border-radius: 18px;
+  background: var(--tone);
+}
+
+.card.club-card-green {
+  --tone: var(--color-pastel-green);
+}
+
+.card.club-card-peach {
+  --tone: var(--color-pastel-peach);
+}
+
+.card.club-card-yellow {
+  --tone: var(--color-pastel-yellow);
+}
+
+.card.club-card-lilac {
+  --tone: var(--color-pastel-lilac);
+}
+
+.card.club-card-rose {
+  --tone: var(--color-pastel-rose);
+}
+
+.card.club-card.card-interactive:hover,
+.card.club-card.card-interactive:focus-within {
+  border-color: color-mix(in srgb, var(--tone) 50%, var(--color-ink));
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--tone) 65%, var(--color-ink));
+}
+
+.club-card-icon {
+  width: 30px;
+  height: 30px;
+  margin-bottom: 0.2rem;
+}
+
+.club-card-meta {
+  color: #5a5148;
+  font-size: var(--text-small);
+}
+
+.club-card .card-text {
+  color: #463d35;
+}
+
+.club-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: auto;
+}
+
+.club-card-role {
+  font-size: var(--text-small);
+  font-weight: 700;
+}
+
+.club-card-buttons {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* Öppen eller privat: en liten etikett med ett hänglås (öppet eller låst) uppe i
+   högra hörnet, lika långt från kanten som ikonen till vänster. Mjuk färg och
+   text i en mörkare ton av samma färg: grön för öppen, lila för privat. */
+.club-card-visibility {
+  position: absolute;
+  top: 1.1rem;
+  right: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem 0.15rem 0.45rem;
+  border-radius: 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.club-card-visibility svg {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.club-card-visibility.is-open {
+  background: #dcf1e0;
+  color: #22673a;
+}
+
+.club-card-visibility.is-private {
+  background: #ebe3f7;
+  color: #573b8a;
+}
+
+.club-card-open {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.club-card:hover .club-card-open {
+  background: rgba(255, 255, 255, 0.65);
 }
 
 /* Titel till vänster och ett märke (.status-pill) i högerkanten, i en posts egen
