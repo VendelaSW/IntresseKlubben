@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
+import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
 import EmptyState from '../components/EmptyState'
 import FilterTabs from '../components/FilterTabs'
 import PersonCard from '../components/PersonCard'
@@ -380,7 +381,7 @@ function PeoplePage() {
         <>
           <h2>Inkommande</h2>
           {contactsData.incoming_requests.length === 0 ? (
-            <EmptyState compact text={EMPTY_TEXT.incoming} />
+            <EmptyState compact image={kompisMedGlasogon} text={EMPTY_TEXT.incoming} />
           ) : (
             <div className="card-grid card-grid-compact">
               {contactsData.incoming_requests.map((request) => (
@@ -404,7 +405,7 @@ function PeoplePage() {
 
           <h2>Skickade</h2>
           {contactsData.outgoing_requests.length === 0 ? (
-            <EmptyState compact text={EMPTY_TEXT.outgoing} />
+            <EmptyState compact image={kompisMedGlasogon} text={EMPTY_TEXT.outgoing} />
           ) : (
             <div className="card-grid card-grid-compact">
               {contactsData.outgoing_requests.map((request) => (
@@ -426,7 +427,7 @@ function PeoplePage() {
           )}
         </>
       ) : lists[tab].length === 0 ? (
-        <EmptyState text={EMPTY_TEXT[tab]} />
+        <EmptyState image={kompisMedGlasogon} text={EMPTY_TEXT[tab]} />
       ) : tab === 'suggested' ? (
         // Riktiga förslag (minst ett gemensamt intresse) först, i grupper efter
         // antal. Övriga visas under en egen rubrik, så att det inte ser ut som

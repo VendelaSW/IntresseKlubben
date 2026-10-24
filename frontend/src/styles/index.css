@@ -3137,6 +3137,29 @@ span.tag-selected:hover {
   width: 120px;
 }
 
+/* En annan bild på kompisen (`image` i EmptyState). De bilderna har mer luft
+   runt figuren och är bredare än höga, så de får lite mer plats för att
+   kompisen ska bli lika stor som den vanliga. */
+.empty-state-kompis > img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.empty-state-kompis:has(> img) {
+  width: 170px;
+}
+
+.empty-state.is-compact .empty-state-kompis:has(> img) {
+  width: 90px;
+}
+
+@media (max-width: 480px) {
+  .empty-state-kompis:has(> img) {
+    width: 132px;
+  }
+}
+
 .empty-state-note {
   position: relative;
   max-width: 22rem;

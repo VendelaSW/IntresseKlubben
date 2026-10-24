@@ -4,15 +4,16 @@ import Intressekompis from './Intressekompis'
 // En tom lista: Intressekompisen med en handritad lapp bredvid, som en pratbubbla, där det står att det är tomt och
 // vad sidan är till för (`text`). `children` är en knapp vidare, t.ex. "Se alla klubbar". `compact` ger en mindre
 // variant, för en del av en sida (t.ex. Skickade under Förfrågningar). Används i alla block (Brev, Personer,
-// Klubbar, Events och Notiser), så att en tom sida ser likadan ut överallt.
-function EmptyState({ text, title = 'Här var det tomt', compact = false, children }) {
+// Klubbar, Events och Notiser), så att en tom sida ser likadan ut överallt. `image` (valfri) är en annan bild på
+// kompisen i stället för den vanliga, t.ex. med glasögon på Personer eller "Ha det!" när man har loggat ut.
+function EmptyState({ text, title = 'Här var det tomt', image = null, compact = false, children }) {
   const ref = useRef(null)
   useSteadyPlace(ref, !compact)
 
   return (
     <div ref={ref} className={`empty-state${compact ? ' is-compact' : ''}`}>
       <div className="empty-state-kompis" aria-hidden="true">
-        <Intressekompis alt="" />
+        {image ? <img src={image} alt="" /> : <Intressekompis alt="" />}
       </div>
       <div className="paper-note empty-state-note">
         <p className="empty-state-title">{title}</p>
