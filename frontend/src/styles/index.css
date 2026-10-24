@@ -500,13 +500,14 @@ button.banner-button {
   text-align: left;
 }
 
-.profile-header-avatar {
+/* Två klasser, så att storleken vinner över .profile-avatar längre ner. */
+.profile-header .profile-header-avatar {
   flex: none;
   width: 88px;
   height: 88px;
 }
 
-.profile-header-avatar.profile-avatar-empty {
+.profile-header .profile-header-avatar.profile-avatar-empty {
   font-size: 2.6rem;
 }
 
@@ -524,7 +525,30 @@ button.banner-button {
   font-size: var(--text-card-title);
   font-weight: 700;
   line-height: 1.05;
-  overflow-wrap: anywhere;
+  /* Långa namn bryts mellan orden, och ett ord som ändå inte får plats med
+     bindestreck, inte mitt i ("Maximilian-a"). */
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Smal skärm: mindre bild och namn, så att namnet får plats bredvid. */
+@media (max-width: 480px) {
+  .profile-header {
+    gap: 0.9rem;
+  }
+
+  .profile-header .profile-header-avatar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .profile-header .profile-header-avatar.profile-avatar-empty {
+    font-size: 2rem;
+  }
+
+  .profile-header-name {
+    font-size: 1.8rem;
+  }
 }
 
 .profile-header-facts {
