@@ -1431,6 +1431,42 @@
   width: min(64rem, 100%);
 }
 
+/* Knapparna i blocken: tre sorter, i en och samma storlek, så att det inte
+   blandas stora och små knappar på samma sida (t.ex. Spara, Avbryt, Byt
+   lösenord och Radera konto på samma rad i Redigera profil).
+   - Huvudknapp (.primary-button, ett formulärs skicka-knapp): gul.
+   - Sekundär (.secondary-button, .button-secondary, .button-danger): vit med ram.
+   - Textlänk (.text-button, .info-link): fet text med gul understrykning.
+   Gäller också .button-small i blocken. Utanför blocken (startsidan och
+   intervjun) gäller de vanliga måtten. */
+.map-pad .primary-button,
+.map-pad .secondary-button,
+.map-pad .button-secondary,
+.map-pad .button-danger,
+.map-pad .form-actions button,
+.map-pad .auth-form > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.1rem;
+  margin-top: 0;
+  padding: 0.25rem 0.85rem;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Knappraderna bryts mellan knapparna, inte inne i dem. */
+.map-pad .card-actions {
+  flex-wrap: wrap;
+}
+
+.map-pad .text-button,
+.map-pad .info-link {
+  font-size: 0.9rem;
+}
+
 /* Sidan inuti blocket: appens egna sidrubriker behövs inte (blocket har sin
    rubrik), och sidan ska inte ha egen bakgrund eller luft runt sig. */
 .map-pad-app-page .app-section {

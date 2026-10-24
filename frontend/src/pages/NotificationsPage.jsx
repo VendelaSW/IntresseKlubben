@@ -164,7 +164,7 @@ export function NotificationDetails({ notification: n, onRemove }) {
   return (
     <article className="card card-wide notification-details">
       <p className="notification-meta">
-        Från Intresseklubben · <time dateTime={n.created_at}>{formatSentAt(n.created_at)}</time>
+        Från Intresseklubben, <time dateTime={n.created_at}>{formatSentAt(n.created_at)}</time>
       </p>
       <h2 className="notification-details-title">{n.title}</h2>
       {n.body && <p className="card-text">{n.body}</p>}

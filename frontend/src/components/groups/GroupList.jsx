@@ -4,6 +4,12 @@ export function memberCountText(count) {
   return `${count} ${count === 1 ? 'medlem' : 'medlemmar'}`
 }
 
+// T.ex. "3 medlemmar i Göteborg".
+export function groupMembersText(group) {
+  const members = memberCountText(group.member_count)
+  return group.municipality_name ? `${members} i ${group.municipality_name}` : members
+}
+
 // Mörk för ägare, grön för medlem, så att de är lätta att skilja åt.
 export function RoleBadge({ group }) {
   if (!group.is_member) return null

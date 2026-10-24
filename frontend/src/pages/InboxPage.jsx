@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import ConversationCard from '../components/ConversationCard'
+import FilterTabs from '../components/FilterTabs'
 import { useTabParam } from '../hooks/useTabParam'
 import { conversationsQuery } from '../services/messages'
 
@@ -51,20 +52,12 @@ function InboxPage() {
         <p className="hint-text">Inga brev än.</p>
       ) : (
         <>
-          <div className="filter-tabs" role="tablist">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.id}
-                className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-                onClick={() => setTab(t.id)}
-              >
-                {t.label} ({lists[t.id].length})
-              </button>
-            ))}
-          </div>
+          {/* Antalet bara på Nya, det som är nytt att läsa. */}
+          <FilterTabs
+            tabs={TABS.map((t) => ({ ...t, count: t.id === 'new' ? lists[t.id].length : undefined }))}
+            active={tab}
+            onChange={setTab}
+          />
 
           {lists[tab].length > 0 ? (
             <ul className="envelopes">

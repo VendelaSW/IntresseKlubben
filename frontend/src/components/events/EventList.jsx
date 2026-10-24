@@ -19,13 +19,15 @@ export function eventTimeText(event) {
   return `${startFormat.format(start)} – ${sameDay ? timeFormat.format(end) : startFormat.format(end)}`
 }
 
-export function visibilityText(event) {
-  return event.visibility === 'open' ? 'Öppet' : 'Endast inbjudna'
+// När och var, t.ex. "lör 10 okt. 13:30 – 15:00, Slottsskogen".
+export function eventWhenWhereText(event) {
+  return [eventTimeText(event), event.place_name].filter(Boolean).join(', ')
 }
 
-// Grönt för öppet, rött för endast inbjudna.
-export function visibilityPillClass(event) {
-  return `status-pill ${event.visibility === 'open' ? 'status-pill-success' : 'status-pill-error'}`
+// Vem eventet är till för, som en stämpel: grön för öppet, mörk för endast inbjudna.
+export function VisibilityStamp({ event }) {
+  const open = event.visibility === 'open'
+  return <span className={`stamp${open ? ' stamp-success' : ''}`}>{open ? 'Öppet för alla' : 'Endast inbjudna'}</span>
 }
 
 // Ett kort per event, i samma rutnät som klubbkorten. Klick på kortet öppnar
@@ -54,7 +56,7 @@ function EventList({ events, emptyText, myInterestIds, onSelect }) {
           />
           <div className="card-actions">
             {event.is_owner && <span className="status-pill status-pill-owner">Skapare</span>}
-            <span className={visibilityPillClass(event)}>{visibilityText(event)}</span>
+            <VisibilityStamp event={event} />
           </div>
         </article>
       ))}

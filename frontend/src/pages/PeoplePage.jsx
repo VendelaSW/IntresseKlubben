@@ -2,13 +2,16 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
+import FilterTabs from '../components/FilterTabs'
 import PersonCard from '../components/PersonCard'
 import { useTabParam } from '../hooks/useTabParam'
 import {
+  CANCEL_REQUEST,
   answerContactRequest,
   cancelContactRequest,
   contactsQuery,
   removeContact,
+  removeContactConfirm,
   sendContactRequest,
 } from '../services/contacts'
 import { getAllInterests, getMyInterests } from '../services/interests'
@@ -20,10 +23,11 @@ import {
   resetDismissedSuggestions,
   undoDismissSuggestion,
 } from '../services/people'
+import { useConfirm } from '../hooks/useConfirm'
 
 const TABS = [
   { id: 'suggested', label: 'Förslag' },
-  { id: 'incoming', label: 'Kompisförfrågningar' },
+  { id: 'incoming', label: 'Kompisförfrågningar', short: 'Förfrågningar' },
   { id: 'contacts', label: 'Kompisar' },
 ]
 
@@ -84,6 +88,7 @@ const NO_PEOPLE = []
 const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: [] }
 
 function PeoplePage() {
+  const confirm = useConfirm()
   // Intressena och kommunerna (för filtren) och ens egna intressen kommer ur minnet.
   const [filterDataFailed, setFilterDataFailed] = useState(false)
   // Fliken står i adressen, så att Tillbaka från en profil kommer hit igen (se useTabParam).
@@ -245,14 +250,14 @@ function PeoplePage() {
     }
   }
 
-  function handleRemoveContact(contact) {
+  async function handleRemoveContact(contact) {
     const name = contact.user.name ?? contact.user.username
-    if (!window.confirm(`Ta bort ${name} som kompis?`)) return
+    if (!(await confirm(removeContactConfirm(name)))) return
     runAction(() => removeContact(contact.id))
   }
 
-  function handleCancelRequest(request) {
-    if (!window.confirm('Ångrar du denna kompisförfrågan?')) return
+  async function handleCancelRequest(request) {
+    if (!(await confirm(CANCEL_REQUEST))) return
     runAction(() => cancelContactRequest(request.id))
   }
 
@@ -269,8 +274,15 @@ function PeoplePage() {
     runAction(() => undoDismissSuggestion(id))
   }
 
-  function handleResetDismissed() {
-    if (!window.confirm('Visa alla du har tagit bort från förslagen igen?')) return
+  async function handleResetDismissed() {
+    if (
+      !(await confirm({
+        title: 'Visa borttagna igen',
+        text: 'Visa alla du har tagit bort från förslagen igen?',
+        confirmLabel: 'Visa igen',
+      }))
+    )
+      return
     runAction(() => resetDismissedSuggestions())
   }
 
@@ -278,20 +290,12 @@ function PeoplePage() {
     <section className="app-section">
       <h1 className="app-title">Personer</h1>
 
-      <div className="filter-tabs" role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label} ({lists[t.id].length})
-          </button>
-        ))}
-      </div>
+      {/* Antalet bara på Förslag och Kompisförfrågningar, inte på Kompisar. */}
+      <FilterTabs
+        tabs={TABS.map((t) => ({ ...t, count: t.id === 'contacts' ? undefined : lists[t.id].length }))}
+        active={tab}
+        onChange={setTab}
+      />
 
       {tab === 'suggested' && (
         <>
@@ -357,7 +361,7 @@ function PeoplePage() {
           )}
           {dismissedCount > 0 && (
             <p className="hint-text">
-              {dismissedCount === 1 ? '1 person borttagen' : `${dismissedCount} personer borttagna`} från förslagen ·{' '}
+              {dismissedCount === 1 ? '1 person borttagen' : `${dismissedCount} personer borttagna`} från förslagen.{' '}
               <button type="button" className="text-button" disabled={busy} onClick={handleResetDismissed}>
                 Visa dem igen
               </button>
