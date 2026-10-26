@@ -50,8 +50,26 @@ export function removeContact(contactId) {
 }
 
 // Frågan innan man blockerar någon (profilen och "Blockera … också" efter en anmälan).
-export function blockQuestion(name) {
-  return `Blockera ${name}? Ni kan inte längre kontakta varandra. Du kan avblockera senare.`
+// Frågan innan man blockerar någon, i appens ruta (se hooks/useConfirm.jsx).
+export function blockConfirm(name) {
+  return {
+    title: `Blockera ${name}`,
+    text: 'Ni kan inte längre kontakta varandra. Du kan avblockera senare.',
+    confirmLabel: 'Blockera',
+    danger: true,
+  }
+}
+
+// Frågan innan man tar bort en kompis (på Personer och på personens profil).
+export function removeContactConfirm(name) {
+  return { title: 'Ta bort kompis', text: `Ta bort ${name} som kompis?`, confirmLabel: 'Ta bort', danger: true }
+}
+
+// Frågan innan man ångrar en kompisförfrågan man har skickat.
+export const CANCEL_REQUEST = {
+  title: 'Ångra kompisförfrågan',
+  text: 'Vill du ångra kompisförfrågan?',
+  confirmLabel: 'Ångra förfrågan',
 }
 
 export function blockUser(userId) {

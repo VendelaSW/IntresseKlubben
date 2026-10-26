@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
+import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import { useGoBack } from '../hooks/useCanGoBack'
 import {
@@ -112,7 +113,7 @@ function NotificationsPage() {
       )}
       {error && <p className="status-error">{error}</p>}
       {notifications.length === 0 ? (
-        <p className="hint-text">Inga notiser. Här hamnar besked från Intresseklubben, t.ex. om ett event du ska gå på ändras.</p>
+        <EmptyState text="Här hamnar besked från Intresseklubben, till exempel om ett event du ska gå på får ny tid eller ställs in." />
       ) : (
         <ul className="notification-list">
           {notifications.map((n) => (
@@ -164,7 +165,7 @@ export function NotificationDetails({ notification: n, onRemove }) {
   return (
     <article className="card card-wide notification-details">
       <p className="notification-meta">
-        Från Intresseklubben · <time dateTime={n.created_at}>{formatSentAt(n.created_at)}</time>
+        Från Intresseklubben, <time dateTime={n.created_at}>{formatSentAt(n.created_at)}</time>
       </p>
       <h2 className="notification-details-title">{n.title}</h2>
       {n.body && <p className="card-text">{n.body}</p>}

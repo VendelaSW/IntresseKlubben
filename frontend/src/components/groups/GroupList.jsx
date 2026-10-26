@@ -1,7 +1,14 @@
+import EmptyState from '../EmptyState'
 import InterestTags from '../InterestTags'
 
 export function memberCountText(count) {
   return `${count} ${count === 1 ? 'medlem' : 'medlemmar'}`
+}
+
+// T.ex. "3 medlemmar i Göteborg".
+export function groupMembersText(group) {
+  const members = memberCountText(group.member_count)
+  return group.municipality_name ? `${members} i ${group.municipality_name}` : members
 }
 
 // Mörk för ägare, grön för medlem, så att de är lätta att skilja åt.
@@ -22,12 +29,7 @@ export function RoleBadge({ group }) {
 // `emptyAction` (valfri) är en knapp vidare under texten när listan är tom.
 function GroupList({ groups, emptyText, emptyAction, myInterestIds, busy, onSelect, onJoin, onDecline }) {
   if (groups.length === 0) {
-    return (
-      <div className="content-stack">
-        <p className="hint-text">{emptyText}</p>
-        {emptyAction}
-      </div>
-    )
+    return <EmptyState text={emptyText}>{emptyAction}</EmptyState>
   }
 
   return (

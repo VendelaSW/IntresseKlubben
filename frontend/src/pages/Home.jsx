@@ -1,6 +1,8 @@
 import { lazy, Suspense, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import logo from '../assets/intresseklubben.png'
+import kompisHaDet from '../assets/kompis-ha-det.webp'
+import EmptyState from '../components/EmptyState'
 import ForgotPasswordFields from '../components/ForgotPasswordFields'
 import LoginFields from '../components/LoginFields'
 import ProblemStatement from '../components/ProblemStatement'
@@ -14,6 +16,8 @@ const DevLogin = DEV_MODE ? lazy(() => import('../devtools/DevLogin')) : null
 
 function Home() {
   const { user, loading } = useAuth()
+  // Precis utloggad (Logga ut i menyn skickar med det): kompisen säger "Ha det!" överst på startsidan.
+  const loggedOut = Boolean(useLocation().state?.loggedOut)
   const [view, setView] = useState(null) // null | 'login' | 'register' | 'forgot'
   // Har man precis skapat ett konto hamnar man direkt på inloggningen, med ett
   // meddelande om det. Byter man vy själv försvinner meddelandet.
@@ -31,7 +35,7 @@ function Home() {
   if (user) return <Navigate to="/hem" replace />
 
   return (
-    <div className="page" style={view === null ? undefined : { gap: '1.25rem' }}>
+    <div className="page home-page" style={view === null ? undefined : { gap: '1.25rem' }}>
       <section className="hero">
         {/* Mindre logga i inloggnings-/registreringsvyerna så att hela formuläret
             syns utan att man behöver scrolla. */}
@@ -42,6 +46,14 @@ function Home() {
         />
         {view === null && <p className="tagline">Vi antecknar, ni träffas.</p>}
       </section>
+      {loggedOut && view === null && (
+        <EmptyState
+          className="home-farewell"
+          image={kompisHaDet}
+          title="Du är utloggad"
+          text="Välkommen tillbaka när du vill!"
+        />
+      )}
       {view === null && <ProblemStatement centered />}
 
       {view === null && (
