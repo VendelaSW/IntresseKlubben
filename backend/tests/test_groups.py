@@ -63,6 +63,7 @@ def test_create_group_makes_creator_owner(client, user, new_group):
     assert group["name"] == "Morgonlöparna"
     assert group["interest_name"] == "Löpning"
     assert group["interest_area"] == "Löpning"  # ett huvudområde är sitt eget
+    assert group["interest_area_slug"] is None  # intresset i testet har ingen slug
     assert group["municipality_name"] == "Göteborg"
     assert group["visibility"] == "public"
     assert group["member_count"] == 1
@@ -427,3 +428,15 @@ def test_members_hides_blocked_users_in_both_directions(client, user, new_group,
     # Någon annan ser båda.
     login_as("bo")
     assert [m["username"] for m in client.get(f"/groups/{group['id']}/members").json()] == ["testuser", "anna"]
+
+
+def test_group_interest_has_its_areas_name_and_slug(client, user, db, new_group):
+    # Taggens färg följer huvudområdet och slås upp på sluggen, så att den håller när området byter namn.
+    creative = Interest(name="Kreativitet", slug="kreativitet")
+    db.add(creative)
+    db.flush()
+    photo = Interest(name="Fotografering", slug="fotografering", parent_id=creative.id)
+    db.add(photo)
+    db.commit()
+    group = new_group(interest_id=photo.id)
+    assert (group["interest_area"], group["interest_area_slug"]) == ("Kreativitet", "kreativitet")

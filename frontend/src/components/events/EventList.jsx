@@ -49,7 +49,7 @@ function EventList({ events, emptyText, myInterestIds, onSelect }) {
             <span className="card-text list-card-description">{event.description}</span>
           </button>
           <InterestTags
-            interests={[{ id: event.interest_id, name: event.interest_name, area: event.interest_area }]}
+            interests={[{ id: event.interest_id, name: event.interest_name, area: event.interest_area, area_slug: event.interest_area_slug }]}
             highlight={myInterestIds}
           />
           <div className="card-actions">

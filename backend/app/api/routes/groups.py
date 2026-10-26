@@ -37,7 +37,7 @@ from app.crud.group_post import (
     pin_group_post,
     unpin_group_post,
 )
-from app.crud.interest import get_active_interest
+from app.crud.interest import get_active_interest, interest_place
 from app.db.session import get_db
 from app.models.group import Group, GroupRole, GroupVisibility
 from app.models.municipality import Municipality
@@ -65,6 +65,7 @@ def _to_response(group: Group, user_id: int, hidden: set[int], blocked_by_me: se
     # has_blocked_member. Den som har blockerat dig ger aldrig en varning,
     # eftersom du då skulle förstå att du är blockerad.
     membership = get_membership(group, user_id)
+    place = interest_place(group.interest)
     return GroupResponse(
         id=group.id,
         name=group.name,
@@ -76,7 +77,8 @@ def _to_response(group: Group, user_id: int, hidden: set[int], blocked_by_me: se
         longitude=group.longitude,
         interest_id=group.interest_id,
         interest_name=group.interest.name,
-        interest_area=group.interest.area,
+        interest_area=place.area,
+        interest_area_slug=place.area_slug,
         municipality_code=group.municipality_code,
         municipality_name=group.municipality.name,
         visibility=group.visibility,

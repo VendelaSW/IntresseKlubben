@@ -21,7 +21,7 @@ from app.crud.event import (
     update_event,
 )
 from app.crud.group import get_membership, is_invited
-from app.crud.interest import get_active_interest
+from app.crud.interest import get_active_interest, interest_place
 from app.crud.notification import notify_event_cancelled, notify_event_changed
 from app.db.session import get_db
 from app.models.event import Event, EventVisibility
@@ -59,13 +59,15 @@ def _group_visible(event: Event, user_id: int) -> bool:
 
 def _to_response(event: Event, user_id: int) -> EventOut:
     creator = event.creator
+    place = interest_place(event.interest)
     return EventOut(
         id=event.id,
         title=event.title,
         description=event.description,
         interest_id=event.interest_id,
         interest_name=event.interest.name,
-        interest_area=event.interest.area,
+        interest_area=place.area,
+        interest_area_slug=place.area_slug,
         starts_at=event.starts_at,
         ends_at=event.ends_at,
         place_name=event.place_name,

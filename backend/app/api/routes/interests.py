@@ -31,13 +31,14 @@ from app.crud.interest import (
     get_interest,
     get_user,
     ids_with_children,
-    interest_path,
+    interest_places,
     list_child_interests,
     list_interests,
     list_top_interests,
     load_library_index,
     remove_user_interest,
     search_interests,
+    profile_interests,
     sorted_interests,
 )
 from app.db.session import get_db
@@ -84,8 +85,15 @@ def _interest_or_404(db: Session, interest_id: int):
 
 def _browse_items(db: Session, interests: list[Interest]) -> list[InterestBrowseItem]:
     with_children = ids_with_children(db, interests)
+    places = interest_places(interests)
     return [
-        InterestBrowseItem(id=i.id, name=i.name, path=interest_path(i), has_children=i.id in with_children)
+        InterestBrowseItem(
+            id=i.id,
+            name=i.name,
+            path=list(places[i.id].path),
+            area_slug=places[i.id].area_slug,
+            has_children=i.id in with_children,
+        )
         for i in interests
     ]
 
@@ -148,7 +156,7 @@ def read_my_interests(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return sorted_interests(_current_db_user(current_user, db))
+    return profile_interests(sorted_interests(_current_db_user(current_user, db)))
 
 
 # PUT eftersom det går att upprepa: redan tillagt intresse ger samma svar.
@@ -164,7 +172,7 @@ def add_my_interest(
     interest = get_active_interest(db, interest_id)
     if interest is None:
         raise HTTPException(status_code=404, detail="Intresset finns inte")
-    return add_user_interest(db, user, interest)
+    return profile_interests(add_user_interest(db, user, interest))
 
 
 @router.delete("/profile/interests/{interest_id}", response_model=list[ProfileInterest])
@@ -180,4 +188,4 @@ def remove_my_interest(
     # Räknat i olika intressen: samma intresse med två aktiviteter är ett.
     if {i.id for i in user.interests} == {interest.id}:
         raise HTTPException(status_code=409, detail=msg.LAST_INTEREST_CANNOT_BE_REMOVED)
-    return remove_user_interest(db, user, interest)
+    return profile_interests(remove_user_interest(db, user, interest))

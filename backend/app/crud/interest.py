@@ -1,5 +1,7 @@
-from sqlalchemy import distinct, func, or_, select
-from sqlalchemy.orm import Session
+from dataclasses import dataclass
+
+from sqlalchemy import distinct, event, func, or_, select
+from sqlalchemy.orm import Session, object_session
 
 # Samma skydd mot jokertecken (% och _) som klubbsökningen.
 from app.crud.group import _escape_like
@@ -110,9 +112,77 @@ def load_library_index(db: Session) -> LibraryIndex:
     return LibraryIndex(items)
 
 
-def interest_path(interest: Interest) -> list[str]:
-    """Namnen ovanför intresset i trädet, uppifrån (se Interest.path)."""
-    return interest.path
+@dataclass(frozen=True)
+class InterestPlace:
+    """Var ett intresse ligger i trädet: namnen ovanför, uppifrån (path, t.ex. ("Kreativitet",
+    "Fotografering") för Porträttfoto, () för ett huvudområde), och huvudområdets namn och slug. Taggarnas
+    färg följer huvudområdet, och slår upp den på sluggen så att den håller när området byter namn
+    (se frontend/src/utils/interestColors.js)."""
+
+    path: tuple[str, ...]
+    area: str
+    area_slug: str | None
+
+
+# Trädet (id -> (namn, slug, förälder)) sparas i sessionen, så att en hel lista med intressen bara
+# kostar en databasfråga i stället för en per förälder. Det glöms när sessionen sparar eller ångrar,
+# och hämtas om när ett intresse saknas (t.ex. ett nyss skapat).
+_TREE_KEY = "interest_tree"
+
+
+@event.listens_for(Session, "after_commit")
+@event.listens_for(Session, "after_rollback")
+def _forget_interest_tree(session: Session) -> None:
+    session.info.pop(_TREE_KEY, None)
+
+
+def _interest_tree(db: Session, needed_ids: list[int]) -> dict[int, tuple[str, str | None, int | None]]:
+    tree = db.info.get(_TREE_KEY)
+    if tree is None or any(i not in tree for i in needed_ids):
+        rows = db.query(Interest.id, Interest.name, Interest.slug, Interest.parent_id)
+        tree = {row.id: (row.name, row.slug, row.parent_id) for row in rows}
+        db.info[_TREE_KEY] = tree
+    return tree
+
+
+def interest_places(interests: list[Interest]) -> dict[int, InterestPlace]:
+    """Platsen i trädet för varje intresse (id -> InterestPlace), med en databasfråga för hela listan.
+    Sessionen tas från intressena."""
+    if not interests:
+        return {}
+    tree = _interest_tree(object_session(interests[0]), [i.id for i in interests])
+
+    def place(interest_id: int) -> InterestPlace:
+        chain: list[int] = []
+        parent = tree[interest_id][2]
+        while parent is not None and parent in tree and len(chain) < 10:  # skydd mot en cirkel
+            chain.insert(0, parent)
+            parent = tree[parent][2]
+        top = chain[0] if chain else interest_id
+        return InterestPlace(path=tuple(tree[i][0] for i in chain), area=tree[top][0], area_slug=tree[top][1])
+
+    return {i.id: place(i.id) for i in interests}
+
+
+def interest_place(interest: Interest) -> InterestPlace:
+    return interest_places([interest])[interest.id]
+
+
+def profile_interests(interests: list[Interest]) -> list[dict]:
+    """Intressena på en profil i den form ProfileInterest (schemas/interest.py) vill ha, med platsen i
+    trädet för hela listan på en gång."""
+    places = interest_places(interests)
+    return [
+        {
+            "id": i.id,
+            "name": i.name,
+            "parent_id": i.parent_id,
+            "path": list(places[i.id].path),
+            "area": places[i.id].area,
+            "area_slug": places[i.id].area_slug,
+        }
+        for i in interests
+    ]
 
 
 def ids_with_children(db: Session, interests: list[Interest]) -> set[int]:

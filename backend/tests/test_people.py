@@ -98,8 +98,9 @@ def test_interests_on_person_cards_have_parent_id(client, db, user):
 
 def test_interests_on_person_cards_have_their_area_and_path(client, db, user):
     # Huvudområdet är det översta i trädet, också två nivåer ner, och ett huvudområde är sitt eget. path är alla
-    # namnen ovanför, också de som personen inte har valt (Fotografering).
-    creative = Interest(name="Skapande")
+    # namnen ovanför, också de som personen inte har valt (Fotografering). area_slug är huvudområdets slug, som
+    # taggens färg följer.
+    creative = Interest(name="Skapande", slug="kreativitet")
     db.add(creative)
     db.flush()
     photo = Interest(name="Fotografering", parent_id=creative.id)
@@ -114,6 +115,7 @@ def test_interests_on_person_cards_have_their_area_and_path(client, db, user):
 
     assert {i["name"]: i["area"] for i in body["interests"]} == {"Skapande": "Skapande", "Porträttfoto": "Skapande"}
     assert {i["name"]: i["path"] for i in body["interests"]} == {"Skapande": [], "Porträttfoto": ["Skapande", "Fotografering"]}
+    assert {i["name"]: i["area_slug"] for i in body["interests"]} == {"Skapande": "kreativitet", "Porträttfoto": "kreativitet"}
 
 
 def test_interests_are_sorted_by_name(client, db, user):

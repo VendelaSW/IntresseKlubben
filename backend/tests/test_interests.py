@@ -147,6 +147,45 @@ def test_children_lists_one_level_down(client, user, library):
     ]
 
 
+def test_library_items_have_their_areas_slug(client, user, library):
+    # Taggens färg följer huvudområdet och slås upp på sluggen: ett huvudområde har sin egen,
+    # och allt under det huvudområdets, också två nivåer ner.
+    top = {i["name"]: i["area_slug"] for i in client.get("/interests/top").json()}
+    assert top == {"Musik": "musik", "Sport och träning": "sport-och-traning"}
+    children = client.get(f"/interests/{library['Löpning'].id}/children").json()
+    assert [(i["name"], i["area_slug"]) for i in children] == [("Traillöpning", "sport-och-traning")]
+    found = client.get("/interests/search", params={"q": "springa"}).json()
+    assert {i["area_slug"] for i in found} == {"sport-och-traning"}
+
+
+def test_place_in_the_tree_takes_one_query_for_the_whole_list(db, library):
+    # Sökvägen och huvudområdet räknas fram ur en fråga för hela listan, inte en per förälder.
+    from sqlalchemy import event
+
+    from app.crud.interest import interest_places
+
+    wanted = [library[name] for name in ("Traillöpning", "Löpning", "Gym", "Musik")]
+    # Inga föräldrar i minnet, bara själva intressena, som listan redan har när den skickas in.
+    db.expire_all()
+    for interest in wanted:
+        db.refresh(interest)
+    queries = []
+
+    def listener(conn, cursor, statement, *rest):
+        queries.append(statement)
+
+    event.listen(db.bind, "before_cursor_execute", listener)
+    try:
+        places = interest_places(wanted)
+    finally:
+        event.remove(db.bind, "before_cursor_execute", listener)
+    assert len(queries) == 1
+    assert places[library["Traillöpning"].id].path == ("Sport och träning", "Löpning")
+    assert places[library["Traillöpning"].id].area_slug == "sport-och-traning"
+    assert places[library["Musik"].id].path == ()
+    assert places[library["Musik"].id].area == "Musik"
+
+
 def test_children_of_unknown_or_inactive_interest_gives_404(client, user, library):
     assert client.get("/interests/9999/children").status_code == 404
     assert client.get(f"/interests/{library['Gaming'].id}/children").status_code == 404
