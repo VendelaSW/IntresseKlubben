@@ -30,6 +30,7 @@ from app.schemas.profile import (
     ProfileUpdate,
 )
 from app.services.text_policy import TextCheckUnavailable, TextNotAllowed, check_text
+from app.services.profile_embeddings import start_embedding, start_embedding_if_needed, store_profile_embedding
 from app.services.text_moderation import check_fields
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -133,6 +134,8 @@ def add_profile(
     # Finns profilen redan ska det inte kosta ett AI-anrop att få veta det (som i intervjun, interest_confirm.py).
     if get_profile(db, current_user.id) is not None:
         raise HTTPException(status_code=409, detail=msg.PROFILE_ALREADY_EXISTS)
+    # Vektorn för Om mig-texten räknas samtidigt som texten kontrolleras (se services/profile_embeddings.py).
+    pending_embedding = start_embedding(data.profile_text)
     check_fields(name=data.name, profile_text=data.profile_text, district=data.district)
     _check_profile_text(data.profile_text, current_user.id)
     try:
@@ -141,6 +144,7 @@ def add_profile(
         raise HTTPException(status_code=409, detail=msg.PROFILE_ALREADY_EXISTS)
     except UnknownInterestError:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
+    store_profile_embedding(db, profile, pending_embedding)  # kastar aldrig: profilen är sparad
     return _to_response(profile)
 
 
@@ -166,6 +170,11 @@ def edit_profile(
     # ett databasfel (500) från främmande nyckeln.
     if data.municipality_code is not None and db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
+    # Ändras Om mig-texten (eller saknas vektorn) räknas en ny vektor samtidigt som texten kontrolleras. Skickas inte texten
+    # med, eller är den oförändrad och har en vektor, görs inget anrop.
+    pending_embedding = None
+    if data.profile_text is not None:
+        pending_embedding = start_embedding_if_needed(db, get_profile(db, current_user.id), data.profile_text)
     check_fields(name=data.name, profile_text=data.profile_text, district=data.district)
     if data.profile_text is not None:
         _check_profile_text(data.profile_text, current_user.id)
@@ -173,6 +182,8 @@ def edit_profile(
         profile = update_profile(db, current_user.id, data)
     except ProfileNotFoundError:
         raise HTTPException(status_code=404, detail=msg.PROFILE_NOT_FOUND)
+    if data.profile_text is not None:
+        store_profile_embedding(db, profile, pending_embedding)  # tar bort den gamla vektorn när texten har ändrats
     return _to_response(profile)
 
 

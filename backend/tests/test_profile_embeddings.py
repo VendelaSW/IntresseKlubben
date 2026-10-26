@@ -16,7 +16,7 @@ from app.services.profile_embeddings import (
     store_profile_embedding,
 )
 from tests.fakes import FakeEmbedder, fake_vector
-from tests.helpers import make_profile
+from tests.helpers import make_profile, profile_payload
 
 COMPLETE = "/profile/interview/complete"
 ALLOWED = ["lyssna", "spela", "skapa", "besoka"]
@@ -83,7 +83,74 @@ def test_a_text_that_is_not_allowed_saves_neither_the_profile_nor_a_vector(clien
     assert db.query(Profile).count() == 0 and rows(db) == []
 
 
-# ---------- När texten ändras ----------
+# ---------- PATCH och POST /profile/ ----------
+
+
+def a_profile_with_a_vector(db, text="Första texten."):
+    profile = a_profile(db, 1, text)
+    store_profile_embedding(db, profile, start_embedding(text, FakeEmbedder()))
+    return profile
+
+
+def test_editing_the_text_replaces_the_vector(client, user, municipalities, db):
+    a_profile_with_a_vector(db)
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    assert client.patch("/profile/", json={"profile_text": "Ny text."}).status_code == 200
+    (row,) = rows(db)
+    assert row.embedding == fake_vector("Ny text.") and row.embedding_hash == text_hash("Ny text.")
+    assert embedder.calls == [["Ny text."]]
+
+
+def test_saving_the_same_text_again_makes_no_call_and_keeps_the_vector(client, user, municipalities, db):
+    a_profile_with_a_vector(db)
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    assert client.patch("/profile/", json={"profile_text": "Första texten."}).status_code == 200
+    assert embedder.calls == [] and rows(db)[0].embedding_hash == text_hash("Första texten.")
+
+
+def test_editing_something_else_makes_no_call(client, user, municipalities, db):
+    a_profile_with_a_vector(db)
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    assert client.patch("/profile/", json={"name": "Nytt namn"}).status_code == 200
+    assert embedder.calls == [] and len(rows(db)) == 1
+
+
+def test_a_text_that_is_not_allowed_keeps_the_old_text_and_the_old_vector(client, user, municipalities, db):
+    a_profile_with_a_vector(db)
+    set_clients(embedder=FakeEmbedder())
+    assert client.patch("/profile/", json={"profile_text": "Jag är pedofil."}).status_code == 422
+    assert db.query(Profile).one().profile_text == "Första texten."
+    assert rows(db)[0].embedding_hash == text_hash("Första texten.")
+
+
+def test_the_same_text_gets_its_missing_vector_the_next_time_it_is_saved(client, user, municipalities, db):
+    a_profile(db, 1, "Första texten.")  # sparades utan vektor, till exempel när OpenAI var nere
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    assert client.patch("/profile/", json={"profile_text": "Första texten."}).status_code == 200
+    assert embedder.calls == [["Första texten."]] and len(rows(db)) == 1
+
+
+def test_a_failing_call_still_saves_the_new_text_and_leaves_no_old_vector(client, user, municipalities, db):
+    a_profile_with_a_vector(db)
+    set_clients(embedder=FakeEmbedder(error=AIFailed("URLError")))
+    assert client.patch("/profile/", json={"profile_text": "Ny text."}).status_code == 200
+    assert db.query(Profile).one().profile_text == "Ny text." and rows(db) == []
+
+
+def test_creating_a_profile_directly_saves_a_vector_too(client, user, municipalities, music, db):
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    response = client.post("/profile/", json=profile_payload([music.id], profile_text="Jag gillar musik."))
+    assert response.status_code == 201
+    (row,) = rows(db)
+    assert row.embedding == fake_vector("Jag gillar musik.") and embedder.calls == [["Jag gillar musik."]]
+
+
+# ---------- När texten ändras (tjänsten) ----------
 
 
 def test_a_new_text_replaces_the_old_vector(db, user):

@@ -72,6 +72,21 @@ def start_embedding(text: str, embedder: Embedder | None = None) -> PendingEmbed
     return PendingEmbedding(text, _executor.submit(_embed, embedder, text))
 
 
+def start_embedding_if_needed(db: Session, profile: Profile | None, text: str, embedder: Embedder | None = None) -> PendingEmbedding | None:
+    """Som start_embedding, men bara när en ny vektor behövs: profilen saknas än (en ny profil), texten har ändrats, eller
+    vektorn saknas (ett tidigare anrop misslyckades). Annars None, och inget anrop görs."""
+    text = text.strip()
+    if profile is not None:
+        try:
+            row = db.get(ProfileEmbedding, profile.id)
+        except SQLAlchemyError:
+            db.rollback()  # tabellen finns inte än: ingen vektor, och sparandet ska gå som vanligt
+            return None
+        if row is not None and row.embedding_hash == text_hash(text):
+            return None
+    return start_embedding(text, embedder)
+
+
 def store_profile_embedding(db: Session, profile: Profile, pending: PendingEmbedding | None) -> bool:
     """Sparar vektorn för profilens nuvarande Om mig-text, och tar bort den gamla. Ger om det finns en aktuell vektor efteråt.
     Kastar aldrig: profilen är redan sparad, och vektorn är bara ett tillägg."""
