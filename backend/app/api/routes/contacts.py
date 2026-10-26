@@ -32,10 +32,10 @@ def _to_contact_user(other: User) -> ContactUser:
     )
 
 
-def _to_list_item(contact, other: User) -> ContactListItem:
+def _to_list_item(db: Session, contact, other: User) -> ContactListItem:
     return ContactListItem(
         **ContactResponse.model_validate(contact).model_dump(),
-        user=to_person_response(other),
+        user=to_person_response(db, other),
     )
 
 
@@ -43,7 +43,7 @@ def _to_list_item(contact, other: User) -> ContactListItem:
 def list_contacts(db: Session = Depends(get_db),
                   current_user: User = Depends(get_current_user)):
     lists = contact_crud.list_contacts(db, current_user.id)
-    return {key: [_to_list_item(c, other) for c, other in items]
+    return {key: [_to_list_item(db, c, other) for c, other in items]
             for key, items in lists.items()}
 
 

@@ -368,7 +368,7 @@ def read_people(
         db, current_user.id, interest_id, municipality_code, hidden_ids,
         gender=gender, min_age=min_age, max_age=max_age,
     )
-    return [to_person_response(p.user) for p in profiles]
+    return [to_person_response(db, p.user) for p in profiles]
 
 
 @router.post(
@@ -429,7 +429,7 @@ def reset_suggestions(
     reset_dismissed_suggestions(db, current_user.id)
 
 
-def _to_public_response(profile) -> PublicProfileResponse:
+def _to_public_response(db: Session, profile) -> PublicProfileResponse:
     return PublicProfileResponse(
         name=profile.name,
         age=calculate_age(profile.birth_date) if profile.birth_date else None,
@@ -437,7 +437,7 @@ def _to_public_response(profile) -> PublicProfileResponse:
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
         profile_text=profile.profile_text,
-        interests=profile_interests(sorted_interests(profile.user)),
+        interests=profile_interests(db, sorted_interests(profile.user)),
     )
 
 
@@ -459,4 +459,4 @@ def read_user_profile(
     profile = get_profile(db, user.id) if user else None
     if profile is None:
         raise HTTPException(status_code=404, detail="Ingen profil hittad")
-    return _to_public_response(profile)
+    return _to_public_response(db, profile)

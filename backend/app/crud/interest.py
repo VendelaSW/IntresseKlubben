@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from sqlalchemy import distinct, event, func, or_, select
-from sqlalchemy.orm import Session, object_session
+from sqlalchemy.orm import Session
 
 # Samma skydd mot jokertecken (% och _) som klubbsökningen.
 from app.crud.group import _escape_like
@@ -77,24 +77,29 @@ def search_interests(db: Session, query: str, viewer_id: int, limit: int = SEARC
     return sorted(candidates, key=rank)[:limit]
 
 
+def _ancestor_ids(parents: dict[int, int | None], interest_id: int) -> list[int]:
+    """Id:na ovanför intresset i trädet, uppifrån. `parents` är id -> förälderns id för de intressen som
+    räknas; vandringen stannar vid en förälder som inte finns där (t.ex. en inaktiv) och efter tio steg
+    (skydd mot en cirkel). Används av både biblioteksindexet och interest_places."""
+    chain: list[int] = []
+    parent = parents.get(interest_id)
+    while parent is not None and parent in parents and len(chain) < 10:
+        chain.insert(0, parent)
+        parent = parents[parent]
+    return chain
+
+
 def load_library_index(db: Session) -> LibraryIndex:
     """Alla aktiva intressen som ett uppslagsregister för matchningen (se
     services/interest_matching.py): nivå, plats i trädet, alias och om intresset är ett eget som en
     användare skapat. Hämtas med en fråga, och trädet byggs i minnet."""
     rows = _active(db).all()
     by_id = {row.id: row for row in rows}
-
-    def ancestors(row: Interest) -> list[Interest]:
-        chain: list[Interest] = []
-        parent = by_id.get(row.parent_id) if row.parent_id is not None else None
-        while parent is not None and len(chain) < 10:  # skydd mot en cirkel
-            chain.insert(0, parent)
-            parent = by_id.get(parent.parent_id) if parent.parent_id is not None else None
-        return chain
+    parents = {row.id: row.parent_id for row in rows}
 
     items = []
     for row in rows:
-        chain = ancestors(row)
+        chain = [by_id[i] for i in _ancestor_ids(parents, row.id)]
         items.append(
             LibraryItem(
                 id=row.id,
@@ -145,33 +150,29 @@ def _interest_tree(db: Session, needed_ids: list[int]) -> dict[int, tuple[str, s
     return tree
 
 
-def interest_places(interests: list[Interest]) -> dict[int, InterestPlace]:
-    """Platsen i trädet för varje intresse (id -> InterestPlace), med en databasfråga för hela listan.
-    Sessionen tas från intressena."""
+def interest_places(db: Session, interests: list[Interest]) -> dict[int, InterestPlace]:
+    """Platsen i trädet för varje intresse (id -> InterestPlace), med en databasfråga för hela listan."""
     if not interests:
         return {}
-    tree = _interest_tree(object_session(interests[0]), [i.id for i in interests])
+    tree = _interest_tree(db, [i.id for i in interests])
+    parents = {interest_id: parent_id for interest_id, (_, _, parent_id) in tree.items()}
 
     def place(interest_id: int) -> InterestPlace:
-        chain: list[int] = []
-        parent = tree[interest_id][2]
-        while parent is not None and parent in tree and len(chain) < 10:  # skydd mot en cirkel
-            chain.insert(0, parent)
-            parent = tree[parent][2]
+        chain = _ancestor_ids(parents, interest_id)
         top = chain[0] if chain else interest_id
         return InterestPlace(path=tuple(tree[i][0] for i in chain), area=tree[top][0], area_slug=tree[top][1])
 
     return {i.id: place(i.id) for i in interests}
 
 
-def interest_place(interest: Interest) -> InterestPlace:
-    return interest_places([interest])[interest.id]
+def interest_place(db: Session, interest: Interest) -> InterestPlace:
+    return interest_places(db, [interest])[interest.id]
 
 
-def profile_interests(interests: list[Interest]) -> list[dict]:
+def profile_interests(db: Session, interests: list[Interest]) -> list[dict]:
     """Intressena på en profil i den form ProfileInterest (schemas/interest.py) vill ha, med platsen i
     trädet för hela listan på en gång."""
-    places = interest_places(interests)
+    places = interest_places(db, interests)
     return [
         {
             "id": i.id,

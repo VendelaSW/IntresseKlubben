@@ -57,7 +57,7 @@ def _blocks(db: Session, user_id: int) -> tuple[set[int], set[int]]:
     return blocked_user_ids(db, user_id), blocked_by_me_ids(db, user_id)
 
 
-def _to_response(group: Group, user_id: int, hidden: set[int], blocked_by_me: set[int]) -> GroupResponse:
+def _to_response(db: Session, group: Group, user_id: int, hidden: set[int], blocked_by_me: set[int]) -> GroupResponse:
     # hidden = de som har blockerat dig eller som du har blockerat. De räknas
     # inte med i medlemsantalet, så att siffran stämmer med medlemslistan
     # (se list_members) och inte avslöjar någon dold.
@@ -65,7 +65,7 @@ def _to_response(group: Group, user_id: int, hidden: set[int], blocked_by_me: se
     # has_blocked_member. Den som har blockerat dig ger aldrig en varning,
     # eftersom du då skulle förstå att du är blockerad.
     membership = get_membership(group, user_id)
-    place = interest_place(group.interest)
+    place = interest_place(db, group.interest)
     return GroupResponse(
         id=group.id,
         name=group.name,
@@ -127,7 +127,7 @@ def create(
         group = create_group(db, current_user, data)
     except GroupRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=str(err))
-    return _to_response(group, current_user.id, *_blocks(db, current_user.id))
+    return _to_response(db, group, current_user.id, *_blocks(db, current_user.id))
 
 
 @router.get("/", response_model=list[GroupResponse])
@@ -160,26 +160,26 @@ def read_public_groups(
         exclude_member_id=current_user.id if exclude_mine else None,
         hidden_user_ids=hidden,
     )
-    return [_to_response(g, current_user.id, hidden, blocked_by_me) for g in groups]
+    return [_to_response(db, g, current_user.id, hidden, blocked_by_me) for g in groups]
 
 
 @router.get("/mine", response_model=list[GroupResponse])
 def read_my_groups(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     blocks = _blocks(db, current_user.id)
-    return [_to_response(g, current_user.id, *blocks) for g in list_user_groups(db, current_user.id)]
+    return [_to_response(db, g, current_user.id, *blocks) for g in list_user_groups(db, current_user.id)]
 
 
 @router.get("/suggested", response_model=list[GroupResponse])
 def read_suggested_groups(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     blocks = _blocks(db, current_user.id)
-    return [_to_response(g, current_user.id, *blocks) for g in list_suggested_groups(db, current_user)]
+    return [_to_response(db, g, current_user.id, *blocks) for g in list_suggested_groups(db, current_user)]
 
 
 # Klubbarna man är inbjuden till. Före /{group_id}, så att "invitations" inte tolkas som ett id.
 @router.get("/invitations", response_model=list[GroupResponse])
 def read_my_invitations(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     blocks = _blocks(db, current_user.id)
-    return [_to_response(g, current_user.id, *blocks) for g in list_user_invitations(db, current_user.id)]
+    return [_to_response(db, g, current_user.id, *blocks) for g in list_user_invitations(db, current_user.id)]
 
 
 # Klubbsidans tre listor (mina, förslag, inbjudningar) i ett anrop, med
@@ -189,9 +189,9 @@ def read_groups_overview(current_user=Depends(get_current_user), db: Session = D
     user_id = current_user.id
     blocks = _blocks(db, user_id)
     return GroupsOverview(
-        mine=[_to_response(g, user_id, *blocks) for g in list_user_groups(db, user_id)],
-        suggested=[_to_response(g, user_id, *blocks) for g in list_suggested_groups(db, current_user)],
-        invitations=[_to_response(g, user_id, *blocks) for g in list_user_invitations(db, user_id)],
+        mine=[_to_response(db, g, user_id, *blocks) for g in list_user_groups(db, user_id)],
+        suggested=[_to_response(db, g, user_id, *blocks) for g in list_suggested_groups(db, current_user)],
+        invitations=[_to_response(db, g, user_id, *blocks) for g in list_user_invitations(db, user_id)],
     )
 
 
@@ -203,7 +203,7 @@ def read_member_groups(user_id: int, current_user=Depends(get_current_user), db:
     if db.get(User, user_id) is None or is_blocked(db, current_user.id, user_id):
         raise HTTPException(status_code=404, detail="Användaren finns inte")
     blocks = _blocks(db, current_user.id)
-    return [_to_response(g, current_user.id, *blocks) for g in list_member_groups_visible_to(db, user_id, current_user.id)]
+    return [_to_response(db, g, current_user.id, *blocks) for g in list_member_groups_visible_to(db, user_id, current_user.id)]
 
 
 # Bara antalet, för märket i headern.
@@ -215,7 +215,7 @@ def read_my_invitation_count(current_user=Depends(get_current_user), db: Session
 @router.get("/{group_id}", response_model=GroupResponse)
 def read_group(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     group = _visible_group_or_404(db, group_id, current_user.id)
-    return _to_response(group, current_user.id, *_blocks(db, current_user.id))
+    return _to_response(db, group, current_user.id, *_blocks(db, current_user.id))
 
 
 # Alla som kan se klubben ser vilka som är med (en privat klubb syns bara
@@ -245,7 +245,7 @@ def join(group_id: int, current_user=Depends(get_current_user), db: Session = De
         group = join_group(db, group, current_user)
     except GroupRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=str(err))
-    return _to_response(group, current_user.id, *_blocks(db, current_user.id))
+    return _to_response(db, group, current_user.id, *_blocks(db, current_user.id))
 
 
 @router.delete("/{group_id}/members/me", status_code=status.HTTP_204_NO_CONTENT)

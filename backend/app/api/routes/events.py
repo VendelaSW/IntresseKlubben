@@ -57,9 +57,9 @@ def _group_visible(event: Event, user_id: int) -> bool:
     )
 
 
-def _to_response(event: Event, user_id: int) -> EventOut:
+def _to_response(db: Session, event: Event, user_id: int) -> EventOut:
     creator = event.creator
-    place = interest_place(event.interest)
+    place = interest_place(db, event.interest)
     return EventOut(
         id=event.id,
         title=event.title,
@@ -152,7 +152,7 @@ def create(
         address=data.address,
     )
     event = create_event(db, current_user.id, data)
-    return _to_response(event, current_user.id)
+    return _to_response(db, event, current_user.id)
 
 
 @router.get("/", response_model=list[EventOut])
@@ -162,7 +162,7 @@ def read_events(
     db: Session = Depends(get_db),
 ):
     events = list_visible_events(db, current_user.id, group_id=group_id)
-    return [_to_response(e, current_user.id) for e in events]
+    return [_to_response(db, e, current_user.id) for e in events]
 
 
 @router.patch("/{event_id}", response_model=EventOut)
@@ -193,7 +193,7 @@ def edit_event(
     except EventRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=err.detail)
     notify_event_changed(db, event, _time_of(event) != time_before, _place_of(event) != place_before)
-    return _to_response(event, current_user.id)
+    return _to_response(db, event, current_user.id)
 
 
 def _time_of(event: Event) -> tuple:

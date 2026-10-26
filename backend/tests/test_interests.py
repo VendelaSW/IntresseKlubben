@@ -176,7 +176,7 @@ def test_place_in_the_tree_takes_one_query_for_the_whole_list(db, library):
 
     event.listen(db.bind, "before_cursor_execute", listener)
     try:
-        places = interest_places(wanted)
+        places = interest_places(db, wanted)
     finally:
         event.remove(db.bind, "before_cursor_execute", listener)
     assert len(queries) == 1
