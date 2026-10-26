@@ -2,14 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import brevIcon from '../assets/brev.png'
 import eventIcon from '../assets/event.png'
 import klubbarIcon from '../assets/klubbar.png'
-import notiserIcon from '../assets/notiser.svg'
 import personerIcon from '../assets/personer.png'
-import { useBadgeCounts } from '../hooks/useBadgeCounts'
 
 // Appens sidor som små lappar bredvid profillappen (på mobil som en rad
 // längst ned), med samma ikoner som appens meny. Ett klick lägger sidan som
 // ett block på kartan (se MapPagePad); klickar man på den öppna sidans lapp
-// igen stängs blocket.
+// igen stängs blocket. Notiserna ligger i profillappens meny (se MapProfileWidget).
 //
 // Lapparna har samma märken som appens meny (se useBadgeCounts), och när en
 // siffra går upp medan man är på kartan studsar lappen till, så att man ser
@@ -20,17 +18,14 @@ const WIDGETS = [
   { id: 'personer', label: 'Personer', icon: personerIcon, badge: ['contactRequests', 'nya kompisförfrågningar'] },
   { id: 'klubbar', label: 'Klubbar', icon: klubbarIcon, badge: ['clubInvitations', 'klubbinbjudningar'] },
   { id: 'events', label: 'Events', icon: eventIcon, badge: ['eventNews', 'nya events och inbjudningar'] },
-  { id: 'notiser', label: 'Notiser', icon: notiserIcon, badge: ['notifications', 'nya notiser'] },
 ]
 
 // Hur länge en lapp studsar (samma som animationen map-widget-ping).
 const PING_MS = 1200
 
-function MapPageWidgets({ openPage, onOpen }) {
-  // Räknas om när ett block öppnas eller stängs, eftersom man kan ha läst brev
-  // eller svarat på en inbjudan i det.
-  // null tills första hämtningen är klar (se useBadgeCounts).
-  const counts = useBadgeCounts({ refreshKey: openPage })
+// `counts` är siffrorna från useBadgeCounts (i MapPrototype, som delar dem med profillappen), null tills första
+// hämtningen är klar.
+function MapPageWidgets({ openPage, onOpen, counts }) {
   const [pinged, setPinged] = useState(() => new Set())
   const previous = useRef(null)
   const pingTimer = useRef(null)

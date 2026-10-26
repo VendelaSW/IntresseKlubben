@@ -1071,8 +1071,7 @@
    zoomknapparna. Ovanför ett öppet block (z-index 5), så att man kan byta
    sida direkt. */
 /* Lapparna slutar vid zoomknapparna (MapLibres, 10px in och 29px breda) och
-   radbryts hellre än krockar med växeln. Raden är minst så hög att snabbzoomen
-   under den hamnar under zoomknapparna. */
+   radbryts hellre än krockar med växeln. */
 .map-top-widgets {
   position: relative;
   z-index: 6;
@@ -1082,7 +1081,6 @@
   align-items: flex-start;
   gap: 0.6rem;
   max-width: 100%;
-  min-height: 74px;
   margin-right: 44px;
   pointer-events: auto;
 }
@@ -1244,12 +1242,19 @@
   }
 }
 
+/* relative: för siffran med olästa notiser, samma röda märke som på lapparna och
+   i samma hörn (i vänstra hörnet hamnade den intill Events siffra och lästes
+   ihop med den). Borta medan menyn är öppen, då står siffran vid Notiser. */
 .map-profile {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  /* Namnet förkortas (…) hellre än att lappen trycker in i växeln. */
-  max-width: min(16rem, 100%);
+  /* Namnet förkortas (…) hellre än att lappen trycker in i växeln. En fast
+     maxbredd (inte min(16rem, 100%)): med procent räknade webbläsaren platsen
+     efter hela namnet, så ett långt namn lämnade ett tomt glapp till vänster
+     om lappen. Smalare än så blir den ändå när raden är smal (flexraden). */
+  max-width: 16rem;
   padding: 0.3rem 0.35rem 0.3rem 0.9rem;
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
@@ -1267,8 +1272,18 @@
   transform: translate(3px, 3px);
 }
 
-/* Menyn: en liten lapp under profillappen, högerställd. */
+/* Menyn: en liten lapp under profillappen, högerställd. Ligger ovanpå det som
+   finns under (nivåknapparna Sverige–Kommun) i stället för i flödet: annars
+   gjorde den raden bredare, så att lapparna Brev–Events flyttade sig åt
+   vänster, och knuffade ner nivåknapparna. Högerkanten i linje med
+   nivåknapparnas, som sitter 44 px längre ut än profillappen (där
+   zoomknapparna står ovanför, se margin-right på .map-top-widgets och
+   right på .map-profile-wrap på mobil), så att menyn täcker dem helt i stället
+   för att de sticker ut vid sidan. */
 .map-profile-menu {
+  position: absolute;
+  top: 100%;
+  right: -44px;
   min-width: 10rem;
   margin: 0.6rem 0 0;
   padding: 0.3rem 0;
@@ -1428,7 +1443,21 @@
 /* Bredare block för appens sidor med kort i rutnät (Brev, Personer,
    Klubbar, Events). */
 .map-pad.is-wide {
-  width: min(64rem, 100%);
+  width: min(calc(64rem + 50px), 100%);
+}
+
+/* Alla block lika stora, oavsett hur mycket som står i dem (Brev, Personer,
+   Klubbar, Events, Notiser, profilen): samma bredd och samma fasta höjd, och
+   innehållet scrollar inuti. Som ett riktigt anteckningsblock, som inte
+   ändrar storlek efter vad man skriver. På mobil fyller blocket redan skärmen
+   (se nedan). */
+.map-pad.is-wide {
+  height: min(100%, calc(46rem + 50px));
+}
+
+.map-pad.is-wide .map-pad-page {
+  flex: 1;
+  min-height: 0;
 }
 
 /* Knapparna i blocken: tre sorter, i en och samma storlek, så att det inte
@@ -1561,17 +1590,34 @@
   cursor: pointer;
 }
 
-/* Snabbzoom: en kolumn under zoomknapparna uppe till höger (MapLibres
-   kontroller sitter 10px in och är två knappar höga). Namnet på området
-   man zoomade till står under knapparna som en liten lapp. */
+/* Snabbzoom: en kolumn direkt under zoomknapparna uppe till höger (MapLibres
+   kontroller sitter 10px in och är två knappar höga), eftersom de också är
+   zoom. Fast plats, så att de aldrig flyttas av lapparna eller profilmenyn
+   (raden upptill ligger 10px in, så 74px här är 84px från kartans kant, som
+   på mobil). Knapparna är lika breda, så att kolumnen blir jämn. Namnet på
+   området man zoomade till står under knapparna som en liten lapp. */
 .map-levels {
-  position: relative;
+  position: absolute;
+  top: 74px;
+  right: 0;
   z-index: 3;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 0.4rem;
+}
+
+.map-levels .map-tool {
+  min-width: 6.6rem;
+  justify-content: center;
+}
+
+/* Med ett block öppet göms snabbzoomen (som på mobil, se nedan): man läser i
+   blocket och navigerar inte på kartan, och namnet på området skulle annars
+   hamna halvt bakom blocket. */
+.map-sketch.has-pad .map-levels {
+  display: none;
 }
 
 .map-level-name {
