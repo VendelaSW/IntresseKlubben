@@ -9,7 +9,9 @@ import { formatSentAt } from '../utils/formatSentAt'
 // Klickbart som andra kort (.card-interactive): lyfts och får gul kant vid hover.
 // Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret vid hover; ett
 // nytt (`isNew`) förblir stängt och har ett gult sigill. Se Brev i stilguiden.
-function ConversationCard({ conversation, isNew = false }) {
+// `shortName` är namnet på kuvertet (förnamnet, se utils/shortNames.js). Hela
+// namnet läses upp och syns när man håller musen över.
+function ConversationCard({ conversation, isNew = false, shortName }) {
   const name = conversation.name ?? conversation.username
   const direction = conversation.last_message_from_me ? 'Till' : 'Från'
   return (
@@ -26,7 +28,9 @@ function ConversationCard({ conversation, isNew = false }) {
           <span className="envelope-direction">{direction}</span>
           <span className="envelope-addressee">
             <Avatar name={name} imageUrl={conversation.image_url} className="person-list-avatar envelope-avatar" />
-            <span className="envelope-name">{name}</span>
+            <span className="envelope-name" title={name}>
+              {shortName ?? name}
+            </span>
           </span>
           <time className="envelope-when" dateTime={conversation.last_message_at}>
             {formatSentAt(conversation.last_message_at)}

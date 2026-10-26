@@ -446,10 +446,11 @@ function StyleGuide() {
 
       <section className="style-section">
         <h2>Notiser</h2>
-        <p className="swatch-label">Klocklappen på kartan (Notiser, notiser.svg)</p>
+        <p className="swatch-label">Notiser på kartan (notiser.svg i appens meny)</p>
         <p className="hint-text">
-          Lappen ligger sist bland sidornas lappar på kartan (MapPageWidgets) och har samma röda siffra som de andra
-          (.map-widget-badge i map.css): antalet olästa notiser. Den studsar till när siffran går upp.
+          På kartan ligger Notiser i profillappens meny (MapProfileWidget), under Profilsida. Antalet olästa notiser
+          står som en röd siffra (.map-widget-badge i map.css) på namnet tills menyn öppnas, och sedan vid Notiser i
+          menyn.
         </p>
         <div className="swatch-grid" style={{ marginTop: '1rem' }}>
           <div className="swatch">
