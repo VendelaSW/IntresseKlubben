@@ -72,6 +72,8 @@ class FakeLLM:
         answers = {
             "interests": lambda: self._interests(user),
             "judge": lambda: self._judge(user),
+            # Kontrollen av skyddsnätet (check_safety_net): alla träffar behålls.
+            "check": lambda: {"keep": json.loads(user.rpartition("Intressen:\n")[2])},
             "match": lambda: self._match(user),
             "clarify": lambda: {"decisions": []},
             "activities": lambda: {"suggestions": []},

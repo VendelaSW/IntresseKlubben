@@ -20,7 +20,14 @@ from dataclasses import dataclass, field
 
 from app.services.ai_clients import Deadline
 from app.services.interest_confirm import MIN_NAME_LENGTH
-from app.services.interest_extractor import clean_tag, drop_tags, extract_interests, judge_tags, remove_flagged
+from app.services.interest_extractor import (
+    check_safety_net,
+    clean_tag,
+    drop_tags,
+    extract_interests,
+    judge_tags,
+    remove_flagged,
+)
 from app.services.interest_followups import FollowUp, plan
 from app.services.interest_matching import LibraryIndex, Match, Tag, exact_match, match_tags, tags_from_tree
 from app.services.interest_spelling import folded_match
@@ -89,9 +96,9 @@ def analyze(
     deadline = Deadline()
     tree = shortcut_tree(text, index)  # hela texten är kända intressen: inga anrop alls
     if tree is None:
-        # Skyddsnät: hittar modellen ingen tagg alls letar vi namn och alias i texten (och modererar träffarna).
+        # Skyddsnät: hittar modellen ingen tagg alls letar vi namn och alias i texten (se _safety_net).
         # Har granskningen eller moderationen tagit bort något gäller deras beslut, då används inget skyddsnät.
-        tree = extract_interests(text, deadline, on_nothing=lambda: remove_flagged(local_tree(text, index), deadline))
+        tree = extract_interests(text, deadline, on_nothing=lambda: _safety_net(text, index, deadline))
     tags = tags_from_tree(tree)
     if not tags:
         return Analysis()
@@ -100,6 +107,18 @@ def analyze(
     candidates = None if finder is None else lambda unresolved: finder(unresolved, text, index, deadline)
     result = plan(match_tags(tags, index, deadline, candidates), index, catalog, deadline, text=text, use_model=followups_enabled)
     return _assemble(result, index, followups_enabled)
+
+
+def _safety_net(text: str, index: LibraryIndex, deadline: Deadline) -> list[dict]:
+    """Skyddsnätet: namn och alias ur biblioteket som står i texten (local_tree). En modell kontrollerar att
+    personen faktiskt har dem i dag (check_safety_net, SCRUM-261), så att "Jag spelade fotboll förr" eller
+    "Jag kör bil" (alias till Sjunga i kör) inte blir förslag, och träffarna modereras som modellens taggar.
+    Kontrollen körs bara när skyddsnätet har hittat något, vilket är sällan."""
+    tree = local_tree(text, index)
+    if not tree:
+        return []
+    keep = check_safety_net(text, [node["name"] for node in tree], deadline)
+    return remove_flagged([node for node in tree if node["name"] in keep], deadline)
 
 
 def _assemble(result, index: LibraryIndex, followups_enabled: bool) -> Analysis:
