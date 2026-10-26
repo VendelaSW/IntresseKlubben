@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState'
 import FilterTabs from '../components/FilterTabs'
 import { useTabParam } from '../hooks/useTabParam'
 import { conversationsQuery } from '../services/messages'
+import { shortNames } from '../utils/shortNames'
 
 const TABS = [
   { id: 'new', label: 'Nya', empty: 'Inga nya brev just nu.' },
@@ -39,6 +40,8 @@ function InboxPage() {
     opened: conversations.filter((c) => !unseenIds.has(c.id)),
   }
   const current = TABS.find((t) => t.id === tab)
+  // Förnamnen på kuverten, räknade på alla brev (båda flikarna), så att två med samma förnamn skiljs åt.
+  const names = shortNames(conversations)
 
   // Sidan är ett <section className="app-section"> rakt av, som Personer,
   // Klubbar och Events, och ligger inte i content-stack (den är byggd för smala
@@ -64,7 +67,11 @@ function InboxPage() {
             <ul className="envelopes">
               {lists[tab].map((conversation) => (
                 <li key={conversation.id}>
-                  <ConversationCard conversation={conversation} isNew={tab === 'new'} />
+                  <ConversationCard
+                    conversation={conversation}
+                    isNew={tab === 'new'}
+                    shortName={names.get(conversation.id)}
+                  />
                 </li>
               ))}
             </ul>
