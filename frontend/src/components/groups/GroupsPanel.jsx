@@ -4,8 +4,10 @@ import { useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useTabParam } from '../../hooks/useTabParam'
 import { useConfirm } from '../../hooks/useConfirm'
+import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
 import CreateGroupForm from './CreateGroupForm'
 import CreateOffer from '../CreateOffer'
+import { PadFloatAction } from '../PadHead'
 import FilterTabs from '../FilterTabs'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
@@ -65,6 +67,8 @@ const NONE = []
 
 function GroupsPanel() {
   const confirm = useConfirm()
+  const searchStyle = useDesignChoice('searchStyle')
+  const newPadHead = useDesignChoice('padHead') !== PRE_DEV
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
@@ -342,7 +346,13 @@ function GroupsPanel() {
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Klubbar</h1>
-        {view !== 'create' && <CreateButton label="Skapa klubb" onClick={() => setView('create')} />}
+        {/* TILLFÄLLIGT: med den nya rubriken i testläget (useDesignChoice('padHead')) flyter knappen nere i blockets
+            hörn, så att den alltid syns, och visas inte i en klubbs vy. Annars här, som vanligt. */}
+        {view !== 'create' && !(newPadHead && selected) && (
+          <PadFloatAction>
+            <CreateButton label="Skapa klubb" onClick={() => setView('create')} />
+          </PadFloatAction>
+        )}
       </div>
 
       {/* Finns Mina klubbar redan i minnet visas sidan direkt, och "Alla" fylls i när den kommer. */}
@@ -433,43 +443,95 @@ function GroupsPanel() {
             </>
           ) : (
             <>
-              <div className="search-row">
-                <input
-                  type="search"
-                  className="filter-search"
-                  aria-label="Sök klubbar"
-                  placeholder="Sök på namn eller beskrivning"
-                  maxLength={100}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                <GroupSortMenu
-                  sort={filters.sort}
-                  reverse={filters.reverse}
-                  onChange={(sort, reverse) => setFilters({ ...filters, sort, reverse })}
-                />
-              </div>
-              <div className="filter-select-row filter-select-row-compact">
-                <select
-                  aria-label="Filtrera på intresse"
-                  value={filters.interestId}
-                  onChange={(e) => setFilters({ ...filters, interestId: e.target.value })}
-                >
-                  <option value="">Alla intressen</option>
-                  {interests.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}
-                    </option>
-                  ))}
-                </select>
-                <MunicipalityPicker
-                  aria-label="Filtrera på kommun"
-                  municipalities={municipalities}
-                  value={filters.municipalityCode}
-                  onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
-                  emptyLabel="Alla kommuner"
-                />
-              </div>
+              {/* TILLFÄLLIGT: i testläget kan sökraden bytas mot ett runt sökfält med intresse, kommun och sortering
+                  som rundade knappar bredvid (useDesignChoice('searchStyle')). På mobil hamnar filtren under. */}
+              {searchStyle === PRE_DEV ? (
+                <>
+                  <div className="search-row">
+                    <input
+                      type="search"
+                      className="filter-search"
+                      aria-label="Sök klubbar"
+                      placeholder="Sök på namn eller beskrivning"
+                      maxLength={100}
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                    <GroupSortMenu
+                      sort={filters.sort}
+                      reverse={filters.reverse}
+                      onChange={(sort, reverse) => setFilters({ ...filters, sort, reverse })}
+                    />
+                  </div>
+                  <div className="filter-select-row filter-select-row-compact">
+                    <select
+                      aria-label="Filtrera på intresse"
+                      value={filters.interestId}
+                      onChange={(e) => setFilters({ ...filters, interestId: e.target.value })}
+                    >
+                      <option value="">Alla intressen</option>
+                      {interests.map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.name}
+                        </option>
+                      ))}
+                    </select>
+                    <MunicipalityPicker
+                      aria-label="Filtrera på kommun"
+                      municipalities={municipalities}
+                      value={filters.municipalityCode}
+                      onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                      emptyLabel="Alla kommuner"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="club-filters">
+                  <label className="club-search">
+                    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+                      <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                      <path d="M13 13 L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      type="search"
+                      aria-label="Sök klubbar"
+                      placeholder="Sök på namn eller beskrivning"
+                      maxLength={100}
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </label>
+                  <div className="club-filter-pills">
+                    <select
+                      className="club-filter"
+                      aria-label="Filtrera på intresse"
+                      value={filters.interestId}
+                      onChange={(e) => setFilters({ ...filters, interestId: e.target.value })}
+                    >
+                      <option value="">Alla intressen</option>
+                      {interests.map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="club-filter club-filter-kommun">
+                      <MunicipalityPicker
+                        aria-label="Filtrera på kommun"
+                        municipalities={municipalities}
+                        value={filters.municipalityCode}
+                        onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                        emptyLabel="Alla kommuner"
+                      />
+                    </div>
+                    <GroupSortMenu
+                      sort={filters.sort}
+                      reverse={filters.reverse}
+                      onChange={(sort, reverse) => setFilters({ ...filters, sort, reverse })}
+                    />
+                  </div>
+                </div>
+              )}
               {shown[tab].length === 0 && offerToCreate && tab !== 'invitations' ? (
                 <CreateOffer
                   text={`Det finns inga klubbar för ${searchedFor}. Vill du skapa en?`}
