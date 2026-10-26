@@ -3,15 +3,21 @@ ersätts av en falsk Embedder."""
 
 import pytest
 
+from sqlalchemy.exc import IntegrityError
+
 from app import sync_embeddings
 from app.core.config import settings
 from app.models import Interest, Profile, ProfileEmbedding, User
 from app.services.ai_clients import AIFailed, set_clients
 from app.services.analysis_token import create_token
 from app.services.interest_embeddings import text_hash
+from app.api.routes import profile as profile_routes
 from app.services.profile_embeddings import (
+    EmbeddingJob,
     count_missing_profiles,
+    embedding_needed,
     fill_profile_embeddings,
+    profile_vector,
     start_embedding,
     store_profile_embedding,
 )
@@ -234,3 +240,94 @@ def test_sync_embeddings_survives_a_missing_profile_table(db):
     ProfileEmbedding.__table__.drop(db.get_bind())
     ok, message = sync_embeddings.run(db)
     assert ok and "alembic upgrade head" in message
+
+
+def test_deleting_the_account_deletes_the_vector(db, user):
+    from app.crud.user import delete_user
+
+    profile = a_profile_with_a_vector(db)
+    assert len(rows(db)) == 1 and profile.id is not None
+    delete_user(db, db.get(User, 1))
+    assert db.query(Profile).count() == 0 and rows(db) == []
+
+
+# ---------- Ordningen: inget anrop för det som ändå nekas ----------
+
+
+def test_a_text_the_word_filter_rejects_never_starts_an_embedding(client, user, municipalities, music, db):
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    assert complete(client, user, music, profile_text="Fuck you.").status_code == 422
+    a_profile(db, 1, "Första texten.")
+    assert client.patch("/profile/", json={"profile_text": "Fuck you."}).status_code == 422
+    assert embedder.calls == []
+
+
+def test_a_request_stopped_by_the_rate_limit_never_starts_an_embedding(client, user, municipalities, db, monkeypatch):
+    monkeypatch.setattr(profile_routes, "TEXT_CHECK_LIMIT", 1)
+    a_profile(db, 1, "Första texten.")
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    assert client.patch("/profile/", json={"profile_text": "Andra texten."}).status_code == 200
+    assert client.patch("/profile/", json={"profile_text": "Tredje texten."}).status_code == 429
+    assert embedder.calls == [["Andra texten."]]  # bara den första, inget anrop för den spärrade
+
+
+def test_a_text_approved_in_advance_still_gets_its_vector_when_the_profile_is_saved(client, user, municipalities, music, db):
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    assert client.post("/profile/text-check", json={"profile_text": "Jag är snäll."}).status_code == 204
+    assert embedder.calls == []  # förhandskontrollen räknar ingen vektor
+    assert complete(client, user, music).status_code == 201
+    assert embedder.calls == [["Jag är snäll."]] and len(rows(db)) == 1
+
+
+def test_editing_for_a_user_without_a_profile_starts_no_embedding(client, user, municipalities, db):
+    embedder = FakeEmbedder()
+    set_clients(embedder=embedder)
+    assert client.patch("/profile/", json={"profile_text": "Ny text."}).status_code == 404
+    assert embedder.calls == []
+
+
+def test_a_job_that_is_disabled_does_nothing(db, user):
+    embedder = FakeEmbedder()
+    job = EmbeddingJob("Text", enabled=False, embedder=embedder)
+    job.start()
+    assert job.finish(db, a_profile(db)) is False and embedder.calls == []
+
+
+# ---------- Samtidiga sparningar och den gamla vektorn ----------
+
+
+def test_the_old_vector_goes_in_the_same_commit_as_the_new_text(db, user):
+    from app.crud.profile import update_profile
+    from app.schemas.profile import ProfileUpdate
+
+    a_profile_with_a_vector(db)
+    update_profile(db, 1, ProfileUpdate(profile_text="Ny text."))
+    assert rows(db) == []  # borta redan innan en ny hunnit räknas
+
+
+def test_a_conflicting_save_is_retried_once(db, user, monkeypatch):
+    profile = a_profile(db)
+    pending = start_embedding(profile.profile_text, FakeEmbedder())
+    real_commit, calls = db.commit, []
+
+    def commit_once_failing():
+        calls.append(1)
+        if len(calls) == 1:
+            raise IntegrityError("insert", {}, Exception("duplicate key"))  # en annan sparning hann före
+        real_commit()
+
+    monkeypatch.setattr(db, "commit", commit_once_failing)
+    assert store_profile_embedding(db, profile, pending) is True
+    assert len(rows(db)) == 1
+
+
+def test_profile_vector_only_gives_a_vector_that_belongs_to_the_current_text(db, user):
+    profile = a_profile_with_a_vector(db)
+    assert profile_vector(db, profile) == fake_vector("Första texten.")
+    profile.profile_text = "Ändrad text."
+    assert profile_vector(db, profile) is None  # en gammal vektor används aldrig
+    assert embedding_needed(db, profile, "Ändrad text.") and not embedding_needed(db, profile, "Första texten.")
+    assert embedding_needed(db, None, "Vad som helst") is False
