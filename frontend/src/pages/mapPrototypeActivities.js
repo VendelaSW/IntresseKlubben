@@ -2,7 +2,9 @@
 // ikoner. Har klubben (träffplatsen) eller eventet en position (latitude och
 // longitude, satt med nålen i formuläret) står lappen där, i den kommun
 // positionen ligger i. Annars är platsen ungefärlig:
-//   - en klubb står mitt i sin kommun (kommunens namnpunkt),
+//   - en klubb utan nål visas inte som en egen lapp, utan i symbolen för sitt
+//     område (se mapPrototypeAreaClubs.js); den har ändå en plats mitt i sin
+//     kommun (kommunens namnpunkt), för sökrutan,
 //   - ett event står i sin klubbs kommun, annars i en kommun vars namn finns
 //     i adressen eller platsens namn, annars visas det inte,
 // Lapparna syns bara på kommunnivå, och bara den valda kommunens. Utzoomat är de bara ikonen (namnet syns när man hovrar), inzoomat
@@ -128,6 +130,8 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick }) {
     const placed = []
     for (const item of items) {
       if (item.kommun !== kommun) continue
+      // Klubbar utan nål finns i kommunens symbol (se mapPrototypeAreaClubs.js).
+      if (item.type === 'klubb' && !item.exact) continue
       const { x, y } = map.project(item.lngLat)
       if (x < -200 || x > width + 200 || y < -200 || y > height + 200) continue
       placed.push({ item, x, y, el: markerEl(item, compact) })

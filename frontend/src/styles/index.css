@@ -1043,6 +1043,38 @@ span.tag-selected:hover {
   font-size: var(--text-small);
 }
 
+/* Ett val bland några alternativ i ett formulär, t.ex. hur man kommer med i en klubb. */
+.form-choice {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.form-choice legend {
+  margin-bottom: 0.2rem;
+  padding: 0;
+  font-weight: 700;
+}
+
+/* En ansökan till en klubb (GroupJoinRequests): namnet, meddelandet och knapparna. */
+.group-request {
+  display: grid;
+  gap: 0.3rem;
+  padding-block: 0.4rem;
+}
+
+.group-request + .group-request {
+  border-top: 1px dashed var(--color-line);
+}
+
+.group-request-message {
+  margin: 0;
+  font-size: var(--text-small);
+  overflow-wrap: anywhere;
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;

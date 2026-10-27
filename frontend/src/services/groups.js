@@ -1,9 +1,50 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './api'
 import { EVENTS_KEY } from './events'
-import { SECOND, invalidate, queryClient } from './queryClient'
+import { HOUR, SECOND, cachedInBrowser, invalidate, queryClient } from './queryClient'
 
-// Värdena måste matcha GroupVisibility i backend/app/models/group.py.
-export const VISIBILITY = { public: 'public', private: 'private' }
+// Värdena måste matcha GroupVisibility i backend/app/models/group.py. `application`:
+// man ansöker och ägaren godkänner (SCRUM-159).
+export const VISIBILITY = { public: 'public', application: 'application', private: 'private' }
+
+// Klubbens räckvidd (SCRUM-282), från minst till störst. value måste matcha
+// GroupScope i backend/app/models/group.py.
+export const SCOPES = [
+  { value: 'kommun', label: 'Kommun' },
+  { value: 'lan', label: 'Län' },
+  { value: 'landskap', label: 'Landskap' },
+  { value: 'landsdel', label: 'Landsdel' },
+  { value: 'country', label: 'Hela Sverige' },
+]
+
+// Vilken nivå klubben passar för (SCRUM-216). value måste matcha SkillLevel i backend.
+export const SKILL_LEVELS = [
+  { value: 'beginner', label: 'Nybörjare' },
+  { value: 'intermediate', label: 'Medel' },
+  { value: 'experienced', label: 'Erfaren' },
+  { value: 'all_levels', label: 'Alla nivåer' },
+]
+
+export const skillLevelLabel = (value) => SKILL_LEVELS.find((l) => l.value === value)?.label ?? null
+
+// Områdena en klubb kan gälla: { landsdelar, landskap, lan, kommuner } (se
+// GET /groups/regions). Ändras nästan aldrig, så de sparas i webbläsaren.
+export function getRegions() {
+  return cachedInBrowser(['regions'], () => apiGet('/groups/regions'), 24 * HOUR)
+}
+
+// Gäller klubben kommunen? Ja om den finns i kommunen eller gäller ett större
+// område som kommunen ligger i (samma som filtret i GET /groups/). `regions` från
+// getRegions; utan dem räknas bara klubbar i själva kommunen.
+export function appliesToKommun(group, kommunCode, regions) {
+  if (group.scope === 'kommun' || !group.scope) return group.municipality_code === kommunCode
+  if (group.scope === 'country') return true
+  const place = regions?.kommuner?.[kommunCode]
+  if (!place) return false
+  if (group.scope === 'lan') return group.scope_code === place.lan
+  if (group.scope === 'landskap') return group.scope_code === place.landskap
+  const landsdel = regions.landskap.find((l) => l.kod === place.landskap)?.landsdel
+  return group.scope === 'landsdel' && group.scope_code === landsdel
+}
 
 // Sorteringarna i GET /groups/, med texten för vanlig och omvänd ordning.
 // value måste matcha GroupSort i backend/app/crud/group.py.
@@ -153,6 +194,32 @@ export function deleteGroup(id) {
 // Bjuder in kompisar (userIds). Svaret är de som blev inbjudna den här gången.
 export function inviteToGroup(id, userIds) {
   return apiPost(`/groups/${id}/invitations`, { user_ids: userIds })
+}
+
+// ---------- Ansökningar (SCRUM-159) ----------
+
+// Ansöker till en klubb, med ett valfritt meddelande till ägaren. Svaret är klubben.
+export function applyToGroup(id, message) {
+  return changingMyGroups(apiPut(`/groups/${id}/requests/me`, { message }))
+}
+
+// Tar tillbaka sin ansökan. Svaret är klubben.
+export function withdrawApplication(id) {
+  return changingMyGroups(apiDelete(`/groups/${id}/requests/me`))
+}
+
+// Ansökningarna som väntar, för ägaren: [{ user, message, created_at }].
+export function getJoinRequests(id) {
+  return apiGet(`/groups/${id}/requests`)
+}
+
+// Ägaren godkänner (personen blir medlem) eller nekar en ansökan.
+export function approveJoinRequest(id, userId) {
+  return changingMyGroups(apiPut(`/groups/${id}/requests/${userId}`))
+}
+
+export function declineJoinRequest(id, userId) {
+  return changingMyGroups(apiDelete(`/groups/${id}/requests/${userId}`))
 }
 
 // Avböjer en inbjudan.
