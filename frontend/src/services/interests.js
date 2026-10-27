@@ -56,7 +56,7 @@ export function getMyInterests() {
   )
 }
 
-// Båda returnerar användarens uppdaterade lista med intressen, som också
+// Alla tre returnerar användarens uppdaterade lista med intressen, som också
 // ersätter den i minnet.
 export async function addInterest(id) {
   return queryClient.setQueryData(MY_INTERESTS_KEY, await apiPut(`/profile/interests/${id}`))
@@ -64,6 +64,14 @@ export async function addInterest(id) {
 
 export async function removeInterest(id) {
   return queryClient.setQueryData(MY_INTERESTS_KEY, await apiDelete(`/profile/interests/${id}`))
+}
+
+// Om man själv håller på med intresset (utövar) eller bara är intresserad (SCRUM-271).
+export async function setPractices(id, practices) {
+  return queryClient.setQueryData(
+    MY_INTERESTS_KEY,
+    await apiPut(`/profile/interests/${id}/practices`, { practices }),
+  )
 }
 
 // Ett enda intresse med egna ord (högst 40 tecken) som inte finns i biblioteket. Backend kontrollerar det (ordfilter,

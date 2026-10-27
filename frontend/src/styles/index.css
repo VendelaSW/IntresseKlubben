@@ -2545,6 +2545,29 @@ span.tag-selected:hover {
   opacity: 1;
 }
 
+.filter-tabs-small > .tag {
+  font-size: var(--text-small);
+  padding: 0.3rem 0.7rem;
+}
+
+/* Utövar eller intresserad under "Redigera" i Dina intressen (SCRUM-271): en rad per intresse. */
+.practices-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.practices-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+}
+
 .demo-create-form {
   max-width: 480px;
 }
