@@ -57,7 +57,8 @@ def test_other_users_private_fields_not_in_response(client, db, user):
 
     body = response.json()
     assert set(body) == {
-        "name", "age", "municipality_name", "district", "image_url", "profile_text", "interests"
+        # age_hidden är alltid False för den som inte är moderator (SCRUM-134), så den avslöjar inget.
+        "name", "age", "age_hidden", "municipality_name", "district", "image_url", "profile_text", "interests"
     }
 
 

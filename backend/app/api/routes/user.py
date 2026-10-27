@@ -95,7 +95,7 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.api.people import to_person_response
+from app.api.people import to_person_response, visible_age
 from app.auth.security import (
     create_access_token,
     get_current_user,
@@ -369,7 +369,7 @@ def read_people(
         db, current_user.id, interest_id, municipality_code, hidden_ids,
         gender=gender, min_age=min_age, max_age=max_age,
     )
-    return [to_person_response(p.user) for p in profiles]
+    return [to_person_response(p.user, current_user) for p in profiles]
 
 
 @router.post(
@@ -430,10 +430,12 @@ def reset_suggestions(
     reset_dismissed_suggestions(db, current_user.id)
 
 
-def _to_public_response(profile) -> PublicProfileResponse:
+def _to_public_response(profile, viewer: User) -> PublicProfileResponse:
+    age, age_hidden = visible_age(profile, viewer)
     return PublicProfileResponse(
         name=profile.name,
-        age=calculate_age(profile.birth_date) if profile.birth_date else None,
+        age=age,
+        age_hidden=age_hidden,
         municipality_name=profile.municipality.name if profile.municipality else None,
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
@@ -460,4 +462,4 @@ def read_user_profile(
     profile = get_profile(db, user.id) if user else None
     if profile is None:
         raise HTTPException(status_code=404, detail="Ingen profil hittad")
-    return _to_public_response(profile)
+    return _to_public_response(profile, current_user)

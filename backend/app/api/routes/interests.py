@@ -200,7 +200,7 @@ def read_interest_people(
         municipality=MunicipalityRef(code=municipality.code, name=municipality.name) if municipality else None,
         ancestors=[InterestCount(id=a.id, name=a.name, **counts(a.id)) for a in ancestors],
         children=[InterestCountChild(id=c.id, name=c.name, has_children=c.id in with_children, **counts(c.id)) for c in children],
-        people=[to_person_response(p.user) for p in people],
+        people=[to_person_response(p.user, current_user) for p in people],
     )
 
 

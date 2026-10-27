@@ -134,7 +134,7 @@ def test_private_fields_not_in_response(client, db, user):
 
     body = client.get("/users/").json()[0]
 
-    assert set(body) == {"id", "username", "name", "age", "municipality_name", "district", "image_url", "interests"}
+    assert set(body) == {"id", "username", "name", "age", "age_hidden", "municipality_name", "district", "image_url", "interests"}
 
 
 def test_excludes_dismissed_suggestions(client, db, user):
