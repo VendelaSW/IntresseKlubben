@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { getBadges } from '../services/badges'
 import { getEvents } from '../services/events'
-import { getGroups, getMyGroups } from '../services/groups'
+import { getAllGroups, getMyGroups } from '../services/groups'
 import { getMyInterests } from '../services/interests'
 import { getProfile } from '../services/profile'
 import { activitiesFrom } from './mapPrototypeActivities'
@@ -85,7 +85,8 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
       getEvents(),
       getBadges(),
       getMyInterests(),
-      getGroups(),
+      // Ur det delade minnet: kartan har oftast redan hämtat dem (SCRUM-276).
+      getAllGroups(),
       getMyGroups(),
       allKommuner(),
     ]).then(([profile, events, badges, interests, publicGroups, myGroups, kommuner]) => {

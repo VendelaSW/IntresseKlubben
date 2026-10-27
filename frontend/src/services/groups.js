@@ -105,6 +105,20 @@ export function getGroups({ interestId, municipalityCode, q, sort, reverse, limi
   return apiGet(`/groups/${query ? `?${query}` : ''}`)
 }
 
+// Alla klubbar man kan hitta (GET /groups/ utan filter), för kartan och Att göra. Sparas i
+// minnet en kort stund (se queryClient.js), så att Att göra inte hämtar det kartan redan har
+// hämtat (SCRUM-276). Ligger under ['groups'], så den hämtas om när man går med i eller
+// lämnar en klubb (se changingMyGroups).
+export const allGroupsQuery = {
+  queryKey: ['groups', 'all'],
+  queryFn: () => getGroups(),
+  staleTime: 15 * SECOND,
+}
+
+export function getAllGroups() {
+  return queryClient.fetchQuery(allGroupsQuery)
+}
+
 export const MY_GROUPS_KEY = ['groups', 'mine']
 
 // Grupper man är med i, även privata. Sparas i minnet en kort stund (se

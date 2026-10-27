@@ -19,7 +19,7 @@ import { useBadgeCounts } from '../hooks/useBadgeCounts'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
 import { getEvents } from '../services/events'
 import { searchPlaces } from '../services/geocode'
-import { getGroups, getMyGroups } from '../services/groups'
+import { getAllGroups, getMyGroups } from '../services/groups'
 import { getProfile } from '../services/profile'
 import { HOUR, cachedInBrowser } from '../services/queryClient'
 import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
@@ -857,7 +857,7 @@ function MapPrototype() {
   async function loadActivities() {
     try {
       const [publicGroups, myGroups, events, kommuner] = await Promise.all([
-        getGroups(),
+        getAllGroups(),
         getMyGroups(),
         getEvents(),
         allKommuner(),

@@ -30,7 +30,10 @@ class EventRuleError(Exception):
 def _event_query(db: Session):
     return db.query(Event).options(
         selectinload(Event.interest),
-        selectinload(Event.group),
+        # Klubbens medlemmar och inbjudningar behövs för group_visible (SCRUM-276), så att en privat klubb inte ger
+        # en fråga per event.
+        selectinload(Event.group).selectinload(Group.members),
+        selectinload(Event.group).selectinload(Group.invitations),
         selectinload(Event.creator),
         selectinload(Event.invitations),
         selectinload(Event.responses),
