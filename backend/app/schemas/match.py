@@ -11,6 +11,8 @@ class MatchResponse(PersonResponse):
     """En föreslagen person: personkortet plus hur bra matchningen är."""
 
     percent: int  # 0-100, aldrig under MIN_SHOWN_PERCENT (services/matching.py)
+    # Nivån för poängen (LEVELS i services/matching.py): super, strong, good eller okay. Appen visar den, inte procenten.
+    level: Literal["super", "strong", "good", "okay"]
     shared_interests: list[str]  # namnen på intressen ni båda har valt
     low_confidence: bool  # True: baserat på lite information (få intressen, kort text eller en del saknas)
 

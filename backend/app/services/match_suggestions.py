@@ -10,7 +10,7 @@ Formeln finns i services/matching.py och är ren. Det här är det som hämtar d
   med samma resultat. Själva poängen räknas alltid i Python (matching.combine), så att vikterna går att ändra utan SQL.
 
 Den som själv inte har minst MIN_INTERESTS intressen och MIN_TEXT_CHARS tecken Om mig-text får inga förslag, bara besked om
-vad som saknas. Samma krav gäller dem som föreslås. Förslag under MIN_SHOWN_PERCENT tas inte med.
+vad som saknas. Samma krav gäller dem som föreslås. Förslag under den lägsta nivån (MIN_SHOWN_PERCENT) tas inte med. Poängen är sedd från den inloggades håll.
 """
 
 from dataclasses import dataclass, field
@@ -37,6 +37,7 @@ from app.services.matching import (
     MatchConfig,
     Person,
     Readiness,
+    blend_directions,
     combine,
     near_interests,
     readiness,
@@ -79,23 +80,23 @@ def _interests_by_user(db: Session, user_ids: set[int]) -> dict[int, set[int]]:
     return result
 
 
-def near_cosines(db: Session, mine: set[int], theirs: dict[int, set[int]]) -> dict[int, float]:
-    """Råa närliggande-värdet (se matching.near_interests) mellan mina intressen och varje persons, per användar-id. Personer
-    utan någon intressevektor saknas i svaret."""
+def near_cosines(db: Session, mine: set[int], theirs: dict[int, set[int]], forward_share: float = 0.5) -> dict[int, float]:
+    """Råa närliggande-värdet (se matching.near_interests) mellan mina intressen och varje persons, per användar-id, med
+    `forward_share` på mitt håll (hur nära hens intressen ligger mina). Personer utan någon intressevektor saknas i svaret."""
     if not mine or not theirs:
         return {}
     if _is_postgres(db):
-        return _near_in_postgres(db, mine, set(theirs))
+        return _near_in_postgres(db, mine, set(theirs), forward_share)
     ids = set(mine).union(*theirs.values())
     vectors = {i: list(v) for i, v in db.query(InterestEmbedding.interest_id, InterestEmbedding.embedding).filter(InterestEmbedding.interest_id.in_(ids))}
-    found = {user_id: near_interests(frozenset(mine), frozenset(interests), vectors) for user_id, interests in theirs.items()}
+    found = {user_id: near_interests(frozenset(mine), frozenset(interests), vectors, forward_share) for user_id, interests in theirs.items()}
     return {user_id: value for user_id, value in found.items() if value is not None}
 
 
-def _near_in_postgres(db: Session, mine: set[int], user_ids: set[int]) -> dict[int, float]:
-    """Samma som near_interests, men räknat av pgvector: för varje intresse hos mig det närmaste hos personen, och för varje
-    intresse hos personen det närmaste hos mig, och snittet av de två snitten. Intressen utan vektor finns inte med i
-    något av dem, precis som i near_interests."""
+def _near_in_postgres(db: Session, mine: set[int], user_ids: set[int], forward_share: float) -> dict[int, float]:
+    """Samma som near_interests, men räknat av pgvector: för varje intresse hos mig det närmaste hos personen (framåt), och för
+    varje intresse hos personen det närmaste hos mig (bakåt), snittet av vardera och de två blandade med `forward_share` på mitt
+    håll. Intressen utan vektor finns inte med i något av dem, precis som i near_interests."""
     my_side, their_side = aliased(InterestEmbedding), aliased(InterestEmbedding)
     distance = my_side.embedding.cosine_distance(their_side.embedding)
     base = (
@@ -115,11 +116,13 @@ def _near_in_postgres(db: Session, mine: set[int], user_ids: set[int]) -> dict[i
     for user_id, _, d in db.execute(closest_of_mine):
         backward.setdefault(user_id, []).append(1.0 - float(d))
 
-    result = {}
-    for user_id in forward.keys() | backward.keys():
-        sides = [sum(values) / len(values) for values in (forward.get(user_id), backward.get(user_id)) if values]
-        result[user_id] = sum(sides) / len(sides)
-    return result
+    def mean(values: list[float] | None) -> float | None:
+        return sum(values) / len(values) if values else None
+
+    return {
+        user_id: blend_directions(mean(forward.get(user_id)), mean(backward.get(user_id)), forward_share)
+        for user_id in forward.keys() | backward.keys()
+    }
 
 
 def text_cosines(db: Session, my_vector: list[float], profiles: dict[int, str]) -> dict[int, float]:
@@ -168,7 +171,7 @@ def suggestions_for(db: Session, user_id: int, limit: int, offset: int = 0, conf
         if readiness(Person(id=other_id, interests=frozenset(interests[other_id]), text_chars=len(text))).ok
     }
 
-    near = near_cosines(db, set(my_interests), {other_id: set(person.interests) for other_id, person in eligible.items()})
+    near = near_cosines(db, set(my_interests), {other_id: set(person.interests) for other_id, person in eligible.items()}, config.near_viewer_share)
     texts = text_cosines(db, me.text_vector, {people[other_id][0]: people[other_id][1] for other_id in eligible}) if me.text_vector else {}
     parents = load_tree(db).parents
 

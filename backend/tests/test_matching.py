@@ -6,13 +6,18 @@ import pytest
 
 from app.services.matching import (
     DEFAULT_CONFIG,
+    LEVELS,
     MIN_INTERESTS,
+    MIN_SHOWN_PERCENT,
     MIN_TEXT_CHARS,
-    Person,
     THIN_CHARS,
     THIN_INTERESTS,
+    MatchConfig,
+    Person,
+    blend_directions,
     combine,
     expand,
+    level_for,
     near_interests,
     readiness,
     score,
@@ -117,17 +122,41 @@ def test_a_better_match_scores_higher_than_a_worse_one():
     assert len(set(scores)) == 3
 
 
-def test_the_score_is_the_same_in_both_directions():
+def test_the_score_is_seen_from_the_first_person_so_covering_all_of_my_interests_counts_for_me():
+    few = person(1, [3, 4, 5])
+    many = person(2, [3, 4, 5, 10, 11, 13])  # har alla mina tre, och tre till som jag inte har
+    from_few = score(few, many, PARENTS, VECTORS).percent
+    from_many = score(many, few, PARENTS, VECTORS).percent
+    assert from_few > from_many
+    assert from_few >= 70  # alla mina intressen finns hos henne
+
+
+def test_with_no_viewer_weighting_the_score_is_the_same_in_both_directions():
+    symmetric = replace(DEFAULT_CONFIG, coverage_share=0.0, near_viewer_share=0.5)
     a = person(1, [3, 4], vector=[0.8, 0.6, 0.0])
     b = person(2, [4, 10, 13], chars=300, vector=[0.3, 0.9, 0.1])
-    assert score(a, b, PARENTS, VECTORS).percent == score(b, a, PARENTS, VECTORS).percent
+    assert score(a, b, PARENTS, VECTORS, symmetric).percent == score(b, a, PARENTS, VECTORS, symmetric).percent
+
+
+def test_tree_overlap_coverage_is_how_much_of_the_first_persons_interests_the_second_has():
+    few, many = frozenset({3, 4}), frozenset({3, 4, 10, 13})
+    assert tree_overlap(few, many, PARENTS, 0.5, coverage_share=1.0) == 1.0
+    assert tree_overlap(many, few, PARENTS, 0.5, coverage_share=1.0) < 1.0
+    assert tree_overlap(few, many, PARENTS, 0.5) == tree_overlap(many, few, PARENTS, 0.5)  # utan täckning ren Dice
+
+
+def test_blend_directions_weighs_the_viewers_direction_and_uses_the_one_that_exists():
+    assert blend_directions(0.9, 0.5, 0.7) == pytest.approx(0.78)
+    assert blend_directions(0.9, None, 0.7) == 0.9
+    assert blend_directions(None, 0.5, 0.7) == 0.5
+    assert blend_directions(None, None, 0.7) is None
 
 
 def test_the_score_stays_between_0_and_100_whatever_the_weights():
     a, b = person(1, [3, 4]), person(2, [4, 10], vector=[0.5, 0.5, 0.0])
-    for beta in (0, 0.5, 1, 3, 10):
+    for interest_weight in (0, 0.1, 1, 5):
         for text_weight in (0, 0.1, 1, 5):
-            config = replace(DEFAULT_CONFIG, beta=beta, weight_text=text_weight)
+            config = replace(DEFAULT_CONFIG, weight_interests=interest_weight, weight_text=text_weight)
             assert 0 <= score(a, b, PARENTS, VECTORS, config).percent <= 100
 
 
@@ -136,14 +165,67 @@ def test_the_weights_of_the_parts_add_up_to_one():
     assert sum(result.weights.values()) == pytest.approx(1.0)
 
 
-def test_a_strong_part_weighs_more_than_its_base_weight_and_without_beta_it_does_not():
+def test_each_part_weighs_its_base_weight_whatever_its_own_score():
     a = person(1, [3, 4, 5], vector=CLIMBING)
     b = person(2, [10, 11, 13], vector=CLIMBING)  # intressena skiljer sig helt, texten är identisk
-    plain = score(a, b, PARENTS, VECTORS, replace(NEUTRAL, beta=0.0))
-    boosted = score(a, b, PARENTS, VECTORS, replace(NEUTRAL, beta=0.5))
-    assert plain.weights["text"] == pytest.approx(0.35)
-    assert boosted.weights["text"] == pytest.approx(0.35 * 1.5 / (0.35 + 0.30 + 0.35 * 1.5))
-    assert boosted.percent > plain.percent
+    result = score(a, b, PARENTS, VECTORS, NEUTRAL)
+    assert result.weights == pytest.approx({"intressen": 0.35, "narliggande": 0.30, "text": 0.35})
+
+
+def test_levels_are_given_by_the_score_and_nothing_is_shown_below_the_lowest():
+    assert [level_for(p) for p in (100, 80, 79, 60, 59, 35, 34, 15, 14, 0)] == [
+        "super", "super", "strong", "strong", "good", "good", "okay", "okay", None, None,
+    ]
+    assert MIN_SHOWN_PERCENT == LEVELS[-1][0] == 15
+    assert score(person(1, [3, 4, 5]), person(2, [3, 4, 5]), PARENTS, VECTORS).level == "super"
+    assert score(person(1, [3, 4, 5]), person(2, [10, 11, 13], vector=MUSIC), PARENTS, VECTORS).level is None
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"near_hi": 0.45},
+        {"text_hi": 0.50},
+        {"tree_decay": 1.5},
+        {"coverage_share": -0.1},
+        {"near_viewer_share": 1.1},
+        {"reliable_interests": 0},
+        {"reliable_chars": 0},
+        {"reliability_floor": 2.0},
+        {"weight_text": -1.0},
+        {"weight_interests": 0.0, "weight_near": 0.0, "weight_text": 0.0},
+        {"weight_text": float("nan")},
+    ],
+)
+def test_a_broken_configuration_is_refused_at_once(change):
+    with pytest.raises(ValueError, match="MatchConfig"):
+        replace(DEFAULT_CONFIG, **change)
+
+
+def test_vectors_of_different_length_or_not_finite_are_an_error_not_a_score():
+    broken_length = person(2, [3, 4, 5], vector=[1.0, 0.0])
+    with pytest.raises(ValueError, match="olika längd"):
+        score(person(1, [3, 4, 5]), broken_length, PARENTS, VECTORS)
+    not_finite = person(2, [3, 4, 5], vector=[float("nan"), 0.0, 0.0])
+    with pytest.raises(ValueError, match="ändliga"):
+        score(person(1, [3, 4, 5]), not_finite, PARENTS, VECTORS)
+
+
+def test_a_zero_vector_gives_no_text_similarity_instead_of_an_error():
+    result = score(person(1, [3, 4, 5]), person(2, [3, 4, 5], vector=[0.0, 0.0, 0.0]), PARENTS, VECTORS)
+    assert result.parts["text"] == 0.0
+
+
+def test_cyclic_parent_links_do_not_hang():
+    cyclic = {1: 2, 2: 1, 3: 1}
+    assert expand(frozenset({3}), cyclic, 0.5) == {3: 1.0, 1: 0.5, 2: 0.25}
+    assert tree_overlap(frozenset({3}), frozenset({3}), cyclic, 0.5) == 1.0
+
+
+def test_empty_interest_sets_give_a_zero_overlap_and_no_near_value():
+    assert tree_overlap(frozenset(), frozenset(), PARENTS, 0.5) == 0.0
+    assert tree_overlap(frozenset({3}), frozenset(), PARENTS, 0.5, coverage_share=1.0) == 0.0
+    assert near_interests(frozenset(), frozenset({3}), VECTORS) is None
 
 
 def test_missing_text_vector_drops_the_text_part_and_marks_the_score_as_less_certain():

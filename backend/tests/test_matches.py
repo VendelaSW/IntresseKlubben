@@ -87,6 +87,8 @@ def test_best_match_comes_first_and_weak_ones_are_left_out(client, db, user, cli
     assert all(p >= 15 for p in percents)
     twin = body["matches"][0]
     assert twin["percent"] >= 90
+    assert twin["level"] == "super"
+    assert {m["level"] for m in body["matches"]} <= {"super", "strong", "good", "okay"}
     assert twin["shared_interests"] == ["Bouldering", "Sportklattring", "Vandring"]
     assert twin["low_confidence"] is True  # tre intressen är färre än fem
 
@@ -148,3 +150,17 @@ def test_a_text_vector_that_belongs_to_an_old_text_counts_as_missing(client, db,
     match = _matches(client)["matches"][0]
 
     assert match["low_confidence"] is True  # texten saknar en aktuell vektor, så poängen bygger bara på intressena
+
+
+def test_the_list_is_seen_from_the_one_asking_so_covering_all_my_interests_ranks_higher_for_me(client, db, user, climbing, music):
+    from app.auth.security import get_current_user
+    from app.main import app
+
+    _fill_profile(db, user, climbing)  # tre intressen
+    broad = _person(db, "broad", climbing + music, name="Broad")  # har alla mina och tre till
+
+    mine = _matches(client)["matches"][0]
+    app.dependency_overrides[get_current_user] = lambda: broad
+    theirs = next(m for m in _matches(client)["matches"] if m["name"] == user.username.title())
+
+    assert mine["percent"] > theirs["percent"]

@@ -46,6 +46,7 @@ def read_matches(
             MatchResponse(
                 **to_person_response(user).model_dump(),
                 percent=suggestion.match.percent,
+                level=suggestion.match.level,
                 shared_interests=shared,
                 low_confidence=suggestion.match.low_confidence,
             )

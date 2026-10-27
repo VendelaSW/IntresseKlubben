@@ -6,7 +6,7 @@ Kör från backend/ med virtuella miljön aktiv:
 
     python -m app.match_probe demo_alma                    # de 15 bästa och 5 sämsta för demo_alma
     python -m app.match_probe demo_alma --antal 30
-    python -m app.match_probe demo_alma --vikter 40,20,40 --beta 1.0    # prova andra vikter (intressen, närliggande, text)
+    python -m app.match_probe demo_alma --vikter 40,20,40    # prova andra vikter (intressen, närliggande, text)
 
 Bara läsning: skriptet ändrar ingenting och anropar ingen AI, det läser de vektorer som redan är sparade. Det läser ur den databas
 som DATABASE_URL pekar på (i vanliga fall den gemensamma Neon-databasen) och skriver ut vilken. Kör `python -m app.sync_embeddings`
@@ -73,19 +73,16 @@ def main() -> None:
     parser.add_argument("username", help="användarnamnet på profilen att matcha, till exempel demo_alma")
     parser.add_argument("--antal", type=int, default=15, help="hur många av de bästa som visas (standard 15)")
     parser.add_argument("--vikter", type=parse_weights, help="vikter för intressen, närliggande och text, till exempel 35,25,40")
-    parser.add_argument("--beta", type=float, help="hur mycket extra en stark del väger (standard %s)" % DEFAULT_CONFIG.beta)
     args = parser.parse_args()
 
     config = DEFAULT_CONFIG
     if args.vikter:
         config = replace(config, weight_interests=args.vikter[0], weight_near=args.vikter[1], weight_text=args.vikter[2])
-    if args.beta is not None:
-        config = replace(config, beta=args.beta)
 
     url = make_url(settings.database_url)
     print(f"Databas: {url.host or url.database} ({url.get_backend_name()}), bara läsning")
     print(
-        f"Vikter: intressen {config.weight_interests}, närliggande {config.weight_near}, text {config.weight_text}, beta {config.beta}"
+        f"Vikter: intressen {config.weight_interests}, närliggande {config.weight_near}, text {config.weight_text}"
     )
 
     db = SessionLocal()
