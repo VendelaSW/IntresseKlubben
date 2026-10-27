@@ -105,9 +105,11 @@ export function activitiesFrom({ groups, events, kommuner }) {
 // Kopplar lapparna till kartan. `getKommun()` ger den valda kommunen
 // (kommunkod) på kommunnivå, annars null: lapparna syns bara då, och bara den
 // kommunens klubbar och events. `onPick(item, compact)` anropas vid klick,
-// med om lappen var hopfälld till en ikon. Returnerar
+// med om lappen var hopfälld till en ikon. `getFixed()` ger rektanglar som
+// står still (symbolerna för klubbar utan nål, se mapPrototypeAreaClubs.js):
+// lapparna flyttas undan för dem. Returnerar
 // { setItems, getItem, highlight, render }.
-export function attachActivityMarkers(map, layer, { getKommun, onPick }) {
+export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed = () => [] }) {
   let items = []
 
   // Lapparna ritas om när kartan rör sig, så en lapp som har
@@ -143,9 +145,21 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick }) {
       p.w = p.el.offsetWidth
       p.h = p.el.offsetHeight
     }
+    const fixed = getFixed()
     for (let pass = 0; pass < 8; pass++) {
       placed.sort((a, b) => a.y - b.y)
       let changed = false
+      // En lapp som täcker en symbol flyttas ovanför eller under den (dit den har närmast).
+      for (const p of placed) {
+        for (const f of fixed) {
+          const left = p.x - p.w / 2
+          const top = p.y - p.h / 2
+          if (left < f.right && left + p.w > f.left && top < f.bottom && top + p.h > f.top) {
+            p.y = p.y < (f.top + f.bottom) / 2 ? f.top - p.h / 2 - GAP_PX : f.bottom + p.h / 2 + GAP_PX
+            changed = true
+          }
+        }
+      }
       for (let i = 0; i < placed.length; i++) {
         for (let j = i + 1; j < placed.length; j++) {
           const a = placed[i]

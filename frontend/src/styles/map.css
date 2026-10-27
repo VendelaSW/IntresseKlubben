@@ -554,6 +554,15 @@
   translate: -5px 5px;
 }
 
+/* Utzoomat (is-compact) bara ikonen på högen, som lapparna; namnet syns när man hovrar. */
+.map-activity.is-area.is-compact {
+  padding: 0;
+}
+
+.map-activity.is-area.is-compact .map-area-card {
+  padding: 0.25rem 0.55rem 0.25rem 0.25rem;
+}
+
 .map-activity.is-area:hover,
 .map-activity.is-area.is-open {
   rotate: 0deg;

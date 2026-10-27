@@ -865,9 +865,9 @@ function MapPrototype() {
       const groups = [...new Map([...publicGroups, ...myGroups].map((g) => [g.id, g])).values()]
       kommunerRef.current = kommuner
       const items = activitiesFrom({ groups, events, kommuner })
-      activitiesRef.current?.setItems(items)
-      // Efter lapparna, så att symbolerna kan flyttas undan för dem.
+      // Symbolerna först, så att lapparna kan flytta sig undan för dem.
       areaClubsRef.current?.setAreas(areaClubsFrom(groups, kommuner))
+      activitiesRef.current?.setItems(items)
       // Samma klubbar och events går att söka fram i sökrutan (se MapPlaceSearch).
       setActivityItems(items)
     } catch {
@@ -980,8 +980,8 @@ function MapPrototype() {
     // täcker allt utom det valda landskapet på landskapsnivån, så rita om.
     labelsApiRef.current?.render()
     outsideApiRef.current?.render()
-    activitiesRef.current?.render()
     areaClubsRef.current?.render()
+    activitiesRef.current?.render()
     const hidden = next === 'sverige' ? HIDDEN_ON_SWEDEN : next === 'landskap' ? HIDDEN_ON_LANDSKAP : []
     const shown = next === 'landskap' ? SHOWN_ON_LANDSKAP : []
     for (const layer of [...HIDDEN_ON_LANDSKAP, ...SHOWN_ON_LANDSKAP]) {
@@ -1352,10 +1352,7 @@ function MapPrototype() {
       onHoverLan: (id) => setHoveredLan(id),
     })
     startAtHome(map)
-    activitiesRef.current = attachActivityMarkers(map, activitiesLayerRef.current, {
-      getKommun: () => selectedKommunRef.current,
-      onPick: (item, compact) => pickActivityRef.current(item, compact),
-    })
+    // Symbolerna före lapparna, så att de ritas först när kartan rör sig och lapparna kan flytta sig undan.
     areaClubsRef.current = attachAreaClubs(map, areaClubsLayerRef.current, {
       getView: () => ({
         mode: modeRef.current,
@@ -1364,9 +1361,11 @@ function MapPrototype() {
         kommun: selectedKommunRef.current,
       }),
       onOpen: (group) => openActivityRef.current({ type: 'klubb', id: group.id }),
-      // Lapparna (events och klubbar med nål), som symbolerna flyttas undan för.
-      getObstacles: () =>
-        [...activitiesLayerRef.current.querySelectorAll('.map-activity')].map((el) => el.getBoundingClientRect()),
+    })
+    activitiesRef.current = attachActivityMarkers(map, activitiesLayerRef.current, {
+      getKommun: () => selectedKommunRef.current,
+      onPick: (item, compact) => pickActivityRef.current(item, compact),
+      getFixed: () => areaClubsRef.current?.boxes() ?? [],
     })
     loadActivities()
     labelsApiRef.current = labelsApi

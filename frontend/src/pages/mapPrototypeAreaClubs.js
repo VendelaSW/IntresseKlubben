@@ -9,8 +9,13 @@
 // Ett klick på symbolen öppnar en lista med klubbarna i området, och ett klick i
 // listan öppnar klubben. Klubbar med nål har kvar sina lappar (se
 // mapPrototypeActivities.js).
+//
+// Symbolen står still på sin plats på kartan, som lapparna: det är lapparna
+// (events och klubbar med nål) som flyttas undan för den. Utzoomat är den, som
+// lapparna, bara högen med antalet; namnet syns när man hovrar.
 
 import klubbarIcon from '../assets/klubbar.png'
+import { FULL_ZOOM } from './mapPrototypeActivities'
 import { LANDSKAP_LABELS, LAN_LABELS } from './mapPrototypeStyle'
 
 // Var symbolerna för hela Sverige och landsdelarna står: ungefär mitt i varje
@@ -25,9 +30,6 @@ function lanPoint(code) {
 }
 
 const landskapPoint = (code) => LANDSKAP_LABELS.find((l) => String(l.id) === code)?.lngLat ?? null
-
-// Så långt in från kartans kant står en symbol som annars skulle hamna utanför.
-const EDGE_PX = 90
 
 const countText = (n) => (n === 1 ? '1 klubb' : `${n} klubbar`)
 
@@ -59,29 +61,14 @@ export function areaClubsFrom(groups, kommuner) {
   return [...areas.values()]
 }
 
-// Luft i pixlar mellan symbolen och en lapp den flyttas undan för.
+// Luft i pixlar mellan symbolen och listan under den.
 const GAP_PX = 6
-
-// Hela symbolens yta på skärmen (lappen, stämpeln och lapparna bakom), relativt lagret.
-function outline(el, origin) {
-  const boxes = [el, ...el.children].map((e) => e.getBoundingClientRect())
-  // Lapparna bakom är ::before och ::after och syns inte som barn: räkna med lite luft för dem.
-  const slack = 8
-  return {
-    left: Math.min(...boxes.map((b) => b.left)) - origin.left - slack,
-    right: Math.max(...boxes.map((b) => b.right)) - origin.left + slack,
-    top: Math.min(...boxes.map((b) => b.top)) - origin.top,
-    bottom: Math.max(...boxes.map((b) => b.bottom)) - origin.top + slack,
-  }
-}
 
 // Kopplar symbolerna till kartan. `getView()` ger { mode, landskap, lan, kommun }
 // (landskapets namn, länskod och kommunkod för det som är valt). `onOpen(group)`
-// öppnar en klubb. `getObstacles()` ger lapparna som redan står på kartan
-// (events och klubbar med nål, se mapPrototypeActivities.js) som rektanglar på
-// skärmen: symbolen flyttas nedåt tills den inte täcker någon. Returnerar
-// { setAreas, render }.
-export function attachAreaClubs(map, layer, { getView, onOpen, getObstacles = () => [] }) {
+// öppnar en klubb. Returnerar { setAreas, render, boxes }: boxes() ger
+// symbolernas rektanglar på skärmen, som lapparna flyttas undan för.
+export function attachAreaClubs(map, layer, { getView, onOpen }) {
   let areas = []
   let openKey = null // symbolen vars lista är öppen
 
@@ -103,49 +90,38 @@ export function attachAreaClubs(map, layer, { getView, onOpen, getObstacles = ()
     if (!shown.some((a) => a.key === openKey)) openKey = null
     const width = layer.clientWidth
     const height = layer.clientHeight
-    const els = []
+    const compact = map.getZoom() < FULL_ZOOM
+    const placed = []
     for (const area of shown) {
-      // Symbolen hör till nivån man är på, så den ska alltid synas: hamnar områdets punkt utanför
-      // kartan (t.ex. inzoomat på centralorten) står den vid närmaste kant i stället.
-      const point = map.project(area.lngLat)
-      const x = Math.min(Math.max(point.x, EDGE_PX), width - EDGE_PX)
-      const y = Math.min(Math.max(point.y, EDGE_PX), height - EDGE_PX)
-      els.push({ el: symbolEl(area), area, x, y })
+      const { x, y } = map.project(area.lngLat)
+      if (x < -200 || x > width + 200 || y < -200 || y > height + 200) continue
+      const el = symbolEl(area, compact && area.key !== openKey)
+      el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`
+      placed.push({ el, area, x, y })
     }
-    layer.replaceChildren(...els.map((p) => p.el))
-    // Flytta undan symbolerna från lapparna (och från varandra), nedåt, några varv.
-    const origin = layer.getBoundingClientRect()
-    const taken = getObstacles().map((r) => ({
-      left: r.left - origin.left,
-      right: r.right - origin.left,
-      top: r.top - origin.top,
-      bottom: r.bottom - origin.top,
-    }))
-    for (const p of els) {
-      // Mät var symbolen faktiskt hamnar (med stämpeln och lapparna bakom, som sticker ut och lutar) och
-      // flytta den nedåt förbi lappen den täcker, tills den står fritt.
-      let box = null
-      for (let pass = 0; pass < 12; pass++) {
-        p.el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`
-        box = outline(p.el, origin)
-        const hit = taken.find((t) => box.left < t.right && box.right > t.left && box.top < t.bottom && box.bottom > t.top)
-        if (!hit) break
-        p.y += hit.bottom - box.top + GAP_PX
-      }
-      taken.push(box)
-      const h = p.el.offsetHeight
-      if (p.area.key === openKey) {
-        const list = listEl(p.area)
-        list.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, ${h / 2 + GAP_PX}px)`
-        layer.append(list)
-      }
+    layer.replaceChildren(...placed.map((p) => p.el))
+    for (const p of placed) {
+      if (p.area.key !== openKey) continue
+      const list = listEl(p.area)
+      list.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, ${p.el.offsetHeight / 2 + GAP_PX}px)`
+      layer.append(list)
     }
   }
 
-  function symbolEl(area) {
+  // Symbolernas rektanglar, relativt kartan, för lapparna att flytta sig undan för.
+  function boxes() {
+    const origin = layer.getBoundingClientRect()
+    return [...layer.querySelectorAll('.map-activity.is-area')].map((el) => {
+      const r = el.getBoundingClientRect()
+      // Stämpeln och lapparna bakom sticker ut lite.
+      return { left: r.left - origin.left - 8, right: r.right - origin.left + 8, top: r.top - origin.top - 10, bottom: r.bottom - origin.top + 8 }
+    })
+  }
+
+  function symbolEl(area, compact) {
     const el = document.createElement('button')
     el.type = 'button'
-    el.className = `map-activity is-klubb is-area${area.key === openKey ? ' is-open' : ''}`
+    el.className = `map-activity is-klubb is-area${area.key === openKey ? ' is-open' : ''}${compact ? ' is-compact' : ''}`
     el.dataset.area = area.key
     el.setAttribute('aria-expanded', String(area.key === openKey))
     el.title = `Klubbar för ${area.name} (${countText(area.clubs.length)})`
@@ -240,5 +216,6 @@ export function attachAreaClubs(map, layer, { getView, onOpen, getObstacles = ()
       render()
     },
     render,
+    boxes,
   }
 }
