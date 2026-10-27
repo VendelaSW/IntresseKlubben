@@ -100,6 +100,8 @@ function PersonCard({ person, sharedInterestIds, reason, actions }) {
         <p className="card-title">
           {displayName}
           {person.age ? `, ${person.age}` : ''}
+          {/* Bara moderatorer ser en dold ålder (SCRUM-134), och då med en markering. */}
+          {person.age && person.age_hidden ? <span className="hint-text"> (dold för andra)</span> : null}
         </p>
         {place && <p className="card-subheading">{place}</p>}
       </Link>

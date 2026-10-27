@@ -90,7 +90,7 @@ function GroupDetails({
         {group.is_member && group.has_blocked_member && (
           <p className="soft-box soft-box-wide soft-box-text">Någon du har blockerat är med i den här klubben.</p>
         )}
-        <InterestTags interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area }]} />
+        <InterestTags interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area, area_slug: group.interest_area_slug }]} />
         <div className="card-actions">
           <RoleBadge group={group} />
           {group.visibility === 'private' && <span className="status-pill">Privat</span>}

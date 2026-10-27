@@ -269,7 +269,9 @@ class EventOut(BaseModel):
     description: str
     interest_id: int
     interest_name: str
-    interest_area: str  # huvudområdet, som taggens färg följer (se Interest.area)
+    # Huvudområdet och dess slug, som taggens färg följer (se crud/interest.py, InterestPlace).
+    interest_area: str
+    interest_area_slug: str | None
     starts_at: datetime
     ends_at: datetime | None
     place_name: str

@@ -6,10 +6,12 @@
 // blir egna taggar (de är inte fler än tre som är kvar under Gaming).
 const GROUP_AFTER = 3
 
-// `items` är [{ key, name, path, area }], där path är namnen ovanför intresset
-// i trädet, uppifrån ([] för ett huvudområde). area (huvudområdet, för färgen)
-// behövs bara när path saknas, som för ett events eller en klubbs intresse. Ger [{ key, name, area, subs:
-// [{ key, name }], removable }] i samma ordning som intressena. removable är
+// `items` är [{ key, name, path, area, areaSlug }], där path är namnen ovanför
+// intresset i trädet, uppifrån ([] för ett huvudområde). area (huvudområdets
+// namn) behövs bara när path saknas, som för ett events eller en klubbs intresse,
+// och areaSlug är huvudområdets slug, som färgen slås upp på (se
+// utils/interestColors.js). Ger [{ key, name, area, areaSlug, subs: [{ key, name
+// }], removable }] i samma ordning som intressena. removable är
 // false för en kategori som bara visas för att samla intressena (den är inte
 // vald och går inte att ta bort).
 export function groupTags(items) {
@@ -32,6 +34,7 @@ export function groupTags(items) {
       key: chosen ? chosen.key : `kategori:${at}`,
       name: path.at(-1),
       area: path[0],
+      areaSlug: under[0].areaSlug,
       subs: under.map((i) => ({ key: i.key, name: i.name })),
       removable: Boolean(chosen),
     }
@@ -42,15 +45,18 @@ export function groupTags(items) {
   for (const item of items) {
     const group = groupOf.get(item.key)
     const area = item.area ?? item.path[0] ?? item.name
-    if (!group) result.push({ key: item.key, name: item.name, area, subs: [], removable: true })
+    if (!group) result.push({ key: item.key, name: item.name, area, areaSlug: item.areaSlug, subs: [], removable: true })
     else if (!result.includes(group)) result.push(group)
   }
   return result
 }
 
 // Intressen som grupper. Nycklarna är id:na. Intressena kommer från en profil
-// eller från sökningen och Utforska när profilen skapas (med path), eller är ett
-// events eller en klubbs enda intresse (bara area).
+// eller från sökningen och biblioteket när profilen skapas (med path), eller är
+// ett events eller en klubbs enda intresse (bara area). area_slug är
+// huvudområdets slug, när den finns.
 export function groupInterests(interests) {
-  return groupTags(interests.map((i) => ({ key: i.id, name: i.name, path: i.path ?? [], area: i.area })))
+  return groupTags(
+    interests.map((i) => ({ key: i.id, name: i.name, path: i.path ?? [], area: i.area, areaSlug: i.area_slug })),
+  )
 }

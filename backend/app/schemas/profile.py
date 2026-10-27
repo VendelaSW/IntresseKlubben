@@ -76,6 +76,8 @@ class ProfileCreate(BaseModel):
     district: str | None = None
     # Får andra hitta en när de filtrerar Personer på kön? Av som standard.
     gender_searchable: bool = False
+    # Dölj åldern för andra (SCRUM-134).
+    age_hidden: bool = False
 
     @field_validator("name")
     @classmethod
@@ -124,6 +126,8 @@ class ProfileUpdate(BaseModel):
     district: str | None = None
     profile_text: str | None = None
     gender_searchable: bool | None = None
+    # Dölj åldern för andra (SCRUM-134).
+    age_hidden: bool | None = None
 
     @field_validator("name")
     @classmethod
@@ -159,6 +163,7 @@ class ProfileResponse(BaseModel):
     age: int | None
     gender: GenderEnum | None
     gender_searchable: bool
+    age_hidden: bool
     municipality_code: str | None
     municipality_name: str | None
     district: str | None
@@ -173,7 +178,10 @@ class PublicProfileResponse(BaseModel):
     # ska visa för andra. Intressena syns redan på personkorten (PersonResponse),
     # så de är inte privata.
     name: str | None
+    # None om personen har dolt sin ålder (SCRUM-134), utom för moderatorer, som alltid ser den och då
+    # får age_hidden True.
     age: int | None
+    age_hidden: bool = False
     municipality_name: str | None
     district: str | None
     image_url: str | None
@@ -189,7 +197,9 @@ class PersonResponse(BaseModel):
     id: int
     username: str
     name: str | None
+    # Som i PublicProfileResponse: None om åldern är dold, utom för moderatorer.
     age: int | None
+    age_hidden: bool = False
     municipality_name: str | None
     district: str | None
     image_url: str | None

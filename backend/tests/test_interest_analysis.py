@@ -1,6 +1,8 @@
 """POST /interests/analyze: från fri text till förslag på intressen, med sigill. Inga riktiga anrop: modellerna och
 moderingen ersätts av falska klienter."""
 
+import json
+
 import pytest
 
 from app.api.routes import interest_analysis as route
@@ -44,12 +46,19 @@ def tree(*interests):
     return {"interests": [{"name": n, "aliases": [], "subtags": [{"name": s, "aliases": []} for s in subs]} for n, subs in interests]}
 
 
-def ai(extract=None, judge=None, match=None, clarify=None, activities=None, flagged=()):
-    """Falska klienter. Varje steg svarar med det som anges, annars med 'inget'."""
+def keep_all(call):
+    """Kontrollen av skyddsnätet som behåller alla träffar (listan står sist i meddelandet, se check_message)."""
+    return {"keep": json.loads(call.user.rpartition("Intressen:\n")[2])}
+
+
+def ai(extract=None, judge=None, check=None, match=None, clarify=None, activities=None, flagged=()):
+    """Falska klienter. Varje steg svarar med det som anges, annars med 'inget' (kontrollen av skyddsnätet
+    behåller då alla träffar)."""
     llm = FakeLLM(
         {
             "interests": extract if extract is not None else tree(),
             "judge": judge if judge is not None else {"remove": []},
+            "check": check if check is not None else keep_all,
             "match": match if match is not None else {"decisions": []},
             "clarify": clarify if clarify is not None else {"decisions": []},
             "activities": activities if activities is not None else {"suggestions": []},
@@ -169,7 +178,7 @@ def test_the_seal_covers_exactly_the_proposals_and_what_is_allowed_for_each(clie
     ai(extract=tree(("hårdrock", [])), clarify=clarify_for(("t1", "spela", [], "none")))
     body = analyze(client).json()
     assert read_token(body["token"], user.id) == [
-        {"key": "p1", "activity": "spela", "allowed": ["lyssna", "spela", "skapa", "besoka"], "interest_id": library["metal"].id}
+        {"key": "p1", "activity": "spela", "allowed": ["lyssna", "spela", "skapa", "besoka", "utova"], "interest_id": library["metal"].id}
     ]
 
 
@@ -225,8 +234,9 @@ def test_when_the_model_finds_nothing_a_known_alias_in_the_text_is_used(client, 
     llm, moderator = ai(extract=tree())
     proposals = analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"]
     assert [p["interest"]["name"] for p in proposals] == ["Metal"]
-    assert [call.name for call in llm.calls] == ["interests"]  # inget mer anrop till modellen
-    assert moderator.batches == [["Jag är intresserad av Metal."]]  # men träffen modereras som modellens taggar
+    # Bara ett litet anrop till: en modell kontrollerar att personen har träffen i dag (SCRUM-261).
+    assert [call.name for call in llm.calls] == ["interests", "check"]
+    assert moderator.batches == [["Jag är intresserad av Metal."]]  # och träffen modereras som modellens taggar
 
 
 def test_the_safety_net_finds_a_simple_form_of_a_word(client, user, library):
@@ -270,6 +280,38 @@ def test_the_safety_net_is_not_used_for_something_the_person_stopped_doing(clien
 def test_a_hit_from_the_safety_net_that_moderation_flags_is_removed(client, user, library):
     ai(extract=tree(), flagged=["Jag är intresserad av Metal."])
     assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"] == []
+
+
+def test_the_check_removes_a_hit_where_the_word_means_something_else(client, user, library, db):
+    # "kör" är alias till Sjunga i kör, men "Jag kör bil" handlar inte om körsång (SCRUM-261).
+    db.add(Interest(name="Sjunga i kör", slug="sjunga-i-kor", parent_id=library["musik"].id, aliases="kör"))
+    db.commit()
+    llm, _ = ai(check={"keep": []})
+    assert analyze(client, "Jag kör bil till jobbet, mest på morgonen").json()["proposals"] == []
+    assert keep_all(llm.calls_named("check")[0]) == {"keep": ["Sjunga i kör"]}  # träffen som kontrollerades
+
+
+def test_the_check_keeps_only_what_the_person_has_today(client, user, library):
+    ai(check={"keep": ["Katter"]})
+    proposals = analyze(client, "Jag älskar katterna, och hårdrock var mitt allt, mest på kvällarna").json()["proposals"]
+    assert [p["interest"]["name"] for p in proposals] == ["Katter"]
+
+
+def test_the_check_cannot_add_something_the_safety_net_did_not_find(client, user, library):
+    ai(check={"keep": ["Metal", "Jazz"]})
+    proposals = analyze(client, "Jag älskar hårdrock, mest på kvällarna").json()["proposals"]
+    assert [p["interest"]["name"] for p in proposals] == ["Metal"]
+
+
+def test_the_check_is_not_called_when_the_safety_net_finds_nothing(client, user, library):
+    llm, _ = ai()
+    assert analyze(client, "Jag tycker om att vara ute i solen, mest på kvällarna").json()["proposals"] == []
+    assert [call.name for call in llm.calls] == ["interests"]
+
+
+def test_a_check_that_cannot_run_gives_503(client, user, library):
+    ai(check=AIFailed("URLError"))
+    assert analyze(client, "Jag älskar hårdrock, mest på kvällarna").status_code == 503
 
 
 def test_moderation_that_cannot_run_for_a_safety_net_hit_gives_503(client, user, library):
@@ -372,7 +414,7 @@ def test_a_known_interest_is_suggested_without_any_ai_call(client, user, library
     assert proposal["interest"] == {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "is_new": False, "parent_key": None}
     assert llm.calls == [] and moderator.batches == []
     assert read_token(response.json()["token"], user.id) == [
-        {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka"], "interest_id": library["metal"].id}
+        {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka", "utova"], "interest_id": library["metal"].id}
     ]
 
 
@@ -492,7 +534,7 @@ def test_a_chosen_existing_interest_gets_a_seal_without_any_ai_call(client, user
     assert proposal["interest"] == {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "is_new": False, "parent_key": None}
     assert llm.calls == [] and moderator.batches == []
     assert read_token(response.json()["token"], user.id) == [
-        {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka"], "interest_id": library["metal"].id}
+        {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka", "utova"], "interest_id": library["metal"].id}
     ]
 
 
@@ -565,9 +607,21 @@ def test_with_follow_ups_off_the_model_is_asked_about_neither_activities_nor_que
     llm, _ = ai(extract=tree(("hårdrock", []), ("katter", [])), clarify=clarify_for(("t1", "spela", [], "none")))
     body = analyze(client, "Jag spelar hårdrock och har katter.").json()
     assert {call.name for call in llm.calls} == {"interests", "judge"}  # inget anrop om följdfrågor eller aktiviteter
-    assert [p["activity"] for p in body["proposals"]] == ["", ""]  # aktiviteten ur texten läses inte ut
+    # Följdfrågornas aktiviteter ("spela") läses inte ut. Om personen själv håller på med intresset kommer bara ur
+    # utläsningen (practices, SCRUM-271), och den säger det inte här.
+    assert [p["activity"] for p in body["proposals"]] == ["", ""]
     claims = read_token(body["token"], user.id)
-    assert [c["allowed"] for c in claims] == [["lyssna", "spela", "skapa", "besoka"], []]  # Katter har ingen lista i biblioteket
+    # Att man själv håller på med intresset (utova) går alltid, också när intresset inte har någon egen lista (Katter).
+    assert [c["allowed"] for c in claims] == [["lyssna", "spela", "skapa", "besoka", "utova"], ["utova"]]
+
+
+def test_an_interest_the_person_does_themselves_is_proposed_as_practising(client, user, library):
+    extract = tree(("hårdrock", []), ("katter", []))
+    extract["interests"][0]["practices"] = True
+    ai(extract=extract)
+    body = analyze(client, "Jag spelar hårdrock och gillar katter.").json()
+    assert [(p["interest"]["name"], p["activity"]) for p in body["proposals"]] == [("Metal", "utova"), ("Katter", "")]
+    assert [c["activity"] for c in read_token(body["token"], user.id)] == ["utova", ""]
 
 
 def test_follow_up_questions_are_sent_when_they_are_switched_on(client, user, library, monkeypatch):

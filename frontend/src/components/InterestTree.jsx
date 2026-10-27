@@ -83,7 +83,9 @@ function InterestTree({ proposals, onRemove, highlight, busyKey, align = 'center
     const parent = p.interest.parent_key && byKey.get(p.interest.parent_key)
     return parent ? [...pathOf(parent), parent.interest.name] : (p.interest.path ?? [])
   }
-  const groups = groupTags(proposals.map((p) => ({ key: p.key, name: p.interest.name, path: pathOf(p) })))
+  const groups = groupTags(
+    proposals.map((p) => ({ key: p.key, name: p.interest.name, path: pathOf(p), areaSlug: p.interest.area_slug })),
+  )
   return (
     <ul className={`interest-tags${align === 'start' ? '' : ' interest-tags-center'}`}>
       {groups.map((group) => (
