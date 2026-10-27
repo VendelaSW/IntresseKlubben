@@ -1,7 +1,7 @@
 """profiles: age_hidden (dölj åldern för andra)
 
 Revision ID: c4f8a2d6e190
-Revises: e5b7c9d1f346
+Revises: b6d2f4a8c913
 Create Date: 2026-10-27 20:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'c4f8a2d6e190'
-down_revision = 'e5b7c9d1f346'
+down_revision = 'b6d2f4a8c913'
 branch_labels = None
 depends_on = None
 
