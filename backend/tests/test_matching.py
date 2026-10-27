@@ -9,6 +9,9 @@ from app.services.matching import (
     MIN_INTERESTS,
     MIN_TEXT_CHARS,
     Person,
+    THIN_CHARS,
+    THIN_INTERESTS,
+    combine,
     expand,
     near_interests,
     readiness,
@@ -176,3 +179,27 @@ def test_a_thin_text_counts_less_against_a_strong_text_match():
     long_text = score(a, person(2, unrelated, chars=700, vector=CLIMBING), PARENTS, VECTORS)
     short_text = score(a, person(3, unrelated, chars=MIN_TEXT_CHARS, vector=CLIMBING), PARENTS, VECTORS)
     assert short_text.weights["text"] < long_text.weights["text"]
+
+
+def test_combine_gives_the_same_score_as_score_from_the_same_cosines():
+    a = person(1, [3, 4, 5], vector=[0.8, 0.6, 0.0])
+    b = person(2, [4, 10], chars=300, vector=[0.3, 0.9, 0.1])
+    via_vectors = score(a, b, PARENTS, VECTORS)
+    via_cosines = combine(a, b, PARENTS, via_vectors.raw["narliggande"], via_vectors.raw["text"])
+    assert via_cosines.percent == via_vectors.percent
+    assert via_cosines.parts == via_vectors.parts
+
+
+def test_combine_without_a_cosine_drops_that_part_and_is_less_certain():
+    result = combine(person(1, range(THIN_INTERESTS), chars=THIN_CHARS), person(2, range(THIN_INTERESTS), chars=THIN_CHARS), PARENTS, None, None)
+    assert set(result.parts) == {"intressen"}
+    assert not result.complete
+    assert result.low_confidence
+
+
+def test_a_match_is_marked_uncertain_when_either_has_few_interests_or_a_short_text():
+    full = dict(chars=THIN_CHARS)
+    enough = list(range(THIN_INTERESTS))
+    assert not score(person(1, enough, **full), person(2, enough, **full), PARENTS, VECTORS).low_confidence
+    assert score(person(1, enough, **full), person(2, enough[:-1], **full), PARENTS, VECTORS).low_confidence
+    assert score(person(1, enough, **full), person(2, enough, chars=THIN_CHARS - 1), PARENTS, VECTORS).low_confidence

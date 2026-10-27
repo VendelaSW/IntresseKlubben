@@ -41,6 +41,12 @@ from app.services.interest_embeddings import _cosine_similarity
 MIN_INTERESTS = 3
 MIN_TEXT_CHARS = 100
 
+# Förslag under den här poängen visas inte, så att listan tar slut hellre än fylls med svaga träffar.
+MIN_SHOWN_PERCENT = 15
+# Under det här hos någon av de två är poängen mindre säker (low_confidence), och appen visar "baserat på lite information".
+THIN_INTERESTS = 5
+THIN_CHARS = 200
+
 PART_NAMES = ("intressen", "narliggande", "text")
 
 
@@ -87,6 +93,7 @@ class Match:
     reliability: dict[str, float]
     shared: frozenset[int]  # intressen de båda har valt
     complete: bool  # False om någon del saknades och poängen därför är mindre säker
+    low_confidence: bool  # True om någon del saknades eller någon av dem har få intressen eller kort text
     raw: dict[str, float] = field(default_factory=dict)  # de råa cosinusvärdena, för att ställa in gränserna
 
 
@@ -168,24 +175,40 @@ def score(
     interest_vectors: dict[int, list[float]],
     config: MatchConfig = DEFAULT_CONFIG,
 ) -> Match | None:
-    """Poängen för paret, eller None om ingen del gick att räkna. Kontrollerar inte minimikraven (se readiness)."""
+    """Poängen för paret ur personernas vektorer, eller None om ingen del gick att räkna. Kontrollerar inte minimikraven
+    (se readiness)."""
+    near = near_interests(a.interests, b.interests, interest_vectors)
+    text = None if a.text_vector is None or b.text_vector is None else _cosine_similarity(a.text_vector, b.text_vector)
+    return combine(a, b, parents, near, text, config)
+
+
+def combine(
+    a: Person,
+    b: Person,
+    parents: dict[int, int | None],
+    near: float | None,
+    text_cosine: float | None,
+    config: MatchConfig = DEFAULT_CONFIG,
+) -> Match | None:
+    """Poängen ur de råa cosinusvärdena `near` (närliggande intressen, se near_interests) och `text_cosine`, None när
+    de saknas. Det här är sättet att räkna när likheterna kommer från databasen (services/match_suggestions.py) och
+    inte från vektorer i minnet."""
     c = config
     parts: dict[str, float] = {"intressen": tree_overlap(a.interests, b.interests, parents, c.tree_decay)}
     raw: dict[str, float] = {}
     complete = True
 
-    near = near_interests(a.interests, b.interests, interest_vectors)
     if near is None:
         complete = False
     else:
         raw["narliggande"] = near
         parts["narliggande"] = _calibrate(near, c.near_lo, c.near_hi)
 
-    if a.text_vector is None or b.text_vector is None:
+    if text_cosine is None:
         complete = False
     else:
-        raw["text"] = _cosine_similarity(a.text_vector, b.text_vector)
-        parts["text"] = _calibrate(raw["text"], c.text_lo, c.text_hi)
+        raw["text"] = text_cosine
+        parts["text"] = _calibrate(text_cosine, c.text_lo, c.text_hi)
 
     base = {"intressen": c.weight_interests, "narliggande": c.weight_near, "text": c.weight_text}
     interests_reliability = _reliability(min(len(a.interests), len(b.interests)), c.reliable_interests, c.reliability_floor)
@@ -205,5 +228,10 @@ def score(
         reliability={name: reliability[name] for name in parts},
         shared=a.interests & b.interests,
         complete=complete,
+        low_confidence=(
+            not complete
+            or min(len(a.interests), len(b.interests)) < THIN_INTERESTS
+            or min(a.text_chars, b.text_chars) < THIN_CHARS
+        ),
         raw=raw,
     )
