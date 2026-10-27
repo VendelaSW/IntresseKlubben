@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { eventTimeText } from '../events/EventList'
+import { eventWhenWhereText } from '../events/EventList'
 import { getEvents } from '../../services/events'
 
 // Klubbens kommande events i klubbens vy: titel, tid och plats, och ett klick
@@ -35,7 +35,7 @@ function GroupEvents({ groupId }) {
               <Link to={`/events?event=${event.id}&klubb=${groupId}`} className="person-list-item">
                 <span>{event.title}</span>
                 <span className="hint-text">
-                  {eventTimeText(event)} · {event.place_name}
+                  {eventWhenWhereText(event)}
                 </span>
               </Link>
             </li>

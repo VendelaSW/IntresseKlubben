@@ -1,0 +1,633 @@
+/* TILLFÄLLIGT: sex stilar för klubbkorten att välja mellan i testläget (väljaren i testpanelen, se ClubCards i
+   GroupList). Utan val, och utanför testläget, gäller de vanliga korten.
+   När en är vald flyttas den in i index.css och resten tas bort.
+
+   Gemensamt: --tone är kortets mjuka färg (se .card.club-card i index.css) och
+   --tone-ink en mörkare ton av den, för text, kanter och klotter. Klottren är
+   små handritade SVG:er som mask, så att de får kortets egen färg. */
+
+.club-grid .club-card {
+  --tone-ink: color-mix(in srgb, var(--tone) 40%, var(--color-ink));
+  position: relative;
+}
+
+/* De nya korten är lika stora i alla flikar och kolumner: --card-height räcker för
+   det längsta innehållet (rubrik på två rader, beskrivning på två och en rad med
+   knappar), och lite tätare. Gäller bara de nya korten, inte de vanliga. */
+.club-grid {
+  --card-height: 18.5rem;
+}
+
+.club-grid > .list-card {
+  gap: 0.6rem;
+}
+
+.club-grid .list-card-description {
+  -webkit-line-clamp: 2;
+}
+
+/* Klotter, som mask (färgen kommer från background-color). */
+.club-grid {
+  --doodle-squiggle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 14'%3E%3Cpath d='M3 8 C12 2 19 13 29 7 S47 2 57 8 S76 13 86 7 S106 3 117 8' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  --doodle-loops: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 30'%3E%3Cpath d='M3 22 C10 4 22 4 18 16 C15 25 6 20 14 12 C24 2 34 6 32 16 C30 26 22 20 30 12 C40 2 50 6 48 16 C46 26 38 20 46 12 C56 2 68 8 77 18' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* ---------- 1. Lapp: som lapparna i kartans meny ----------
+   Kortets färg, bläckkant med ojämna hörn och en hård bläckskugga som trycks
+   ner vid hover. Undertexten och rollen i handskrift, beskrivningen i vanlig
+   text i en varm brun. */
+.club-style-1 .card.club-card {
+  border: 1.5px solid var(--color-ink);
+  border-radius: 16px 26px 18px 24px / 24px 16px 26px 18px;
+  box-shadow: 3px 3px 0 var(--color-ink);
+}
+
+.club-style-1 .card.club-card.card-interactive:hover,
+.club-style-1 .card.club-card.card-interactive:focus-within {
+  border-color: var(--color-ink);
+  box-shadow: none;
+  transform: translate(3px, 3px);
+}
+
+.club-style-1 .club-card-meta {
+  color: var(--tone-ink);
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  line-height: 1.1;
+}
+
+.club-style-1 .club-card .card-text {
+  color: #4a4038;
+}
+
+.club-style-1 .club-card-role {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+}
+
+/* ---------- 2. Kartotekskort ----------
+   Ljust linjerat papper som ett registerkort, med en tejpbit i kortets färg
+   överst och en färgad kant till vänster. Undertexten som en liten etikett
+   och rollen som en stämpel (som "Öppet för alla" på eventen). */
+.club-style-2 .card.club-card {
+  border: 1.5px solid color-mix(in srgb, var(--color-ink) 35%, transparent);
+  border-left: 8px solid var(--tone);
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 25px, color-mix(in srgb, var(--color-line) 70%, transparent) 25px 26px)
+      0 3.4rem / 100% calc(100% - 3.4rem) no-repeat,
+    #fffdf7;
+  box-shadow: 2px 3px 0 color-mix(in srgb, var(--color-ink) 18%, transparent);
+}
+
+.club-style-2 .card.club-card.card-interactive:hover,
+.club-style-2 .card.club-card.card-interactive:focus-within {
+  border-color: color-mix(in srgb, var(--color-ink) 55%, transparent);
+  border-left-color: var(--tone-ink);
+  box-shadow: 3px 6px 0 color-mix(in srgb, var(--color-ink) 22%, transparent);
+}
+
+.club-style-2 .club-card::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  right: 1.5rem;
+  width: 74px;
+  height: 20px;
+  background: color-mix(in srgb, var(--tone) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone-ink) 25%, transparent);
+  transform: rotate(4deg);
+}
+
+.club-style-2 .club-card-meta {
+  color: var(--tone-ink);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.club-style-2 .club-card-role {
+  padding: 0 0.5rem;
+  border: 2px solid var(--tone-ink);
+  border-radius: 4px;
+  color: var(--tone-ink);
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  line-height: 1.3;
+  transform: rotate(-4deg);
+}
+
+/* ---------- 3. Akvarell ----------
+   Nästan vitt papper med en mjuk akvarellfläck i kortets färg bakom ikonen och
+   en i hörnet nere, och en handritad våglinje under namnet. Undertexten och
+   rollen i handskrift i kortets mörka ton. */
+.club-style-3 .card.club-card {
+  border: 1.5px solid color-mix(in srgb, var(--tone) 55%, var(--color-ink) 12%);
+  border-radius: 22px;
+  /* Många små akvarellfläckar utspridda längs kanterna, i kortets färg, så
+     att texten i mitten står på nästan vitt papper. Tre olika mönster, så att
+     korten bredvid varandra inte ser likadana ut. */
+  --blob: #c6dcef;
+  background:
+    radial-gradient(10% 8% at 88% 9%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(6% 5% at 83% 14%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(4% 5% at 98% 47%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(9% 7% at 71% 94%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(5% 4% at 77% 90%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(6% 5% at 7% 93%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(5% 4% at 52% 4%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(9% 8% at 13% 7%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(4% 3% at 35% 97%, var(--blob) 0 38%, transparent 78%),
+    #fffdf9;
+}
+
+/* Fläckarnas färg: en lite djupare, ren ton av kortets färg (inte blandad med
+   bläck, då blir den grumlig). */
+.club-style-3 .card.club-card-green {
+  --blob: #cfe3bb;
+}
+
+.club-style-3 .card.club-card-peach {
+  --blob: #f7d2ad;
+}
+
+.club-style-3 .card.club-card-yellow {
+  --blob: #f3e2a6;
+}
+
+.club-style-3 .card.club-card-lilac {
+  --blob: #dccff0;
+}
+
+.club-style-3 .card.club-card-rose {
+  --blob: #f0caca;
+}
+
+.club-style-3 .card.club-card:nth-child(3n + 2) {
+  background:
+    radial-gradient(10% 8% at 10% 8%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(5% 5% at 16% 13%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(7% 6% at 93% 12%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(4% 5% at 2% 55%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(10% 8% at 90% 92%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(5% 4% at 84% 96%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(6% 4% at 45% 96%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(4% 4% at 62% 5%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(4% 4% at 97% 70%, var(--blob) 0 38%, transparent 78%),
+    #fffdf9;
+}
+
+.club-style-3 .card.club-card:nth-child(3n) {
+  background:
+    radial-gradient(8% 7% at 91% 6%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(4% 5% at 2% 30%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(9% 7% at 15% 95%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(5% 4% at 21% 90%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(4% 5% at 98% 62%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(5% 4% at 60% 97%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(6% 4% at 40% 4%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(7% 6% at 12% 8%, var(--blob) 0 38%, transparent 78%),
+    radial-gradient(4% 4% at 80% 80%, var(--blob) 0 38%, transparent 78%),
+    #fffdf9;
+}
+
+.club-style-3 .card.club-card.card-interactive:hover,
+.club-style-3 .card.club-card.card-interactive:focus-within {
+  border-color: var(--tone-ink);
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--tone) 70%, var(--color-ink) 15%);
+}
+
+.club-style-3 .club-card-meta {
+  color: var(--tone-ink);
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  line-height: 1.1;
+}
+
+.club-style-3 .club-card-meta::before {
+  content: '';
+  display: block;
+  width: 92px;
+  height: 11px;
+  margin: 0.05rem 0 0.35rem;
+  background: var(--tone-ink);
+  mask: var(--doodle-squiggle) left center / contain no-repeat;
+  opacity: 0.75;
+}
+
+.club-style-3 .club-card .card-text {
+  color: #4a4038;
+}
+
+.club-style-3 .club-card-role {
+  color: var(--tone-ink);
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+}
+
+/* ---------- 4. Post-it ----------
+   En lapp i kortets färg, lite sned (åt olika håll), med en tejpbit överst och
+   ett vikt hörn nere till höger. Allt i handskrift, som om någon skrivit lappen
+   och satt upp den. Små öglor som klotter. */
+.club-style-4 .card.club-card {
+  border: 0;
+  border-radius: 2px;
+  background: linear-gradient(-45deg, transparent 15px, var(--tone) 15px);
+  /* En vanlig skugga, inte filter: drop-shadow. Med ett filter ritar webbläsaren texten suddig när kortet
+     flyttas vid hover. */
+  box-shadow: 1px 3px 4px rgba(58, 47, 37, 0.16);
+  transform: rotate(-1deg);
+}
+
+.club-style-4 .card.club-card:nth-child(even) {
+  transform: rotate(0.8deg);
+}
+
+.club-style-4 .card.club-card.card-interactive:hover,
+.club-style-4 .card.club-card.card-interactive:focus-within {
+  box-shadow: 2px 7px 8px rgba(58, 47, 37, 0.2);
+  transform: translateY(-3px);
+}
+
+.club-style-4 .club-card::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 84px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(58, 47, 37, 0.08);
+  transform: translateX(-50%) rotate(-3deg);
+}
+
+/* Det vikta hörnet. */
+.club-style-4 .club-card::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 21px;
+  height: 21px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tone) 70%, var(--color-ink) 18%) 50%, transparent 50%);
+}
+
+.club-style-4 .club-card-meta,
+.club-style-4 .club-card .card-text {
+  color: #4a4038;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  line-height: 1.15;
+}
+
+.club-style-4 .club-card-meta::after {
+  content: '';
+  display: block;
+  width: 64px;
+  height: 22px;
+  margin-top: 0.15rem;
+  background: var(--tone-ink);
+  mask: var(--doodle-loops) left center / contain no-repeat;
+  opacity: 0.6;
+}
+
+.club-style-4 .club-card-role {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+}
+
+/* ---------- 5. Affisch ----------
+   Ett tryckt anslag uppsatt med ett häftstift, som på en anslagstavla: vitt
+   papper med en tryckt rand överst och ett rasterhörn i kortets färg, namnet i
+   stora tryckbokstäver och hur många och var på en mörk remsa. Nertill
+   rivlappar, där en redan är avriven. Rollen som en stämpel. */
+.club-style-5 .card.club-card {
+  --poster: #3f7fbf;
+  --poster-ink: color-mix(in srgb, var(--poster) 60%, var(--color-ink));
+  --tabs-height: 1.75rem;
+  border: 0;
+  border-radius: 2px;
+  /* Pappret slutar ovanför rivlapparna, så att den avrivna syns som ett hål. */
+  background:
+    linear-gradient(var(--poster), var(--poster)) top / 100% 7px no-repeat,
+    linear-gradient(#fffdf7, #fffdf7) top / 100% calc(100% - var(--tabs-height)) no-repeat;
+  box-shadow: 1px 3px 5px rgba(58, 47, 37, 0.18);
+  transform: rotate(-0.6deg);
+}
+
+.club-grid.club-style-5 .card.club-card {
+  padding-bottom: calc(var(--tabs-height) + 0.9rem);
+}
+
+.club-style-5 .card.club-card:nth-child(even) {
+  transform: rotate(0.7deg);
+}
+
+/* Tryckfärgen: en stark ton av kortets färg. */
+.club-style-5 .card.club-card-green {
+  --poster: #6c9a3f;
+}
+
+.club-style-5 .card.club-card-peach {
+  --poster: #e0823d;
+}
+
+.club-style-5 .card.club-card-yellow {
+  --poster: #e3b21b;
+}
+
+.club-style-5 .card.club-card-lilac {
+  --poster: #8562c2;
+}
+
+.club-style-5 .card.club-card-rose {
+  --poster: #d0605f;
+}
+
+.club-style-5 .card.club-card.card-interactive:hover,
+.club-style-5 .card.club-card.card-interactive:focus-within {
+  box-shadow: 2px 8px 10px rgba(58, 47, 37, 0.2);
+  transform: translateY(-3px);
+}
+
+/* Häftstiftet. */
+.club-style-5 .club-card::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.75) 0 2px, transparent 3px),
+    color-mix(in srgb, var(--poster) 80%, var(--color-ink));
+  box-shadow: 1px 2px 2px rgba(58, 47, 37, 0.3);
+  transform: translateX(-50%);
+}
+
+/* Rivlapparna: sex lappar under en perforerad linje, den fjärde avriven (en
+   ojämn stump sitter kvar överst). */
+.club-style-5 .club-card::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--tabs-height);
+  border-top: 1.5px dashed rgba(58, 47, 37, 0.35);
+  background:
+    linear-gradient(to right, transparent calc(100% - 1px), rgba(58, 47, 37, 0.28) 0) 0 0 / calc(100% / 6) 100%,
+    #fffdf7;
+  mask:
+    linear-gradient(to right, #000 50%, transparent 50% 66.67%, #000 66.67%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 8' preserveAspectRatio='none'%3E%3Cpath d='M0 0 H60 V5 L55 3 L49 6 L43 2.5 L37 5.5 L31 3 L25 6.5 L19 3 L13 5.5 L7 2.5 L0 5 Z'/%3E%3C/svg%3E")
+      top / 100% 7px no-repeat;
+}
+
+/* Rasterhörnet uppe till höger, som tryckta prickar som tonar bort. Bakom
+   texten (kortet är vridet, så z-index -1 hamnar ovanför pappret). */
+.club-style-5 .list-card-link::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  right: 0;
+  z-index: -1;
+  width: 55%;
+  height: 7rem;
+  background: radial-gradient(circle, color-mix(in srgb, var(--poster) 55%, transparent) 0 1.4px, transparent 1.9px) 0 0 / 8px 8px;
+  mask: radial-gradient(farthest-side at 100% 0, #000, transparent);
+  pointer-events: none;
+}
+
+/* Raka tryckbokstäver, så rubriken behöver inte luften runt sig som Caveat
+   får (se .list-card-link .card-title i index.css). Med den skulle en bit av
+   tredje raden synas under de två som visas. */
+.club-style-5 .club-card .card-title {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 1.3rem;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  /* Långa ord i smala kort bryts med bindestreck, inte mitt i utan. */
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+.club-style-5 .club-card-meta {
+  padding: 0.2rem 0.5rem;
+  background: var(--color-ink);
+  color: #fffdf7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-1.5deg);
+}
+
+.club-style-5 .club-card .card-text {
+  color: #4a4038;
+}
+
+.club-style-5 .club-card-role {
+  padding: 0 0.5rem;
+  border: 2px solid var(--poster-ink);
+  border-radius: 4px;
+  color: var(--poster-ink);
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  line-height: 1.3;
+  transform: rotate(-4deg);
+}
+
+/* ---------- 6. Modern affisch ----------
+   Samma idé som affischen, men lugnare: en platt 2D-illustration överst (sol,
+   kullar, ränder) i kortets färger, tre olika motiv som växlar mellan korten.
+   Namnet i stram text, hur många och var med glesa versaler. I stället för
+   rivlappar en biljettstump nertill: två halvrunda urtag i kanterna och en
+   perforerad linje ovanför raden med rollen eller Gå med. Vid hover zoomar
+   bilden in lite. */
+.club-style-6 .card.club-card {
+  --art: 5.5rem;
+  --stub: 3.5rem;
+  --sky: var(--tone);
+  --sun: #e9b44c;
+  --deep: #2f5d8c;
+  --mid: #a9c5e2;
+  overflow: hidden;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  --edge: color-mix(in srgb, var(--deep) 22%, transparent);
+  /* Den perforerade linjen ovanför stumpen, och en kant runt urtagen (samma som
+     kortets, så att urtagen syns mot ett lika ljust underlag). */
+  background:
+    repeating-linear-gradient(to right, color-mix(in srgb, var(--deep) 40%, transparent) 0 6px, transparent 6px 11px)
+      left 14px bottom var(--stub) / calc(100% - 28px) 1.5px no-repeat,
+    radial-gradient(circle at 0 calc(100% - var(--stub)), transparent 9px, var(--edge) 9px 10px, transparent 10.5px),
+    radial-gradient(circle at 100% calc(100% - var(--stub)), transparent 9px, var(--edge) 9px 10px, transparent 10.5px),
+    #fbf8f1;
+  /* Urtagen i kanterna, i höjd med linjen. */
+  mask:
+    radial-gradient(circle at 0 calc(100% - var(--stub)), transparent 8.5px, #000 9px) left / 51% 100% no-repeat,
+    radial-gradient(circle at 100% calc(100% - var(--stub)), transparent 8.5px, #000 9px) right / 51% 100% no-repeat;
+}
+
+.club-grid.club-style-6 .card.club-card {
+  padding-top: calc(var(--art) + 0.9rem);
+}
+
+.club-style-6 .card.club-card-green {
+  --sun: #e48a5a;
+  --deep: #3d6b3a;
+  --mid: #b5d39a;
+}
+
+.club-style-6 .card.club-card-peach {
+  --sun: #d9583f;
+  --deep: #2f6f6a;
+  --mid: #f2bf8f;
+}
+
+.club-style-6 .card.club-card-yellow {
+  --sun: #e07b39;
+  --deep: #2c5f7c;
+  --mid: #f0d27a;
+}
+
+.club-style-6 .card.club-card-lilac {
+  --sun: #f0a35e;
+  --deep: #4b3f86;
+  --mid: #c9b8ea;
+}
+
+.club-style-6 .card.club-card-rose {
+  --sun: #c94f5c;
+  --deep: #3c4f7a;
+  --mid: #f2b8b8;
+}
+
+.club-style-6 .card.club-card.card-interactive:hover,
+.club-style-6 .card.club-card.card-interactive:focus-within {
+  border-color: color-mix(in srgb, var(--deep) 45%, transparent);
+  box-shadow: none;
+}
+
+/* Illustrationen. Motiv 1: en sol bakom två kullar. */
+.club-style-6 .club-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: var(--art);
+  background:
+    radial-gradient(ellipse 60% 55% at 82% 100%, var(--deep) 99%, transparent 100%),
+    radial-gradient(ellipse 75% 70% at 15% 100%, var(--mid) 99%, transparent 100%),
+    radial-gradient(circle at 36% 46%, var(--sun) 0 1.9rem, transparent calc(1.9rem + 0.5px)),
+    var(--sky);
+  transform-origin: 50% 100%;
+  transition: transform 0.4s ease;
+}
+
+/* Motiv 2: en randig solnedgång över en mörk strand, och en liten måne. */
+.club-style-6 .card.club-card:nth-child(3n + 2)::before {
+  background:
+    linear-gradient(var(--deep), var(--deep)) bottom / 100% 1.1rem no-repeat,
+    repeating-linear-gradient(to bottom, var(--sky) 0 3px, transparent 3px 11px) bottom 1.1rem left 0 / 100% 2.2rem no-repeat,
+    radial-gradient(circle at 50% calc(100% - 1.1rem), var(--sun) 0 2.9rem, transparent calc(2.9rem + 0.5px)),
+    radial-gradient(circle at 18% 30%, var(--mid) 0 0.85rem, transparent calc(0.85rem + 0.5px)),
+    var(--sky);
+}
+
+/* Motiv 3: två cirklar som överlappar, på en diagonal. */
+.club-style-6 .card.club-card:nth-child(3n)::before {
+  background:
+    radial-gradient(circle at 34% 62%, var(--deep) 0 1.9rem, transparent calc(1.9rem + 0.5px)),
+    radial-gradient(circle at 57% 40%, var(--sun) 0 1.9rem, transparent calc(1.9rem + 0.5px)),
+    linear-gradient(160deg, transparent 52%, var(--mid) 52%),
+    var(--sky);
+}
+
+.club-style-6 .card.club-card.card-interactive:hover::before,
+.club-style-6 .card.club-card.card-interactive:focus-within::before {
+  transform: scale(1.05);
+}
+
+/* Ett litet häftstift mitt i överkanten. */
+.club-style-6 .club-card::after {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.7) 0 1.5px, transparent 2.5px),
+    var(--deep);
+  box-shadow: 0 1px 2px rgba(58, 47, 37, 0.3);
+  transform: translateX(-50%);
+}
+
+/* Bilden ersätter klubbikonen. */
+.club-style-6 .club-card-icon {
+  display: none;
+}
+
+.club-style-6 .club-card .card-title {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 1.3rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+.club-style-6 .club-card-meta {
+  color: var(--deep);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.club-style-6 .club-card .card-text {
+  color: #5a5148;
+}
+
+.club-style-6 .club-card-role {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--deep);
+  border-radius: 999px;
+  color: var(--deep);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Affischerna: intresset lite upp från rivlapparna och perforeringen, som
+   annars ligger tätt under det (kortets text tar all plats ovanför, se
+   .list-card-link i index.css). .tags nu, .interest-tags med Emmys taggar. */
+.club-style-5 .club-card > .tags,
+.club-style-6 .club-card > .tags,
+.club-style-5 .club-card > .interest-tags,
+.club-style-6 .club-card > .interest-tags {
+  margin-bottom: 0.7rem;
+}
+
+/* Fyra kort per rad på dator (i stället för tre), smalare kort. */
+@media (min-width: 768px) {
+  .club-grid.card-grid-compact {
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 0.9rem;
+  }
+
+  .club-grid .card.club-card {
+    padding: 1.05rem 1.05rem 0.9rem;
+  }
+}

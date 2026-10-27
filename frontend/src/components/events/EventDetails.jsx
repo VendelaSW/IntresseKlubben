@@ -6,7 +6,7 @@ import Modal from '../Modal'
 import TextareaWithCount from '../TextareaWithCount'
 import ShowOnMapButton from '../ShowOnMapButton'
 import InvitePicker from './InvitePicker'
-import { eventTimeText, visibilityPillClass, visibilityText } from './EventList'
+import { eventWhenWhereText, VisibilityStamp } from './EventList'
 import { EVENT_ANSWER, answerEvent, deleteEvent, getEventResponses, inviteToEvent, updateEvent } from '../../services/events'
 
 const ANSWERS = [
@@ -122,176 +122,181 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
 
   return (
     <section className="detail-view">
-      <div className="title-row">
-        <p className="card-title">{event.title}</p>
-        <span className={visibilityPillClass(event)}>{visibilityText(event)}</span>
-      </div>
-      <p className="card-subheading">
-        {eventTimeText(event)} · {event.place_name}
-      </p>
-      <p className="hint-text">{event.address}</p>
-      <ShowOnMapButton type="event" id={event.id} data={event} />
-      <p className="card-text">{event.description}</p>
-      <div className="detail-view-section">
-        <InterestTags
-          interests={[{ id: event.interest_id, name: event.interest_name, area: event.interest_area, area_slug: event.interest_area_slug }]}
-          highlight={myInterestIds}
-        />
-      </div>
-      <p className="hint-text">
-        Skapat av{' '}
-        <Link to={`/anvandare/${event.creator_id}`} className="info-link">
-          {creatorName}
-        </Link>
-        {event.group_name && (
+      {/* Eventet till vänster, och det man gör med det (intresset, svaret, vilka som kommer) till höger,
+          så att det får plats utan att scrolla när blocket är brett. Under varandra när det är smalt. */}
+      <div className="detail-main">
+        <div className="title-row">
+          <p className="card-title">{event.title}</p>
+          <VisibilityStamp event={event} />
+        </div>
+        <p className="card-subheading">{eventWhenWhereText(event)}</p>
+        <p className="hint-text">{event.address}</p>
+        <ShowOnMapButton type="event" id={event.id} data={event} />
+        <p className="card-text">{event.description}</p>
+        <p className="hint-text">
+          Skapat av{' '}
+          <Link to={`/anvandare/${event.creator_id}`} className="info-link">
+            {creatorName}
+          </Link>
+          {event.group_name && (
+            <>
+              {' i '}
+              {/* Klubbens namn går till klubben, där man kan gå med. En privat klubb man inte är
+                  med eller inbjuden i går inte att öppna, så då är det bara text. */}
+              {event.group_visible ? (
+                <Link to={`/klubbar?klubb=${event.group_id}`} className="info-link">
+                  {event.group_name}
+                </Link>
+              ) : (
+                event.group_name
+              )}
+            </>
+          )}
+        </p>
+
+        {event.is_owner && (
           <>
-            {' i '}
-            {/* Klubbens namn går till klubben, där man kan gå med. En privat klubb man inte är
-                med eller inbjuden i går inte att öppna, så då är det bara text. */}
-            {event.group_visible ? (
-              <Link to={`/klubbar?klubb=${event.group_id}`} className="info-link">
-                {event.group_name}
-              </Link>
-            ) : (
-              event.group_name
+            <label>
+              <input
+                type="checkbox"
+                checked={event.guests_can_invite}
+                disabled={settingBusy}
+                onChange={(e) => handleGuestsCanInvite(e.target.checked)}
+              />{' '}
+              Gäster får bjuda in
+            </label>
+            <div className="card-actions">
+              <button type="button" className="secondary-button button-small" onClick={onEdit} disabled={deleting}>
+                Redigera
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  setDeleteError('')
+                  setCancelOpen(true)
+                }}
+              >
+                Radera
+              </button>
+            </div>
+            {cancelOpen && (
+              <Modal title="Radera eventet" onClose={() => setCancelOpen(false)} locked={deleting}>
+                <form className="auth-form form-compact" onSubmit={handleDelete}>
+                  <p className="card-text">
+                    «{event.title}» tas bort, med inbjudningar och svar. Det går inte att ångra.
+                  </p>
+                  {/* Medan svaren laddas sägs inget om vilka som får en notis. Gick de inte att hämta vet vi
+                      inte, men backend skickar notiserna ändå, så meddelandefältet visas. */}
+                  {responses === null && !failed && <p className="hint-text">Hämtar vilka som har svarat...</p>}
+                  {failed && (
+                    <p className="hint-text">
+                      Kunde inte hämta vilka som har svarat. De som har svarat Ja eller Kanske får ändå en notis från
+                      Intresseklubben om att eventet är inställt.
+                    </p>
+                  )}
+                  {responses !== null && coming > 0 && (
+                    <p className="hint-text">
+                      {coming === 1 ? '1 person har' : `${coming} personer har`} svarat Ja eller Kanske och får en notis
+                      från Intresseklubben om att eventet är inställt.
+                    </p>
+                  )}
+                  {responses !== null && coming === 0 && (
+                    <p className="hint-text">Ingen har svarat Ja eller Kanske, så ingen får någon notis.</p>
+                  )}
+                  {(failed || coming > 0) && (
+                    <>
+                      <label htmlFor={`cancel-message-${event.id}`}>Meddelande till dem (valfritt)</label>
+                      <TextareaWithCount
+                        id={`cancel-message-${event.id}`}
+                        value={cancelMessage}
+                        onChange={(e) => setCancelMessage(e.target.value)}
+                        maxLength={300}
+                        rows={3}
+                        placeholder="T.ex. Inställt pga sjukdom, vi ses nästa vecka!"
+                      />
+                    </>
+                  )}
+                  {deleteError && <p className="status-error">{deleteError}</p>}
+                  {/* Det säkra valet är den gula knappen, raderingen har en egen röd stil (.button-danger). */}
+                  <div className="form-actions">
+                    <button type="button" onClick={() => setCancelOpen(false)} disabled={deleting}>
+                      Behåll eventet
+                    </button>
+                    <button type="submit" className="button-danger" disabled={deleting || (responses === null && !failed)}>
+                      {deleting ? 'Raderar...' : 'Radera eventet'}
+                    </button>
+                  </div>
+                </form>
+              </Modal>
             )}
           </>
         )}
-      </p>
-
-      <div className="detail-view-section">
-        <section className="soft-box soft-box-wide">
-          <h2>Kommer du?</h2>
-          <ul className="tags">
-            {ANSWERS.map(({ id, label }) => (
-              <li key={id}>
-                <button
-                  type="button"
-                  className={`tag${event.my_answer === id ? ' tag-selected' : ''}`}
-                  disabled={busy}
-                  onClick={() => handleAnswer(id)}
-                >
-                  {label}
-                </button>
-              </li>
-            ))}
-          </ul>
-          {error && <p className="status-error">{error}</p>}
-        </section>
       </div>
 
-      {event.can_invite && (
-        <>
-          <div className="card-actions">
-            <button
-              type="button"
-              className="secondary-button button-small"
-              onClick={() => {
-                setInviteError('')
-                setInviteNotice('')
-                setInviteOpen(true)
-              }}
-            >
-              Bjud in
-            </button>
-            {inviteNotice && <span className="status-success">{inviteNotice}</span>}
-          </div>
-          {inviteOpen && (
-            <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
-              <InvitePicker
-                contacts={contacts}
-                groups={groups}
-                submitLabel="Bjud in"
-                busy={inviteBusy}
-                error={inviteError}
-                onSubmit={handleInvite}
-                onCancel={() => setInviteOpen(false)}
-              />
-            </Modal>
-          )}
-        </>
-      )}
+      <div className="detail-aside">
+        <div className="detail-view-section">
+          <InterestTags
+            interests={[{ id: event.interest_id, name: event.interest_name, area: event.interest_area, area_slug: event.interest_area_slug }]}
+            highlight={myInterestIds}
+          />
+        </div>
 
-      {event.is_owner && (
-        <>
-          <label>
-            <input
-              type="checkbox"
-              checked={event.guests_can_invite}
-              disabled={settingBusy}
-              onChange={(e) => handleGuestsCanInvite(e.target.checked)}
-            />{' '}
-            Gäster får bjuda in
-          </label>
-          <div className="card-actions">
-            <button type="button" className="secondary-button button-small" onClick={onEdit} disabled={deleting}>
-              Redigera
-            </button>
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => {
-                setDeleteError('')
-                setCancelOpen(true)
-              }}
-            >
-              Radera
-            </button>
-          </div>
-          {cancelOpen && (
-            <Modal title="Radera eventet" onClose={() => setCancelOpen(false)} locked={deleting}>
-              <form className="auth-form form-compact" onSubmit={handleDelete}>
-                <p className="card-text">
-                  «{event.title}» tas bort, med inbjudningar och svar. Det går inte att ångra.
-                </p>
-                {/* Medan svaren laddas sägs inget om vilka som får en notis. Gick de inte att hämta vet vi
-                    inte, men backend skickar notiserna ändå, så meddelandefältet visas. */}
-                {responses === null && !failed && <p className="hint-text">Hämtar vilka som har svarat...</p>}
-                {failed && (
-                  <p className="hint-text">
-                    Kunde inte hämta vilka som har svarat. De som har svarat Ja eller Kanske får ändå en notis från
-                    Intresseklubben om att eventet är inställt.
-                  </p>
-                )}
-                {responses !== null && coming > 0 && (
-                  <p className="hint-text">
-                    {coming === 1 ? '1 person har' : `${coming} personer har`} svarat Ja eller Kanske och får en notis
-                    från Intresseklubben om att eventet är inställt.
-                  </p>
-                )}
-                {responses !== null && coming === 0 && (
-                  <p className="hint-text">Ingen har svarat Ja eller Kanske, så ingen får någon notis.</p>
-                )}
-                {(failed || coming > 0) && (
-                  <>
-                    <label htmlFor={`cancel-message-${event.id}`}>Meddelande till dem (valfritt)</label>
-                    <TextareaWithCount
-                      id={`cancel-message-${event.id}`}
-                      value={cancelMessage}
-                      onChange={(e) => setCancelMessage(e.target.value)}
-                      maxLength={300}
-                      rows={3}
-                      placeholder="T.ex. Inställt pga sjukdom, vi ses nästa vecka!"
-                    />
-                  </>
-                )}
-                {deleteError && <p className="status-error">{deleteError}</p>}
-                {/* Det säkra valet är den gula knappen, raderingen har en egen röd stil (.button-danger). */}
-                <div className="form-actions">
-                  <button type="button" onClick={() => setCancelOpen(false)} disabled={deleting}>
-                    Behåll eventet
+        <div className="detail-view-section">
+          <section className="soft-box soft-box-wide">
+            <h2>Kommer du?</h2>
+            <ul className="tags">
+              {ANSWERS.map(({ id, label }) => (
+                <li key={id}>
+                  <button
+                    type="button"
+                    className={`tag${event.my_answer === id ? ' tag-selected' : ''}`}
+                    disabled={busy}
+                    onClick={() => handleAnswer(id)}
+                  >
+                    {label}
                   </button>
-                  <button type="submit" className="button-danger" disabled={deleting || (responses === null && !failed)}>
-                    {deleting ? 'Raderar...' : 'Radera eventet'}
-                  </button>
-                </div>
-              </form>
-            </Modal>
-          )}
-        </>
-      )}
+                </li>
+              ))}
+            </ul>
+            {error && <p className="status-error">{error}</p>}
+          </section>
+        </div>
 
-      <Attendees responses={responses} failed={failed} />
+        {event.can_invite && (
+          <>
+            <div className="card-actions">
+              <button
+                type="button"
+                className="secondary-button button-small"
+                onClick={() => {
+                  setInviteError('')
+                  setInviteNotice('')
+                  setInviteOpen(true)
+                }}
+              >
+                Bjud in
+              </button>
+              {inviteNotice && <span className="status-success">{inviteNotice}</span>}
+            </div>
+            {inviteOpen && (
+              <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
+                <InvitePicker
+                  contacts={contacts}
+                  groups={groups}
+                  submitLabel="Bjud in"
+                  busy={inviteBusy}
+                  error={inviteError}
+                  onSubmit={handleInvite}
+                  onCancel={() => setInviteOpen(false)}
+                />
+              </Modal>
+            )}
+          </>
+        )}
+
+        <Attendees responses={responses} failed={failed} />
+      </div>
     </section>
   )
 }

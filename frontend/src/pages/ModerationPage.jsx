@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import FilterTabs from '../components/FilterTabs'
 import Modal from '../components/Modal'
 import { useAuth } from '../hooks/useAuth'
 import { useTabParam } from '../hooks/useTabParam'
@@ -14,6 +15,7 @@ import {
 } from '../services/moderation'
 import { REPORT_REASONS } from '../services/reports'
 import { formatSentAt } from '../utils/formatSentAt'
+import { useConfirm } from '../hooks/useConfirm'
 
 const TABS = [
   { id: 'new', label: 'Nya' },
@@ -46,6 +48,7 @@ function timesText(count) {
 // markeras anmälan som hanterad och personen kan stängas av (SuspendDialog).
 // Servern släpper bara in moderatorer (routes/moderation.py).
 function ModerationPage() {
+  const confirm = useConfirm()
   const { user } = useAuth()
   const [urlTab, setTab] = useTabParam(TABS)
   const tab = urlTab ?? 'new'
@@ -73,29 +76,16 @@ function ModerationPage() {
     }
   }
 
-  function handleLift(person) {
-    if (!window.confirm(`Häv avstängningen för ${person.name}?`)) return
+  async function handleLift(person) {
+    if (!(await confirm({ title: 'Häv avstängningen', text: `Häv avstängningen för ${person.name}?`, confirmLabel: 'Häv' })))
+      return
     run(() => liftSuspension(person.id))
   }
 
   return (
     <section className="app-section">
       <h1 className="app-title">Moderering</h1>
-      <div className="filter-tabs" role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-            {lists[t.id].data ? ` (${lists[t.id].data.length})` : ''}
-          </button>
-        ))}
-      </div>
+      <FilterTabs tabs={TABS.map((t) => ({ ...t, count: lists[t.id].data?.length }))} active={tab} onChange={setTab} />
       {error && (
         <p className="status-error" role="alert">
           {error}
@@ -161,8 +151,8 @@ function ReportCard({ report, busy, onHandled, onSuspend, onLift }) {
         <span className="status-pill status-pill-error">{reasonLabel(report.reason)}</span>
       </div>
       <p className="hint-text moderation-meta">
-        {where} · {formatSentAt(report.created_at)}
-        {reported && ` · anmäld ${timesText(reported.report_count)} totalt`}
+        {where}, {formatSentAt(report.created_at)}.
+        {reported && ` Anmäld ${timesText(reported.report_count)} totalt.`}
       </p>
       {reported?.suspension && (
         <p className="moderation-status">Avstängd {untilText(reported.suspension)}</p>

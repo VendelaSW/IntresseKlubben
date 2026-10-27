@@ -57,116 +57,122 @@ function CreateGroupForm({
   }
 
   return (
-    <form className="auth-form form-wide form-compact" onSubmit={handleSubmit}>
+    <form className="auth-form form-wide form-compact form-split" onSubmit={handleSubmit}>
       <h2>Skapa klubb</h2>
 
-      <FormField id="group-name" label="Namn">
-        <input
-          id="group-name"
-          className="field-large"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={30}
-          required
-        />
-      </FormField>
+      {/* Om klubben till vänster, var den träffas (med kartan) till höger. */}
+      <div className="form-columns">
+        <div className="form-column">
+          <FormField id="group-name" label="Namn">
+            <input
+              id="group-name"
+              className="field-large"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={30}
+              required
+            />
+          </FormField>
 
-      <div className="form-row">
-        <FormField id="group-interest" label="Intresse">
-          <select id="group-interest" value={interestId} onChange={(e) => setInterestId(e.target.value)} required>
-            <option value="">Välj...</option>
-            {interests.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.name}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField id="group-municipality" label="Kommun">
-          <MunicipalityPicker
-            id="group-municipality"
-            municipalities={municipalities}
-            value={municipalityCode}
-            onChange={setMunicipalityCode}
-            required
+          <div className="form-row">
+            <FormField id="group-interest" label="Intresse">
+              <select id="group-interest" value={interestId} onChange={(e) => setInterestId(e.target.value)} required>
+                <option value="">Välj...</option>
+                {interests.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField id="group-municipality" label="Kommun">
+              <MunicipalityPicker
+                id="group-municipality"
+                municipalities={municipalities}
+                value={municipalityCode}
+                onChange={setMunicipalityCode}
+                required
+              />
+            </FormField>
+          </div>
+
+          <FormField id="group-description" label="Beskrivning">
+            <input
+              id="group-description"
+              className="field-large"
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={200}
+              required
+            />
+          </FormField>
+
+          <FormField id="group-meeting-info" label="När och var träffas ni? (valfritt)">
+            <input
+              id="group-meeting-info"
+              type="text"
+              value={meetingInfo}
+              onChange={(e) => setMeetingInfo(e.target.value)}
+              placeholder="T.ex. onsdagar 18.00 på biblioteket"
+              maxLength={100}
+            />
+          </FormField>
+
+          <label>
+            <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} /> Privat klubb
+            (syns bara för medlemmar)
+          </label>
+
+          <label>
+            <input type="checkbox" checked={membersCanInvite} onChange={(e) => setMembersCanInvite(e.target.checked)} />{' '}
+            Medlemmar får bjuda in
+          </label>
+          <p className="hint-text">Utan bockning kan bara du bjuda in.</p>
+        </div>
+        <div className="form-column">
+          <div className="form-row">
+            <FormField id="group-place" label="Träffplats (valfritt)">
+              <input
+                id="group-place"
+                type="text"
+                value={placeName}
+                onChange={(e) => setPlaceName(e.target.value)}
+                placeholder="T.ex. Stadsbiblioteket"
+                maxLength={100}
+              />
+            </FormField>
+            <FormField id="group-address" label="Adress (valfritt)">
+              <input
+                id="group-address"
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="T.ex. Storgatan 1"
+                maxLength={100}
+              />
+            </FormField>
+          </div>
+
+          <LocationPicker
+            id="group-position"
+            // Adressen först, sedan platsens namn, med kommunen så att "Storgatan 1"
+            // hamnar i rätt stad. Utan kommun om det inte hittas så.
+            queries={[
+              address && kommunName ? `${address}, ${kommunName}` : address,
+              placeName && kommunName ? `${placeName}, ${kommunName}` : placeName,
+              address,
+            ]}
+            value={position}
+            onChange={setPosition}
+            // Nålen bestämmer adressen: den närmaste gatuadressen skrivs i fältet.
+            onAddressFound={setAddress}
+            saveLabel="Skapa klubb"
+            kommunCode={municipalityCode}
           />
-        </FormField>
+        </div>
       </div>
-
-      <FormField id="group-meeting-info" label="När och var träffas ni? (valfritt)">
-        <input
-          id="group-meeting-info"
-          type="text"
-          value={meetingInfo}
-          onChange={(e) => setMeetingInfo(e.target.value)}
-          placeholder="T.ex. onsdagar 18.00 på biblioteket"
-          maxLength={100}
-        />
-      </FormField>
-
-      <div className="form-row">
-        <FormField id="group-place" label="Träffplats (valfritt)">
-          <input
-            id="group-place"
-            type="text"
-            value={placeName}
-            onChange={(e) => setPlaceName(e.target.value)}
-            placeholder="T.ex. Stadsbiblioteket"
-            maxLength={100}
-          />
-        </FormField>
-        <FormField id="group-address" label="Adress (valfritt)">
-          <input
-            id="group-address"
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="T.ex. Storgatan 1"
-            maxLength={100}
-          />
-        </FormField>
-      </div>
-
-      <LocationPicker
-        id="group-position"
-        // Adressen först, sedan platsens namn, med kommunen så att "Storgatan 1"
-        // hamnar i rätt stad. Utan kommun om det inte hittas så.
-        queries={[
-          address && kommunName ? `${address}, ${kommunName}` : address,
-          placeName && kommunName ? `${placeName}, ${kommunName}` : placeName,
-          address,
-        ]}
-        value={position}
-        onChange={setPosition}
-        // Nålen bestämmer adressen: den närmaste gatuadressen skrivs i fältet.
-        onAddressFound={setAddress}
-        saveLabel="Skapa klubb"
-        kommunCode={municipalityCode}
-      />
-
-      <FormField id="group-description" label="Beskrivning">
-        <input
-          id="group-description"
-          className="field-large"
-          type="text"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          maxLength={200}
-          required
-        />
-      </FormField>
-
-      <label>
-        <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} /> Privat klubb
-        (syns bara för medlemmar)
-      </label>
-
-      <label>
-        <input type="checkbox" checked={membersCanInvite} onChange={(e) => setMembersCanInvite(e.target.checked)} />{' '}
-        Medlemmar får bjuda in
-      </label>
-      <p className="hint-text">Utan bockning kan bara du bjuda in.</p>
 
       {error && <p className="status-error">{error}</p>}
 

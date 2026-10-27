@@ -1,0 +1,368 @@
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Patrick+Hand&family=Shantell+Sans:wght@400;600&display=swap');
+
+/* TILLFÄLLIGT: stilar för flikarna (FilterTabs) och sökraden i Klubbar att jämföra (se UiStylePicker i
+   PadBackgroundPicker.jsx). "nu" är index.css som den är. Alla har tunnare linjer än i dag. */
+
+/* ---------- 2. Tunn bläcklinje ----------
+   Samma upplägg som nu, men runt och med en tunn, varm bläcklinje i stället för den tjocka svarta ramen.
+   Den valda fliken är en gul kapsel inne i raden. */
+:root[data-ui-style='tunn'] .filter-tabs {
+  gap: 0;
+  padding: 3px;
+  border: 1.25px solid rgba(58, 47, 37, 0.5);
+  border-radius: 999px;
+  background: var(--color-white);
+}
+
+:root[data-ui-style='tunn'] .filter-tabs > .tag {
+  border-radius: 999px;
+  background: transparent;
+}
+
+:root[data-ui-style='tunn'] .filter-tabs > .tag:hover {
+  background: var(--color-accent-soft);
+}
+
+:root[data-ui-style='tunn'] .filter-tabs > .tag-selected,
+:root[data-ui-style='tunn'] .filter-tabs > .tag-selected:hover {
+  background: var(--color-accent);
+  box-shadow: inset 0 0 0 1.25px rgba(58, 47, 37, 0.3);
+}
+
+:root[data-search-style='tunn'] .club-search,
+:root[data-search-style='tunn'] select.club-filter,
+:root[data-search-style='tunn'] .club-filter-kommun input,
+:root[data-search-style='tunn'] .club-filters .sort-menu-button {
+  border: 1.25px solid rgba(58, 47, 37, 0.4);
+}
+
+/* ---------- 3. Klistermärken ----------
+   Varje flik och varje fält är en egen handritad lapp, som lapparna i kartans meny och "+ Skapa klubb": tunn
+   bläckkant, lite ojämna hörn och en hård skugga som trycks ner. Texten i en läsvänligare handstil än Caveat
+   (rubrikerna). Tre typsnitt att jämföra, laddade från Google Fonts bara i testläget; det valda sparas sedan i
+   public/fonts som de andra. */
+:root[data-ui-style='klister'],
+:root[data-search-style='klister'] {
+  --sticker-font: 'Patrick Hand', var(--font-body);
+  --sticker-size: 1.12rem;
+}
+
+:root[data-ui-style='klister-kalam'] {
+  --sticker-font: 'Kalam', var(--font-body);
+  --sticker-size: 1rem;
+}
+
+:root[data-ui-style='klister-shantell'] {
+  --sticker-font: 'Shantell Sans', var(--font-body);
+  --sticker-size: 0.95rem;
+}
+
+:root[data-ui-style^='klister'] .filter-tabs {
+  gap: 0.5rem;
+  padding: 0 3px 3px 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+:root[data-ui-style^='klister'] .filter-tabs > .tag {
+  padding: 0.1rem 0.9rem;
+  border: 1.25px solid #3a2f25;
+  border-radius: 12px 18px 14px 16px / 16px 12px 18px 14px;
+  background: var(--color-white);
+  box-shadow: 2px 2px 0 #3a2f25;
+  font-family: var(--sticker-font);
+  font-size: var(--sticker-size);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+:root[data-ui-style^='klister'] .filter-tabs > .tag:hover {
+  background: var(--color-accent-soft);
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+:root[data-ui-style^='klister'] .filter-tabs > .tag-selected,
+:root[data-ui-style^='klister'] .filter-tabs > .tag-selected:hover {
+  background: var(--color-accent);
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+:root[data-search-style^='klister'] .club-search,
+:root[data-search-style^='klister'] select.club-filter,
+:root[data-search-style^='klister'] .club-filter-kommun input,
+:root[data-search-style^='klister'] .club-filters .sort-menu-button {
+  border: 1.25px solid #3a2f25;
+  box-shadow: 2px 2px 0 #3a2f25;
+}
+
+:root[data-search-style^='klister'] .club-search input::placeholder,
+:root[data-search-style^='klister'] .club-filter-kommun input::placeholder {
+  font-family: var(--sticker-font);
+  font-size: var(--sticker-size);
+}
+
+:root[data-search-style^='klister'] select.club-filter,
+:root[data-search-style^='klister'] .club-filter-kommun input {
+  font-family: var(--sticker-font);
+  font-size: var(--sticker-size);
+}
+
+/* ---------- 4. Registerflikar ----------
+   Som flikarna i en pärm: rundade överkanter som står på en linje, den valda i papperets färg och ihop med
+   sidan under, med en gul rand överst. Handstil i flikarna. Sökraden som ljusa papperslappar. */
+:root[data-ui-style='register'] .filter-tabs {
+  gap: 0.3rem;
+  width: 100%;
+  overflow: visible;
+  border: 0;
+  border-bottom: 1.25px solid rgba(58, 47, 37, 0.45);
+  border-radius: 0;
+  background: none;
+}
+
+:root[data-ui-style='register'] .filter-tabs > .tag {
+  flex: 0 1 auto;
+  margin-bottom: -1.25px;
+  padding: 0.3rem 1.1rem 0.2rem;
+  border: 1.25px solid rgba(58, 47, 37, 0.45);
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  background: #f3ead8;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+}
+
+:root[data-ui-style='register'] .filter-tabs > .tag:hover {
+  background: #f8f1e2;
+}
+
+:root[data-ui-style='register'] .filter-tabs > .tag-selected,
+:root[data-ui-style='register'] .filter-tabs > .tag-selected:hover {
+  border-bottom: 1.25px solid #fffaf1;
+  background: #fffaf1;
+  box-shadow: inset 0 4px 0 var(--color-accent);
+}
+
+:root[data-search-style='register'] .club-search,
+:root[data-search-style='register'] select.club-filter,
+:root[data-search-style='register'] .club-filter-kommun input,
+:root[data-search-style='register'] .club-filters .sort-menu-button {
+  border: 1.25px solid rgba(58, 47, 37, 0.3);
+  border-radius: 10px;
+  background-color: #fffdf8;
+  box-shadow: 0 2px 0 rgba(58, 47, 37, 0.08);
+}
+
+/* ---------- 5. Handskrivet ----------
+   Inga rutor alls: flikarna är ord i handstil, och den valda är överstruken med en gul överstrykningspenna.
+   Sökfältet och filtren är bara en tunn linje att skriva på, som på ett papper. */
+:root[data-ui-style='handskrivet'] .filter-tabs {
+  gap: 1.1rem;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+:root[data-ui-style='handskrivet'] .filter-tabs > .tag {
+  padding: 0 0.25rem;
+  border-radius: 3px;
+  background: transparent;
+  color: #5a5148;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+}
+
+:root[data-ui-style='handskrivet'] .filter-tabs > .tag:hover {
+  background: linear-gradient(transparent 58%, rgba(244, 196, 48, 0.35) 58%, rgba(244, 196, 48, 0.35) 90%, transparent 90%);
+  color: var(--color-text);
+}
+
+:root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected,
+:root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected:hover {
+  background: linear-gradient(176deg, transparent 52%, rgba(244, 196, 48, 0.8) 52%, rgba(244, 196, 48, 0.8) 88%, transparent 88%);
+  color: var(--color-text);
+}
+
+:root[data-search-style='handskrivet'] .club-search,
+:root[data-search-style='handskrivet'] select.club-filter,
+:root[data-search-style='handskrivet'] .club-filter-kommun input {
+  border: 0;
+  border-bottom: 1.5px solid rgba(58, 47, 37, 0.55);
+  border-radius: 0;
+  background-color: transparent;
+}
+
+:root[data-search-style='handskrivet'] .club-search input::placeholder,
+:root[data-search-style='handskrivet'] .club-filter-kommun input::placeholder {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+}
+
+:root[data-search-style='handskrivet'] select.club-filter,
+:root[data-search-style='handskrivet'] .club-filter-kommun input {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+}
+
+:root[data-search-style='handskrivet'] .club-filters .sort-menu-button {
+  border: 0;
+  background: transparent;
+}
+
+/* Mobil: flikarna är smala (fyra i en rad), så handstilen blir mindre där, och fälten behåller vanlig text
+   (telefonen tvingar fälten till 16 px, och handstil blir då för liten att läsa). */
+@media (max-width: 767px) {
+  :root[data-ui-style^='klister'] .filter-tabs > .tag {
+    padding: 0.2rem 0.1rem;
+    font-size: calc(var(--sticker-size) * 0.88);
+  }
+
+  :root[data-ui-style='register'] .filter-tabs > .tag,
+  :root[data-ui-style='handskrivet'] .filter-tabs > .tag {
+    padding: 0.2rem 0.1rem;
+    font-size: 1.05rem;
+  }
+
+  :root[data-ui-style='handskrivet'] .filter-tabs {
+    gap: 0.3rem;
+  }
+
+  :root[data-ui-style^='klister'] .filter-tabs {
+    gap: 0.35rem;
+  }
+}
+
+@media (pointer: coarse) {
+  :root[data-search-style^='klister'] select.club-filter,
+  :root[data-search-style^='klister'] .club-filter-kommun input,
+  :root[data-search-style='handskrivet'] select.club-filter,
+  :root[data-search-style='handskrivet'] .club-filter-kommun input {
+    font-family: var(--font-body);
+  }
+}
+
+
+/* ---------- Öppen/privat-etiketten på klubbkorten (data-vis-style) ----------
+   Grundstilen (mjuk färg med hänglås) ligger i index.css. Varianterna här. */
+
+/* Som förut: vit kapsel med tunn kant, utan ikon. */
+:root[data-vis-style='nu'] .club-card-visibility {
+  padding: 0.05rem 0.6rem;
+  border: 1.25px solid color-mix(in srgb, var(--tone) 45%, var(--color-ink));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  color: color-mix(in srgb, var(--tone) 35%, var(--color-ink));
+}
+
+:root[data-vis-style='nu'] .club-card-visibility svg {
+  display: none;
+}
+
+/* Kontur: ingen fyllning, bara en tunn kant och ikon i färgen. */
+:root[data-vis-style='kontur'] .club-card-visibility {
+  border: 1.25px solid currentColor;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Bara ikon och text, utan ruta. Lugnast. */
+:root[data-vis-style='enkel'] .club-card-visibility {
+  padding: 0;
+  background: none;
+  font-weight: 600;
+}
+
+/* Handritad: mjuk färg, tunn bläckkant med ojämna hörn och en liten hård skugga, som lapparna i kartans meny. */
+:root[data-vis-style='handritad'] .club-card-visibility {
+  border: 1.25px solid #3a2f25;
+  border-radius: 8px 12px 9px 11px / 11px 8px 12px 9px;
+  box-shadow: 1.5px 1.5px 0 #3a2f25;
+  color: #3a2f25;
+}
+
+:root[data-vis-style='handritad'] .club-card-visibility svg {
+  stroke-width: 2.2;
+}
+
+/* Mörk: mörk etikett med färgad text och ikon, som den mörka raden i bilden. */
+:root[data-vis-style='mork'] .club-card-visibility {
+  background: #2f2925;
+}
+
+:root[data-vis-style='mork'] .club-card-visibility.is-open {
+  color: #8fe0a8;
+}
+
+:root[data-vis-style='mork'] .club-card-visibility.is-private {
+  color: #cdb3ff;
+}
+
+/* Stark: tydligare färg med vit text och ikon. */
+:root[data-vis-style='stark'] .club-card-visibility.is-open {
+  background: #3f9a5e;
+  color: var(--color-white);
+}
+
+:root[data-vis-style='stark'] .club-card-visibility.is-private {
+  background: #7b5cb8;
+  color: var(--color-white);
+}
+
+/* Stämpel: som "Öppet för alla" och "Endast inbjudna" på eventen (.stamp). Handstil i en ram, lite snett,
+   grön för öppen och mörk för privat. Utan hänglås. */
+:root[data-vis-style='stampel'] .club-card-visibility {
+  top: 1rem;
+  padding: 0 0.5rem;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.3;
+  transform: rotate(-4deg);
+}
+
+:root[data-vis-style='stampel'] .club-card-visibility svg {
+  display: none;
+}
+
+:root[data-vis-style='stampel'] .club-card-visibility.is-open {
+  color: var(--color-success);
+}
+
+:root[data-vis-style='stampel'] .club-card-visibility.is-private {
+  color: var(--color-ink);
+}
+
+
+/* ---------- Sökraden: två till som passar ihop med handskrivna flikar ---------- */
+
+/* Mjuk fylld: ingen kant, en ljus varm fyllning och runda hörn. Lugn och tydlig, och skiljer sig från flikarna. */
+:root[data-search-style='mjuk'] .club-search,
+:root[data-search-style='mjuk'] select.club-filter,
+:root[data-search-style='mjuk'] .club-filter-kommun input,
+:root[data-search-style='mjuk'] .club-filters .sort-menu-button {
+  border: 1px solid transparent;
+  background-color: rgba(255, 255, 255, 0.72);
+}
+
+:root[data-search-style='mjuk'] .club-search:focus-within,
+:root[data-search-style='mjuk'] select.club-filter:focus-visible,
+:root[data-search-style='mjuk'] .club-filter-kommun input:focus-visible {
+  border-color: rgba(58, 47, 37, 0.45);
+  background-color: var(--color-white);
+}
+
+/* Svävande: vita fält utan kant med en mjuk skugga, som om de låg en bit ovanför papperet. */
+:root[data-search-style='svavande'] .club-search,
+:root[data-search-style='svavande'] select.club-filter,
+:root[data-search-style='svavande'] .club-filter-kommun input,
+:root[data-search-style='svavande'] .club-filters .sort-menu-button {
+  border: 1px solid rgba(58, 47, 37, 0.08);
+  background-color: var(--color-white);
+  box-shadow: 0 2px 6px rgba(58, 47, 37, 0.1), 0 1px 1px rgba(58, 47, 37, 0.06);
+}

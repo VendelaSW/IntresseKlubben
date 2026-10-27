@@ -6,16 +6,17 @@ import Modal from '../Modal'
 import ShowOnMapButton from '../ShowOnMapButton'
 import GroupEvents from './GroupEvents'
 import GroupMembers from './GroupMembers'
-import { RoleBadge, memberCountText } from './GroupList'
+import { RoleBadge, groupMembersText } from './GroupList'
 import { inviteToGroup } from '../../services/groups'
 
 // Mer information om en grupp, med knapparna som passar ens roll. Medlemmar kan
-// skapa ett event i klubben (öppnar eventformuläret med klubben vald), och "Gå ur"
+// öppna anslagstavlan (`onOpenBoard`) och skapa ett event i klubben (öppnar
+// eventformuläret med klubben vald), och "Gå ur"
 // och "Radera" (för ägaren) ligger längst ner i kortet. "Bjud in" syns för den som
 // får bjuda in (group.can_invite: ägaren, eller alla medlemmar om ägaren har slagit
 // på det) och öppnar en popup med ens kompisar (`contacts`). Den som är inbjuden kan
 // gå med eller avböja. Tillbaka-knappen ligger ovanför rutan, i GroupsPanel.
-function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecline }) {
+function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecline, onOpenBoard }) {
   const navigate = useNavigate()
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteBusy, setInviteBusy] = useState(false)
@@ -42,89 +43,99 @@ function GroupDetails({ group, contacts, busy, onJoin, onLeave, onDelete, onDecl
 
   return (
     <section className="detail-view">
-      <p className="card-title">{group.name}</p>
-      <p className="card-subheading">
-        {group.municipality_name} · {memberCountText(group.member_count)}
-      </p>
-      {/* Beskrivningen högt upp, direkt efter kommun och medlemmar, så att man ser
-          vad klubben handlar om. Träffar och träffplats kommer efter. */}
-      <p className="card-text">{group.description}</p>
-      {group.meeting_info && <p className="hint-text">Träffas: {group.meeting_info}</p>}
-      {(group.place_name || group.address) && (
-        <p className="hint-text">Träffplats: {[group.place_name, group.address].filter(Boolean).join(', ')}</p>
-      )}
-      <ShowOnMapButton type="klubb" id={group.id} data={group} />
-      {group.is_member && group.has_blocked_member && (
-        <p className="soft-box soft-box-wide soft-box-text">Någon du har blockerat är med i den här klubben.</p>
-      )}
-      <InterestTags interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area, area_slug: group.interest_area_slug }]} />
-      <div className="card-actions">
-        <RoleBadge group={group} />
-        {group.visibility === 'private' && <span className="status-pill">Privat</span>}
-      </div>
-      <div className="card-actions">
-        {group.is_member ? (
-          <button
-            type="button"
-            className="secondary-button button-small"
-            onClick={() => navigate(`/events?skapa=1&klubb=${group.id}`)}
-          >
-            Skapa event
-          </button>
-        ) : (
-          <>
-            <button type="button" className="primary-button" disabled={busy} onClick={() => onJoin(group)}>
-              Gå med
-            </button>
-            {group.is_invited && (
-              <button type="button" className="secondary-button" disabled={busy} onClick={() => onDecline(group)}>
-                Avböj
-              </button>
-            )}
-          </>
+      {/* Klubben till vänster, events och medlemmar till höger när rutan är bred (se .detail-sheet). */}
+      <div className="detail-main">
+        <p className="card-title">{group.name}</p>
+        <p className="card-subheading">
+          {groupMembersText(group)}
+        </p>
+        {/* Beskrivningen högt upp, direkt efter kommun och medlemmar, så att man ser
+            vad klubben handlar om. Träffar och träffplats kommer efter. */}
+        <p className="card-text">{group.description}</p>
+        {group.meeting_info && <p className="hint-text">Träffas: {group.meeting_info}</p>}
+        {(group.place_name || group.address) && (
+          <p className="hint-text">Träffplats: {[group.place_name, group.address].filter(Boolean).join(', ')}</p>
         )}
-        {group.can_invite && (
-          <button
-            type="button"
-            className="secondary-button button-small"
-            onClick={() => {
-              setInviteError('')
-              setInviteNotice('')
-              setInviteOpen(true)
-            }}
-          >
-            Bjud in
-          </button>
+        <ShowOnMapButton type="klubb" id={group.id} data={group} />
+        {group.is_member && group.has_blocked_member && (
+          <p className="soft-box soft-box-wide soft-box-text">Någon du har blockerat är med i den här klubben.</p>
         )}
-        {inviteNotice && <span className="status-success">{inviteNotice}</span>}
-      </div>
-      {inviteOpen && (
-        <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
-          <InvitePicker
-            contacts={contacts}
-            groups={[]}
-            submitLabel="Bjud in"
-            busy={inviteBusy}
-            error={inviteError}
-            onSubmit={handleInvite}
-            onCancel={() => setInviteOpen(false)}
-          />
-        </Modal>
-      )}
-      <GroupEvents groupId={group.id} />
-      <GroupMembers groupId={group.id} memberCount={group.member_count} />
-      {group.is_member && (
+        <InterestTags interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area, area_slug: group.interest_area_slug }]} />
         <div className="card-actions">
-          <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onLeave(group)}>
-            Gå ur
-          </button>
-          {group.is_owner && (
-            <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onDelete(group)}>
-              Radera
+          <RoleBadge group={group} />
+          {group.visibility === 'private' && <span className="status-pill">Privat</span>}
+        </div>
+        <div className="card-actions">
+          {group.is_member ? (
+            <>
+              <button type="button" className="secondary-button button-small" onClick={onOpenBoard}>
+                Anslagstavla
+              </button>
+              <button
+                type="button"
+                className="secondary-button button-small"
+                onClick={() => navigate(`/events?skapa=1&klubb=${group.id}`)}
+              >
+                Skapa event
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="primary-button" disabled={busy} onClick={() => onJoin(group)}>
+                Gå med
+              </button>
+              {group.is_invited && (
+                <button type="button" className="secondary-button" disabled={busy} onClick={() => onDecline(group)}>
+                  Avböj
+                </button>
+              )}
+            </>
+          )}
+          {group.can_invite && (
+            <button
+              type="button"
+              className="secondary-button button-small"
+              onClick={() => {
+                setInviteError('')
+                setInviteNotice('')
+                setInviteOpen(true)
+              }}
+            >
+              Bjud in
             </button>
           )}
+          {inviteNotice && <span className="status-success">{inviteNotice}</span>}
         </div>
-      )}
+        {inviteOpen && (
+          <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
+            <InvitePicker
+              contacts={contacts}
+              groups={[]}
+              submitLabel="Bjud in"
+              busy={inviteBusy}
+              error={inviteError}
+              onSubmit={handleInvite}
+              onCancel={() => setInviteOpen(false)}
+            />
+          </Modal>
+        )}
+      </div>
+      <div className="detail-aside">
+        <GroupEvents groupId={group.id} />
+        <GroupMembers groupId={group.id} memberCount={group.member_count} />
+        {group.is_member && (
+          <div className="card-actions">
+            <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onLeave(group)}>
+              Gå ur
+            </button>
+            {group.is_owner && (
+              <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onDelete(group)}>
+                Radera
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </section>
   )
 }

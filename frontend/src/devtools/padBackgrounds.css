@@ -1,0 +1,120 @@
+/* TILLFÄLLIGT: bakgrunder på blocken att jämföra (se PadBackgroundPicker.jsx). "rutat" är map.css som den är. */
+
+:root[data-pad-bg='vitt'] .map-pad-page {
+  background-color: #fffefb;
+  background-image: none;
+}
+
+/* Skrivpapper: vågräta blå rader och en röd marginallinje till vänster. Raderna följer med när man scrollar. */
+:root[data-pad-bg='linjerat'] .map-pad-page {
+  background-color: #fffdf7;
+  background-image:
+    linear-gradient(90deg, transparent 0.85rem, rgba(220, 120, 120, 0.45) 0.85rem, rgba(220, 120, 120, 0.45) calc(0.85rem + 1.5px), transparent calc(0.85rem + 1.5px)),
+    linear-gradient(to bottom, transparent 25px, rgba(80, 140, 200, 0.22) 25px, rgba(80, 140, 200, 0.22) 26px);
+  background-size: 100% 100%, 100% 26px;
+  background-repeat: no-repeat, repeat;
+  background-attachment: local, local;
+}
+
+:root[data-pad-bg='lodratt'] .map-pad-page {
+  background-color: #fffdf7;
+  background-image: linear-gradient(90deg, transparent 25px, rgba(80, 140, 200, 0.2) 25px, rgba(80, 140, 200, 0.2) 26px);
+  background-size: 26px 100%;
+}
+
+/* Prickat, som en bullet journal. */
+:root[data-pad-bg='prickat'] .map-pad-page {
+  background-color: #fffdf7;
+  background-image: radial-gradient(circle, rgba(80, 110, 150, 0.35) 1.1px, transparent 1.6px);
+  background-size: 20px 20px;
+  background-attachment: local;
+}
+
+/* Gräddvitt akvarellpapper: en svag, ojämn struktur och lite mörkare mot kanterna. */
+:root[data-pad-bg='akvarell'] .map-pad-page {
+  background-color: #fffaf0;
+  background-image:
+    radial-gradient(ellipse at center, transparent 55%, rgba(176, 140, 80, 0.1) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.35 0 0 0 0 0.2 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 180px 180px;
+}
+
+/* Som nu, men större rutor och ljusare linjer, så att det stör mindre. */
+:root[data-pad-bg='mjukt-rutat'] .map-pad-page {
+  background-color: #fffdf8;
+  background-image:
+    linear-gradient(rgba(80, 140, 200, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 140, 200, 0.09) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+/* ---------- Akvarellpapper med mer karaktär ---------- */
+
+/* Färgtvätt: mjuka, ojämna färgflak i två hörn (blått uppe till höger, persika
+   nere till vänster) och ett fläckigt papper, som när man har tvättat ur en pensel. */
+:root[data-pad-bg='akvarell-tvatt'] .map-pad-page {
+  background-color: #fffaf1;
+  background-image:
+    radial-gradient(38% 30% at 96% 4%, rgba(143, 184, 224, 0.32) 0 40%, transparent 80%),
+    radial-gradient(22% 18% at 84% 12%, rgba(143, 184, 224, 0.22) 0 35%, transparent 80%),
+    radial-gradient(34% 28% at 3% 97%, rgba(240, 173, 124, 0.3) 0 40%, transparent 80%),
+    radial-gradient(18% 15% at 16% 88%, rgba(169, 207, 134, 0.22) 0 35%, transparent 80%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.011 0.018' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.62 0 0 0 0 0.5 0 0 0 0 0.32 0.22 0 0 0 -0.07'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.35 0 0 0 0 0.2 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 420px 420px, 180px 180px;
+}
+
+/* Stänk: små färgstänk i kortens färger i två hörn, på fint kornigt papper. */
+:root[data-pad-bg='akvarell-stank'] .map-pad-page {
+  background-color: #fffaf1;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='200' opacity='0.5'%3E%3Ccircle cx='170' cy='40' r='9' fill='%238fb8e0'/%3E%3Ccircle cx='196' cy='72' r='3.5' fill='%238fb8e0'/%3E%3Ccircle cx='146' cy='20' r='2.5' fill='%238fb8e0'/%3E%3Ccircle cx='214' cy='30' r='2' fill='%238fb8e0'/%3E%3Ccircle cx='122' cy='58' r='1.6' fill='%238fb8e0'/%3E%3Ccircle cx='150' cy='60' r='5' fill='%23f0ad7c'/%3E%3Ccircle cx='198' cy='48' r='1.8' fill='%23f0ad7c'/%3E%3Ccircle cx='212' cy='96' r='3.4' fill='%23f0ad7c'/%3E%3Ccircle cx='182' cy='16' r='2.4' fill='%23bba6e3'/%3E%3Ccircle cx='108' cy='84' r='2' fill='%23bba6e3'/%3E%3Ccircle cx='200' cy='124' r='1.5' fill='%23bba6e3'/%3E%3Ccircle cx='144' cy='92' r='2.8' fill='%23a9cf86'/%3E%3Ccircle cx='170' cy='128' r='1.3' fill='%23a9cf86'/%3E%3Ccircle cx='228' cy='62' r='2.2' fill='%23efcf6b'/%3E%3Ccircle cx='92' cy='30' r='1.2' fill='%238fb8e0'/%3E%3Ccircle cx='126' cy='112' r='1.4' fill='%23f0ad7c'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='200' opacity='0.5'%3E%3Ccircle cx='60' cy='150' r='8' fill='%23f0ad7c'/%3E%3Ccircle cx='30' cy='128' r='3' fill='%23f0ad7c'/%3E%3Ccircle cx='92' cy='178' r='2.4' fill='%23f0ad7c'/%3E%3Ccircle cx='84' cy='140' r='4.2' fill='%23a9cf86'/%3E%3Ccircle cx='40' cy='176' r='2' fill='%23a9cf86'/%3E%3Ccircle cx='22' cy='160' r='2.6' fill='%238fb8e0'/%3E%3Ccircle cx='112' cy='150' r='1.6' fill='%238fb8e0'/%3E%3Ccircle cx='70' cy='112' r='2.2' fill='%23bba6e3'/%3E%3Ccircle cx='130' cy='176' r='1.8' fill='%23bba6e3'/%3E%3Ccircle cx='50' cy='100' r='1.6' fill='%23efcf6b'/%3E%3Ccircle cx='100' cy='120' r='1.2' fill='%23a9cf86'/%3E%3Ccircle cx='150' cy='186' r='1.2' fill='%238fb8e0'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at center, transparent 60%, rgba(176, 140, 80, 0.09) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.35 0 0 0 0 0.2 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-position: right 0.5rem top 0.5rem, left 0.5rem bottom 0.5rem, 0 0, 0 0;
+  background-size: 240px 200px, 240px 200px, 100% 100%, 180px 180px;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+}
+
+/* Himmel: ett mjukt blått akvarellflak över toppen, som tunnar ut nedåt med en
+   ojämn kant, och ett varmt sken nertill. */
+:root[data-pad-bg='akvarell-himmel'] .map-pad-page {
+  background-color: #fffaf1;
+  background-image:
+    radial-gradient(70% 22% at 30% 0%, rgba(143, 184, 224, 0.3) 0 45%, transparent 85%),
+    radial-gradient(55% 18% at 85% 2%, rgba(187, 166, 227, 0.22) 0 40%, transparent 85%),
+    radial-gradient(60% 16% at 60% 100%, rgba(239, 207, 107, 0.2) 0 40%, transparent 85%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.011 0.018' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.62 0 0 0 0 0.5 0 0 0 0 0.32 0.22 0 0 0 -0.07'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.35 0 0 0 0 0.2 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 100% 100%, 100% 100%, 420px 420px, 180px 180px;
+}
+
+/* Ateljé: fläckigt papper med lite mörkare, slitna kanter, kanten av en torkad
+   akvarellpöl som sticker in i nedre vänstra hörnet (bara en bit syns, som
+   kafferingen förut) och några stänk, som ett blad som legat på ett arbetsbord. */
+:root[data-pad-bg='akvarell-atelje'] .map-pad-page {
+  background-color: #fdf6e8;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cpath d='M281.5 162.8 Q280.2 175.6 268.6 184.9 Q256.9 194.3 249.6 203.8 Q242.4 213.4 233.9 222.4 Q225.5 231.4 212.1 234.1 Q198.6 236.9 186.6 239.8 Q174.6 242.7 162.3 243.9 Q150.0 245.0 138.4 241.2 Q126.8 237.4 113.1 239.0 Q99.3 240.5 82.1 241.2 Q64.8 241.9 54.9 232.0 Q45.0 222.0 40.8 209.5 Q36.7 196.9 35.6 184.8 Q34.4 172.7 40.6 161.3 Q46.8 150.0 48.5 140.2 Q50.2 130.4 47.2 118.3 Q44.2 106.2 51.1 96.5 Q57.9 86.8 68.1 79.8 Q78.3 72.7 87.3 63.4 Q96.2 54.0 109.2 49.4 Q122.1 44.8 136.0 43.4 Q150.0 42.1 164.7 40.8 Q179.3 39.6 190.5 48.6 Q201.7 57.6 206.8 70.4 Q211.9 83.2 220.7 89.3 Q229.5 95.5 239.4 102.2 Q249.3 108.9 256.9 118.2 Q264.5 127.5 273.6 138.8 Q282.8 150.0 281.5 162.8 Z' fill='%239a6c3c' fill-opacity='0.05' stroke='%239a6c3c' stroke-opacity='0.2' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M276.6 160.0 Q275.4 172.0 264.4 180.8 Q253.5 189.6 246.7 198.6 Q239.9 207.6 231.9 216.0 Q223.9 224.5 211.3 227.1 Q198.7 229.6 187.4 232.4 Q176.1 235.1 164.6 236.2 Q153.0 237.3 142.1 233.8 Q131.2 230.2 118.3 231.6 Q105.4 233.1 89.1 233.7 Q72.9 234.4 63.6 225.0 Q54.3 215.7 50.4 203.9 Q46.5 192.1 45.4 180.7 Q44.3 169.3 50.1 158.7 Q56.0 148.0 57.5 138.8 Q59.1 129.6 56.4 118.2 Q53.6 106.8 60.0 97.7 Q66.4 88.6 76.0 82.0 Q85.6 75.3 94.0 66.6 Q102.5 57.8 114.6 53.5 Q126.8 49.1 139.9 47.8 Q153.0 46.5 166.8 45.4 Q180.5 44.2 191.1 52.7 Q201.6 61.2 206.4 73.2 Q211.2 85.2 219.5 91.0 Q227.7 96.8 237.0 103.0 Q246.4 109.3 253.5 118.1 Q260.6 126.9 269.2 137.4 Q277.8 148.0 276.6 160.0 Z' fill='none' stroke='%239a6c3c' stroke-opacity='0.07' stroke-width='6' stroke-linejoin='round'/%3E%3Cpath d='M232.3 163.0 Q231.6 170.1 225.2 175.2 Q218.8 180.3 214.8 185.6 Q210.8 190.9 206.2 195.8 Q201.5 200.8 194.1 202.3 Q186.8 203.8 180.1 205.4 Q173.5 207.0 166.8 207.6 Q160.0 208.3 153.6 206.2 Q147.2 204.1 139.7 204.9 Q132.1 205.8 122.6 206.2 Q113.1 206.5 107.7 201.1 Q102.2 195.6 100.0 188.7 Q97.7 181.8 97.1 175.1 Q96.4 168.5 99.8 162.2 Q103.2 156.0 104.1 150.6 Q105.1 145.2 103.5 138.6 Q101.8 131.9 105.6 126.6 Q109.4 121.3 115.0 117.4 Q120.6 113.5 125.5 108.3 Q130.4 103.2 137.5 100.7 Q144.6 98.2 152.3 97.4 Q160.0 96.6 168.1 95.9 Q176.1 95.3 182.3 100.2 Q188.4 105.2 191.3 112.2 Q194.1 119.3 198.9 122.6 Q203.7 126.0 209.2 129.7 Q214.6 133.4 218.8 138.5 Q223.0 143.6 228.0 149.8 Q233.0 156.0 232.3 163.0 Z' fill='%239a6c3c' fill-opacity='0.03' stroke='%239a6c3c' stroke-opacity='0.08' stroke-width='1.5'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='200' opacity='0.5'%3E%3Ccircle cx='170' cy='40' r='9' fill='%238fb8e0'/%3E%3Ccircle cx='196' cy='72' r='3.5' fill='%238fb8e0'/%3E%3Ccircle cx='146' cy='20' r='2.5' fill='%238fb8e0'/%3E%3Ccircle cx='214' cy='30' r='2' fill='%238fb8e0'/%3E%3Ccircle cx='122' cy='58' r='1.6' fill='%238fb8e0'/%3E%3Ccircle cx='150' cy='60' r='5' fill='%23f0ad7c'/%3E%3Ccircle cx='198' cy='48' r='1.8' fill='%23f0ad7c'/%3E%3Ccircle cx='212' cy='96' r='3.4' fill='%23f0ad7c'/%3E%3Ccircle cx='182' cy='16' r='2.4' fill='%23bba6e3'/%3E%3Ccircle cx='108' cy='84' r='2' fill='%23bba6e3'/%3E%3Ccircle cx='200' cy='124' r='1.5' fill='%23bba6e3'/%3E%3Ccircle cx='144' cy='92' r='2.8' fill='%23a9cf86'/%3E%3Ccircle cx='170' cy='128' r='1.3' fill='%23a9cf86'/%3E%3Ccircle cx='228' cy='62' r='2.2' fill='%23efcf6b'/%3E%3Ccircle cx='92' cy='30' r='1.2' fill='%238fb8e0'/%3E%3Ccircle cx='126' cy='112' r='1.4' fill='%23f0ad7c'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at center, transparent 50%, rgba(160, 120, 60, 0.16) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.011 0.018' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.62 0 0 0 0 0.5 0 0 0 0 0.32 0.22 0 0 0 -0.07'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.35 0 0 0 0 0.2 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-position: left -115px bottom -110px, right 0.5rem top 0.5rem, 0 0, 0 0, 0 0;
+  background-size: 300px 300px, 240px 200px, 100% 100%, 420px 420px, 180px 180px;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat;
+  box-shadow: inset 0 0 28px rgba(160, 120, 60, 0.14);
+}
+
+/* Mjukt fläckigt: bara papperets egen struktur, men tydligare än det släta,
+   och en svag värme i hörnen. Lugnast av de nya. */
+:root[data-pad-bg='akvarell-flackigt'] .map-pad-page {
+  background-color: #fffaf1;
+  background-image:
+    radial-gradient(30% 25% at 0% 0%, rgba(240, 173, 124, 0.14) 0 30%, transparent 80%),
+    radial-gradient(30% 25% at 100% 100%, rgba(143, 184, 224, 0.16) 0 30%, transparent 80%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.011 0.018' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.62 0 0 0 0 0.5 0 0 0 0 0.32 0.22 0 0 0 -0.07'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.35 0 0 0 0 0.2 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 100% 100%, 420px 420px, 180px 180px;
+}

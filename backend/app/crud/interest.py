@@ -42,6 +42,11 @@ def list_interests(db: Session) -> list[Interest]:
     return _active(db).order_by(Interest.name).all()
 
 
+def get_visible_interest(db: Session, interest_id: int, viewer_id: int) -> Interest | None:
+    """Intresset om det är aktivt och `viewer_id` får se det (se _visible_to), annars None."""
+    return _active(db).filter(Interest.id == interest_id, _visible_to(viewer_id)).first()
+
+
 def list_top_interests(db: Session, viewer_id: int) -> list[Interest]:
     """Huvudområdena (intressen utan förälder), för "Utforska"."""
     return _active(db).filter(Interest.parent_id.is_(None), _visible_to(viewer_id)).order_by(Interest.name).all()
