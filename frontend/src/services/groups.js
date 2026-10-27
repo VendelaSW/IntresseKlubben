@@ -32,6 +32,17 @@ export function getRegions() {
   return cachedInBrowser(['regions'], () => apiGet('/groups/regions'), 24 * HOUR)
 }
 
+// Områdena att välja bland för en räckvidd (inte kommun och hela Sverige, som
+// har en egen väljare respektive inget val), som [{ kod, namn }]. Används av
+// Skapa klubb och eventformuläret.
+export function areaOptions(scope, regions) {
+  if (!regions) return []
+  if (scope === 'lan') return regions.lan
+  if (scope === 'landskap') return [...regions.landskap].sort((a, b) => a.namn.localeCompare(b.namn, 'sv'))
+  if (scope === 'landsdel') return regions.landsdelar
+  return []
+}
+
 // Gäller klubben kommunen? Ja om den finns i kommunen eller gäller ett större
 // område som kommunen ligger i (samma som filtret i GET /groups/). `regions` från
 // getRegions; utan dem räknas bara klubbar i själva kommunen.

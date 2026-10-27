@@ -46,7 +46,8 @@ function splitEvents(events) {
   for (const event of events) {
     const answeredYesOrMaybe = event.my_answer === 'yes' || event.my_answer === 'maybe'
     // Ens eget event ligger alltid under Mina events, även om man svarar Nej.
-    if (event.is_owner || answeredYesOrMaybe) lists.mine.push(event)
+    // Ens eget event, och de man är medarrangör för (SCRUM-296), ligger alltid under Mina events.
+    if (event.is_host || answeredYesOrMaybe) lists.mine.push(event)
     else if (event.my_answer === 'no') lists.declined.push(event)
     else if (event.is_invited && event.my_answer === null) lists.invitations.push(event)
     else if (!event.is_invited && event.my_answer === null) lists.suggested.push(event)
@@ -250,7 +251,7 @@ function EventsPanel() {
           {notice && <p className="status-success">{notice}</p>}
           {eventsFailed ? (
             <p className="status-error">Kunde inte hämta events. Försök igen senare.</p>
-          ) : selected && editing && selected.is_owner ? (
+          ) : selected && editing && selected.is_host ? (
             <>
               <BackButton onClick={() => setEditing(false)} />
               <div className="card sheet sheet-form">

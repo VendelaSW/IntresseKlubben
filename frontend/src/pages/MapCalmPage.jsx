@@ -46,7 +46,7 @@ function unansweredInvitations(events, now) {
 function nearbyEvents({ events, groups, kommuner, municipalityCode, interestIds, now }) {
   const candidates = events.filter(
     (e) =>
-      e.visibility === 'open' &&
+      (e.visibility === 'open' || e.visibility === 'application') &&
       !e.is_owner &&
       !e.is_invited &&
       e.my_answer === null &&

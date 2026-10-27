@@ -23,7 +23,7 @@ import { getGroups, getMyGroups } from '../services/groups'
 import { getProfile } from '../services/profile'
 import { HOUR, cachedInBrowser } from '../services/queryClient'
 import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
-import { areaClubsFrom, attachAreaClubs } from './mapPrototypeAreaClubs'
+import { areasFrom, attachAreaSymbols } from './mapPrototypeAreaSymbols'
 import {
   ZOOM_LEVELS,
   allKommuner,
@@ -845,7 +845,7 @@ function MapPrototype() {
   const flyTokenRef = useRef(0)
   const activitiesRef = useRef(null) // klubbarnas och eventens lappar på kartan
   const activitiesLayerRef = useRef(null)
-  const areaClubsRef = useRef(null) // symbolerna för klubbar utan nål (se mapPrototypeAreaClubs.js)
+  const areaClubsRef = useRef(null) // symbolerna för klubbar och events utan nål (se mapPrototypeAreaSymbols.js)
   const areaClubsLayerRef = useRef(null)
 
   // Hämtar klubbar och events som syns för användaren (samma som listorna i
@@ -866,7 +866,7 @@ function MapPrototype() {
       kommunerRef.current = kommuner
       const items = activitiesFrom({ groups, events, kommuner })
       // Symbolerna först, så att lapparna kan flytta sig undan för dem.
-      areaClubsRef.current?.setAreas(areaClubsFrom(groups, kommuner))
+      areaClubsRef.current?.setAreas(areasFrom({ groups, events, eventItems: items, kommuner }))
       activitiesRef.current?.setItems(items)
       // Samma klubbar och events går att söka fram i sökrutan (se MapPlaceSearch).
       setActivityItems(items)
@@ -1356,14 +1356,14 @@ function MapPrototype() {
     })
     startAtHome(map)
     // Symbolerna före lapparna, så att de ritas först när kartan rör sig och lapparna kan flytta sig undan.
-    areaClubsRef.current = attachAreaClubs(map, areaClubsLayerRef.current, {
+    areaClubsRef.current = attachAreaSymbols(map, areaClubsLayerRef.current, {
       getView: () => ({
         mode: modeRef.current,
         landskap: selectedLandskapRef.current,
         lan: selectedLanRef.current,
         kommun: selectedKommunRef.current,
       }),
-      onOpen: (group) => openActivityRef.current({ type: 'klubb', id: group.id }),
+      onOpen: (item) => openActivityRef.current(item),
     })
     activitiesRef.current = attachActivityMarkers(map, activitiesLayerRef.current, {
       getKommun: () => selectedKommunRef.current,
