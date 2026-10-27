@@ -181,7 +181,8 @@ class GroupsOverview(BaseModel):
 
 
 class GroupJoinRequestCreate(BaseModel):
-    # Valfritt meddelande till ägaren (SCRUM-159). Tom text sparas som inget meddelande.
+    # Valfritt meddelande (SCRUM-159): den sökandes till ägaren, eller ägarens förklaring när ansökan nekas.
+    # Tom text sparas som inget meddelande.
     message: str | None = None
 
     @field_validator("message")

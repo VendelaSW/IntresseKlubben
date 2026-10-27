@@ -115,6 +115,25 @@ def test_declining_notifies_and_lets_the_applicant_apply_again(client, db, club,
     assert _apply(client, club).json()["has_applied"] is True
 
 
+def test_declining_can_explain_why(client, db, club, people):
+    login(people["Sara"])
+    _apply(client, club)
+    login(people["Olle"])
+    response = client.request("DELETE", f"/groups/{club.id}/requests/3", json={"message": "  Vi är fulla till hösten.  "})
+    assert response.status_code == 204
+    note = db.query(Notification).filter_by(user_id=3).one()
+    assert (note.quote, note.quote_by) == ("Vi är fulla till hösten.", "Olle")
+
+
+def test_a_rude_decline_reason_is_stopped(client, db, club, people):
+    login(people["Sara"])
+    _apply(client, club)
+    login(people["Olle"])
+    response = client.request("DELETE", f"/groups/{club.id}/requests/3", json={"message": "Fuck you"})
+    assert response.status_code == 422
+    assert db.query(GroupJoinRequest).count() == 1  # ansökan finns kvar
+
+
 def test_answering_a_missing_application_is_an_error(client, club, people):
     login(people["Olle"])
     response = client.put(f"/groups/{club.id}/requests/3")

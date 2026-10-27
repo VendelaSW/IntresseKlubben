@@ -353,15 +353,23 @@ def approve(group_id: int, user_id: int, current_user=Depends(get_current_user),
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+# Nekar med en valfri förklaring till den som ansökt (följer med i notisen).
 @router.delete("/{group_id}/requests/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def decline_application(
-    group_id: int, user_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+    group_id: int,
+    user_id: int,
+    data: GroupJoinRequestCreate | None = None,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     group = _owned_group_or_403(db, group_id, current_user.id)
     if is_blocked(db, current_user.id, user_id):
         raise HTTPException(status_code=409, detail=msg.GROUP_REQUEST_NOT_FOUND)
+    message = data.message if data else None
+    if message:
+        check_fields(labels={"message": "Meddelandet"}, message=message)
     try:
-        decline_request(db, group, user_id)
+        decline_request(db, group, user_id, current_user, message)
     except GroupRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=str(err))
     return Response(status_code=status.HTTP_204_NO_CONTENT)

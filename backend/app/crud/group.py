@@ -458,15 +458,19 @@ def approve_request(db: Session, group: Group, user_id: int) -> None:
     db.commit()
 
 
-def decline_request(db: Session, group: Group, user_id: int) -> None:
-    """Nekar ansökan: den tas bort, så att personen kan ansöka igen, och personen får en notis."""
+def decline_request(db: Session, group: Group, user_id: int, owner: User, message: str | None = None) -> None:
+    """Nekar ansökan: den tas bort, så att personen kan ansöka igen, och personen får en notis, med ägarens
+    förklaring om hen skrev en."""
     db.delete(_pending_request(group, user_id))
+    owner_name = _display_name(owner)
     notify(
         db,
         [user_id],
         NotificationKind.group_request_declined,
         title=f"Din ansökan till {group.name} fick nej",
         body="Du kan ansöka igen senare, eller hitta en annan klubb.",
+        quote=message,
+        quote_by=owner_name if message else None,
         link="/klubbar",
     )
     db.commit()

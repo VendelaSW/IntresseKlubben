@@ -218,8 +218,9 @@ export function approveJoinRequest(id, userId) {
   return changingMyGroups(apiPut(`/groups/${id}/requests/${userId}`))
 }
 
-export function declineJoinRequest(id, userId) {
-  return changingMyGroups(apiDelete(`/groups/${id}/requests/${userId}`))
+// `message` (valfritt): varför, till den som ansökt (följer med i notisen).
+export function declineJoinRequest(id, userId, message) {
+  return changingMyGroups(apiDelete(`/groups/${id}/requests/${userId}`, { message: message || null }))
 }
 
 // Avböjer en inbjudan.

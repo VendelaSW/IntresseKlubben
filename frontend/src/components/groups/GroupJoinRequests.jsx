@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from '../Avatar'
+import Modal from '../Modal'
 import { approveJoinRequest, declineJoinRequest, getJoinRequests } from '../../services/groups'
 
 // Ansökningarna till en klubb man äger (SCRUM-159), i klubbens vy: namn (länk till
-// profilen), meddelandet och Godkänn eller Neka. Den som ansökt får en notis
-// med svaret, och kan ansöka igen efter ett nej. `onChanged` anropas när någon
+// profilen), meddelandet och Godkänn eller Neka. Neka frågar efter en valfri
+// förklaring. Den som ansökt får en notis med svaret (och förklaringen), och kan
+// ansöka igen efter ett nej. `onChanged` anropas när någon
 // har godkänts (klubben har då en medlem till) eller nekats.
 function GroupJoinRequests({ group, onChanged }) {
   const [requests, setRequests] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
+  // Ansökan som ska nekas (rutan med förklaringen är öppen), och förklaringen.
+  const [declining, setDeclining] = useState(null)
+  const [reason, setReason] = useState('')
 
   useEffect(() => {
     setFailed(false)
@@ -20,17 +25,28 @@ function GroupJoinRequests({ group, onChanged }) {
       .catch(() => setFailed(true))
   }, [group.id, group.request_count])
 
-  async function answer(userId, action) {
+  // Ger om det gick, så att rutan för att neka kan stängas.
+  async function answer(userId, action, ...args) {
     setBusyId(userId)
     setError('')
     try {
-      await action(group.id, userId)
+      await action(group.id, userId, ...args)
       setRequests((list) => list.filter((r) => r.user.id !== userId))
       onChanged?.()
+      return true
     } catch (err) {
       setError(err.message)
+      return false
     } finally {
       setBusyId(null)
+    }
+  }
+
+  async function handleDecline(event) {
+    event.preventDefault()
+    if (await answer(declining.id, declineJoinRequest, reason.trim())) {
+      setDeclining(null)
+      setReason('')
     }
   }
 
@@ -65,7 +81,11 @@ function GroupJoinRequests({ group, onChanged }) {
                   type="button"
                   className="secondary-button button-small"
                   disabled={busyId !== null}
-                  onClick={() => answer(user.id, declineJoinRequest)}
+                  onClick={() => {
+                    setError('')
+                    setReason('')
+                    setDeclining(user)
+                  }}
                 >
                   Neka
                 </button>
@@ -74,7 +94,32 @@ function GroupJoinRequests({ group, onChanged }) {
           ))}
         </ul>
       )}
-      {error && <p className="status-error">{error}</p>}
+      {error && !declining && <p className="status-error">{error}</p>}
+      {declining && (
+        <Modal title={`Neka ${declining.name ?? declining.username}`} onClose={() => setDeclining(null)}>
+          <form className="auth-form" onSubmit={handleDecline}>
+            <label htmlFor="decline-reason">Varför? (valfritt)</label>
+            <textarea
+              id="decline-reason"
+              rows={3}
+              maxLength={200}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="T.ex. att klubben är full till hösten"
+            />
+            <p className="hint-text">Det du skriver följer med i notisen. Hen kan ansöka igen senare.</p>
+            {error && <p className="status-error">{error}</p>}
+            <div className="form-actions">
+              <button type="submit" disabled={busyId !== null}>
+                {busyId !== null ? 'Nekar...' : 'Neka ansökan'}
+              </button>
+              <button type="button" className="button-secondary" onClick={() => setDeclining(null)}>
+                Avbryt
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   )
 }

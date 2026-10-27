@@ -866,6 +866,7 @@ function MapPrototype() {
       kommunerRef.current = kommuner
       const items = activitiesFrom({ groups, events, kommuner })
       activitiesRef.current?.setItems(items)
+      // Efter lapparna, så att symbolerna kan flyttas undan för dem.
       areaClubsRef.current?.setAreas(areaClubsFrom(groups, kommuner))
       // Samma klubbar och events går att söka fram i sökrutan (se MapPlaceSearch).
       setActivityItems(items)
@@ -1363,6 +1364,9 @@ function MapPrototype() {
         kommun: selectedKommunRef.current,
       }),
       onOpen: (group) => openActivityRef.current({ type: 'klubb', id: group.id }),
+      // Lapparna (events och klubbar med nål), som symbolerna flyttas undan för.
+      getObstacles: () =>
+        [...activitiesLayerRef.current.querySelectorAll('.map-activity')].map((el) => el.getBoundingClientRect()),
     })
     loadActivities()
     labelsApiRef.current = labelsApi
