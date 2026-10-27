@@ -257,6 +257,21 @@ def seed(app, db: Session) -> dict[str, int]:
     api.call("POST", f"/events/{run}/invitations", anna, json={"user_ids": [bertil, max_], "group_ids": []})
     api.call("PUT", f"/events/{run}/response", bertil, json={"answer": "yes"})
     api.call("PUT", f"/events/{run}/response", max_, json={"answer": "maybe"})
+    # Bertil är medarrangör för löprundan (SCRUM-296), som har max 4 och nivån Nybörjare (SCRUM-293).
+    api.call("PUT", f"/events/{run}/hosts/{bertil}", anna)
+    api.call("PATCH", f"/events/{run}", anna, json={"max_attendees": 4, "skill_level": "beginner"})
+    # Ett event man ansöker till, med en ansökan från Cecilia, och ett digitalt event för hela Norrland (SCRUM-295).
+    tasting = create_event(
+        api, anna, "Ostprovning hemma hos Anna", 6, visibility="application", max_attendees=6,
+        description="Vi provar sex ostar. Det får plats sex, så skriv gärna några rader om dig.",
+        place_name="Hemma hos Anna", address="Linnégatan 5",
+    )
+    api.call("PUT", f"/events/{tasting}/requests/me", cecilia, json={"message": "Jag älskar ost!"})
+    create_event(
+        api, bertil, "Digital fjällplanering", 4, visibility="open", scope="landsdel", scope_code="norrland",
+        interest="Fjällvandring", description="Vi planerar sommarens turer över video.", place_name="Online",
+        address="Länk skickas ut",
+    )
     game_night = create_event(api, bertil, "Brädspelskväll", 5)
     api.call("POST", f"/events/{game_night}/invitations", bertil, json={"user_ids": [anna], "group_ids": []})
     create_event(api, bertil, "Klubbträff: nya spel", 9, group_id=board_games)
