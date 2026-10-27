@@ -1,14 +1,14 @@
 """warnings: a moderator can warn a user from a report (SCRUM-268)
 
 Revision ID: f7d3b9a5c162
-Revises: e5b7c9d1f346
+Revises: a3c8e1f5b702
 """
 from alembic import op
 import sqlalchemy as sa
 
 
 revision = 'f7d3b9a5c162'
-down_revision = 'e5b7c9d1f346'
+down_revision = 'a3c8e1f5b702'
 branch_labels = None
 depends_on = None
 

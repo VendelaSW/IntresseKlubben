@@ -234,6 +234,7 @@ def test_every_column_pointing_at_users_is_handled():
         "events.created_by",
         "group_invitations.invited_by",  # sätts till tomt: inbjudan finns kvar utan avsändare
         "group_invitations.user_id",
+        "group_join_requests.user_id",
         "group_members.user_id",
         "group_messages.sender_id",
         "group_posts.author_id",
