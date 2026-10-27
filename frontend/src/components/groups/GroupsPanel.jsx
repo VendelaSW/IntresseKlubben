@@ -317,7 +317,13 @@ function GroupsPanel() {
 
   // Medan översikten hämtas om efter ett fel visas "Laddar klubbar..." i stället för felet.
   if (status === 'error' || (overviewFailed && !overview.isFetching)) {
-    return <LoadError text="Kunde inte hämta klubbarna." onRetry={retry} />
+    return (
+      <LoadError
+        text="Kunde inte hämta klubbarna."
+        onRetry={retry}
+        retrying={status === 'loading' || overview.isFetching}
+      />
+    )
   }
 
   // Mina klubbar och Förslag söks, filtreras och sorteras här. I Mina klubbar

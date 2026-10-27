@@ -233,7 +233,9 @@ function EventsPanel() {
         <LoadError
           text="Kunde inte hämta sidan."
           onRetry={retryPage}
-          retrying={interestsStatus === 'loading' || groupsResult.isFetching || contactsResult.isFetching}
+          retrying={
+            interestsStatus === 'loading' || groupsResult.isFetching || contactsResult.isFetching || eventsResult.isFetching
+          }
         />
       ) : view === 'create' ? (
         <>
