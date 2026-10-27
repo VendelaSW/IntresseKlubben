@@ -23,6 +23,7 @@ import {
   withdrawEventApplication,
 } from '../../services/events'
 import { skillLevelLabel } from '../../services/groups'
+import LoadError, { useRetry } from '../LoadError'
 
 const ANSWERS = [
   { id: EVENT_ANSWER.yes, label: 'Ja' },
@@ -51,6 +52,7 @@ const ANSWERS = [
 function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEdit, onDeleted }) {
   const [responses, setResponses] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
+  const [responsesAttempt, retryResponses] = useRetry()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -74,7 +76,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
     getEventResponses(event.id)
       .then(setResponses)
       .catch(() => setFailed(true))
-  }, [event.id])
+  }, [event.id, responsesAttempt])
 
   async function handleAnswer(answer) {
     setBusy(true)
@@ -430,6 +432,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
         <Attendees
           responses={responses}
           failed={failed}
+          onRetry={retryResponses}
           event={event}
           onHost={event.is_owner ? handleHost : null}
         />
@@ -440,8 +443,8 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
 
 // Vilka som har svarat, uppdelat på Ja, Kanske och Nej. Medarrangörerna har ett
 // märke, och skaparen (`onHost`) kan göra någon till medarrangör eller ta tillbaka det.
-function Attendees({ responses, failed, event, onHost }) {
-  if (failed) return <p className="hint-text">Kunde inte hämta svaren.</p>
+function Attendees({ responses, failed, onRetry, event, onHost }) {
+  if (failed) return <LoadError text="Kunde inte hämta svaren." onRetry={onRetry} className="hint-text" />
   if (responses === null) return <p className="hint-text">Laddar svar...</p>
   if (responses.length === 0) return <p className="hint-text">Ingen har svarat än.</p>
 

@@ -29,6 +29,7 @@ import {
   uploadResizedImage,
 } from '../services/profile'
 import { useConfirm } from '../hooks/useConfirm'
+import LoadError, { useRetry } from '../components/LoadError'
 
 // Så länge kontrollen av användarnamn/e-post väntar efter senaste
 // tangenttrycket, så att inte varje bokstav blir ett anrop.
@@ -179,6 +180,8 @@ function ProfilePage() {
   // "Upptaget"-meddelanden medan man skriver (null = ledigt eller oförändrat).
   const [availability, setAvailability] = useState({ username: null, email: null })
   const availabilityRequest = useRef(0)
+  // "Försök igen" när profilen inte gick att hämta (SCRUM-286): effekten nedan körs om.
+  const [loadAttempt, retryLoad] = useRetry()
 
   useEffect(() => {
     // Själva inloggningskollen sköts redan av ProtectedRoute, så vi kan
@@ -223,7 +226,7 @@ function ProfilePage() {
         // inte visa felsidan i onödan.
         if (err.status !== 401) setStatus('error')
       })
-  }, [])
+  }, [loadAttempt])
 
   // "Skapa din profil": spara utkastet medan man fyller i, så att inget går
   // förlorat om man råkar lämna sidan eller laddar om den. Bilden kan inte
@@ -410,7 +413,14 @@ function ProfilePage() {
     return (
       <div className="content-stack">
         <h1>Min profil</h1>
-        <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>
+        <LoadError
+          text="Kunde inte hämta profilen."
+          className="form-error"
+          onRetry={() => {
+            setStatus('loading')
+            retryLoad()
+          }}
+        />
       </div>
     )
   }

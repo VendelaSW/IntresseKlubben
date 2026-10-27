@@ -1084,6 +1084,14 @@ span.tag-selected:hover {
   overflow-wrap: anywhere;
 }
 
+/* Ett fel som går att försöka igen: texten och "Försök igen" under den (t.ex. Klubbar). */
+.load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;
