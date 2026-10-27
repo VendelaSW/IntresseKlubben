@@ -11,6 +11,7 @@ class NotificationKind(str, enum.Enum):
 
     event_cancelled = "event_cancelled"  # eventet man skulle gå på är inställt (raderat)
     event_changed = "event_changed"  # eventet har fått ny tid och/eller plats
+    moderation_warning = "moderation_warning"  # en moderator har varnat en för att ha brutit mot reglerna
 
 
 class Notification(Base):
