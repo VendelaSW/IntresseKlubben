@@ -129,6 +129,8 @@ def test_regions_lists_the_areas(client, user):
     assert [r["namn"] for r in data["landsdelar"]] == ["Götaland", "Svealand", "Norrland"]
     assert len(data["landskap"]) == 25 and len(data["lan"]) == 21
     assert data["kommuner"]["2480"] == {"lan": "24", "landskap": "23"}
+    # Undantagen där kartans ytor ger fel landskap: Stockholm i Uppland, Göteborg och Mölndal i Västergötland.
+    assert [data["kommuner"][k]["landskap"] for k in ("0180", "1480", "1481")] == ["15", "7", "7"]
 
 
 # --- Nivå och max antal medlemmar (SCRUM-216) --------------------------------
