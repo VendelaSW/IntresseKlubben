@@ -31,6 +31,7 @@ import {
 } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
 import { getMunicipalities, getProfile } from '../../services/profile'
+import LoadError from '../LoadError'
 
 const TABS = [
   { id: 'mine', label: 'Mina klubbar', short: 'Mina' },
@@ -316,14 +317,7 @@ function GroupsPanel() {
 
   // Medan översikten hämtas om efter ett fel visas "Laddar klubbar..." i stället för felet.
   if (status === 'error' || (overviewFailed && !overview.isFetching)) {
-    return (
-      <div className="load-error">
-        <p className="status-error">Kunde inte hämta klubbarna.</p>
-        <button type="button" className="secondary-button" onClick={retry}>
-          Försök igen
-        </button>
-      </div>
-    )
+    return <LoadError text="Kunde inte hämta klubbarna." onRetry={retry} />
   }
 
   // Mina klubbar och Förslag söks, filtreras och sorteras här. I Mina klubbar

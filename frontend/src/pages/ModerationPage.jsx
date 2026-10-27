@@ -16,6 +16,7 @@ import {
 import { REPORT_REASONS } from '../services/reports'
 import { formatSentAt } from '../utils/formatSentAt'
 import { useConfirm } from '../hooks/useConfirm'
+import LoadError from '../components/LoadError'
 
 const TABS = [
   { id: 'new', label: 'Nya' },
@@ -93,7 +94,7 @@ function ModerationPage() {
       )}
 
       {current.isError ? (
-        <p className="status-error">Kunde inte hämta anmälningarna. Försök igen senare.</p>
+        <LoadError text="Kunde inte hämta anmälningarna." onRetry={() => current.refetch()} retrying={current.isFetching} />
       ) : !current.data ? (
         <p className="hint-text">Laddar...</p>
       ) : current.data.length === 0 ? (

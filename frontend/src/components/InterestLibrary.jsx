@@ -3,6 +3,7 @@ import { useDismiss } from '../hooks/useDismiss'
 import { getChildInterests, getTopInterests } from '../services/interests'
 import { areaColors } from '../utils/interestColors'
 import DrawnArrow from './DrawnArrow'
+import LoadError, { useRetry } from './LoadError'
 
 // Ett intresse att trycka på för att lägga till eller ta bort det: en intressetagg
 // i huvudområdets färg (`area`). Inte valt: den ljusa nyansen och +. Valt:
@@ -114,12 +115,14 @@ function InterestLibrary({ selectedIds, busyId, onToggle, onError }) {
   const [area, setArea] = useState(null) // det öppna området
   const [level, setLevel] = useState([])
   const picked = { selectedIds, busyId, onToggle, onError }
+  const [attempt, retry] = useRetry()
 
   useEffect(() => {
+    setLoadError('')
     getTopInterests()
       .then(setTop)
-      .catch(() => setLoadError('Kunde inte hämta intressena. Försök igen senare.'))
-  }, [])
+      .catch(() => setLoadError('Kunde inte hämta intressena.'))
+  }, [attempt])
 
   useEffect(() => {
     if (!area) {
@@ -135,7 +138,7 @@ function InterestLibrary({ selectedIds, busyId, onToggle, onError }) {
     }
   }, [area, onError])
 
-  if (loadError) return <p className="status-error">{loadError}</p>
+  if (loadError) return <LoadError text={loadError} onRetry={retry} />
 
   return (
     <div className="interest-library">

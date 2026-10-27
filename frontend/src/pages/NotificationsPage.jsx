@@ -13,6 +13,7 @@ import {
   notificationsQuery,
 } from '../services/notifications'
 import { formatSentAt } from '../utils/formatSentAt'
+import LoadError from '../components/LoadError'
 
 // Notiser från Intresseklubben (lappen Notiser på kartan), som en inkorg:
 // listan visar en kompakt rad per notis, och olästa är markerade. Ett klick
@@ -21,7 +22,7 @@ import { formatSentAt } from '../utils/formatSentAt'
 // står som ny. Notiserna är allmänna (rubrik, text, citat, länk) och skrivs i
 // backend (se crud/notification.py), så en ny sorts notis behöver inget här.
 function NotificationsPage() {
-  const { data: notifications = [], isSuccess, isError } = useQuery(notificationsQuery)
+  const { data: notifications = [], isSuccess, isError, refetch, isFetching } = useQuery(notificationsQuery)
   const [searchParams, setSearchParams] = useSearchParams()
   const openId = Number(searchParams.get('notis')) || null
   const goBack = useGoBack(() => setSearchParams({}, { replace: true }))
@@ -39,7 +40,7 @@ function NotificationsPage() {
     }
   }
 
-  if (isError) return <p className="status-error">Kunde inte hämta notiserna. Försök igen senare.</p>
+  if (isError) return <LoadError text="Kunde inte hämta notiserna." onRetry={() => refetch()} retrying={isFetching} />
   if (!isSuccess) return <p className="hint-text">Laddar notiser...</p>
 
   if (openId) {

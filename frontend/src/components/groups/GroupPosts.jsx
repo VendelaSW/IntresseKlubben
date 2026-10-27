@@ -15,6 +15,7 @@ import ChatSender from '../ChatSender'
 import Modal from '../Modal'
 import ReportButton from '../ReportButton'
 import { useConfirm } from '../../hooks/useConfirm'
+import LoadError, { useRetry } from '../LoadError'
 
 // Samma gräns som i backend (schemas/group_post.py).
 const MAX_LENGTH = 2000
@@ -55,6 +56,7 @@ function GroupPosts({ groupId, isOwner, full = false }) {
   const [showAll, setShowAll] = useState(full)
   // Lappen som visas i popupen, eller null.
   const [openPost, setOpenPost] = useState(null)
+  const [attempt, retry] = useRetry()
 
   useEffect(() => {
     let cancelled = false
@@ -73,7 +75,7 @@ function GroupPosts({ groupId, isOwner, full = false }) {
     return () => {
       cancelled = true
     }
-  }, [groupId])
+  }, [groupId, attempt])
 
   function stopWriting() {
     setWriting(false)
@@ -183,7 +185,7 @@ function GroupPosts({ groupId, isOwner, full = false }) {
         </p>
       )}
       {status === 'loading' && <p className="board-empty">Laddar lappar...</p>}
-      {status === 'error' && <p className="board-empty">Kunde inte hämta lapparna. Försök igen senare.</p>}
+      {status === 'error' && <LoadError text="Kunde inte hämta lapparna." onRetry={retry} className="board-empty" />}
 
       <div className={`board-notes${showAll ? ' is-all' : ''}`}>
         {posts.slice(0, pinnedCount).map(renderNote)}
