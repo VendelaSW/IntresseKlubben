@@ -151,6 +151,10 @@ REPORT_NOT_FOUND = "Anmälan finns inte"
 USER_NOT_FOUND = "Användaren finns inte"
 CANNOT_SUSPEND_SELF = "Du kan inte stänga av dig själv"
 SUSPENSION_DAYS_INVALID = "Välj 1, 7 eller 30 dagar, eller tills vidare"
+CANNOT_WARN_SELF = "Du kan inte varna dig själv"
+WARNING_NO_PERSON = "Den anmälda finns inte längre"
+WARNING_ALREADY_GIVEN = "Den här anmälan har redan gett en varning"
+WARNING_MESSAGE_TOO_LONG = "Meddelandet får max vara 500 tecken"
 ACCOUNT_SUSPENDED = "Ditt konto är avstängt"
 
 # ---------- Verifiering av e-post (routes/user.py) ----------

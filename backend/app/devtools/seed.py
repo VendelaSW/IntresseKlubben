@@ -32,7 +32,7 @@ ACCOUNTS = [
     {
         "username": "bertil",
         "name": "Bertil Ek",
-        "about": "Annas kontakt, äger Brädspelsklubben",
+        "about": "Annas kontakt, äger Brädspelsklubben och är moderator (Moderering)",
         "municipality": "1480",
         "interests": ["Brädspel", "Schack", "Matlagning"],
         "text": "Pensionär som älskar strategispel och att laga mat till många.",
@@ -291,6 +291,23 @@ def seed(app, db: Session) -> dict[str, int]:
     create_event(
         api, bertil, "Schackkväll på biblioteket", 1, interest="Schack", address="Götaplatsen 3, Göteborg",
         visibility="open",
+    )
+
+    # Moderering: Bertil är moderator. Maximiliana är anmäld två gånger, och har redan fått en varning för den
+    # första (SCRUM-268), så att historiken och förvalet efter en varning syns på den nya anmälan.
+    db.get(User, bertil).is_moderator = True
+    db.commit()
+    first = api.call(
+        "POST", "/reports", cecilia,
+        json={"target_type": "profile", "target_id": max_, "reason": "spam", "comment": "Skickar reklam till alla."},
+    )
+    api.call(
+        "POST", f"/moderation/reports/{first['id']}/warning", bertil,
+        json={"reason": "spam", "message": "Reklam är inte tillåten i Intresseklubben."},
+    )
+    api.call(
+        "POST", "/reports", anna,
+        json={"target_type": "profile", "target_id": max_, "reason": "harassment", "comment": "Otrevlig i brev."},
     )
 
     # Alla testkonton har bekräftad e-post, så att inget mejl behövs.

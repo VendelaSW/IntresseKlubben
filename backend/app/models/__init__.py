@@ -19,4 +19,5 @@ from app.models.event import Event, EventHost, EventInvitation, EventJoinRequest
 from app.models.email_token import EmailToken  # noqa: F401
 from app.models.report import Report  # noqa: F401
 from app.models.suspension import Suspension  # noqa: F401
+from app.models.moderation_warning import ModerationWarning  # noqa: F401
 from app.models.notification import Notification  # noqa: F401

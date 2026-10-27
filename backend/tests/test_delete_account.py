@@ -253,6 +253,8 @@ def test_every_column_pointing_at_users_is_handled():
         "suspensions.lifted_by",  # sätts till tomt: moderatorn som hävde
         "suspensions.user_id",
         "user_interests.user_id",
+        "warnings.created_by",  # sätts till tomt: moderatorn som varnade
+        "warnings.user_id",
     ]
 
 

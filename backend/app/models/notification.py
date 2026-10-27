@@ -20,6 +20,7 @@ class NotificationKind(str, enum.Enum):
     event_request_approved = "event_request_approved"  # ens ansökan till ett event är godkänd
     event_request_declined = "event_request_declined"  # ens ansökan till ett event fick nej
     event_host_changed = "event_host_changed"  # man har blivit (eller inte längre är) medarrangör
+    moderation_warning = "moderation_warning"  # en moderator har varnat en för att ha brutit mot reglerna
 
 
 class Notification(Base):
