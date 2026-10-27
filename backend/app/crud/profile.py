@@ -97,6 +97,8 @@ def update_profile(db: Session, user_id: int, data: ProfileUpdate) -> Profile:
     if "district" in data.model_fields_set:
         profile.district = data.district
     if data.profile_text is not None:
+        if data.profile_text.strip() != (profile.profile_text or "").strip():
+            profile.embedding_row = None  # den gamla vektorn hör till en text som inte längre finns: bort i samma commit
         profile.profile_text = data.profile_text
     if data.gender_searchable is not None:
         profile.gender_searchable = data.gender_searchable
