@@ -19,6 +19,8 @@ import { resizeProfileImage } from '../services/resizeProfileImage'
 import { addInterest, confirmInterests, getMyInterests, getTopInterests, removeInterest } from '../services/interests'
 import {
   ABOUT_AI_NOTE,
+  ABOUT_LABEL,
+  ABOUT_PLACEHOLDER,
   GENDER_OPTIONS,
   createProfile,
   genderLabel,
@@ -538,12 +540,13 @@ function ProfilePage() {
               />
             </div>
             <div className="form-column">
-              <label htmlFor="profile-about">Om mig</label>
+              <label htmlFor="profile-about">{ABOUT_LABEL}</label>
               <TextareaWithCount
                 id="profile-about"
                 value={aboutText}
                 onChange={(e) => setAboutText(e.target.value)}
                 maxLength={800}
+                placeholder={ABOUT_PLACEHOLDER}
                 required
               />
               <p className="hint-text">{ABOUT_AI_NOTE}</p>
