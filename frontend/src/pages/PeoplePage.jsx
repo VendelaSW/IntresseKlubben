@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
@@ -26,6 +26,7 @@ import {
   undoDismissSuggestion,
 } from '../services/people'
 import { useConfirm } from '../hooks/useConfirm'
+import LoadError from '../components/LoadError'
 
 const TABS = [
   { id: 'suggested', label: 'Förslag' },
@@ -126,7 +127,8 @@ function PeoplePage() {
     return () => clearTimeout(timer)
   }, [removed])
 
-  useEffect(() => {
+  const loadFilterData = useCallback(() => {
+    setFilterDataFailed(false)
     Promise.all([getAllInterests(), getMunicipalities(), getMyInterests()])
       .then(([i, m, mine]) => {
         setInterests(i)
@@ -136,6 +138,8 @@ function PeoplePage() {
       })
       .catch(() => setFilterDataFailed(true))
   }, [])
+
+  useEffect(() => loadFilterData(), [loadFilterData])
 
   // Åldrarna skickas bara när de går ihop, så att en halvskriven ålder inte
   // ger ett fel från servern. Felet visas i stället under filtren.
@@ -178,10 +182,21 @@ function PeoplePage() {
   // Efter en åtgärd (förfrågan, ta bort förslag...): hämta om, så att listorna stämmer.
   const loadAll = () => Promise.all([peopleResult.refetch(), contactsResult.refetch()])
 
+  // "Försök igen" när sidan inte gick att hämta (SCRUM-286): bara det som misslyckades hämtas om.
+  function retryPage() {
+    if (filterDataFailed) loadFilterData()
+    if (failed(peopleResult)) peopleResult.refetch()
+    if (failed(contactsResult)) contactsResult.refetch()
+  }
+
   if (status === 'error') {
     return (
       <div className="content-stack">
-        <p className="status-error">Kunde inte hämta personerna. Försök igen senare.</p>
+        <LoadError
+          text="Kunde inte hämta personerna."
+          onRetry={retryPage}
+          retrying={peopleResult.isFetching || contactsResult.isFetching}
+        />
       </div>
     )
   }

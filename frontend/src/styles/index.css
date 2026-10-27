@@ -1043,6 +1043,55 @@ span.tag-selected:hover {
   font-size: var(--text-small);
 }
 
+/* Ett val bland några alternativ i ett formulär, t.ex. hur man kommer med i en klubb. */
+.form-choice {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.form-choice legend {
+  margin-bottom: 0.2rem;
+  padding: 0;
+  font-weight: 700;
+}
+
+/* En medlem som ägaren eller en administratör kan hantera (GroupMembers, SCRUM-160): knapparna under namnet. */
+.group-member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.8rem;
+  padding-left: 2.6rem;
+  font-size: var(--text-small);
+}
+
+/* En ansökan till en klubb (GroupJoinRequests): namnet, meddelandet och knapparna. */
+.group-request {
+  display: grid;
+  gap: 0.3rem;
+  padding-block: 0.4rem;
+}
+
+.group-request + .group-request {
+  border-top: 1px dashed var(--color-line);
+}
+
+.group-request-message {
+  margin: 0;
+  font-size: var(--text-small);
+  overflow-wrap: anywhere;
+}
+
+/* Ett fel som går att försöka igen: texten och "Försök igen" under den (t.ex. Klubbar). */
+.load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;
@@ -2616,6 +2665,18 @@ span.tag-selected:hover {
 .notepad-message-reportable {
   position: relative;
   padding-right: 3.2rem;
+}
+
+.notepad-message-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+}
+
+/* I raden med Ta bort och Anmäl (se .notepad-message-actions) står knapparna bredvid varandra. */
+.notepad-message-actions .report-link {
+  position: static;
 }
 
 .report-link {

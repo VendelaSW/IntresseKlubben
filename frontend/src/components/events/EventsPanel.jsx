@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useTabParam } from '../../hooks/useTabParam'
@@ -20,6 +20,7 @@ import { getAllInterests, getMyInterests } from '../../services/interests'
 import { useAuth } from '../../hooks/useAuth'
 import { markEventsSeen } from '../../services/eventsSeen'
 import { TIME_FILTERS, inTimeFilter } from '../../utils/eventTime'
+import LoadError from '../LoadError'
 
 const TABS = [
   { id: 'mine', label: 'Mina events', short: 'Mina' },
@@ -142,7 +143,8 @@ function EventsPanel() {
     setSearchParams(interestId ? { skapa: '1', intresse: String(interestId) } : { skapa: '1' })
   }
 
-  useEffect(() => {
+  const loadInterests = useCallback(() => {
+    setInterestsStatus('loading')
     Promise.all([getAllInterests(), getMyInterests()])
       .then(([allInterests, mine]) => {
         setInterests(allInterests)
@@ -151,6 +153,16 @@ function EventsPanel() {
       })
       .catch(() => setInterestsStatus('error'))
   }, [])
+
+  useEffect(() => loadInterests(), [loadInterests])
+
+  // "Försök igen" när sidan inte gick att hämta (SCRUM-286): bara det som misslyckades hämtas om.
+  function retryPage() {
+    if (interestsStatus === 'error') loadInterests()
+    if (failed(groupsResult)) groupsResult.refetch()
+    if (failed(contactsResult)) contactsResult.refetch()
+    if (eventsFailed) eventsResult.refetch()
+  }
 
   async function handleCreated(created, problem) {
     setInviteProblem(problem ? `Eventet skapades, men inbjudningarna gick inte att skicka: ${problem}` : '')
@@ -218,7 +230,13 @@ function EventsPanel() {
       {status === 'loading' ? (
         <p className="hint-text">Laddar events...</p>
       ) : status === 'error' ? (
-        <p className="status-error">Kunde inte hämta sidan. Försök igen senare.</p>
+        <LoadError
+          text="Kunde inte hämta sidan."
+          onRetry={retryPage}
+          retrying={
+            interestsStatus === 'loading' || groupsResult.isFetching || contactsResult.isFetching || eventsResult.isFetching
+          }
+        />
       ) : view === 'create' ? (
         <>
           <BackButton onClick={goBack} />
@@ -249,7 +267,7 @@ function EventsPanel() {
           {inviteProblem && <p className="status-error">{inviteProblem}</p>}
           {notice && <p className="status-success">{notice}</p>}
           {eventsFailed ? (
-            <p className="status-error">Kunde inte hämta events. Försök igen senare.</p>
+            <LoadError text="Kunde inte hämta events." onRetry={loadEvents} retrying={eventsResult.isFetching} />
           ) : selected && editing && selected.is_owner ? (
             <>
               <BackButton onClick={() => setEditing(false)} />

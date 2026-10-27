@@ -104,7 +104,7 @@ def test_same_name_in_same_municipality_is_not_allowed(client, user, new_group, 
     new_group()
     response = client.post("/groups/", json=_payload(interests, name="MORGONLÖPARNA"))
     assert response.status_code == 409
-    assert response.json()["detail"] == "Det finns redan en klubb med det namnet i kommunen"
+    assert response.json()["detail"] == "Det finns redan en klubb med det namnet i området"
 
 
 # --- Lista -------------------------------------------------------------------
