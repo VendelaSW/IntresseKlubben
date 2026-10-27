@@ -22,6 +22,8 @@ from app.crud.group import (
     invite_to_group,
     is_full,
     is_invited,
+    is_moderator,
+    kick_member,
     join_group,
     leave_group,
     list_join_requests,
@@ -32,9 +34,10 @@ from app.crud.group import (
     list_user_groups,
     list_user_invitations,
     request_count,
+    set_member_role,
     withdraw_request,
 )
-from app.crud.group_message import get_group_messages, send_group_message
+from app.crud.group_message import delete_group_message, get_group_message, get_group_messages, send_group_message
 from app.crud.group_post import (
     can_delete_post,
     create_group_post,
@@ -58,6 +61,7 @@ from app.schemas.group import (
     GroupJoinRequestOut,
     GroupMemberResponse,
     GroupResponse,
+    GroupRoleUpdate,
     GroupsOverview,
 )
 from app.schemas.group_message import GroupMessageCreate, GroupMessageOut
@@ -86,6 +90,7 @@ def _to_response(
     # db behövs bara för ägarens antal ansökningar (request_count), och bara om det finns några.
     membership = get_membership(group, user_id)
     is_owner = membership is not None and membership.role == GroupRole.owner
+    is_admin = membership is not None and membership.role == GroupRole.admin
     municipality_name = group.municipality.name if group.municipality else None
     return GroupResponse(
         id=group.id,
@@ -112,10 +117,11 @@ def _to_response(
         is_full=is_full(group),
         is_member=membership is not None,
         is_owner=is_owner,
+        is_admin=is_admin,
         can_invite=can_invite(group, user_id),
         is_invited=is_invited(group, user_id),
         has_applied=has_applied(group, user_id),
-        request_count=request_count(db, group, user_id) if is_owner and db is not None else 0,
+        request_count=request_count(db, group, user_id) if (is_owner or is_admin) and db is not None else 0,
         created_at=group.created_at,
         has_blocked_member=any(m.user_id in blocked_by_me for m in group.members),
     )
@@ -322,15 +328,19 @@ def withdraw(group_id: int, current_user=Depends(get_current_user), db: Session 
     return _to_response(get_group(db, group.id), current_user.id, *_blocks(db, current_user.id))
 
 
-def _owned_group_or_403(db: Session, group_id: int, user_id: int) -> Group:
+def _moderated_group_or_403(db: Session, group_id: int, user_id: int, detail: str = msg.GROUP_ONLY_MODERATORS) -> Group:
+    """Klubben, om användaren är dess ägare eller administratör (SCRUM-160). Annars 403."""
     group = _visible_group_or_404(db, group_id, user_id)
-    membership = get_membership(group, user_id)
-    if membership is None or membership.role != GroupRole.owner:
-        raise HTTPException(status_code=403, detail=msg.GROUP_ONLY_OWNER_HANDLES_REQUESTS)
+    if not is_moderator(group, user_id):
+        raise HTTPException(status_code=403, detail=detail)
     return group
 
 
-# Ansökningarna som väntar, för ägaren.
+def _owned_group_or_403(db: Session, group_id: int, user_id: int) -> Group:
+    return _moderated_group_or_403(db, group_id, user_id, msg.GROUP_ONLY_OWNER_HANDLES_REQUESTS)
+
+
+# Ansökningarna som väntar, för ägaren och administratörerna.
 @router.get("/{group_id}/requests", response_model=list[GroupJoinRequestOut])
 def read_requests(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     group = _owned_group_or_403(db, group_id, current_user.id)
@@ -340,7 +350,8 @@ def read_requests(group_id: int, current_user=Depends(get_current_user), db: Ses
     ]
 
 
-# Ägaren godkänner (PUT: personen blir medlem) eller nekar (DELETE) en ansökan. Den sökande får en notis.
+# Ägaren eller en administratör godkänner (PUT: personen blir medlem) eller nekar (DELETE) en ansökan. Den
+# sökande får en notis.
 @router.put("/{group_id}/requests/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def approve(group_id: int, user_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     group = _owned_group_or_403(db, group_id, current_user.id)
@@ -370,6 +381,41 @@ def decline_application(
         check_fields(labels={"message": "Meddelandet"}, message=message)
     try:
         decline_request(db, group, user_id, current_user, message)
+    except GroupRuleError as err:
+        raise HTTPException(status_code=err.status_code, detail=str(err))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ---------- Roller och att ta bort medlemmar (SCRUM-160) ----------
+
+
+# Ägaren gör en medlem till administratör, eller tar tillbaka det. Personen får en notis.
+@router.put("/{group_id}/members/{user_id}/role", status_code=status.HTTP_204_NO_CONTENT)
+def change_role(
+    group_id: int,
+    user_id: int,
+    data: GroupRoleUpdate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    group = _visible_group_or_404(db, group_id, current_user.id)
+    membership = get_membership(group, current_user.id)
+    if membership is None or membership.role != GroupRole.owner:
+        raise HTTPException(status_code=403, detail=msg.GROUP_ONLY_OWNER_SETS_ROLES)
+    try:
+        set_member_role(db, group, user_id, GroupRole(data.role))
+    except GroupRuleError as err:
+        raise HTTPException(status_code=err.status_code, detail=str(err))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# Ägaren eller en administratör tar bort en medlem. En administratör kan bara tas bort av ägaren, och ägaren inte
+# alls. Personen får en notis. (Efter /members/me, som är att lämna själv.)
+@router.delete("/{group_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove(group_id: int, user_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    group = _moderated_group_or_403(db, group_id, current_user.id)
+    try:
+        kick_member(db, group, user_id, current_user.id)
     except GroupRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=str(err))
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -435,6 +481,19 @@ def create_group_message(
 def read_group_messages(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     group = _member_group_or_403(db, group_id, current_user.id)
     return get_group_messages(db, group.id, current_user.id)
+
+
+# Den som skrev meddelandet, klubbens ägare och administratörer får ta bort det (moderera chatten, SCRUM-160).
+@router.delete("/{group_id}/messages/{message_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_message(group_id: int, message_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    group = _member_group_or_403(db, group_id, current_user.id)
+    message = get_group_message(db, group.id, message_id)
+    if message is None:
+        raise HTTPException(status_code=404, detail=msg.GROUP_MESSAGE_NOT_FOUND)
+    if message.sender_id != current_user.id and not is_moderator(group, current_user.id):
+        raise HTTPException(status_code=403, detail=msg.GROUP_MESSAGE_CANNOT_DELETE)
+    delete_group_message(db, message)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # Inlägg (nyheter, regler) som ligger kvar, till skillnad från chatten. Bara för

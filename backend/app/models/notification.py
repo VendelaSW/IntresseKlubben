@@ -14,6 +14,8 @@ class NotificationKind(str, enum.Enum):
     group_join_request = "group_join_request"  # någon ansöker till ens klubb (till ägaren)
     group_request_approved = "group_request_approved"  # ens ansökan till en klubb är godkänd
     group_request_declined = "group_request_declined"  # ens ansökan till en klubb fick nej
+    group_role_changed = "group_role_changed"  # man har blivit (eller inte längre är) administratör i en klubb
+    group_member_removed = "group_member_removed"  # man har tagits bort ur en klubb
 
 
 class Notification(Base):

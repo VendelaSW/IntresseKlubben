@@ -1058,6 +1058,15 @@ span.tag-selected:hover {
   font-weight: 700;
 }
 
+/* En medlem som ägaren eller en administratör kan hantera (GroupMembers, SCRUM-160): knapparna under namnet. */
+.group-member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.8rem;
+  padding-left: 2.6rem;
+  font-size: var(--text-small);
+}
+
 /* En ansökan till en klubb (GroupJoinRequests): namnet, meddelandet och knapparna. */
 .group-request {
   display: grid;
@@ -2648,6 +2657,18 @@ span.tag-selected:hover {
 .notepad-message-reportable {
   position: relative;
   padding-right: 3.2rem;
+}
+
+.notepad-message-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+}
+
+/* I raden med Ta bort och Anmäl (se .notepad-message-actions) står knapparna bredvid varandra. */
+.notepad-message-actions .report-link {
+  position: static;
 }
 
 .report-link {

@@ -217,6 +217,8 @@ def seed(app, db: Session) -> dict[str, int]:
     # Klubbar: Anna är med i Bertils, och har en inbjudan till en privat klubb. Max klubb har maxlångt namn.
     board_games = create_club(api, bertil, "Brädspelsklubben Göteborg", "Vi spelar varannan torsdag.", "Brädspel")
     api.call("PUT", f"/groups/{board_games}/members/me", anna)
+    # Anna är administratör i Brädspelsklubben (SCRUM-160), så att det går att prova som admin.
+    api.call("PUT", f"/groups/{board_games}/members/{anna}/role", bertil, json={"role": "admin"})
     create_club(api, anna, "Morgonlöparna", "Vi springer 5 km varje lördag kl 8.", "Löpning")
     chess = create_club(api, bertil, "Schackcirkeln", "En liten privat klubb.", "Schack", private=True)
     api.call("POST", f"/groups/{chess}/invitations", bertil, json={"user_ids": [anna]})

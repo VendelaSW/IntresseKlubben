@@ -36,14 +36,13 @@ export function JoinCardButton({ group, busy, onJoin, onSelect }) {
   )
 }
 
-// Mörk för ägare, grön för medlem, så att de är lätta att skilja åt.
+// Mörk för ägare, grön för medlem, så att de är lätta att skilja åt. En
+// administratör (SCRUM-160) är också mörk.
 export function RoleBadge({ group }) {
   if (!group.is_member) return null
-  return group.is_owner ? (
-    <span className="status-pill status-pill-owner">Ägare</span>
-  ) : (
-    <span className="status-pill status-pill-success">Medlem</span>
-  )
+  if (group.is_owner) return <span className="status-pill status-pill-owner">Ägare</span>
+  if (group.is_admin) return <span className="status-pill status-pill-owner">Admin</span>
+  return <span className="status-pill status-pill-success">Medlem</span>
 }
 
 // Ett kort per grupp, i samma rutnät som personkorten. Klick på kortet visar
@@ -148,7 +147,7 @@ function ClubCards({ style, groups, myInterestIds, busy, onSelect, onJoin, onDec
           />
           <div className="club-card-foot">
             {group.is_member ? (
-              <span className="club-card-role">{group.is_owner ? 'Ägare' : 'Medlem'}</span>
+              <span className="club-card-role">{group.is_owner ? 'Ägare' : group.is_admin ? 'Admin' : 'Medlem'}</span>
             ) : (
               <span className="club-card-buttons">
                 <JoinCardButton group={group} busy={busy} onJoin={onJoin} onSelect={onSelect} />

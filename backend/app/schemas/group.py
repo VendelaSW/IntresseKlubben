@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, field_validator, model_validator
 
@@ -137,10 +138,13 @@ class GroupResponse(BaseModel):
     # Gäller den inloggade användaren, så att frontend vet vilka knappar som ska visas.
     is_member: bool
     is_owner: bool
+    # Administratör (SCRUM-160): svarar på ansökningar, tar bort medlemmar och modererar chatten.
+    is_admin: bool
     # Får den inloggade bjuda in till klubben? Och har hen själv blivit inbjuden?
     can_invite: bool
     is_invited: bool
-    # Har den inloggade ansökt (och väntar på svar)? Och hur många ansökningar väntar (bara för ägaren, annars 0)?
+    # Har den inloggade ansökt (och väntar på svar)? Och hur många ansökningar väntar (bara för ägaren och
+    # administratörer, annars 0)?
     has_applied: bool
     request_count: int
     created_at: datetime
@@ -202,3 +206,9 @@ class GroupJoinRequestOut(BaseModel):
     user: ContactUser
     message: str | None
     created_at: datetime
+
+
+class GroupRoleUpdate(BaseModel):
+    """Ägaren gör en medlem till administratör eller vanlig medlem igen (SCRUM-160)."""
+
+    role: Literal[GroupRole.admin, GroupRole.member]

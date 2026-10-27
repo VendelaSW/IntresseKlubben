@@ -472,7 +472,11 @@ function GroupsPanel() {
                 </div>
                 {selected.is_member && (
                   <div className="group-chat-slot">
-                    <GroupChat key={selected.id} groupId={selected.id} />
+                    <GroupChat
+                      key={selected.id}
+                      groupId={selected.id}
+                      canModerate={selected.is_owner || selected.is_admin}
+                    />
                   </div>
                 )}
               </div>

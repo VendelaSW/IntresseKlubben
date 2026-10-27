@@ -46,6 +46,8 @@ class SkillLevel(str, enum.Enum):
 
 class GroupRole(str, enum.Enum):
     owner = "owner"
+    # Utsedd av ägaren (SCRUM-160): godkänner ansökningar, tar bort medlemmar och modererar klubbchatten.
+    admin = "admin"
     member = "member"
 
 

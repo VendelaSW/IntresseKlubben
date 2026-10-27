@@ -1,4 +1,4 @@
-"""groups: scope (räckvidd), application visibility, skill level, max members and join requests
+"""groups: scope (räckvidd), application visibility, skill level, max members, join requests and admin role
 
 Revision ID: a3c8e1f5b702
 Revises: e5b7c9d1f346
@@ -35,6 +35,8 @@ def upgrade() -> None:
 
     # Klubbar man ansöker till (SCRUM-159). Ett nytt värde i enum-typen; det används inte i den här migrationen.
     op.execute("ALTER TYPE groupvisibility ADD VALUE IF NOT EXISTS 'application'")
+    # Administratörer i klubbar (SCRUM-160). Används inte heller i migrationen.
+    op.execute("ALTER TYPE grouprole ADD VALUE IF NOT EXISTS 'admin'")
     op.create_table(
         'group_join_requests',
         sa.Column('id', sa.Integer(), nullable=False),
@@ -53,8 +55,10 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index('ix_group_join_requests_user_id', table_name='group_join_requests')
     op.drop_table('group_join_requests')
-    # Värdet går inte att ta bort ur enum-typen, men klubbar man ansökte till blir öppna igen.
+    # Värdena går inte att ta bort ur enum-typerna, men klubbar man ansökte till blir öppna igen och
+    # administratörer blir vanliga medlemmar.
     op.execute("UPDATE groups SET visibility = 'public' WHERE visibility = 'application'")
+    op.execute("UPDATE group_members SET role = 'member' WHERE role = 'admin'")
     op.drop_column('groups', 'max_members')
     op.drop_column('groups', 'skill_level')
     op.drop_index('uq_groups_name_scope', table_name='groups')

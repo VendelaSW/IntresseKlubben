@@ -258,7 +258,10 @@ def remove_member(db: Session, group: Group, user_id: int) -> None:
         db.delete(group)
     else:
         if membership.role == GroupRole.owner:
-            others[0].role = GroupRole.owner  # members är sorterad på joined_at
+            # Den administratör som varit med längst, annars den medlem som varit med längst (members är
+            # sorterad på joined_at).
+            successor = next((m for m in others if m.role == GroupRole.admin), others[0])
+            successor.role = GroupRole.owner
         group.members.remove(membership)
 
 
@@ -276,12 +279,19 @@ def delete_group(db: Session, group: Group) -> None:
 # ---------- Inbjudningar ----------
 
 
+def is_moderator(group: Group, user_id: int) -> bool:
+    """Ägaren eller en administratör (SCRUM-160): får svara på ansökningar, ta bort medlemmar och moderera
+    klubbchatten."""
+    membership = get_membership(group, user_id)
+    return membership is not None and membership.role in (GroupRole.owner, GroupRole.admin)
+
+
 def can_invite(group: Group, user_id: int) -> bool:
-    """Ägaren får alltid bjuda in, andra medlemmar bara om ägaren har slagit på det."""
+    """Ägaren och administratörer får alltid bjuda in, andra medlemmar bara om ägaren har slagit på det."""
     membership = get_membership(group, user_id)
     if membership is None:
         return False
-    return membership.role == GroupRole.owner or group.members_can_invite
+    return membership.role in (GroupRole.owner, GroupRole.admin) or group.members_can_invite
 
 
 def is_invited(group: Group, user_id: int) -> bool:
@@ -368,7 +378,8 @@ def has_applied(group: Group, user_id: int) -> bool:
 
 
 def request_count(db: Session, group: Group, owner_id: int) -> int:
-    """Antalet ansökningar som väntar, som ägaren ser dem (utan blockerade, se list_join_requests)."""
+    """Antalet ansökningar som väntar, som ägaren (eller en administratör) ser dem (utan blockerade, se
+    list_join_requests)."""
     if not group.join_requests:
         return 0
     hidden = blocked_user_ids(db, owner_id)
@@ -471,6 +482,58 @@ def decline_request(db: Session, group: Group, user_id: int, owner: User, messag
         body="Du kan ansöka igen senare, eller hitta en annan klubb.",
         quote=message,
         quote_by=owner_name if message else None,
+        link="/klubbar",
+    )
+    db.commit()
+
+
+# ---------- Roller och att ta bort medlemmar (SCRUM-160) ----------
+
+
+def set_member_role(db: Session, group: Group, user_id: int, role: GroupRole) -> None:
+    """Gör en medlem till administratör eller vanlig medlem igen, och säger till personen. Att den som anropar
+    är ägaren kontrolleras i routen. Ägarens egen roll går inte att ändra."""
+    membership = get_membership(group, user_id)
+    if membership is None:
+        raise GroupRuleError(msg.GROUP_NOT_A_MEMBER)
+    if membership.role == GroupRole.owner or role == GroupRole.owner:
+        raise GroupRuleError(msg.GROUP_CANNOT_CHANGE_OWNER)
+    if membership.role == role:
+        return
+    membership.role = role
+    notify(
+        db,
+        [user_id],
+        NotificationKind.group_role_changed,
+        title=f"Du är administratör i {group.name}" if role == GroupRole.admin else f"Du är inte längre administratör i {group.name}",
+        body=(
+            "Du kan nu svara på ansökningar, ta bort medlemmar och ta bort meddelanden i klubbchatten."
+            if role == GroupRole.admin
+            else "Ägaren har ändrat din roll till medlem."
+        ),
+        link=f"/klubbar?klubb={group.id}",
+    )
+    db.commit()
+
+
+def kick_member(db: Session, group: Group, user_id: int, by_id: int) -> None:
+    """Tar bort en medlem ur klubben (ägaren eller en administratör, se is_moderator), och säger till personen.
+    Ägaren går inte att ta bort, och en administratör kan bara tas bort av ägaren."""
+    membership = get_membership(group, user_id)
+    if membership is None:
+        raise GroupRuleError(msg.GROUP_NOT_A_MEMBER)
+    if membership.role == GroupRole.owner:
+        raise GroupRuleError(msg.GROUP_CANNOT_REMOVE_OWNER)
+    by = get_membership(group, by_id)
+    if membership.role == GroupRole.admin and (by is None or by.role != GroupRole.owner):
+        raise GroupRuleError(msg.GROUP_ADMIN_CANNOT_REMOVE_ADMIN)
+    remove_member(db, group, user_id)
+    notify(
+        db,
+        [user_id],
+        NotificationKind.group_member_removed,
+        title=f"Du har tagits bort ur {group.name}",
+        body="En administratör i klubben har tagit bort dig.",
         link="/klubbar",
     )
     db.commit()

@@ -223,6 +223,23 @@ export function declineJoinRequest(id, userId, message) {
   return changingMyGroups(apiDelete(`/groups/${id}/requests/${userId}`, { message: message || null }))
 }
 
+// ---------- Roller (SCRUM-160) ----------
+
+// Ägaren gör en medlem till administratör ('admin') eller vanlig medlem ('member') igen.
+export function setGroupMemberRole(id, userId, role) {
+  return apiPut(`/groups/${id}/members/${userId}/role`, { role })
+}
+
+// Ägaren eller en administratör tar bort en medlem ur klubben.
+export function removeGroupMember(id, userId) {
+  return changingMyGroups(apiDelete(`/groups/${id}/members/${userId}`))
+}
+
+// Den som skrev meddelandet, ägaren och administratörer får ta bort det ur klubbchatten.
+export function deleteGroupMessage(id, messageId) {
+  return apiDelete(`/groups/${id}/messages/${messageId}`)
+}
+
 // Avböjer en inbjudan.
 export async function declineGroupInvitation(id) {
   const result = await apiDelete(`/groups/${id}/invitations/me`)

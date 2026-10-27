@@ -193,11 +193,11 @@ function GroupDetails({
         )}
       </div>
       <div className="detail-aside">
-        {group.is_owner && group.visibility === 'application' && (
+        {(group.is_owner || group.is_admin) && group.visibility === 'application' && (
           <GroupJoinRequests group={group} onChanged={onMembersChanged} />
         )}
         <GroupEvents groupId={group.id} />
-        <GroupMembers groupId={group.id} memberCount={group.member_count} />
+        <GroupMembers group={group} onChanged={onMembersChanged} />
         {group.is_member && (
           <div className="card-actions">
             <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onLeave(group)}>
