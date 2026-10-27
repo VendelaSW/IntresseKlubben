@@ -2956,7 +2956,8 @@ span.tag-selected:hover {
   gap: 0.4rem 0.75rem;
 }
 
-/* Mobil: den lilla varianten (Utövar/Intresserad) ska inte fylla bredden som flikarna ovan. */
+/* Mobil: den lilla varianten (Utövar/Intresserad) ska inte fylla bredden som flikarna ovan, men
+   knapparna är fortfarande minst 48 px höga (se CONTRIBUTING). */
 @media (max-width: 767px) {
   .filter-tabs.filter-tabs-small {
     display: flex;
@@ -2965,8 +2966,7 @@ span.tag-selected:hover {
 
   .filter-tabs-small > .tag {
     flex-direction: row;
-    min-height: 0;
-    padding: 0.3rem 0.7rem;
+    padding: 0.3rem 0.8rem;
     font-size: var(--text-small);
   }
 }
