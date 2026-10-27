@@ -1075,6 +1075,7 @@ function MapPrototype() {
           const found = await findDistrict(district, kommun)
           if (stale()) return
           if (found) {
+            areaClubsRef.current?.setKommunCenter(kommun.kod, found)
             map.easeTo({ center: found, zoom: DISTRICT_ZOOM, duration: 1600 })
             setLevelName(district.trim())
             return
@@ -1092,6 +1093,8 @@ function MapPrototype() {
       }
       const center = match?.geometry.coordinates ?? kommun.label
       if (!center) return
+      // Klubbarna utan nål i kommunen (symbolen) står där kartan stannar, så att de syns direkt.
+      areaClubsRef.current?.setKommunCenter(kommun.kod, center)
       map.easeTo({ center, zoom: DISTRICT_ZOOM, duration: 1600 })
       if (match) setLevelName(match.properties['name:sv'] ?? match.properties.name)
     })

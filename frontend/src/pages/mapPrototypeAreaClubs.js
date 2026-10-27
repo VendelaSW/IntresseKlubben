@@ -63,14 +63,20 @@ export function areaClubsFrom(groups, kommuner) {
 
 // Luft i pixlar mellan symbolen och listan under den.
 const GAP_PX = 6
+// En kommuns symbol står så här högt ovanför platsen kartan flyger till (se
+// setKommunCenter), så att den inte täcker ortens namn.
+const KOMMUN_LIFT_PX = 46
 
 // Kopplar symbolerna till kartan. `getView()` ger { mode, landskap, lan, kommun }
 // (landskapets namn, länskod och kommunkod för det som är valt). `onOpen(group)`
-// öppnar en klubb. Returnerar { setAreas, render, boxes }: boxes() ger
-// symbolernas rektanglar på skärmen, som lapparna flyttas undan för.
+// öppnar en klubb. Returnerar { setAreas, setKommunCenter, render, boxes }:
+// boxes() ger symbolernas rektanglar på skärmen, som lapparna flyttas undan för.
 export function attachAreaClubs(map, layer, { getView, onOpen }) {
   let areas = []
   let openKey = null // symbolen vars lista är öppen
+  // Var kartan stannar när man går till en kommun (centralorten, eller ens stadsdel), per kommunkod.
+  // Kommunens symbol står där i stället för vid kommunens namnpunkt, så att den syns när man kommer dit.
+  const kommunCenters = new Map()
 
   // Vilka symboler som hör till nivån man är på.
   function visible() {
@@ -93,7 +99,10 @@ export function attachAreaClubs(map, layer, { getView, onOpen }) {
     const compact = map.getZoom() < FULL_ZOOM
     const placed = []
     for (const area of shown) {
-      const { x, y } = map.project(area.lngLat)
+      const center = area.scope === 'kommun' ? kommunCenters.get(area.code) : null
+      const point = map.project(center ?? area.lngLat)
+      const x = point.x
+      const y = center ? point.y - KOMMUN_LIFT_PX : point.y
       if (x < -200 || x > width + 200 || y < -200 || y > height + 200) continue
       const el = symbolEl(area, compact && area.key !== openKey)
       el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`
@@ -213,6 +222,11 @@ export function attachAreaClubs(map, layer, { getView, onOpen }) {
   return {
     setAreas(next) {
       areas = next
+      render()
+    },
+    // Platsen kartan flyger till i kommunen [longitud, latitud] (se flyToPlaceIn i MapPrototype.jsx).
+    setKommunCenter(kod, lngLat) {
+      kommunCenters.set(kod, lngLat)
       render()
     },
     render,
