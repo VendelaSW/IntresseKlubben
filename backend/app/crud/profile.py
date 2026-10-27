@@ -68,6 +68,7 @@ def create_profile(db: Session, user_id: int, data: ProfileCreate) -> Profile:
         profile_text=data.profile_text,
         district=data.district,
         gender_searchable=data.gender_searchable,
+        age_hidden=data.age_hidden,
     )
     db.add(profile)
     # Inte user.interests = interests: det kraschar om användaren redan har
@@ -102,6 +103,8 @@ def update_profile(db: Session, user_id: int, data: ProfileUpdate) -> Profile:
         profile.profile_text = data.profile_text
     if data.gender_searchable is not None:
         profile.gender_searchable = data.gender_searchable
+    if data.age_hidden is not None:
+        profile.age_hidden = data.age_hidden
 
     db.commit()
     db.refresh(profile)
@@ -134,6 +137,10 @@ def _people_query(
         query = query.filter(Profile.municipality_code == municipality_code)
     if gender is not None:
         query = query.filter(Profile.gender == gender, Profile.gender_searchable.is_(True))
+    if min_age is not None or max_age is not None:
+        # Den som har dolt sin ålder kommer inte med när man filtrerar på ålder, så att filtret inte avslöjar
+        # åldern (SCRUM-134), på samma sätt som kön och gender_searchable.
+        query = query.filter(Profile.age_hidden.is_(False))
     if min_age is not None:
         query = query.filter(Profile.birth_date <= _latest_birth_date_for_age(min_age))
     if max_age is not None:

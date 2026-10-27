@@ -1,7 +1,7 @@
 """user interests: practises or just interested, one row per interest, no strength
 
 Revision ID: e8c4a1f7b305
-Revises: b6d2f4a8c913
+Revises: c4f8a2d6e190
 
 SCRUM-271: av de 16 aktiviteterna blir två kvar. activity = 'utova' när personen själv håller på med intresset,
 annars '' (intresserad). Samma intresse sparas därför bara en gång per person, och strength (1-3), som aldrig
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 revision = 'e8c4a1f7b305'
-down_revision = 'b6d2f4a8c913'
+down_revision = 'c4f8a2d6e190'
 branch_labels = None
 depends_on = None
 

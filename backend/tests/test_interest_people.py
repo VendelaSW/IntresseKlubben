@@ -134,7 +134,7 @@ def test_the_list_is_paginated_but_the_count_is_not(client, tree, people):
 
 def test_a_person_card_never_shows_private_fields(client, tree, people):
     card = get(client, tree["musik"]).json()["people"][0]
-    assert set(card) == {"id", "username", "name", "age", "municipality_name", "district", "image_url", "interests"}
+    assert set(card) == {"id", "username", "name", "age", "age_hidden", "municipality_name", "district", "image_url", "interests"}
 
 
 def test_an_unknown_interest_gives_404(client, people):

@@ -169,6 +169,8 @@ function ProfilePage() {
   const [birthDate, setBirthDate] = useState('')
   const [gender, setGender] = useState('')
   const [genderSearchable, setGenderSearchable] = useState(false)
+  // Dölj åldern för andra (SCRUM-134). Moderatorerna ser den ändå.
+  const [ageHidden, setAgeHidden] = useState(false)
   const [municipalityCode, setMunicipalityCode] = useState('')
   const [district, setDistrict] = useState('')
   const [aboutText, setAboutText] = useState('')
@@ -261,6 +263,7 @@ function ProfilePage() {
     setBirthDate(fromProfile?.birth_date ?? '')
     setGender(fromProfile?.gender ?? '')
     setGenderSearchable(fromProfile?.gender_searchable ?? false)
+    setAgeHidden(fromProfile?.age_hidden ?? false)
     setMunicipalityCode(fromProfile?.municipality_code ?? '')
     setDistrict(fromProfile?.district ?? '')
     setAboutText(fromProfile?.profile_text ?? '')
@@ -352,6 +355,7 @@ function ProfilePage() {
       birth_date: birthDate,
       gender,
       gender_searchable: genderSearchable,
+      age_hidden: ageHidden,
       municipality_code: municipalityCode,
       profile_text: aboutText,
     }
@@ -521,6 +525,13 @@ function ProfilePage() {
 
               <label htmlFor="profile-birth-date">Födelsedatum</label>
               <BirthDatePicker id="profile-birth-date" value={birthDate} onChange={setBirthDate} required />
+              <label>
+                <input type="checkbox" checked={ageHidden} onChange={(e) => setAgeHidden(e.target.checked)} /> Dölj
+                min ålder för andra
+              </label>
+              <p className="hint-text">
+                Du syns då inte när andra filtrerar på ålder. Intresseklubbens moderatorer ser alltid åldern.
+              </p>
 
               <label htmlFor="profile-gender">Kön</label>
               <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)} required>
@@ -699,6 +710,8 @@ function ProfilePage() {
           )}
           <dt>Sökbar på kön</dt>
           <dd>{profile.gender_searchable ? 'Ja' : 'Nej'}</dd>
+          <dt>Ålder synlig för andra</dt>
+          <dd>{profile.age_hidden ? 'Nej' : 'Ja'}</dd>
         </dl>
         {account?.email && <p className="hint-text">E-posten syns bara för dig.</p>}
         {account?.email_verified && <EmailVerification account={account} />}
