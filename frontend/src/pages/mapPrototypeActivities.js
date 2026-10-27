@@ -3,7 +3,7 @@
 // longitude, satt med nålen i formuläret) står lappen där, i den kommun
 // positionen ligger i. Annars är platsen ungefärlig:
 //   - en klubb utan nål visas inte som en egen lapp, utan i symbolen för sitt
-//     område (se mapPrototypeAreaClubs.js); den har ändå en plats mitt i sin
+//     område (se mapPrototypeAreaSymbols.js); den har ändå en plats mitt i sin
 //     kommun (kommunens namnpunkt), för sökrutan,
 //   - ett event står i sin klubbs kommun, annars i en kommun vars namn finns
 //     i adressen eller platsens namn, annars visas det inte,
@@ -106,7 +106,7 @@ export function activitiesFrom({ groups, events, kommuner }) {
 // (kommunkod) på kommunnivå, annars null: lapparna syns bara då, och bara den
 // kommunens klubbar och events. `onPick(item, compact)` anropas vid klick,
 // med om lappen var hopfälld till en ikon. `getFixed()` ger rektanglar som
-// står still (symbolerna för klubbar utan nål, se mapPrototypeAreaClubs.js):
+// står still (symbolerna för klubbar utan nål, se mapPrototypeAreaSymbols.js):
 // lapparna flyttas undan för dem. Returnerar
 // { setItems, getItem, highlight, render }.
 export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed = () => [] }) {
@@ -132,8 +132,8 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
     const placed = []
     for (const item of items) {
       if (item.kommun !== kommun) continue
-      // Klubbar utan nål finns i kommunens symbol (se mapPrototypeAreaClubs.js).
-      if (item.type === 'klubb' && !item.exact) continue
+      // Klubbar och events utan nål finns i kommunens symbol (se mapPrototypeAreaSymbols.js).
+      if (!item.exact) continue
       const { x, y } = map.project(item.lngLat)
       if (x < -200 || x > width + 200 || y < -200 || y > height + 200) continue
       placed.push({ item, x, y, el: markerEl(item, compact) })

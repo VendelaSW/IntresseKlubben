@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import FormField from '../FormField'
 import LocationPicker from '../LocationPicker'
 import MunicipalityPicker from '../MunicipalityPicker'
-import { SCOPES, SKILL_LEVELS, VISIBILITY, createGroup, getRegions } from '../../services/groups'
+import { SCOPES, SKILL_LEVELS, VISIBILITY, areaOptions, createGroup, getRegions } from '../../services/groups'
 
 // Hur nya medlemmar kommer in (SCRUM-159).
 const VISIBILITY_OPTIONS = [
@@ -11,15 +11,6 @@ const VISIBILITY_OPTIONS = [
   { value: VISIBILITY.private, label: 'Privat', hint: 'Syns bara för medlemmar. Man kommer in med en inbjudan.' },
 ]
 
-// Områdena att välja bland för en räckvidd (inte kommun och hela Sverige, som
-// har en egen väljare respektive inget val), som [{ kod, namn }].
-function areaOptions(scope, regions) {
-  if (!regions) return []
-  if (scope === 'lan') return regions.lan
-  if (scope === 'landskap') return [...regions.landskap].sort((a, b) => a.namn.localeCompare(b.namn, 'sv'))
-  if (scope === 'landsdel') return regions.landsdelar
-  return []
-}
 
 // `initialName` och `initialInterestId` (valfria): det man sökte på när det inte
 // fanns någon klubb (SCRUM-221), ifyllt från början.

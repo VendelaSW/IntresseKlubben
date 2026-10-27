@@ -32,6 +32,17 @@ export function getRegions() {
   return cachedInBrowser(['regions'], () => apiGet('/groups/regions'), 24 * HOUR)
 }
 
+// Områdena att välja bland för en räckvidd (inte kommun och hela Sverige, som
+// har en egen väljare respektive inget val), som [{ kod, namn }]. Används av
+// Skapa klubb och eventformuläret.
+export function areaOptions(scope, regions) {
+  if (!regions) return []
+  if (scope === 'lan') return regions.lan
+  if (scope === 'landskap') return [...regions.landskap].sort((a, b) => a.namn.localeCompare(b.namn, 'sv'))
+  if (scope === 'landsdel') return regions.landsdelar
+  return []
+}
+
 // Gäller klubben kommunen? Ja om den finns i kommunen eller gäller ett större
 // område som kommunen ligger i (samma som filtret i GET /groups/). `regions` från
 // getRegions; utan dem räknas bara klubbar i själva kommunen.
@@ -92,6 +103,20 @@ export function getGroups({ interestId, municipalityCode, q, sort, reverse, limi
   if (excludeMine) params.set('exclude_mine', 'true')
   const query = params.toString()
   return apiGet(`/groups/${query ? `?${query}` : ''}`)
+}
+
+// Alla klubbar man kan hitta (GET /groups/ utan filter), för kartan och Att göra. Sparas i
+// minnet en kort stund (se queryClient.js), så att Att göra inte hämtar det kartan redan har
+// hämtat (SCRUM-276). Ligger under ['groups'], så den hämtas om när man går med i eller
+// lämnar en klubb (se changingMyGroups).
+export const allGroupsQuery = {
+  queryKey: ['groups', 'all'],
+  queryFn: () => getGroups(),
+  staleTime: 15 * SECOND,
+}
+
+export function getAllGroups() {
+  return queryClient.fetchQuery(allGroupsQuery)
 }
 
 export const MY_GROUPS_KEY = ['groups', 'mine']
