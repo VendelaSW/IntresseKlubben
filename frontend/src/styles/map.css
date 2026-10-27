@@ -507,7 +507,7 @@
   font-size: 0.68rem;
 }
 
-/* Klubbar utan nål: en symbol per område (se mapPrototypeAreaClubs.js). En liten
+/* Klubbar utan nål: en symbol per område (se mapPrototypeAreaSymbols.js). En liten
    hög med lappar: den översta vit och lite lutad, två färgade snett bakom, och
    antalet klubbar i en rund stämpel i hörnet. */
 .map-activity.is-area {
@@ -552,6 +552,29 @@
   background: #9fbfdc;
   rotate: -6deg;
   translate: -5px 5px;
+}
+
+/* Events utan nål (SCRUM-294): samma hög, i eventens rosa. */
+.map-activity.is-area.is-event .map-area-card {
+  background: #ffd6e7;
+}
+
+.map-activity.is-area.is-event::before {
+  background: #ff6fae;
+}
+
+.map-activity.is-area.is-event::after {
+  background: #f7e1e1;
+}
+
+.map-activity.is-area.is-event .map-activity-sub {
+  color: #3a2f25;
+}
+
+/* Ens bokade events i listan står i fetstil rosa. */
+.map-area-list-club.is-booked span {
+  color: #b0306e;
+  font-weight: 700;
 }
 
 /* Utzoomat (is-compact) bara ikonen på högen, som lapparna; namnet syns när man hovrar. */

@@ -10,7 +10,16 @@ import { approveJoinRequest, declineJoinRequest, getJoinRequests } from '../../s
 // förklaring. Den som ansökt får en notis med svaret (och förklaringen), och kan
 // ansöka igen efter ett nej. `onChanged` anropas när någon
 // har godkänts (klubben har då en medlem till) eller nekats.
-function GroupJoinRequests({ group, onChanged }) {
+// Används också för events (SCRUM-296): `group` är då eventet ({ id, request_count }),
+// och `load`, `approve` och `decline` eventets anrop (se services/events.js).
+function GroupJoinRequests({
+  group,
+  onChanged,
+  load = getJoinRequests,
+  approve = approveJoinRequest,
+  decline = declineJoinRequest,
+  declinePlaceholder = 'T.ex. att klubben är full till hösten',
+}) {
   const [requests, setRequests] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
   const [busyId, setBusyId] = useState(null)
@@ -22,7 +31,7 @@ function GroupJoinRequests({ group, onChanged }) {
 
   useEffect(() => {
     setFailed(false)
-    getJoinRequests(group.id)
+    load(group.id)
       .then(setRequests)
       .catch(() => setFailed(true))
   }, [group.id, group.request_count, attempt])
@@ -46,7 +55,7 @@ function GroupJoinRequests({ group, onChanged }) {
 
   async function handleDecline(event) {
     event.preventDefault()
-    if (await answer(declining.id, declineJoinRequest, reason.trim())) {
+    if (await answer(declining.id, decline, reason.trim())) {
       setDeclining(null)
       setReason('')
     }
@@ -75,7 +84,7 @@ function GroupJoinRequests({ group, onChanged }) {
                   type="button"
                   className="primary-button button-small"
                   disabled={busyId !== null}
-                  onClick={() => answer(user.id, approveJoinRequest)}
+                  onClick={() => answer(user.id, approve)}
                 >
                   Godkänn
                 </button>
@@ -107,7 +116,7 @@ function GroupJoinRequests({ group, onChanged }) {
               maxLength={200}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="T.ex. att klubben är full till hösten"
+              placeholder={declinePlaceholder}
             />
             <p className="hint-text">Det du skriver följer med i notisen. Hen kan ansöka igen senare.</p>
             {error && <p className="status-error">{error}</p>}

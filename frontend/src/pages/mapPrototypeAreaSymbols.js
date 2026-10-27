@@ -1,19 +1,23 @@
-// Klubbar utan nål på kartan (SCRUM-282): en symbol per område i stället för en
-// lapp per klubb, så att de inte staplas på varandra. Symbolen står på den nivå
-// klubbarna hör till:
+// Klubbar och events utan nål på kartan (SCRUM-282, SCRUM-294): en symbol per
+// område i stället för en lapp per klubb eller event, så att de inte staplas på
+// varandra. Klubbarna och eventen har var sin symbol (vit respektive rosa hög).
+// Symbolen står på den nivå klubbarna eller eventen hör till:
 //   - Sverige-nivån: hela Sverige och de tre landsdelarna (kartan har ingen egen
 //     nivå för landsdelarna),
 //   - landskapsnivån: det valda landskapet,
 //   - länsvyn: det valda länet,
-//   - kommunnivån: den valda kommunen (kommunklubbar utan nål).
-// Ett klick på symbolen öppnar en lista med klubbarna i området, och ett klick i
-// listan öppnar klubben. Klubbar med nål har kvar sina lappar (se
+//   - kommunnivån: den valda kommunen (kommunklubbar utan nål, och events utan
+//     nål och utan större område, i den kommun de hör till, se activitiesFrom).
+// Ett klick på symbolen öppnar en lista, och ett klick i listan öppnar klubben
+// eller eventet. Klubbar och events med nål har kvar sina lappar (se
 // mapPrototypeActivities.js).
 //
 // Symbolen står still på sin plats på kartan, som lapparna: det är lapparna
 // (events och klubbar med nål) som flyttas undan för den. Utzoomat är den, som
-// lapparna, bara högen med antalet; namnet syns när man hovrar.
+// lapparna, bara högen med antalet; namnet syns när man hovrar. Står en klubb-
+// och en eventsymbol på samma ställe hamnar de bredvid varandra.
 
+import eventIcon from '../assets/event.png'
 import klubbarIcon from '../assets/klubbar.png'
 import { FULL_ZOOM } from './mapPrototypeActivities'
 import { LANDSKAP_LABELS, LAN_LABELS } from './mapPrototypeStyle'
@@ -31,51 +35,79 @@ function lanPoint(code) {
 
 const landskapPoint = (code) => LANDSKAP_LABELS.find((l) => String(l.id) === code)?.lngLat ?? null
 
-const countText = (n) => (n === 1 ? '1 klubb' : `${n} klubbar`)
+function areaPoint(scope, code, kommuner) {
+  if (scope === 'country') return COUNTRY_POINT
+  if (scope === 'landsdel') return LANDSDEL_POINTS[code]
+  if (scope === 'landskap') return landskapPoint(code)
+  if (scope === 'lan') return lanPoint(code)
+  return kommuner.get(code)?.label
+}
 
-// Gör om klubbarna till symboler: { key, scope, code, name, lngLat, landskap, clubs }.
-// `kommuner` är en Map från kommunkod till { name, label } (se allKommuner).
-// Bara klubbar utan nål räknas; de med nål står som lappar.
-export function areaClubsFrom(groups, kommuner) {
+const KINDS = {
+  klubb: { icon: klubbarIcon, one: 'Klubb', many: 'Klubbar', of: 'Klubbar för' },
+  event: { icon: eventIcon, one: 'Event', many: 'Events', of: 'Events i' },
+}
+
+const shortDate = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'short' })
+
+// Gör om klubbarna och eventen till symboler: { key, kind, scope, code, name, lngLat, items }, där items är
+// [{ type, id, name, sub, booked }]. `kommuner` är en Map från kommunkod till { name, label } (se allKommuner).
+// `eventItems` är eventens lappar från activitiesFrom, för kommunen ett event utan nål hör till. Bara klubbar och
+// events utan nål räknas; de med nål står som lappar.
+export function areasFrom({ groups, events = [], eventItems = [], kommuner }) {
   const areas = new Map()
+  function add(kind, scope, code, name, entry) {
+    const key = `${kind}:${scope}:${code}`
+    if (!areas.has(key)) {
+      const lngLat = areaPoint(scope, code, kommuner)
+      if (!lngLat) return
+      areas.set(key, { key, kind, scope, code, name: name ?? kommuner.get(code)?.name ?? code, lngLat, items: [] })
+    }
+    areas.get(key).items.push(entry)
+  }
   for (const group of groups) {
     if (group.latitude != null && group.longitude != null) continue
-    const key = `${group.scope}:${group.scope_code}`
-    if (!areas.has(key)) {
-      const lngLat =
-        group.scope === 'country'
-          ? COUNTRY_POINT
-          : group.scope === 'landsdel'
-            ? LANDSDEL_POINTS[group.scope_code]
-            : group.scope === 'landskap'
-              ? landskapPoint(group.scope_code)
-              : group.scope === 'lan'
-                ? lanPoint(group.scope_code)
-                : kommuner.get(group.scope_code)?.label
-      if (!lngLat) continue
-      areas.set(key, { key, scope: group.scope, code: group.scope_code, name: group.scope_name, lngLat, clubs: [] })
-    }
-    areas.get(key).clubs.push(group)
+    add('klubb', group.scope, group.scope_code, group.scope_name, {
+      type: 'klubb',
+      id: group.id,
+      name: group.name,
+      sub: group.interest_name,
+    })
   }
-  for (const area of areas.values()) area.clubs.sort((a, b) => a.name.localeCompare(b.name, 'sv'))
+  const kommunOf = new Map(eventItems.filter((i) => i.type === 'event').map((i) => [i.id, i]))
+  const now = Date.now()
+  for (const event of events) {
+    if (event.latitude != null && event.longitude != null) continue
+    if (new Date(event.ends_at ?? event.starts_at).getTime() < now) continue
+    const entry = {
+      type: 'event',
+      id: event.id,
+      name: event.title,
+      sub: shortDate.format(new Date(event.starts_at)),
+      booked: event.is_owner || event.my_answer === 'yes' || event.my_answer === 'maybe',
+    }
+    if (event.scope) add('event', event.scope, event.scope_code, event.scope_name, entry)
+    else if (kommunOf.get(event.id)?.kommun) add('event', 'kommun', kommunOf.get(event.id).kommun, null, entry)
+  }
+  for (const area of areas.values()) area.items.sort((a, b) => a.name.localeCompare(b.name, 'sv'))
   return [...areas.values()]
 }
 
-// Luft i pixlar mellan symbolen och listan under den.
+// Luft i pixlar mellan symbolen och listan under den, och mellan två symboler på samma ställe.
 const GAP_PX = 6
 // En kommuns symbol står så här högt ovanför platsen kartan flyger till (se
 // setKommunCenter), så att den inte täcker ortens namn.
 const KOMMUN_LIFT_PX = 46
 
 // Kopplar symbolerna till kartan. `getView()` ger { mode, landskap, lan, kommun }
-// (landskapets namn, länskod och kommunkod för det som är valt). `onOpen(group)`
-// öppnar en klubb. Returnerar { setAreas, setKommunCenter, render, boxes }:
+// (landskapets namn, länskod och kommunkod för det som är valt). `onOpen({ type, id })`
+// öppnar en klubb eller ett event. Returnerar { setAreas, setKommunCenter, render, boxes }:
 // boxes() ger symbolernas rektanglar på skärmen, som lapparna flyttas undan för.
-export function attachAreaClubs(map, layer, { getView, onOpen }) {
+export function attachAreaSymbols(map, layer, { getView, onOpen }) {
   let areas = []
   let openKey = null // symbolen vars lista är öppen
   // Var kartan stannar när man går till en kommun (centralorten, eller ens stadsdel), per kommunkod.
-  // Kommunens symbol står där i stället för vid kommunens namnpunkt, så att den syns när man kommer dit.
+  // Kommunens symboler står där i stället för vid kommunens namnpunkt, så att de syns när man kommer dit.
   const kommunCenters = new Map()
 
   // Vilka symboler som hör till nivån man är på.
@@ -101,15 +133,23 @@ export function attachAreaClubs(map, layer, { getView, onOpen }) {
     for (const area of shown) {
       const center = area.scope === 'kommun' ? kommunCenters.get(area.code) : null
       const point = map.project(center ?? area.lngLat)
-      const x = point.x
       const y = center ? point.y - KOMMUN_LIFT_PX : point.y
-      if (x < -200 || x > width + 200 || y < -200 || y > height + 200) continue
-      const el = symbolEl(area, compact && area.key !== openKey)
-      el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`
-      placed.push({ el, area, x, y })
+      if (point.x < -200 || point.x > width + 200 || y < -200 || y > height + 200) continue
+      placed.push({ el: symbolEl(area, compact && area.key !== openKey), area, x: point.x, y })
     }
     layer.replaceChildren(...placed.map((p) => p.el))
+    // Klubbarnas och eventens symbol för samma område står på samma punkt: lägg dem bredvid varandra.
+    for (let i = 0; i < placed.length; i++) {
+      const p = placed[i]
+      const twin = placed.slice(0, i).find((q) => q.area.scope === p.area.scope && q.area.code === p.area.code)
+      if (twin) {
+        const shift = (twin.el.offsetWidth + p.el.offsetWidth) / 2 + GAP_PX * 3
+        twin.x -= shift / 2
+        p.x = twin.x + shift
+      }
+    }
     for (const p of placed) {
+      p.el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`
       if (p.area.key !== openKey) continue
       const list = listEl(p.area)
       list.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, ${p.el.offsetHeight / 2 + GAP_PX}px)`
@@ -128,14 +168,16 @@ export function attachAreaClubs(map, layer, { getView, onOpen }) {
   }
 
   function symbolEl(area, compact) {
+    const kind = KINDS[area.kind]
+    const count = area.items.length
     const el = document.createElement('button')
     el.type = 'button'
-    el.className = `map-activity is-klubb is-area${area.key === openKey ? ' is-open' : ''}${compact ? ' is-compact' : ''}`
+    el.className = `map-activity is-${area.kind} is-area${area.key === openKey ? ' is-open' : ''}${compact ? ' is-compact' : ''}`
     el.dataset.area = area.key
     el.setAttribute('aria-expanded', String(area.key === openKey))
-    el.title = `Klubbar för ${area.name} (${countText(area.clubs.length)})`
+    el.title = `${kind.of} ${area.name} (${count})`
     const icon = document.createElement('img')
-    icon.src = klubbarIcon
+    icon.src = kind.icon
     icon.alt = ''
     const text = document.createElement('span')
     text.className = 'map-activity-text'
@@ -144,18 +186,18 @@ export function attachAreaClubs(map, layer, { getView, onOpen }) {
     title.textContent = area.name
     const sub = document.createElement('span')
     sub.className = 'map-activity-sub'
-    sub.textContent = area.clubs.length === 1 ? 'Klubb' : 'Klubbar'
+    sub.textContent = count === 1 ? kind.one : kind.many
     text.append(title, sub)
     // En liten hög med lappar: den översta (.map-area-card) med ikonen och texten, två färgade bakom
     // (se .map-activity.is-area i map.css), och antalet i en rund stämpel i hörnet.
     const card = document.createElement('span')
     card.className = 'map-area-card'
     card.append(icon, text)
-    const count = document.createElement('span')
-    count.className = 'map-area-count'
-    count.textContent = String(area.clubs.length)
-    count.setAttribute('aria-hidden', 'true')
-    el.append(card, count)
+    const badge = document.createElement('span')
+    badge.className = 'map-area-count'
+    badge.textContent = String(count)
+    badge.setAttribute('aria-hidden', 'true')
+    el.append(card, badge)
     return el
   }
 
@@ -164,18 +206,19 @@ export function attachAreaClubs(map, layer, { getView, onOpen }) {
     list.className = 'map-area-list'
     const heading = document.createElement('p')
     heading.className = 'map-area-list-title'
-    heading.textContent = `Klubbar för ${area.name}`
+    heading.textContent = `${KINDS[area.kind].of} ${area.name}`
     const items = document.createElement('ul')
-    for (const group of area.clubs) {
+    for (const entry of area.items) {
       const item = document.createElement('li')
       const button = document.createElement('button')
       button.type = 'button'
-      button.className = 'map-area-list-club'
-      button.dataset.club = String(group.id)
-      button.textContent = group.name
-      const interest = document.createElement('span')
-      interest.textContent = group.interest_name
-      button.append(interest)
+      button.className = `map-area-list-club${entry.booked ? ' is-booked' : ''}`
+      button.dataset.type = entry.type
+      button.dataset.id = String(entry.id)
+      button.textContent = entry.name
+      const sub = document.createElement('span')
+      sub.textContent = entry.booked ? `${entry.sub} · du är anmäld` : entry.sub
+      button.append(sub)
       item.append(button)
       items.append(item)
     }
@@ -188,12 +231,11 @@ export function attachAreaClubs(map, layer, { getView, onOpen }) {
   }
 
   layer.addEventListener('click', (event) => {
-    const club = event.target.closest('.map-area-list-club')
-    if (club) {
-      const group = areas.flatMap((a) => a.clubs).find((g) => String(g.id) === club.dataset.club)
+    const entry = event.target.closest('.map-area-list-club')
+    if (entry) {
       openKey = null
       render()
-      if (group) onOpen(group)
+      onOpen({ type: entry.dataset.type, id: Number(entry.dataset.id) })
       return
     }
     const symbol = event.target.closest('.map-activity.is-area')
