@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from '../Avatar'
 import { getGroupMembers } from '../../services/groups'
+import LoadError, { useRetry } from '../LoadError'
 
 // Vilka som är med i klubben. Varje namn länkar till personens profil, där
 // man kan skicka kompisförfrågan eller meddelande. `memberCount` gör att listan
@@ -9,15 +10,16 @@ import { getGroupMembers } from '../../services/groups'
 function GroupMembers({ groupId, memberCount }) {
   const [members, setMembers] = useState(null)
   const [failed, setFailed] = useState(false)
+  const [attempt, retry] = useRetry()
 
   useEffect(() => {
     setFailed(false)
     getGroupMembers(groupId)
       .then(setMembers)
       .catch(() => setFailed(true))
-  }, [groupId, memberCount])
+  }, [groupId, memberCount, attempt])
 
-  if (failed) return <p className="hint-text">Kunde inte hämta medlemmarna.</p>
+  if (failed) return <LoadError text="Kunde inte hämta medlemmarna." onRetry={retry} className="hint-text" />
   if (members === null) return <p className="hint-text">Laddar medlemmar...</p>
 
   return (
