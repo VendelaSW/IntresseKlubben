@@ -8,23 +8,31 @@ from app.crud.contact import blocked_by_me_ids, blocked_user_ids, is_blocked
 from app.crud.group import (
     GroupRuleError,
     GroupSort,
+    apply_to_group,
+    approve_request,
     can_invite,
     count_user_invitations,
     create_group,
     decline_invitation,
+    decline_request,
     delete_group,
     get_group,
     get_membership,
+    has_applied,
     invite_to_group,
+    is_full,
     is_invited,
     join_group,
     leave_group,
+    list_join_requests,
     list_member_groups_visible_to,
     list_members,
     list_public_groups,
     list_suggested_groups,
     list_user_groups,
     list_user_invitations,
+    request_count,
+    withdraw_request,
 )
 from app.crud.group_message import get_group_messages, send_group_message
 from app.crud.group_post import (
@@ -39,13 +47,22 @@ from app.crud.group_post import (
 )
 from app.crud.interest import get_active_interest
 from app.db.session import get_db
-from app.models.group import Group, GroupRole, GroupVisibility
+from app.models.group import Group, GroupRole, GroupScope, GroupVisibility
 from app.models.municipality import Municipality
 from app.models.user import User
 from app.schemas.contact import ContactUser
-from app.schemas.group import GroupCreate, GroupInvite, GroupMemberResponse, GroupResponse, GroupsOverview
+from app.schemas.group import (
+    GroupCreate,
+    GroupInvite,
+    GroupJoinRequestCreate,
+    GroupJoinRequestOut,
+    GroupMemberResponse,
+    GroupResponse,
+    GroupsOverview,
+)
 from app.schemas.group_message import GroupMessageCreate, GroupMessageOut
 from app.schemas.group_post import GroupPostCreate, GroupPostOut
+from app.services.regions import area_name, is_known_area, regions
 from app.services.text_moderation import censor_message, check_fields
 
 # Låst tills profilen är klar (se require_profile).
@@ -57,14 +74,19 @@ def _blocks(db: Session, user_id: int) -> tuple[set[int], set[int]]:
     return blocked_user_ids(db, user_id), blocked_by_me_ids(db, user_id)
 
 
-def _to_response(group: Group, user_id: int, hidden: set[int], blocked_by_me: set[int]) -> GroupResponse:
+def _to_response(
+    group: Group, user_id: int, hidden: set[int], blocked_by_me: set[int], db: Session | None = None
+) -> GroupResponse:
     # hidden = de som har blockerat dig eller som du har blockerat. De räknas
     # inte med i medlemsantalet, så att siffran stämmer med medlemslistan
     # (se list_members) och inte avslöjar någon dold.
     # blocked_by_me = bara de du själv har blockerat, för varningen
     # has_blocked_member. Den som har blockerat dig ger aldrig en varning,
     # eftersom du då skulle förstå att du är blockerad.
+    # db behövs bara för ägarens antal ansökningar (request_count), och bara om det finns några.
     membership = get_membership(group, user_id)
+    is_owner = membership is not None and membership.role == GroupRole.owner
+    municipality_name = group.municipality.name if group.municipality else None
     return GroupResponse(
         id=group.id,
         name=group.name,
@@ -77,15 +99,23 @@ def _to_response(group: Group, user_id: int, hidden: set[int], blocked_by_me: se
         interest_id=group.interest_id,
         interest_name=group.interest.name,
         interest_area=group.interest.area,
+        scope=group.scope,
+        scope_code=group.scope_code,
+        scope_name=area_name(group.scope, group.scope_code, municipality_name),
         municipality_code=group.municipality_code,
-        municipality_name=group.municipality.name,
+        municipality_name=municipality_name,
         visibility=group.visibility,
         members_can_invite=group.members_can_invite,
+        skill_level=group.skill_level,
+        max_members=group.max_members,
         member_count=sum(1 for m in group.members if m.user_id not in hidden),
+        is_full=is_full(group),
         is_member=membership is not None,
-        is_owner=membership is not None and membership.role == GroupRole.owner,
+        is_owner=is_owner,
         can_invite=can_invite(group, user_id),
         is_invited=is_invited(group, user_id),
+        has_applied=has_applied(group, user_id),
+        request_count=request_count(db, group, user_id) if is_owner and db is not None else 0,
         created_at=group.created_at,
         has_blocked_member=any(m.user_id in blocked_by_me for m in group.members),
     )
@@ -115,8 +145,11 @@ def create(
     # att välja och ger samma fel som ett okänt.
     if get_active_interest(db, data.interest_id) is None:
         raise HTTPException(status_code=422, detail="Okänt intresse")
-    if db.get(Municipality, data.municipality_code) is None:
-        raise HTTPException(status_code=422, detail="Okänd kommun")
+    if data.scope == GroupScope.kommun:
+        if db.get(Municipality, data.municipality_code) is None:
+            raise HTTPException(status_code=422, detail="Okänd kommun")
+    elif not is_known_area(data.scope, data.scope_code):
+        raise HTTPException(status_code=422, detail=msg.GROUP_UNKNOWN_AREA)
     check_fields(
         ai=True, labels={"name": "Gruppnamnet"}, name=data.name, description=data.description,
         meeting_info=data.meeting_info, place_name=data.place_name, address=data.address,
@@ -164,7 +197,7 @@ def read_public_groups(
 @router.get("/mine", response_model=list[GroupResponse])
 def read_my_groups(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     blocks = _blocks(db, current_user.id)
-    return [_to_response(g, current_user.id, *blocks) for g in list_user_groups(db, current_user.id)]
+    return [_to_response(g, current_user.id, *blocks, db) for g in list_user_groups(db, current_user.id)]
 
 
 @router.get("/suggested", response_model=list[GroupResponse])
@@ -187,7 +220,7 @@ def read_groups_overview(current_user=Depends(get_current_user), db: Session = D
     user_id = current_user.id
     blocks = _blocks(db, user_id)
     return GroupsOverview(
-        mine=[_to_response(g, user_id, *blocks) for g in list_user_groups(db, user_id)],
+        mine=[_to_response(g, user_id, *blocks, db) for g in list_user_groups(db, user_id)],
         suggested=[_to_response(g, user_id, *blocks) for g in list_suggested_groups(db, current_user)],
         invitations=[_to_response(g, user_id, *blocks) for g in list_user_invitations(db, user_id)],
     )
@@ -204,6 +237,13 @@ def read_member_groups(user_id: int, current_user=Depends(get_current_user), db:
     return [_to_response(g, current_user.id, *blocks) for g in list_member_groups_visible_to(db, user_id, current_user.id)]
 
 
+# Områdena en klubb kan gälla (SCRUM-282), för Skapa klubb och filtret: landsdelar, landskap och län med
+# namn, och vilket län och landskap varje kommun hör till. Kommunernas namn finns i GET /municipalities/.
+@router.get("/regions")
+def read_regions(current_user=Depends(get_current_user)):
+    return regions()
+
+
 # Bara antalet, för märket i headern.
 @router.get("/invitations/count")
 def read_my_invitation_count(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
@@ -213,7 +253,7 @@ def read_my_invitation_count(current_user=Depends(get_current_user), db: Session
 @router.get("/{group_id}", response_model=GroupResponse)
 def read_group(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     group = _visible_group_or_404(db, group_id, current_user.id)
-    return _to_response(group, current_user.id, *_blocks(db, current_user.id))
+    return _to_response(group, current_user.id, *_blocks(db, current_user.id), db)
 
 
 # Alla som kan se klubben ser vilka som är med (en privat klubb syns bara
@@ -250,6 +290,80 @@ def join(group_id: int, current_user=Depends(get_current_user), db: Session = De
 def leave(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     group = _visible_group_or_404(db, group_id, current_user.id)
     leave_group(db, group, current_user)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ---------- Ansökningar (SCRUM-159) ----------
+
+
+# Ansök till en klubb man ansöker till, med ett valfritt meddelande. Ägaren får en notis.
+@router.put("/{group_id}/requests/me", response_model=GroupResponse)
+def apply(
+    group_id: int,
+    data: GroupJoinRequestCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    group = _visible_group_or_404(db, group_id, current_user.id)
+    if data.message:
+        check_fields(labels={"message": "Meddelandet"}, message=data.message)
+    try:
+        apply_to_group(db, group, current_user, data.message)
+    except GroupRuleError as err:
+        raise HTTPException(status_code=err.status_code, detail=str(err))
+    return _to_response(get_group(db, group.id), current_user.id, *_blocks(db, current_user.id))
+
+
+# Ta tillbaka sin ansökan. Går att upprepa utan fel.
+@router.delete("/{group_id}/requests/me", response_model=GroupResponse)
+def withdraw(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    group = _visible_group_or_404(db, group_id, current_user.id)
+    withdraw_request(db, group, current_user.id)
+    return _to_response(get_group(db, group.id), current_user.id, *_blocks(db, current_user.id))
+
+
+def _owned_group_or_403(db: Session, group_id: int, user_id: int) -> Group:
+    group = _visible_group_or_404(db, group_id, user_id)
+    membership = get_membership(group, user_id)
+    if membership is None or membership.role != GroupRole.owner:
+        raise HTTPException(status_code=403, detail=msg.GROUP_ONLY_OWNER_HANDLES_REQUESTS)
+    return group
+
+
+# Ansökningarna som väntar, för ägaren.
+@router.get("/{group_id}/requests", response_model=list[GroupJoinRequestOut])
+def read_requests(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    group = _owned_group_or_403(db, group_id, current_user.id)
+    return [
+        GroupJoinRequestOut(user=_to_invitee(user), message=request.message, created_at=request.created_at)
+        for request, user in list_join_requests(db, group, current_user.id)
+    ]
+
+
+# Ägaren godkänner (PUT: personen blir medlem) eller nekar (DELETE) en ansökan. Den sökande får en notis.
+@router.put("/{group_id}/requests/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def approve(group_id: int, user_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    group = _owned_group_or_403(db, group_id, current_user.id)
+    if is_blocked(db, current_user.id, user_id):
+        raise HTTPException(status_code=409, detail=msg.GROUP_REQUEST_NOT_FOUND)
+    try:
+        approve_request(db, group, user_id)
+    except GroupRuleError as err:
+        raise HTTPException(status_code=err.status_code, detail=str(err))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/{group_id}/requests/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def decline_application(
+    group_id: int, user_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+):
+    group = _owned_group_or_403(db, group_id, current_user.id)
+    if is_blocked(db, current_user.id, user_id):
+        raise HTTPException(status_code=409, detail=msg.GROUP_REQUEST_NOT_FOUND)
+    try:
+        decline_request(db, group, user_id)
+    except GroupRuleError as err:
+        raise HTTPException(status_code=err.status_code, detail=str(err))
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

@@ -1,14 +1,21 @@
 import enum
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core import error_messages as msg
 from app.crud.contact import accepted_contact_ids, blocked_user_ids
-from app.models.group import Group, GroupInvitation, GroupMember, GroupRole, GroupVisibility
+from app.crud.notification import notify
+from app.models.group import Group, GroupInvitation, GroupJoinRequest, GroupMember, GroupRole, GroupVisibility
+from app.models.notification import NotificationKind
 from app.models.user import User
 from app.schemas.group import GroupCreate
+from app.services.regions import areas_of_kommun
+
+# Klubbar som syns i listor och går att hitta: öppna och de man ansöker till. Privata syns bara för
+# medlemmar och inbjudna.
+LISTED = (GroupVisibility.public, GroupVisibility.application)
 
 # Hur många grupper en användare får vara med i (även de man äger).
 MAX_MEMBERSHIPS = 20
@@ -39,6 +46,7 @@ def _base_query(db: Session):
     return db.query(Group).options(
         selectinload(Group.members),
         selectinload(Group.invitations),
+        selectinload(Group.join_requests),
         selectinload(Group.interest),
         selectinload(Group.municipality),
     )
@@ -65,27 +73,33 @@ def list_members(db: Session, group: Group, viewer_id: int) -> list[tuple[GroupM
     return [(m, users[m.user_id]) for m in group.members if m.user_id in users]
 
 
-def _check_can_join(db: Session, user_id: int) -> None:
+def _check_can_join(db: Session, user_id: int, message: str | None = None) -> None:
     count = db.query(func.count(GroupMember.id)).filter(GroupMember.user_id == user_id).scalar()
     if count >= MAX_MEMBERSHIPS:
-        raise GroupRuleError(f"Du kan vara med i max {MAX_MEMBERSHIPS} klubbar")
+        raise GroupRuleError(message or f"Du kan vara med i max {MAX_MEMBERSHIPS} klubbar")
 
 
-def _name_taken(db: Session, name: str, municipality_code: str) -> bool:
+def is_full(group: Group) -> bool:
+    """Har klubben nått sitt max antal medlemmar (SCRUM-216)? Alla medlemmar räknas, även dolda."""
+    return group.max_members is not None and len(group.members) >= group.max_members
+
+
+def _name_taken(db: Session, name: str, scope: str, scope_code: str) -> bool:
     return (
         db.query(Group.id)
-        .filter(func.lower(Group.name) == name.lower(), Group.municipality_code == municipality_code)
+        .filter(func.lower(Group.name) == name.lower(), Group.scope == scope, Group.scope_code == scope_code)
         .first()
         is not None
     )
 
 
 def create_group(db: Session, user: User, data: GroupCreate) -> Group:
-    if _name_taken(db, data.name, data.municipality_code):
-        raise GroupRuleError("Det finns redan en klubb med det namnet i kommunen")
+    if _name_taken(db, data.name, data.scope.value, data.scope_code):
+        raise GroupRuleError(msg.GROUP_NAME_TAKEN)
     _check_can_join(db, user.id)
 
-    group = Group(**data.model_dump(), created_by=user.id)
+    # mode="json": räckvidd och nivå sparas som text (se Group.scope).
+    group = Group(**data.model_dump(mode="json"), created_by=user.id)
     group.members.append(GroupMember(user_id=user.id, role=GroupRole.owner))
     db.add(group)
     try:
@@ -93,7 +107,7 @@ def create_group(db: Session, user: User, data: GroupCreate) -> Group:
     except IntegrityError:
         # Någon annan hann skapa samma namn mellan kontrollen och sparandet.
         db.rollback()
-        raise GroupRuleError("Det finns redan en klubb med det namnet i kommunen")
+        raise GroupRuleError(msg.GROUP_NAME_TAKEN)
     return get_group(db, group.id)
 
 
@@ -124,11 +138,11 @@ def list_public_groups(
     avslöjar någon dold. Varje sortering slutar på id, så att samma grupp
     aldrig hamnar på två sidor eller hoppas över mellan limit/offset-anrop.
     """
-    query = _base_query(db).filter(Group.visibility == GroupVisibility.public)
+    query = _base_query(db).filter(Group.visibility.in_(LISTED))
     if interest_id is not None:
         query = query.filter(Group.interest_id == interest_id)
     if municipality_code is not None:
-        query = query.filter(Group.municipality_code == municipality_code)
+        query = query.filter(applies_to_kommun(municipality_code))
     if q and q.strip():
         pattern = f"%{_escape_like(q.strip())}%"
         query = query.filter(
@@ -159,6 +173,12 @@ def list_public_groups(
     return query.all()
 
 
+def applies_to_kommun(kommun_code: str):
+    """Villkoret att en klubb gäller kommunen: klubben finns i kommunen, eller gäller ett större område som
+    kommunen ligger i (länet, landskapet, landsdelen eller hela Sverige, SCRUM-282)."""
+    return or_(*(and_(Group.scope == scope, Group.scope_code == code) for scope, code in areas_of_kommun(kommun_code)))
+
+
 def list_user_groups(db: Session, user_id: int) -> list[Group]:
     # Även privata grupper, eftersom användaren är med i dem.
     return (
@@ -179,7 +199,7 @@ def list_member_groups_visible_to(db: Session, member_id: int, viewer_id: int) -
         .join(GroupMember, GroupMember.group_id == Group.id)
         .filter(
             GroupMember.user_id == member_id,
-            or_(Group.visibility == GroupVisibility.public, Group.id.in_(viewer_groups)),
+            or_(Group.visibility.in_(LISTED), Group.id.in_(viewer_groups)),
         )
         .order_by(Group.name)
         .all()
@@ -187,7 +207,7 @@ def list_member_groups_visible_to(db: Session, member_id: int, viewer_id: int) -
 
 
 def list_suggested_groups(db: Session, user: User) -> list[Group]:
-    """Öppna grupper för användarens intressen som hen inte redan är med i."""
+    """Öppna grupper (och de man ansöker till) för användarens intressen som hen inte redan är med i."""
     interest_ids = [i.id for i in user.interests]
     if not interest_ids:
         return []
@@ -195,7 +215,7 @@ def list_suggested_groups(db: Session, user: User) -> list[Group]:
     return (
         _base_query(db)
         .filter(
-            Group.visibility == GroupVisibility.public,
+            Group.visibility.in_(LISTED),
             Group.interest_id.in_(interest_ids),
             Group.id.not_in(my_group_ids),
         )
@@ -205,16 +225,25 @@ def list_suggested_groups(db: Session, user: User) -> list[Group]:
 
 
 def join_group(db: Session, group: Group, user: User) -> Group:
+    """Går med i klubben. En klubb man ansöker till går bara att gå med i direkt med en inbjudan (annars
+    ansöker man, se apply_to_group), och en full klubb inte alls."""
     # Redan med → inget att göra, så anropet kan upprepas utan fel.
     if get_membership(group, user.id) is None:
+        if group.visibility == GroupVisibility.application and not is_invited(group, user.id):
+            raise GroupRuleError(msg.GROUP_MUST_APPLY)
+        if is_full(group):
+            raise GroupRuleError(msg.GROUP_FULL)
         _check_can_join(db, user.id)
-        group.members.append(GroupMember(user_id=user.id, role=GroupRole.member))
-        # Inbjudan har gjort sitt när man har gått med.
-        db.query(GroupInvitation).filter(
-            GroupInvitation.group_id == group.id, GroupInvitation.user_id == user.id
-        ).delete(synchronize_session=False)
+        _add_member(db, group, user.id)
         db.commit()
     return get_group(db, group.id)
+
+
+def _add_member(db: Session, group: Group, user_id: int) -> None:
+    """Gör användaren till medlem, utan att spara. Inbjudan och ansökan har gjort sitt."""
+    group.members.append(GroupMember(user_id=user_id, role=GroupRole.member))
+    for model in (GroupInvitation, GroupJoinRequest):
+        db.query(model).filter(model.group_id == group.id, model.user_id == user_id).delete(synchronize_session=False)
 
 
 def remove_member(db: Session, group: Group, user_id: int) -> None:
@@ -324,4 +353,120 @@ def decline_invitation(db: Session, group: Group, user_id: int) -> None:
     db.query(GroupInvitation).filter(
         GroupInvitation.group_id == group.id, GroupInvitation.user_id == user_id
     ).delete(synchronize_session=False)
+    db.commit()
+
+
+# ---------- Ansökningar (SCRUM-159) ----------
+
+
+def _owner_ids(group: Group) -> list[int]:
+    return [m.user_id for m in group.members if m.role == GroupRole.owner]
+
+
+def has_applied(group: Group, user_id: int) -> bool:
+    return any(r.user_id == user_id for r in group.join_requests)
+
+
+def request_count(db: Session, group: Group, owner_id: int) -> int:
+    """Antalet ansökningar som väntar, som ägaren ser dem (utan blockerade, se list_join_requests)."""
+    if not group.join_requests:
+        return 0
+    hidden = blocked_user_ids(db, owner_id)
+    return sum(1 for r in group.join_requests if r.user_id not in hidden)
+
+
+def _display_name(user: User) -> str:
+    return (user.profile.name if user.profile else None) or user.username
+
+
+def apply_to_group(db: Session, group: Group, user: User, message: str | None) -> None:
+    """Ansöker till en klubb man ansöker till. Ägaren får en notis med meddelandet. Går att upprepa: en ny
+    ansökan ersätter inte den som väntar. Har ägaren och den sökande en blockering skapas ingen ansökan, utan
+    att det märks (ett fel skulle avslöja blockeringen)."""
+    if group.visibility != GroupVisibility.application:
+        raise GroupRuleError(msg.GROUP_NOT_APPLICATION)
+    if get_membership(group, user.id) is not None or has_applied(group, user.id):
+        return
+    if is_full(group):
+        raise GroupRuleError(msg.GROUP_FULL)
+    _check_can_join(db, user.id)
+    owners = _owner_ids(group)
+    hidden = blocked_user_ids(db, user.id)
+    if any(owner in hidden for owner in owners):
+        return
+    db.add(GroupJoinRequest(group_id=group.id, user_id=user.id, message=message))
+    name = _display_name(user)
+    notify(
+        db,
+        owners,
+        NotificationKind.group_join_request,
+        title=f"{name} vill gå med i {group.name}",
+        body="Svara på ansökan på klubbens sida.",
+        quote=message,
+        quote_by=name if message else None,
+        link=f"/klubbar?klubb={group.id}",
+    )
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()  # samma ansökan skickades två gånger samtidigt: en räcker
+
+
+def withdraw_request(db: Session, group: Group, user_id: int) -> None:
+    """Tar tillbaka sin ansökan. Går att upprepa utan fel."""
+    db.query(GroupJoinRequest).filter(
+        GroupJoinRequest.group_id == group.id, GroupJoinRequest.user_id == user_id
+    ).delete(synchronize_session=False)
+    db.commit()
+
+
+def list_join_requests(db: Session, group: Group, owner_id: int) -> list[tuple[GroupJoinRequest, User]]:
+    """Ansökningarna som väntar, äldst först, med användarna (profil förladdad). Den som har en blockering
+    med ägaren visas inte, som i resten av appen."""
+    hidden = blocked_user_ids(db, owner_id)
+    requests = [r for r in group.join_requests if r.user_id not in hidden]
+    users = {
+        u.id: u
+        for u in db.query(User).options(selectinload(User.profile)).filter(User.id.in_([r.user_id for r in requests]))
+    }
+    return [(r, users[r.user_id]) for r in requests if r.user_id in users]
+
+
+def _pending_request(group: Group, user_id: int) -> GroupJoinRequest:
+    request = next((r for r in group.join_requests if r.user_id == user_id), None)
+    if request is None:
+        raise GroupRuleError(msg.GROUP_REQUEST_NOT_FOUND)
+    return request
+
+
+def approve_request(db: Session, group: Group, user_id: int) -> None:
+    """Godkänner ansökan: personen blir medlem och får en notis. Går inte om klubben är full eller om personen
+    redan är med i så många klubbar som går."""
+    _pending_request(group, user_id)
+    if is_full(group):
+        raise GroupRuleError(msg.GROUP_FULL)
+    _check_can_join(db, user_id, msg.GROUP_APPLICANT_TOO_MANY_GROUPS)
+    _add_member(db, group, user_id)
+    notify(
+        db,
+        [user_id],
+        NotificationKind.group_request_approved,
+        title=f"Du är med i {group.name}!",
+        body="Din ansökan är godkänd.",
+        link=f"/klubbar?klubb={group.id}",
+    )
+    db.commit()
+
+
+def decline_request(db: Session, group: Group, user_id: int) -> None:
+    """Nekar ansökan: den tas bort, så att personen kan ansöka igen, och personen får en notis."""
+    db.delete(_pending_request(group, user_id))
+    notify(
+        db,
+        [user_id],
+        NotificationKind.group_request_declined,
+        title=f"Din ansökan till {group.name} fick nej",
+        body="Du kan ansöka igen senare, eller hitta en annan klubb.",
+        link="/klubbar",
+    )
     db.commit()

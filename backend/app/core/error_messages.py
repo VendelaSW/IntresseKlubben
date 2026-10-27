@@ -65,6 +65,17 @@ GEOCODE_UNAVAILABLE = "Adressökningen fungerar inte just nu. Sätt ut nålen p�
 GEOCODE_TOO_MANY_REQUESTS = "För många sökningar. Vänta en stund"
 GROUP_PLACE_NAME_TOO_LONG = "Platsnamn får max vara 100 tecken"
 GROUP_ADDRESS_TOO_LONG = "Adress får max vara 100 tecken"
+GROUP_AREA_REQUIRED = "Välj område för klubben"
+GROUP_UNKNOWN_AREA = "Okänt område"
+GROUP_MAX_MEMBERS_RANGE = "Max antal medlemmar ska vara mellan 2 och 1000"
+GROUP_NAME_TAKEN = "Det finns redan en klubb med det namnet i området"
+GROUP_FULL = "Klubben är full"
+GROUP_MUST_APPLY = "Du behöver ansöka för att gå med i klubben"
+GROUP_NOT_APPLICATION = "Den här klubben tar inte emot ansökningar"
+GROUP_REQUEST_MESSAGE_TOO_LONG = "Meddelandet får max vara 200 tecken"
+GROUP_REQUEST_NOT_FOUND = "Ansökan finns inte"
+GROUP_ONLY_OWNER_HANDLES_REQUESTS = "Bara klubbens ägare kan svara på ansökningar"
+GROUP_APPLICANT_TOO_MANY_GROUPS = "Personen är redan med i så många klubbar som går"
 
 # ---------- Events (routes/events.py, crud/event.py) ----------
 EVENT_NOT_FOUND = "Eventet finns inte"
