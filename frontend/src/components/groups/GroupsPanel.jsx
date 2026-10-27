@@ -19,15 +19,19 @@ import GroupSortMenu from './GroupSortMenu'
 import MunicipalityPicker from '../MunicipalityPicker'
 import { getContacts } from '../../services/contacts'
 import {
+  appliesToKommun,
+  applyToGroup,
   declineGroupInvitation,
   deleteGroup,
   getGroups,
+  getRegions,
   groupsOverviewQuery,
   joinGroup,
   leaveGroup,
   matchesSearch,
   notifyInvitationsChanged,
   sortGroups,
+  withdrawApplication,
 } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
 import { getMunicipalities, getProfile } from '../../services/profile'
@@ -116,6 +120,9 @@ function GroupsPanel() {
   // Ens egna intressen, för att markera klubbarnas intresse om det är ett av dem.
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [municipalities, setMunicipalities] = useState([])
+  // Vilka områden kommunerna ligger i (se getRegions), så att filtret på kommun i Mina klubbar och
+  // Förslag också visar klubbar för länet, landskapet, landsdelen och hela Sverige, som "Alla" (SCRUM-282).
+  const [regions, setRegions] = useState(null)
   // Ens kompisar, för "Bjud in" i en klubb. Hämtas först när en klubb öppnas
   // (null = inte hämtade än), eftersom listan inte behövs förrän då.
   const [contacts, setContacts] = useState(null)
@@ -140,6 +147,11 @@ function GroupsPanel() {
   }, [])
 
   useEffect(() => loadExtras(), [loadExtras])
+
+  // Utan områdena fungerar filtret ändå, då bara på klubbar i själva kommunen.
+  useEffect(() => {
+    getRegions().then(setRegions, () => {})
+  }, [])
 
   useEffect(() => {
     if (typeof view !== 'number' || contacts !== null) return
@@ -272,6 +284,27 @@ function GroupsPanel() {
     runAction(group, joinGroup)
   }
 
+  // Ansök till en klubb man ansöker till (SCRUM-159), med ett meddelande till ägaren. Ger om det gick,
+  // så att rutan med meddelandet kan stängas (ett fel visas under klubben och rutan ligger kvar).
+  async function handleApply(group, message) {
+    setBusy(true)
+    setError('')
+    try {
+      await applyToGroup(group.id, message)
+      await Promise.all([loadMineAndSuggested(), loadAll()])
+      return true
+    } catch (err) {
+      handleError(err)
+      return false
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleWithdraw(group) {
+    await runAction(group, withdrawApplication)
+  }
+
   async function handleLeave(group) {
     if (!(await confirm({ title: `Gå ur ${group.name}`, text: 'Vill du gå ur klubben?', confirmLabel: 'Gå ur', danger: true })))
       return
@@ -335,7 +368,7 @@ function GroupsPanel() {
         (g) =>
           matchesSearch(g, filters.q) &&
           (!filters.interestId || g.interest_id === Number(filters.interestId)) &&
-          (!filters.municipalityCode || g.municipality_code === filters.municipalityCode),
+          (!filters.municipalityCode || appliesToKommun(g, filters.municipalityCode, regions)),
       ),
       filters.sort,
       filters.reverse,
@@ -447,6 +480,9 @@ function GroupsPanel() {
                     contacts={contacts ?? []}
                     busy={busy}
                     onJoin={handleJoin}
+                    onApply={handleApply}
+                    onWithdraw={handleWithdraw}
+                    onMembersChanged={loadMineAndSuggested}
                     onLeave={handleLeave}
                     onDelete={handleDelete}
                     onDecline={handleDecline}
@@ -455,7 +491,11 @@ function GroupsPanel() {
                 </div>
                 {selected.is_member && (
                   <div className="group-chat-slot">
-                    <GroupChat key={selected.id} groupId={selected.id} />
+                    <GroupChat
+                      key={selected.id}
+                      groupId={selected.id}
+                      canModerate={selected.is_owner || selected.is_admin}
+                    />
                   </div>
                 )}
               </div>

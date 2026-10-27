@@ -162,7 +162,11 @@ def make_contacts(api: Api, requester: int, addressee: int, accept: bool = True)
         api.call("PATCH", f"/contacts/requests/{request['id']}", addressee, json={"action": "accept"})
 
 
-def create_club(api: Api, owner: int, name: str, description: str, interest: str, private: bool = False) -> int:
+def create_club(
+    api: Api, owner: int, name: str, description: str, interest: str, private: bool = False, **extra
+) -> int:
+    """En klubb i Göteborg, eller med `extra` t.ex. ett annat område (scope, scope_code), ansökan
+    (visibility="application"), nivå (skill_level) eller max antal medlemmar (max_members)."""
     club = api.call(
         "POST",
         "/groups/",
@@ -173,6 +177,7 @@ def create_club(api: Api, owner: int, name: str, description: str, interest: str
             "interest_id": interest_ids(api, [interest])[0],
             "municipality_code": "1480",
             "visibility": "private" if private else "public",
+            **extra,
         },
     )
     return club["id"]
@@ -212,6 +217,8 @@ def seed(app, db: Session) -> dict[str, int]:
     # Klubbar: Anna är med i Bertils, och har en inbjudan till en privat klubb. Max klubb har maxlångt namn.
     board_games = create_club(api, bertil, "Brädspelsklubben Göteborg", "Vi spelar varannan torsdag.", "Brädspel")
     api.call("PUT", f"/groups/{board_games}/members/me", anna)
+    # Anna är administratör i Brädspelsklubben (SCRUM-160), så att det går att prova som admin.
+    api.call("PUT", f"/groups/{board_games}/members/{anna}/role", bertil, json={"role": "admin"})
     create_club(api, anna, "Morgonlöparna", "Vi springer 5 km varje lördag kl 8.", "Löpning")
     chess = create_club(api, bertil, "Schackcirkeln", "En liten privat klubb.", "Schack", private=True)
     api.call("POST", f"/groups/{chess}/invitations", bertil, json={"user_ids": [anna]})
@@ -223,6 +230,23 @@ def seed(app, db: Session) -> dict[str, int]:
         "utställningar. Alla nivåer är välkomna, från mobilkamera till storformat. Ta med fika!"[:200],
         "Fotografering",
     )
+    # Klubbar för större områden, ansökan, nivå och max antal (SCRUM-282, 159 och 216). Anna äger en klubb man
+    # ansöker till, och Cecilia har ansökt med ett meddelande. Stickcirkeln är full.
+    book_club = create_club(
+        api, anna, "Bokcirkeln Väst", "Vi läser en bok i månaden och ses digitalt.", "Bokcirkel",
+        scope="lan", scope_code="14", visibility="application", skill_level="all_levels", max_members=12,
+    )
+    api.call("PUT", f"/groups/{book_club}/requests/me", cecilia, json={"message": "Jag läser allt av Kerstin Ekman!"})
+    create_club(
+        api, bertil, "Fjällvandrare i Norrland", "Turer i fjällen varje sommar.", "Fjällvandring",
+        scope="landsdel", scope_code="norrland", skill_level="experienced",
+    )
+    create_club(
+        api, max_, "Nätschack Sverige", "Vi spelar schack på nätet, från hela landet.", "Schack",
+        scope="country", visibility="application",
+    )
+    knitting = create_club(api, bertil, "Lilla stickcirkeln", "Vi stickar på café.", "Stickning", max_members=2)
+    api.call("PUT", f"/groups/{knitting}/members/me", max_)
     api.call("POST", f"/groups/{board_games}/messages", bertil, json={"content": "Välkomna till klubben!"})
 
     # Events: Annas eget med svar, en inbjudan från Bertil, ett i klubben och ett med maxlång titel.
@@ -233,6 +257,21 @@ def seed(app, db: Session) -> dict[str, int]:
     api.call("POST", f"/events/{run}/invitations", anna, json={"user_ids": [bertil, max_], "group_ids": []})
     api.call("PUT", f"/events/{run}/response", bertil, json={"answer": "yes"})
     api.call("PUT", f"/events/{run}/response", max_, json={"answer": "maybe"})
+    # Bertil är medarrangör för löprundan (SCRUM-296), som har max 4 och nivån Nybörjare (SCRUM-293).
+    api.call("PUT", f"/events/{run}/hosts/{bertil}", anna)
+    api.call("PATCH", f"/events/{run}", anna, json={"max_attendees": 4, "skill_level": "beginner"})
+    # Ett event man ansöker till, med en ansökan från Cecilia, och ett digitalt event för hela Norrland (SCRUM-295).
+    tasting = create_event(
+        api, anna, "Ostprovning hemma hos Anna", 6, visibility="application", max_attendees=6,
+        description="Vi provar sex ostar. Det får plats sex, så skriv gärna några rader om dig.",
+        place_name="Hemma hos Anna", address="Linnégatan 5",
+    )
+    api.call("PUT", f"/events/{tasting}/requests/me", cecilia, json={"message": "Jag älskar ost!"})
+    create_event(
+        api, bertil, "Digital fjällplanering", 4, visibility="open", scope="landsdel", scope_code="norrland",
+        interest="Fjällvandring", description="Vi planerar sommarens turer över video.", place_name="Online",
+        address="Länk skickas ut",
+    )
     game_night = create_event(api, bertil, "Brädspelskväll", 5)
     api.call("POST", f"/events/{game_night}/invitations", bertil, json={"user_ids": [anna], "group_ids": []})
     create_event(api, bertil, "Klubbträff: nya spel", 9, group_id=board_games)

@@ -11,6 +11,15 @@ class NotificationKind(str, enum.Enum):
 
     event_cancelled = "event_cancelled"  # eventet man skulle gå på är inställt (raderat)
     event_changed = "event_changed"  # eventet har fått ny tid och/eller plats
+    group_join_request = "group_join_request"  # någon ansöker till ens klubb (till ägaren)
+    group_request_approved = "group_request_approved"  # ens ansökan till en klubb är godkänd
+    group_request_declined = "group_request_declined"  # ens ansökan till en klubb fick nej
+    group_role_changed = "group_role_changed"  # man har blivit (eller inte längre är) administratör i en klubb
+    group_member_removed = "group_member_removed"  # man har tagits bort ur en klubb
+    event_join_request = "event_join_request"  # någon ansöker till ens event (till skaparen och medarrangörerna)
+    event_request_approved = "event_request_approved"  # ens ansökan till ett event är godkänd
+    event_request_declined = "event_request_declined"  # ens ansökan till ett event fick nej
+    event_host_changed = "event_host_changed"  # man har blivit (eller inte längre är) medarrangör
 
 
 class Notification(Base):

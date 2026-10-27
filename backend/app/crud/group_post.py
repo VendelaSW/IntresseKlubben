@@ -40,11 +40,14 @@ def is_group_owner(group: Group, user_id: int) -> bool:
 
 
 def can_delete_post(group: Group, post: GroupPost, user_id: int) -> bool:
-    """Den som skrev inlägget, och klubbens ägare, får radera det. Ett fastnålat inlägg får bara
-    ägaren radera."""
+    """Den som skrev inlägget, och klubbens ägare och administratörer (SCRUM-160), får radera det. Ett
+    fastnålat inlägg får bara ägaren radera."""
     if is_group_owner(group, user_id):
         return True
-    return post.author_id == user_id and post.pinned_at is None
+    if post.pinned_at is not None:
+        return False
+    membership = get_membership(group, user_id)
+    return post.author_id == user_id or (membership is not None and membership.role == GroupRole.admin)
 
 
 def pin_group_post(db: Session, post: GroupPost) -> GroupPost:

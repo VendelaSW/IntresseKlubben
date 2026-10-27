@@ -11,11 +11,11 @@ from app.models.user_interest import UserInterest  # noqa: F401
 from app.models.contact import Contact  # noqa: F401
 from app.models.message import Message  # noqa: F401
 from app.models.conversation_read import ConversationRead  # noqa: F401
-from app.models.group import Group, GroupInvitation, GroupMember  # noqa: F401
+from app.models.group import Group, GroupInvitation, GroupJoinRequest, GroupMember  # noqa: F401
 from app.models.group_message import GroupMessage  # noqa: F401
 from app.models.group_post import GroupPost  # noqa: F401
 from app.models.dismissed_suggestion import DismissedSuggestion  # noqa: F401
-from app.models.event import Event, EventInvitation, EventResponse  # noqa: F401
+from app.models.event import Event, EventHost, EventInvitation, EventJoinRequest, EventResponse  # noqa: F401
 from app.models.email_token import EmailToken  # noqa: F401
 from app.models.report import Report  # noqa: F401
 from app.models.suspension import Suspension  # noqa: F401
