@@ -24,7 +24,8 @@ from app.services.interest_analysis import analyze
 # Meningar där skyddsnätet kan slå till, och vad som borde hända.
 EXAMPLES = [
     ("Jag älskar att bada", "Bad och bastu"),
-    ("Jag kör bil till jobbet varje dag", "inte Sjunga i kör"),
+    ("Jag kör bil till jobbet varje dag", "inte Sjunga i kör, inte Bilar"),
+    ("Jag älskar att köra bil på helgerna", "Bilar"),
     ("Jag spelade fotboll förr", "inte Fotboll"),
     ("Jag har slutat spela fotboll", "inte Fotboll"),
     ("Jag lagar cykeln själv", "inte Matlagning"),
