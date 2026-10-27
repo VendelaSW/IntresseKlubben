@@ -10,7 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
 import { sealInterest, suggestInterest } from '../services/interests'
-import { GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
+import { ABOUT_AI_NOTE, GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
 
 // Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions`
 // är undertexterna som visas under videon medan klippet spelas (för den som har ljudet
@@ -863,6 +863,7 @@ function ProfileInterview() {
                         rows={6}
                         required
                       />
+                      <p className="hint-text">{ABOUT_AI_NOTE}</p>
                       {aboutError && <p className="form-error">{aboutError}</p>}
                     </FormField>
                   )}

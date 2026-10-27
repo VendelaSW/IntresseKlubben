@@ -16,6 +16,10 @@ export function genderLabel(value) {
   return GENDER_OPTIONS.find((o) => o.value === value)?.label ?? null
 }
 
+// Under "Om mig"-fältet, i intervjun och i Redigera profil: att texten läses av en AI-tjänst.
+export const ABOUT_AI_NOTE =
+  'Vi låter en AI-tjänst läsa din text. Den kollar att tonen är trevlig och hjälper oss att para ihop dig med personer som delar dina intressen.'
+
 export const PROFILE_KEY = ['profile']
 
 // Returnerar null om användaren inte har skapat någon profil än. Profilen

@@ -18,6 +18,7 @@ import { clearProfileDraft, loadProfileDraft, saveProfileDraft } from '../servic
 import { resizeProfileImage } from '../services/resizeProfileImage'
 import { addInterest, confirmInterests, getMyInterests, getTopInterests, removeInterest } from '../services/interests'
 import {
+  ABOUT_AI_NOTE,
   GENDER_OPTIONS,
   createProfile,
   genderLabel,
@@ -545,6 +546,7 @@ function ProfilePage() {
                 maxLength={800}
                 required
               />
+              <p className="hint-text">{ABOUT_AI_NOTE}</p>
 
               {/* Kontouppgifterna. En ny profil har redan valt dem när kontot skapades. */}
               {!isNew && (
