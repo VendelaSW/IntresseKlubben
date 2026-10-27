@@ -15,8 +15,8 @@ Poängen består av tre delar, var och en ett värde x mellan 0 och 1:
   text        cosinus mellan Om mig-texternas vektorer.
 
 Cosinus är inte en procent: orelaterade ligger kring en nedre gräns och samma ämne kring en övre. Därför räknas de om till 0..1
-med `*_lo` och `*_hi` ur MatchConfig. Gränserna är en första uppskattning och ska ställas in mot riktiga siffror
-(python -m app.match_probe visar de råa värdena).
+med `*_lo` och `*_hi` ur MatchConfig. Gränserna är mätta på demoprofiler och handgjorda testpar (seed_test_match), inte på
+riktiga användare, och ska ses över när det finns riktiga profiler (python -m app.match_probe visar de råa värdena).
 
 Delarna vägs ihop så här:
 
@@ -39,7 +39,7 @@ from dataclasses import dataclass, field
 from app.services.interest_embeddings import _cosine_similarity
 
 MIN_INTERESTS = 3
-MIN_TEXT_CHARS = 200
+MIN_TEXT_CHARS = 100
 
 PART_NAMES = ("intressen", "narliggande", "text")
 
@@ -48,17 +48,18 @@ PART_NAMES = ("intressen", "narliggande", "text")
 class MatchConfig:
     # Grundvikter. Behöver inte summera till 1: poängen delas med summan.
     weight_interests: float = 0.35
-    weight_near: float = 0.25
-    weight_text: float = 0.40
+    weight_near: float = 0.30
+    weight_text: float = 0.35
     # Hur mycket extra en stark del väger. 0 = vanlig viktad summa.
     beta: float = 0.5
     # Vikten för intresset självt är 1, och för varje steg uppåt i trädet gånger så här mycket.
     tree_decay: float = 0.5
-    # Cosinus som räknas som "orelaterat" (0) och "samma ämne" (1). Första uppskattning, mät och ställ in.
-    near_lo: float = 0.25
-    near_hi: float = 0.65
-    text_lo: float = 0.20
-    text_hi: float = 0.65
+    # Cosinus som räknas som "orelaterat" (0) och "så lika det blir" (1). Orelaterade texter ligger kring 0,5 och en
+    # tvillingtext kring 0,8-0,85, intressen kring 0,45 respektive 0,9.
+    near_lo: float = 0.45
+    near_hi: float = 0.90
+    text_lo: float = 0.55
+    text_hi: float = 0.85
     # Tillförlitlighet: hos hur många intressen / tecken den är full, och lägsta värdet den kan få.
     reliable_interests: int = 8
     reliable_chars: int = 500

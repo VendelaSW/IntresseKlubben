@@ -85,10 +85,10 @@ def test_readiness_needs_enough_interests_and_text():
 
 
 def test_readiness_says_what_is_missing():
-    result = readiness(person(1, [3], chars=150))
+    result = readiness(person(1, [3], chars=60))
     assert not result.ok
     assert result.missing_interests == MIN_INTERESTS - 1
-    assert result.missing_chars == MIN_TEXT_CHARS - 150
+    assert result.missing_chars == MIN_TEXT_CHARS - 60
 
 
 def test_identical_profiles_get_full_marks():
@@ -138,8 +138,8 @@ def test_a_strong_part_weighs_more_than_its_base_weight_and_without_beta_it_does
     b = person(2, [10, 11, 13], vector=CLIMBING)  # intressena skiljer sig helt, texten är identisk
     plain = score(a, b, PARENTS, VECTORS, replace(NEUTRAL, beta=0.0))
     boosted = score(a, b, PARENTS, VECTORS, replace(NEUTRAL, beta=0.5))
-    assert plain.weights["text"] == pytest.approx(0.40)
-    assert boosted.weights["text"] == pytest.approx(0.5)
+    assert plain.weights["text"] == pytest.approx(0.35)
+    assert boosted.weights["text"] == pytest.approx(0.35 * 1.5 / (0.35 + 0.30 + 0.35 * 1.5))
     assert boosted.percent > plain.percent
 
 
