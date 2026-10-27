@@ -176,7 +176,7 @@ function CreateEventForm({
   }
 
   return (
-    <form className="auth-form form-wide form-compact" onSubmit={handleSubmit}>
+    <form className="auth-form form-wide form-compact form-split" onSubmit={handleSubmit}>
       <h2>{editing ? 'Redigera event' : 'Skapa event'}</h2>
       {editing && (
         <p className="hint-text">
@@ -184,156 +184,165 @@ function CreateEventForm({
         </p>
       )}
 
-      <FormField id="event-title" label="Titel">
-        <input
-          id="event-title"
-          className="field-large"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={50}
-          required
-        />
-      </FormField>
+      {/* Vad och när till vänster, var (med kartan) och vem det är till för till höger. */}
+      <div className="form-columns">
+        <div className="form-column">
+          <FormField id="event-title" label="Titel">
+            <input
+              id="event-title"
+              className="field-large"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={50}
+              required
+            />
+          </FormField>
 
-      <FormField id="event-description" label="Beskrivning">
-        <TextareaWithCount
-          id="event-description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          maxLength={800}
-          rows={4}
-          required
-        />
-      </FormField>
+          <FormField id="event-description" label="Beskrivning">
+            <TextareaWithCount
+              id="event-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={800}
+              rows={4}
+              required
+            />
+          </FormField>
 
-      <FormField id="event-interest" label="Intresse">
-        <select id="event-interest" value={interestId} onChange={(e) => setInterestId(e.target.value)} required>
-          <option value="">Välj...</option>
-          {interests.map((i) => (
-            <option key={i.id} value={i.id}>
-              {i.name}
-            </option>
-          ))}
-        </select>
-      </FormField>
-
-      <div className="form-row">
-        <FormField id="event-starts-at" label="Start">
-          <input
-            id="event-starts-at"
-            type="datetime-local"
-            value={startsAt}
-            // En ny tid måste vara framåt. En oförändrad tid på ett event som
-            // redan har börjat ska inte stoppa att resten sparas.
-            min={!editing || startsAt !== initial.startsAt ? localInputValue(new Date()) : undefined}
-            onChange={(e) => setStartsAt(e.target.value)}
-            required
-          />
-        </FormField>
-        <FormField id="event-ends-at" label="Slut (valfritt)">
-          <input
-            id="event-ends-at"
-            type="datetime-local"
-            value={endsAt}
-            min={startsAt || localInputValue(new Date())}
-            onChange={(e) => setEndsAt(e.target.value)}
-          />
-        </FormField>
-      </div>
-
-      <FormField id="event-place" label="Plats">
-        <input
-          id="event-place"
-          type="text"
-          value={placeName}
-          onChange={(e) => setPlaceName(e.target.value)}
-          placeholder="T.ex. Slottsskogen"
-          maxLength={100}
-          required
-        />
-      </FormField>
-
-      <FormField id="event-address" label="Gatuadress">
-        <input
-          id="event-address"
-          type="text"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="T.ex. Slottsskogsvallen 1"
-          maxLength={100}
-          required
-        />
-      </FormField>
-
-      <LocationPicker
-        id="event-position"
-        // Adressen först, sedan platsens namn (t.ex. "Slottsskogen").
-        queries={[address, placeName]}
-        value={position}
-        onChange={setPosition}
-        // Nålen bestämmer adressen: den närmaste gatuadressen skrivs i fältet.
-        onAddressFound={setAddress}
-        saveLabel={editing ? 'Spara' : 'Skapa event'}
-        kommunCode={profile?.municipality_code}
-      />
-
-      {!editing && (
-        <>
-          <FormField id="event-group" label="Klubb (valfritt)">
-            <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
-              <option value="">Ingen klubb</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
+          <FormField id="event-interest" label="Intresse">
+            <select id="event-interest" value={interestId} onChange={(e) => setInterestId(e.target.value)} required>
+              <option value="">Välj...</option>
+              {interests.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name}
                 </option>
               ))}
             </select>
           </FormField>
 
-          <label>
-            <input
-              type="checkbox"
-              checked={isOpen && !inPrivateGroup}
-              disabled={inPrivateGroup}
-              onChange={(e) => setIsOpen(e.target.checked)}
-            />{' '}
-            Öppet event (syns för alla)
-          </label>
-          <p className="hint-text">
-            {inPrivateGroup
-              ? 'Events i privata klubbar är alltid bara för inbjudna.'
-              : 'Utan bockning syns eventet bara för dem du bjuder in.'}
-          </p>
-
-          <div className="detail-view-section">
-            <button type="button" className="secondary-button button-small" onClick={() => setInviteOpen(true)}>
-              Bjud in
-            </button>
-            <p className="hint-text">{inviteSummary(invites)}</p>
-            <label>
-              <input type="checkbox" checked={guestsCanInvite} onChange={(e) => setGuestsCanInvite(e.target.checked)} /> Gäster får
-              bjuda in
-            </label>
-            <p className="hint-text">Utan bockning kan bara du bjuda in. Du kan ändra det senare.</p>
-          </div>
-          {inviteOpen && (
-            <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
-              <InvitePicker
-                contacts={contacts}
-                groups={groups}
-                initial={invites}
-                submitLabel="Klar"
-                onSubmit={(selection) => {
-                  setInvites(selection)
-                  setInviteOpen(false)
-                }}
-                onCancel={() => setInviteOpen(false)}
+          <div className="form-row">
+            <FormField id="event-starts-at" label="Start">
+              <input
+                id="event-starts-at"
+                type="datetime-local"
+                value={startsAt}
+                // En ny tid måste vara framåt. En oförändrad tid på ett event som
+                // redan har börjat ska inte stoppa att resten sparas.
+                min={!editing || startsAt !== initial.startsAt ? localInputValue(new Date()) : undefined}
+                onChange={(e) => setStartsAt(e.target.value)}
+                required
               />
-            </Modal>
+            </FormField>
+            <FormField id="event-ends-at" label="Slut (valfritt)">
+              <input
+                id="event-ends-at"
+                type="datetime-local"
+                value={endsAt}
+                min={startsAt || localInputValue(new Date())}
+                onChange={(e) => setEndsAt(e.target.value)}
+              />
+            </FormField>
+          </div>
+          {!editing && (
+            <>
+              <FormField id="event-group" label="Klubb (valfritt)">
+                <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
+                  <option value="">Ingen klubb</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+
+              <label>
+                <input
+                  type="checkbox"
+                  checked={isOpen && !inPrivateGroup}
+                  disabled={inPrivateGroup}
+                  onChange={(e) => setIsOpen(e.target.checked)}
+                />{' '}
+                Öppet event (syns för alla)
+              </label>
+              <p className="hint-text">
+                {inPrivateGroup
+                  ? 'Events i privata klubbar är alltid bara för inbjudna.'
+                  : 'Utan bockning syns eventet bara för dem du bjuder in.'}
+              </p>
+            </>
           )}
-        </>
-      )}
+        </div>
+        <div className="form-column">
+          <div className="form-row">
+            <FormField id="event-place" label="Plats">
+              <input
+                id="event-place"
+                type="text"
+                value={placeName}
+                onChange={(e) => setPlaceName(e.target.value)}
+                placeholder="T.ex. Slottsskogen"
+                maxLength={100}
+                required
+              />
+            </FormField>
+  
+            <FormField id="event-address" label="Gatuadress">
+              <input
+                id="event-address"
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="T.ex. Slottsskogsvallen 1"
+                maxLength={100}
+                required
+              />
+            </FormField>
+          </div>
+          <LocationPicker
+            id="event-position"
+            // Adressen först, sedan platsens namn (t.ex. "Slottsskogen").
+            queries={[address, placeName]}
+            value={position}
+            onChange={setPosition}
+            // Nålen bestämmer adressen: den närmaste gatuadressen skrivs i fältet.
+            onAddressFound={setAddress}
+            saveLabel={editing ? 'Spara' : 'Skapa event'}
+            kommunCode={profile?.municipality_code}
+          />
+          {!editing && (
+            <>
+              <div className="detail-view-section">
+                <button type="button" className="secondary-button button-small" onClick={() => setInviteOpen(true)}>
+                  Bjud in
+                </button>
+                <p className="hint-text">{inviteSummary(invites)}</p>
+                <label>
+                  <input type="checkbox" checked={guestsCanInvite} onChange={(e) => setGuestsCanInvite(e.target.checked)} /> Gäster får
+                  bjuda in
+                </label>
+                <p className="hint-text">Utan bockning kan bara du bjuda in. Du kan ändra det senare.</p>
+              </div>
+              {inviteOpen && (
+                <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
+                  <InvitePicker
+                    contacts={contacts}
+                    groups={groups}
+                    initial={invites}
+                    submitLabel="Klar"
+                    onSubmit={(selection) => {
+                      setInvites(selection)
+                      setInviteOpen(false)
+                    }}
+                    onCancel={() => setInviteOpen(false)}
+                  />
+                </Modal>
+              )}
+            </>
+          )}
+        </div>
+      </div>
 
       {error && <p className="status-error">{error}</p>}
 

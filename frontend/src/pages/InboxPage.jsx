@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import ConversationCard from '../components/ConversationCard'
+import EmptyState from '../components/EmptyState'
+import FilterTabs from '../components/FilterTabs'
 import { useTabParam } from '../hooks/useTabParam'
 import { conversationsQuery } from '../services/messages'
+import { shortNames } from '../utils/shortNames'
 
 const TABS = [
   { id: 'new', label: 'Nya', empty: 'Inga nya brev just nu.' },
@@ -37,6 +40,8 @@ function InboxPage() {
     opened: conversations.filter((c) => !unseenIds.has(c.id)),
   }
   const current = TABS.find((t) => t.id === tab)
+  // Förnamnen på kuverten, räknade på alla brev (båda flikarna), så att två med samma förnamn skiljs åt.
+  const names = shortNames(conversations)
 
   // Sidan är ett <section className="app-section"> rakt av, som Personer,
   // Klubbar och Events, och ligger inte i content-stack (den är byggd för smala
@@ -48,29 +53,25 @@ function InboxPage() {
       {status === 'loading' ? (
         <p className="hint-text">Laddar brev...</p>
       ) : conversations.length === 0 ? (
-        <p className="hint-text">Inga brev än.</p>
+        <EmptyState text="Här hamnar brev mellan dig och dina kompisar. Skriv till någon från deras profil under Personer." />
       ) : (
         <>
-          <div className="filter-tabs" role="tablist">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.id}
-                className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-                onClick={() => setTab(t.id)}
-              >
-                {t.label} ({lists[t.id].length})
-              </button>
-            ))}
-          </div>
+          {/* Antalet bara på Nya, det som är nytt att läsa. */}
+          <FilterTabs
+            tabs={TABS.map((t) => ({ ...t, count: t.id === 'new' ? lists[t.id].length : undefined }))}
+            active={tab}
+            onChange={setTab}
+          />
 
           {lists[tab].length > 0 ? (
             <ul className="envelopes">
               {lists[tab].map((conversation) => (
                 <li key={conversation.id}>
-                  <ConversationCard conversation={conversation} isNew={tab === 'new'} />
+                  <ConversationCard
+                    conversation={conversation}
+                    isNew={tab === 'new'}
+                    shortName={names.get(conversation.id)}
+                  />
                 </li>
               ))}
             </ul>

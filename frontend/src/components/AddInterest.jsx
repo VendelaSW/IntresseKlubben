@@ -95,7 +95,7 @@ export function InterestPrompt({ proposals, busy = false, error = '', boxed = tr
               {p.interest.name}
               <span className="hint-text">
                 {p.interest.is_new ? 'Nytt intresse' : 'Finns redan i biblioteket'}
-                {p.interest.path.length > 0 && ` · ${p.interest.path.join(' › ')}`}
+                {p.interest.path.length > 0 && `, under ${p.interest.path.join(' › ')}`}
               </span>
             </span>
           </li>

@@ -3,8 +3,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useTabParam } from '../../hooks/useTabParam'
+import { useConfirm } from '../../hooks/useConfirm'
+import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
 import CreateGroupForm from './CreateGroupForm'
 import CreateOffer from '../CreateOffer'
+import { PadFloatAction } from '../PadHead'
+import FilterTabs from '../FilterTabs'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
 import GroupChat from './GroupChat'
@@ -29,18 +33,22 @@ import { getAllInterests, getMyInterests } from '../../services/interests'
 import { getMunicipalities, getProfile } from '../../services/profile'
 
 const TABS = [
-  { id: 'mine', label: 'Mina klubbar' },
+  { id: 'mine', label: 'Mina klubbar', short: 'Mina' },
   { id: 'suggested', label: 'Förslag' },
   { id: 'all', label: 'Alla' },
   { id: 'invitations', label: 'Inbjudningar' },
 ]
 
 // Tomma flikar har en knapp vidare (se emptyAction nedan).
+// Flikarna som visar antalet.
+const COUNTED_TABS = new Set(['suggested', 'invitations'])
+
+// Vad fliken är till för, när den är tom (se EmptyState).
 const EMPTY_TEXT = {
-  mine: 'Du är inte med i någon klubb än.',
-  suggested: 'Inga förslag just nu. Lägg till fler intressen på din profil för att få fler.',
-  all: 'Inga klubbar hittades.',
-  invitations: 'Du har inga inbjudningar just nu.',
+  mine: 'Här samlas klubbarna du är med i. Hitta en klubb för något du gillar under Alla, eller starta en egen.',
+  suggested: 'Här föreslår vi klubbar för dina intressen. Lägg till fler intressen på din profil för att få fler förslag.',
+  all: 'Här finns alla klubbar, men det finns inga än. Starta den första!',
+  invitations: 'När någon bjuder in dig till en klubb hamnar inbjudan här.',
 }
 
 // "Alla" hämtas så här många åt gången, med "Visa fler" för nästa.
@@ -58,6 +66,9 @@ const SEARCH_DELAY_MS = 300
 const NONE = []
 
 function GroupsPanel() {
+  const confirm = useConfirm()
+  const searchStyle = useDesignChoice('searchStyle')
+  const newPadHead = useDesignChoice('padHead') !== PRE_DEV
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
@@ -111,6 +122,9 @@ function GroupsPanel() {
   const [error, setError] = useState('')
   // Klubben man nyss gick med i, för bekräftelsen "Du är med i …!" (tills nästa åtgärd eller flikbyte).
   const [joined, setJoined] = useState(null)
+  // Klubbens anslagstavla, en egen vy inne i klubben. Stängs när man går till en annan klubb eller listan.
+  const [boardOpen, setBoardOpen] = useState(false)
+  useEffect(() => setBoardOpen(false), [view])
 
   const handleError = (err) => setError(err.message)
 
@@ -243,13 +257,22 @@ function GroupsPanel() {
   }
 
   // Är någon man själv har blockerat med, frågar vi först. Vem det är syns inte.
-  function handleJoin(group) {
-    if (group.has_blocked_member && !window.confirm('Någon du har blockerat är med i klubben. Gå med ändå?')) return
+  async function handleJoin(group) {
+    if (
+      group.has_blocked_member &&
+      !(await confirm({
+        title: `Gå med i ${group.name}`,
+        text: 'Någon du har blockerat är med i klubben. Gå med ändå?',
+        confirmLabel: 'Gå med',
+      }))
+    )
+      return
     runAction(group, joinGroup)
   }
 
-  function handleLeave(group) {
-    if (!window.confirm(`Gå ur ${group.name}?`)) return
+  async function handleLeave(group) {
+    if (!(await confirm({ title: `Gå ur ${group.name}`, text: 'Vill du gå ur klubben?', confirmLabel: 'Gå ur', danger: true })))
+      return
     runAction(group, leaveGroup)
   }
 
@@ -261,7 +284,15 @@ function GroupsPanel() {
   }
 
   async function handleDelete(group) {
-    if (!window.confirm(`Radera ${group.name}? Det går inte att ångra.`)) return
+    if (
+      !(await confirm({
+        title: `Radera ${group.name}`,
+        text: 'Klubben tas bort för alla. Det går inte att ångra.',
+        confirmLabel: 'Radera klubben',
+        danger: true,
+      }))
+    )
+      return
     await runAction(group, deleteGroup)
     setView('list', { replace: true })
   }
@@ -315,7 +346,13 @@ function GroupsPanel() {
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Klubbar</h1>
-        {view !== 'create' && <CreateButton label="Skapa klubb" onClick={() => setView('create')} />}
+        {/* TILLFÄLLIGT: med den nya rubriken i testläget (useDesignChoice('padHead')) flyter knappen nere i blockets
+            hörn, så att den alltid syns, och visas inte i en klubbs vy. Annars här, som vanligt. */}
+        {view !== 'create' && !(newPadHead && selected) && (
+          <PadFloatAction>
+            <CreateButton label="Skapa klubb" onClick={() => setView('create')} />
+          </PadFloatAction>
+        )}
       </div>
 
       {/* Finns Mina klubbar redan i minnet visas sidan direkt, och "Alla" fylls i när den kommer. */}
@@ -324,7 +361,7 @@ function GroupsPanel() {
       ) : view === 'create' ? (
         <>
           <BackButton onClick={goBack} />
-          <div className="card sheet">
+          <div className="card sheet sheet-form">
             <CreateGroupForm
               interests={interests}
               municipalities={municipalities}
@@ -338,24 +375,18 @@ function GroupsPanel() {
         </>
       ) : (
         <>
-          <div className="filter-tabs" role="tablist">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.id}
-                className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-                onClick={() => {
-                  setJoined(null)
-                  setTab(t.id)
-                }}
-              >
-                {t.label} ({shown[t.id].length}
-                {t.id === 'all' && hasMore ? '+' : ''})
-              </button>
-            ))}
-          </div>
+          {/* Flikarna bara i listan. I en klubbs vy går man tillbaka till dem med "← Klubbar". */}
+          {!selected && (
+            <FilterTabs
+              // Antalet bara där det är något nytt att se (Förslag och Inbjudningar), inte på Mina klubbar och Alla.
+              tabs={TABS.map((t) => ({ ...t, count: COUNTED_TABS.has(t.id) ? shown[t.id].length : undefined }))}
+              active={tab}
+              onChange={(id) => {
+                setJoined(null)
+                setTab(id)
+              }}
+            />
+          )}
 
           {error && <p className="status-error">{error}</p>}
           {joined && (
@@ -378,16 +409,20 @@ function GroupsPanel() {
             </div>
           )}
 
-          {selected ? (
+          {selected && boardOpen && selected.is_member ? (
+            <>
+              {/* "← Klubbar" går tillbaka till klubben. */}
+              <BackButton onClick={() => setBoardOpen(false)} />
+              <GroupPosts key={selected.id} groupId={selected.id} isOwner={selected.is_owner} full />
+            </>
+          ) : selected ? (
             <>
               <BackButton onClick={goBack} />
-              {/* Anslagstavlan överst, bara för medlemmar. Under den klubben till vänster och
-                  chatten bredvid på dator, chatten under på mobil. */}
-              {selected.is_member && (
-                <GroupPosts key={selected.id} groupId={selected.id} isOwner={selected.is_owner} />
-              )}
+              {/* Klubben till vänster och för medlemmar chatten till höger på dator, lika höga (chatten scrollar
+                  i sin ruta). Under varandra på mobil. Anslagstavlan öppnas med en knapp i klubbens ruta. Den som
+                  inte är med ser bara klubben, i hela bredden med events och medlemmar i en egen spalt. */}
               <div className="group-layout">
-                <div className="card sheet">
+                <div className="card sheet detail-sheet">
                   <GroupDetails
                     group={selected}
                     contacts={contacts ?? []}
@@ -396,50 +431,107 @@ function GroupsPanel() {
                     onLeave={handleLeave}
                     onDelete={handleDelete}
                     onDecline={handleDecline}
+                    onOpenBoard={() => setBoardOpen(true)}
                   />
                 </div>
-                {selected.is_member && <GroupChat key={selected.id} groupId={selected.id} />}
+                {selected.is_member && (
+                  <div className="group-chat-slot">
+                    <GroupChat key={selected.id} groupId={selected.id} />
+                  </div>
+                )}
               </div>
             </>
           ) : (
             <>
-              <div className="search-row">
-                <input
-                  type="search"
-                  className="filter-search"
-                  aria-label="Sök klubbar"
-                  placeholder="Sök på namn eller beskrivning"
-                  maxLength={100}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                <GroupSortMenu
-                  sort={filters.sort}
-                  reverse={filters.reverse}
-                  onChange={(sort, reverse) => setFilters({ ...filters, sort, reverse })}
-                />
-              </div>
-              <div className="filter-select-row filter-select-row-compact">
-                <select
-                  aria-label="Filtrera på intresse"
-                  value={filters.interestId}
-                  onChange={(e) => setFilters({ ...filters, interestId: e.target.value })}
-                >
-                  <option value="">Alla intressen</option>
-                  {interests.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}
-                    </option>
-                  ))}
-                </select>
-                <MunicipalityPicker
-                  aria-label="Filtrera på kommun"
-                  municipalities={municipalities}
-                  value={filters.municipalityCode}
-                  onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
-                  emptyLabel="Alla kommuner"
-                />
-              </div>
+              {/* TILLFÄLLIGT: i testläget kan sökraden bytas mot ett runt sökfält med intresse, kommun och sortering
+                  som rundade knappar bredvid (useDesignChoice('searchStyle')). På mobil hamnar filtren under. */}
+              {searchStyle === PRE_DEV ? (
+                <>
+                  <div className="search-row">
+                    <input
+                      type="search"
+                      className="filter-search"
+                      aria-label="Sök klubbar"
+                      placeholder="Sök på namn eller beskrivning"
+                      maxLength={100}
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                    <GroupSortMenu
+                      sort={filters.sort}
+                      reverse={filters.reverse}
+                      onChange={(sort, reverse) => setFilters({ ...filters, sort, reverse })}
+                    />
+                  </div>
+                  <div className="filter-select-row filter-select-row-compact">
+                    <select
+                      aria-label="Filtrera på intresse"
+                      value={filters.interestId}
+                      onChange={(e) => setFilters({ ...filters, interestId: e.target.value })}
+                    >
+                      <option value="">Alla intressen</option>
+                      {interests.map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.name}
+                        </option>
+                      ))}
+                    </select>
+                    <MunicipalityPicker
+                      aria-label="Filtrera på kommun"
+                      municipalities={municipalities}
+                      value={filters.municipalityCode}
+                      onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                      emptyLabel="Alla kommuner"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="club-filters">
+                  <label className="club-search">
+                    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+                      <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                      <path d="M13 13 L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      type="search"
+                      aria-label="Sök klubbar"
+                      placeholder="Sök på namn eller beskrivning"
+                      maxLength={100}
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </label>
+                  <div className="club-filter-pills">
+                    <select
+                      className="club-filter"
+                      aria-label="Filtrera på intresse"
+                      value={filters.interestId}
+                      onChange={(e) => setFilters({ ...filters, interestId: e.target.value })}
+                    >
+                      <option value="">Alla intressen</option>
+                      {interests.map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="club-filter club-filter-kommun">
+                      <MunicipalityPicker
+                        aria-label="Filtrera på kommun"
+                        municipalities={municipalities}
+                        value={filters.municipalityCode}
+                        onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                        emptyLabel="Alla kommuner"
+                      />
+                    </div>
+                    <GroupSortMenu
+                      sort={filters.sort}
+                      reverse={filters.reverse}
+                      onChange={(sort, reverse) => setFilters({ ...filters, sort, reverse })}
+                    />
+                  </div>
+                </div>
+              )}
               {shown[tab].length === 0 && offerToCreate && tab !== 'invitations' ? (
                 <CreateOffer
                   text={`Det finns inga klubbar för ${searchedFor}. Vill du skapa en?`}

@@ -17,6 +17,7 @@ import CreateButton from '../components/CreateButton'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
+import FilterTabs from '../components/FilterTabs'
 import FormField from '../components/FormField'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
@@ -91,6 +92,7 @@ const EXAMPLE_MUNICIPALITIES = [
 
 function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
+  const [exampleTab, setExampleTab] = useState('forsta')
   const [exampleMunicipality, setExampleMunicipality] = useState('')
   const [exampleBirthDate, setExampleBirthDate] = useState('')
   const [filterMunicipality, setFilterMunicipality] = useState('')
@@ -165,7 +167,7 @@ function StyleGuide() {
             >
               {size.label}
             </p>
-            <p className="swatch-code">{size.name} · {size.rem}</p>
+            <p className="swatch-code">{size.name}, {size.rem}</p>
           </div>
         ))}
       </section>
@@ -446,10 +448,11 @@ function StyleGuide() {
 
       <section className="style-section">
         <h2>Notiser</h2>
-        <p className="swatch-label">Klocklappen på kartan (Notiser, notiser.svg)</p>
+        <p className="swatch-label">Notiser på kartan (notiser.svg i appens meny)</p>
         <p className="hint-text">
-          Lappen ligger sist bland sidornas lappar på kartan (MapPageWidgets) och har samma röda siffra som de andra
-          (.map-widget-badge i map.css): antalet olästa notiser. Den studsar till när siffran går upp.
+          På kartan ligger Notiser i profillappens meny (MapProfileWidget), under Profilsida. Antalet olästa notiser
+          står som en röd siffra (.map-widget-badge i map.css) på namnet tills menyn öppnas, och sedan vid Notiser i
+          menyn.
         </p>
         <div className="swatch-grid" style={{ marginTop: '1rem' }}>
           <div className="swatch">
@@ -502,7 +505,8 @@ function StyleGuide() {
           Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
           .app-section för sidor med kort i rutnät (Klubbar och Events): "+ Skapa"-knappen direkt efter
           rubriken och tätare avstånd. Flikarna är sammanhängande knappar med en ram runt, och den
-          valda är gul; på mobil bryts de till flera rader. En tom flik har en knapp vidare. Vald flik sparas i adressen med useTabParam (?flik=kompisar),
+          valda är gul (FilterTabs). På mobil fyller de bredden i en jämn rad, med korta namn (`short`) och antalet som
+          en bricka, så att de aldrig bryts på två rader. En tom flik har en knapp vidare. Vald flik sparas i adressen med useTabParam (?flik=kompisar),
           så att Tillbaka kommer tillbaka till samma flik.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
@@ -510,11 +514,15 @@ function StyleGuide() {
             <h1 className="app-title">Exempel</h1>
             <CreateButton label="Skapa" onClick={() => {}} />
           </div>
-          <div className="filter-tabs" role="tablist">
-            <button type="button" role="tab" aria-selected="true" className="tag tag-selected">Första (2)</button>
-            <button type="button" role="tab" aria-selected="false" className="tag">Andra (0)</button>
-            <button type="button" role="tab" aria-selected="false" className="tag">Tredje (5)</button>
-          </div>
+          <FilterTabs
+            tabs={[
+              { id: 'forsta', label: 'Mina klubbar', short: 'Mina', count: 2 },
+              { id: 'andra', label: 'Förslag', count: 0 },
+              { id: 'tredje', label: 'Inbjudningar', count: 5 },
+            ]}
+            active={exampleTab}
+            onChange={setExampleTab}
+          />
         </section>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
@@ -617,7 +625,7 @@ function StyleGuide() {
         <div className="card sheet" style={{ marginTop: '1rem' }}>
           <section className="detail-view">
             <p className="card-title">Exempel</p>
-            <p className="card-subheading">Göteborg · 3 medlemmar</p>
+            <p className="card-subheading">3 medlemmar i Göteborg</p>
             <p className="card-text">Hela beskrivningen visas här.</p>
             <div className="card-actions">
               <button type="button" className="primary-button">Gå med</button>
@@ -638,7 +646,7 @@ function StyleGuide() {
               <p className="card-title">Exempel</p>
               <span className="status-pill">Öppet</span>
             </div>
-            <p className="card-subheading">lör 10 okt. 13:30 · Slottsskogen</p>
+            <p className="card-subheading">lör 10 okt. 13:30, Slottsskogen</p>
           </section>
         </div>
 
@@ -722,13 +730,13 @@ function StyleGuide() {
               <li>
                 <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
                   <span>Fota katter</span>
-                  <span className="hint-text">lör 10 okt 13:30 · I plugget</span>
+                  <span className="hint-text">lör 10 okt 13:30, I plugget</span>
                 </a>
               </li>
               <li>
                 <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
                   <span>Stenjakt</span>
-                  <span className="hint-text">sön 11 okt 10:00 · Slottsskogen</span>
+                  <span className="hint-text">sön 11 okt 10:00, Slottsskogen</span>
                 </a>
               </li>
             </ul>

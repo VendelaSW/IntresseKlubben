@@ -38,3 +38,5 @@ class Profile(Base):
 
     user = relationship("User", back_populates="profile")
     municipality = relationship("Municipality")
+    # Vektorn för Om mig-texten (se models/profile_embedding.py). Följer med när profilen raderas, också i testernas SQLite.
+    embedding_row = relationship("ProfileEmbedding", uselist=False, cascade="all, delete-orphan")
