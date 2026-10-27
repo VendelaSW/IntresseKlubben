@@ -180,7 +180,9 @@ def test_the_number_of_queries_depends_on_the_levels_shown_and_not_on_the_number
         person(db, f"extra{i}", f"Extra {i}", "1480", tree["metal"])
     second = len(count_queries(db, lambda: get(client, tree["musik"], municipality_code="1480")))
     assert first == second
-    assert second <= 16  # ett fast antal (intresset, kommunen, blockeringar, trädet, barnen, en för alla räkningar och listan med sina inladdningar)
+    # Ett fast antal: intresset, kommunen, blockeringar, trädet, barnen, en för alla räkningar, listan med sina
+    # inladdningar och bibliotekets träd för taggarnas plats och färg (interest_places, en gång för hela svaret).
+    assert second <= 17
 
 
 def test_more_sub_interests_do_not_give_more_queries(client, db, tree, people):

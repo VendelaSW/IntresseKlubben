@@ -6,11 +6,12 @@ kommun, stadsdel, bild och intressen. Aldrig e-post, kön eller annat privat
 (se AGENTS.md, "Other users' data").
 """
 
+from sqlalchemy.orm import Session
+
 from app.core import storage
-from app.crud.interest import sorted_interests
+from app.crud.interest import profile_interests
 from app.crud.profile import calculate_age
 from app.models.user import User
-from app.schemas.interest import ProfileInterest
 from app.schemas.profile import PersonResponse
 
 
@@ -25,7 +26,7 @@ def visible_age(profile, viewer: User | None) -> tuple[int | None, bool]:
     return None, False
 
 
-def to_person_response(user: User, viewer: User | None = None) -> PersonResponse:
+def to_person_response(db: Session, user: User, viewer: User | None = None) -> PersonResponse:
     """Personen som på ett personkort, som `viewer` ser den. Utan profil (kan finnas för gamla konton)
     blir allt utom användarnamnet tomt."""
     profile = user.profile
@@ -44,5 +45,5 @@ def to_person_response(user: User, viewer: User | None = None) -> PersonResponse
         municipality_name=profile.municipality.name if profile.municipality else None,
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
-        interests=[ProfileInterest.model_validate(i) for i in sorted_interests(user)],
+        interests=profile_interests(db, user),
     )

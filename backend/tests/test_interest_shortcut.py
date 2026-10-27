@@ -139,6 +139,9 @@ def test_a_word_with_a_profane_alias_is_never_returned(index, monkeypatch):
         ("Jag slutade klättra i våras", True),
         ("Jag har lagt av med yoga", True),
         ("Jag brukade spela piano", True),
+        ("Jag spelade fotboll förr", True),
+        ("Jag åkte skidor tidigare", True),
+        ("Jag gillar förrätter", False),  # "förrätter" är inte "förr"
         ("Jag gillar att spela slutspel i schack", False),  # "slutspel" är inte "slutat"
     ],
 )

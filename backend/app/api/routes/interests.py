@@ -36,14 +36,16 @@ from app.crud.interest import (
     get_visible_interest,
     get_user,
     ids_with_children,
-    interest_path,
+    interest_place,
+    interest_places,
     list_child_interests,
     list_interests,
     list_top_interests,
     load_library_index,
     remove_user_interest,
     search_interests,
-    sorted_interests,
+    profile_interests,
+    set_practices,
 )
 from app.crud.interest_people import load_tree
 from app.crud.moderation import suspended_user_ids
@@ -51,7 +53,7 @@ from app.crud.profile import count_people_by_node, list_people
 from app.db.session import get_db
 from app.models.interest import Interest
 from app.models.municipality import Municipality
-from app.schemas.interest import InterestBrowseItem, InterestResponse, ProfileInterest, SimilarItem
+from app.schemas.interest import InterestBrowseItem, InterestResponse, PracticesIn, ProfileInterest, SimilarItem
 from app.schemas.interest_people import InterestCount, InterestCountChild, InterestCountSelf, InterestPeopleResponse, MunicipalityRef
 from app.services.interest_embeddings import similar_interests
 from app.services.interest_spelling import spelling_matches
@@ -94,8 +96,15 @@ def _interest_or_404(db: Session, interest_id: int):
 
 def _browse_items(db: Session, interests: list[Interest]) -> list[InterestBrowseItem]:
     with_children = ids_with_children(db, interests)
+    places = interest_places(db, interests)
     return [
-        InterestBrowseItem(id=i.id, name=i.name, path=interest_path(i), has_children=i.id in with_children)
+        InterestBrowseItem(
+            id=i.id,
+            name=i.name,
+            path=list(places[i.id].path),
+            area_slug=places[i.id].area_slug,
+            has_children=i.id in with_children,
+        )
         for i in interests
     ]
 
@@ -196,11 +205,11 @@ def read_interest_people(
         interest_ids=tree.subtree(interest.id), limit=limit, offset=offset,
     )
     return InterestPeopleResponse(
-        interest=InterestCountSelf(id=interest.id, name=interest.name, path=interest_path(interest), **counts(interest.id)),
+        interest=InterestCountSelf(id=interest.id, name=interest.name, path=list(interest_place(db, interest).path), **counts(interest.id)),
         municipality=MunicipalityRef(code=municipality.code, name=municipality.name) if municipality else None,
         ancestors=[InterestCount(id=a.id, name=a.name, **counts(a.id)) for a in ancestors],
         children=[InterestCountChild(id=c.id, name=c.name, has_children=c.id in with_children, **counts(c.id)) for c in children],
-        people=[to_person_response(p.user, current_user) for p in people],
+        people=[to_person_response(db, p.user, current_user) for p in people],
     )
 
 
@@ -209,7 +218,7 @@ def read_my_interests(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return sorted_interests(_current_db_user(current_user, db))
+    return profile_interests(db, _current_db_user(current_user, db))
 
 
 # PUT eftersom det går att upprepa: redan tillagt intresse ger samma svar.
@@ -225,7 +234,23 @@ def add_my_interest(
     interest = get_active_interest(db, interest_id)
     if interest is None:
         raise HTTPException(status_code=404, detail="Intresset finns inte")
-    return add_user_interest(db, user, interest)
+    add_user_interest(db, user, interest)
+    return profile_interests(db, user)
+
+
+@router.put("/profile/interests/{interest_id}/practices", response_model=list[ProfileInterest])
+def set_my_practices(
+    interest_id: int,
+    data: PracticesIn,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Om man själv håller på med intresset eller bara är intresserad (SCRUM-271), t.ex. för att rätta det
+    intervjun gissade. 404 om intresset inte finns på profilen."""
+    user = _current_db_user(current_user, db)
+    if not set_practices(db, user, interest_id, data.practices):
+        raise HTTPException(status_code=404, detail="Intresset finns inte")
+    return profile_interests(db, user)
 
 
 @router.delete("/profile/interests/{interest_id}", response_model=list[ProfileInterest])
@@ -241,4 +266,5 @@ def remove_my_interest(
     # Räknat i olika intressen: samma intresse med två aktiviteter är ett.
     if {i.id for i in user.interests} == {interest.id}:
         raise HTTPException(status_code=409, detail=msg.LAST_INTEREST_CANNOT_BE_REMOVED)
-    return remove_user_interest(db, user, interest)
+    remove_user_interest(db, user, interest)
+    return profile_interests(db, user)

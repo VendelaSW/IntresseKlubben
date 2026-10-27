@@ -116,7 +116,7 @@ from app.crud.dismissed_suggestion import (
     list_dismissed_user_ids,
     reset_dismissed_suggestions,
 )
-from app.crud.interest import sorted_interests
+from app.crud.interest import profile_interests
 from app.crud.profile import calculate_age, get_profile, list_people
 from app.crud.user import (
     EmailTakenError,
@@ -131,7 +131,6 @@ from app.crud.user import (
 from app.db.session import get_db
 from app.models.profile import GenderEnum
 from app.models.user import User
-from app.schemas.interest import ProfileInterest
 from app.schemas.profile import PersonResponse, PublicProfileResponse
 from app.schemas.user import (
     AccountDelete,
@@ -369,7 +368,7 @@ def read_people(
         db, current_user.id, interest_id, municipality_code, hidden_ids,
         gender=gender, min_age=min_age, max_age=max_age,
     )
-    return [to_person_response(p.user, current_user) for p in profiles]
+    return [to_person_response(db, p.user, current_user) for p in profiles]
 
 
 @router.post(
@@ -430,7 +429,7 @@ def reset_suggestions(
     reset_dismissed_suggestions(db, current_user.id)
 
 
-def _to_public_response(profile, viewer: User) -> PublicProfileResponse:
+def _to_public_response(db: Session, profile, viewer: User) -> PublicProfileResponse:
     age, age_hidden = visible_age(profile, viewer)
     return PublicProfileResponse(
         name=profile.name,
@@ -440,7 +439,7 @@ def _to_public_response(profile, viewer: User) -> PublicProfileResponse:
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
         profile_text=profile.profile_text,
-        interests=[ProfileInterest.model_validate(i) for i in sorted_interests(profile.user)],
+        interests=profile_interests(db, profile.user),
     )
 
 
@@ -462,4 +461,4 @@ def read_user_profile(
     profile = get_profile(db, user.id) if user else None
     if profile is None:
         raise HTTPException(status_code=404, detail="Ingen profil hittad")
-    return _to_public_response(profile, current_user)
+    return _to_public_response(db, profile, current_user)

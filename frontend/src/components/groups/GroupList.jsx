@@ -86,7 +86,7 @@ function GroupList({ groups, emptyText, emptyAction, myInterestIds, busy, onSele
             {group.description && <span className="card-text list-card-description">{group.description}</span>}
           </button>
           <InterestTags
-            interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area }]}
+            interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area, area_slug: group.interest_area_slug }]}
             highlight={myInterestIds}
           />
           <div className="card-actions">
@@ -142,7 +142,7 @@ function ClubCards({ style, groups, myInterestIds, busy, onSelect, onJoin, onDec
             {group.description && <span className="card-text list-card-description">{group.description}</span>}
           </button>
           <InterestTags
-            interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area }]}
+            interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area, area_slug: group.interest_area_slug }]}
             highlight={myInterestIds}
           />
           <div className="club-card-foot">

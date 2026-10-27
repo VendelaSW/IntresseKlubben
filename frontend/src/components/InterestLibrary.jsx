@@ -6,16 +6,16 @@ import DrawnArrow from './DrawnArrow'
 import LoadError, { useRetry } from './LoadError'
 
 // Ett intresse att trycka på för att lägga till eller ta bort det: en intressetagg
-// i huvudområdets färg (`area`). Inte valt: den ljusa nyansen och +. Valt:
+// i huvudområdets färg (`area` och `areaSlug`, se utils/interestColors.js). Inte valt: den ljusa nyansen och +. Valt:
 // områdets färg, ✓, fetstil och nedtryckt. `title` (valfri) syns när man håller
 // över, t.ex. var en sökträff hör hemma.
-export function PickTag({ interest, area, label = interest.name, title, on, busy, onToggle }) {
+export function PickTag({ interest, area, areaSlug, label = interest.name, title, on, busy, onToggle }) {
   return (
     <li>
       <button
         type="button"
         className={`interest-tag interest-pick${on ? ' is-on' : ''}`}
-        style={areaColors(area)}
+        style={areaColors(area, areaSlug)}
         title={title}
         aria-pressed={on}
         disabled={busy}
@@ -34,7 +34,7 @@ export function PickTag({ interest, area, label = interest.name, title, on, busy
 // en ruta under taggen med underintressena (samma ruta som på profilens taggar,
 // se InterestTagGroup). Rutan stängs med pilen, ett tryck utanför eller Esc. Den
 // scrollas fram när den öppnas, så att den syns också på den nedersta raden.
-function PickGroup({ interest, area, picked }) {
+function PickGroup({ interest, area, areaSlug, picked }) {
   const [open, setOpen] = useState(false)
   const [kids, setKids] = useState(null) // null = inte hämtade än
   const close = useCallback(() => setOpen(false), [])
@@ -60,7 +60,7 @@ function PickGroup({ interest, area, picked }) {
 
   const on = picked.selectedIds.has(interest.id)
   return (
-    <li ref={rootRef} className={`interest-tag-group${open ? ' is-open' : ''}`} style={areaColors(area)}>
+    <li ref={rootRef} className={`interest-tag-group${open ? ' is-open' : ''}`} style={areaColors(area, areaSlug)}>
       <span className={`interest-tag interest-pick interest-pick-group${on ? ' is-on' : ''}`}>
         <button
           type="button"
@@ -91,6 +91,7 @@ function PickGroup({ interest, area, picked }) {
               key={kid.id}
               interest={kid}
               area={area}
+              areaSlug={areaSlug}
               on={picked.selectedIds.has(kid.id)}
               busy={picked.busyId === kid.id}
               onToggle={picked.onToggle}
@@ -151,7 +152,7 @@ function InterestLibrary({ selectedIds, busyId, onToggle, onError }) {
               <button
                 type="button"
                 className={`interest-tag explorer-area${isOpen ? ' explorer-area-open' : ''}`}
-                style={areaColors(item.name)}
+                style={areaColors(item.name, item.area_slug)}
                 aria-expanded={isOpen}
                 onClick={() => setArea(isOpen ? null : item)}
               >
@@ -163,12 +164,13 @@ function InterestLibrary({ selectedIds, busyId, onToggle, onError }) {
         })}
       </ul>
       {area && (
-        <div className="library-area" style={areaColors(area.name)}>
+        <div className="library-area" style={areaColors(area.name, area.area_slug)}>
           <h3 className="library-area-title">{area.name}</h3>
           <ul className="interest-tags">
             <PickTag
               interest={area}
               area={area.name}
+              areaSlug={area.area_slug}
               label={`${area.name} (allmänt)`}
               on={selectedIds.has(area.id)}
               busy={busyId === area.id}
@@ -176,12 +178,13 @@ function InterestLibrary({ selectedIds, busyId, onToggle, onError }) {
             />
             {level.map((item) =>
               item.has_children ? (
-                <PickGroup key={item.id} interest={item} area={area.name} picked={picked} />
+                <PickGroup key={item.id} interest={item} area={area.name} areaSlug={area.area_slug} picked={picked} />
               ) : (
                 <PickTag
                   key={item.id}
                   interest={item}
                   area={area.name}
+                  areaSlug={area.area_slug}
                   on={selectedIds.has(item.id)}
                   busy={busyId === item.id}
                   onToggle={onToggle}
