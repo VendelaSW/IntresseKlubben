@@ -128,16 +128,17 @@ function GroupsPanel() {
 
   const handleError = (err) => setError(err.message)
 
-  useEffect(() => {
-    Promise.all([getAllInterests(), getMunicipalities(), getProfile(), getMyInterests()])
-      .then(([i, m, profile, mine]) => {
-        setInterests(i)
-        setMunicipalities(m)
-        setMyInterestIds(new Set(mine.map((interest) => interest.id)))
-        setMyMunicipality(profile?.municipality_code ?? '')
-      })
-      .catch(() => setStatus('error'))
+  // Det som filtren, markeringen av ens intressen och Skapa klubb behöver. Inget av
+  // det är klubbarna själva, så går något inte att hämta visas sidan ändå, bara
+  // utan det (t.ex. utan intressen i filtret). "Försök igen" hämtar om det.
+  const loadExtras = useCallback(() => {
+    getAllInterests().then(setInterests, () => {})
+    getMunicipalities().then(setMunicipalities, () => {})
+    getProfile().then((profile) => setMyMunicipality(profile?.municipality_code ?? ''), () => {})
+    getMyInterests().then((mine) => setMyInterestIds(new Set(mine.map((interest) => interest.id))), () => {})
   }, [])
+
+  useEffect(() => loadExtras(), [loadExtras])
 
   useEffect(() => {
     if (typeof view !== 'number' || contacts !== null) return
@@ -303,8 +304,26 @@ function GroupsPanel() {
     setView(group.id, { replace: true })
   }
 
-  if (status === 'error' || overviewFailed) {
-    return <p className="status-error">Kunde inte hämta klubbarna. Försök igen senare.</p>
+  // Hämtar om allt efter ett fel (SCRUM-286), så att man inte behöver gå ut och in på sidan.
+  function retry() {
+    setStatus('loading')
+    loadExtras()
+    refetchOverview()
+    loadAll()
+      .then(() => setStatus('ready'))
+      .catch(() => setStatus('error'))
+  }
+
+  // Medan översikten hämtas om efter ett fel visas "Laddar klubbar..." i stället för felet.
+  if (status === 'error' || (overviewFailed && !overview.isFetching)) {
+    return (
+      <div className="load-error">
+        <p className="status-error">Kunde inte hämta klubbarna.</p>
+        <button type="button" className="secondary-button" onClick={retry}>
+          Försök igen
+        </button>
+      </div>
+    )
   }
 
   // Mina klubbar och Förslag söks, filtreras och sorteras här. I Mina klubbar
