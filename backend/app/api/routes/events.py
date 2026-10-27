@@ -237,7 +237,9 @@ def edit_event(
         event = update_event(db, event, data)
     except EventRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=err.detail)
-    notify_event_changed(db, event, _time_of(event) != time_before, _place_of(event) != place_before)
+    notify_event_changed(
+        db, event, _time_of(event) != time_before, _place_of(event) != place_before, by=current_user
+    )
     return _to_response(event, current_user.id, db)
 
 

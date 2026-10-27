@@ -30,7 +30,7 @@ def _area(scope: GroupScope | None, scope_code: str | None) -> tuple[GroupScope 
     if scope == GroupScope.country:
         return scope, COUNTRY_CODE
     if not scope_code:
-        raise ValueError(msg.GROUP_AREA_REQUIRED)
+        raise ValueError(msg.EVENT_AREA_REQUIRED)
     return scope, scope_code
 
 
@@ -176,7 +176,7 @@ class EventUpdate(BaseModel):
             self.scope, self.scope_code = _area(self.scope, self.scope_code)
             self.model_fields_set.add("scope_code")
         elif "scope_code" in self.model_fields_set:
-            raise ValueError(msg.GROUP_AREA_REQUIRED)
+            raise ValueError(msg.EVENT_AREA_REQUIRED)
         return self
 
     @model_validator(mode="after")

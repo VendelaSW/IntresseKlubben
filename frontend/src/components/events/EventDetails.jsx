@@ -364,7 +364,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
             <Modal title={`Ansök till ${event.title}`} onClose={() => setApplyOpen(false)}>
               <form className="auth-form" onSubmit={handleApply}>
                 <label htmlFor="event-apply-message">Meddelande till skaparen (valfritt)</label>
-                <textarea
+                <TextareaWithCount
                   id="event-apply-message"
                   rows={3}
                   maxLength={200}
@@ -426,6 +426,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
             load={getEventRequests}
             approve={approveEventRequest}
             decline={declineEventRequest}
+            declinePlaceholder="T.ex. att eventet redan är fullt"
           />
         )}
 

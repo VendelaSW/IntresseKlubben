@@ -375,13 +375,16 @@ def apply_to_event(db: Session, event: Event, user: User, message: str | None) -
         raise EventRuleError(409, msg.EVENT_NOT_APPLICATION)
     if can_answer(event, user.id) or has_applied(event, user.id):
         return
-    if event.created_by in blocked_user_ids(db, user.id):
+    hidden = blocked_user_ids(db, user.id)
+    if event.created_by in hidden:
         return
     db.add(EventJoinRequest(event_id=event.id, user_id=user.id, message=message))
     name = _display_name(user)
+    # En medarrangör som har en blockering med den sökande får ingen notis (och ser inte ansökan, se
+    # list_event_requests).
     notify(
         db,
-        _host_ids(event),
+        [host_id for host_id in _host_ids(event) if host_id not in hidden],
         NotificationKind.event_join_request,
         title=f"{name} vill vara med på «{event.title}»",
         body="Svara på ansökan på eventets sida.",
@@ -454,17 +457,15 @@ def decline_event_request(db: Session, event: Event, user_id: int, by: User, mes
 
 def set_host(db: Session, event: Event, user_id: int, host: bool) -> None:
     """Gör någon till medarrangör eller tar tillbaka det, och säger till personen. Att den som anropar är skaparen
-    kontrolleras i routen. En medarrangör ska vara inbjuden eller ha svarat på eventet."""
+    kontrolleras i routen. En medarrangör ska ha svarat på eventet (Ja, Kanske eller Nej)."""
     if user_id == event.created_by:
         raise EventRuleError(409, msg.EVENT_ONLY_CREATOR_SETS_HOSTS)
     current = next((h for h in event.hosts if h.user_id == user_id), None)
     if host == (current is not None):
         return
     if host:
-        attending = any(i.user_id == user_id for i in event.invitations) or any(
-            r.user_id == user_id for r in event.responses
-        )
-        if not attending or user_id in blocked_user_ids(db, event.created_by):
+        answered = any(r.user_id == user_id for r in event.responses)
+        if not answered or user_id in blocked_user_ids(db, event.created_by):
             raise EventRuleError(409, msg.EVENT_HOST_NOT_ATTENDING)
         db.add(EventHost(event_id=event.id, user_id=user_id))
     else:

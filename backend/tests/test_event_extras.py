@@ -154,6 +154,50 @@ def test_the_creator_makes_an_attendee_a_host_who_can_edit_but_not_delete(client
     assert any("medarrangör" in t for t in titles)
 
 
+def test_a_blocked_host_gets_no_notice_of_an_application(client, db, people, applied):
+    from tests.event_helpers import add_contact
+
+    db.add(EventHost(event_id=applied.id, user_id=HOST))
+    db.commit()
+    add_contact(db, HOST, GUEST, status="BLOCKED")
+    client.put(f"/events/{applied.id}/requests/me", json={})
+    assert db.query(Notification).filter_by(user_id=CREATOR).count() == 1
+    assert db.query(Notification).filter_by(user_id=HOST).count() == 0
+
+
+def test_a_change_by_a_host_names_the_host_and_skips_them(client, db, people):
+    from tests.event_helpers import future
+
+    event = add_event(db, CREATOR, visibility=EventVisibility.open)
+    for user_id in (HOST, GUEST):
+        login(people, user_id)
+        answer(client, event.id, "yes")
+    login(people, CREATOR)
+    client.put(f"/events/{event.id}/hosts/{HOST}")
+    login(people, HOST)
+    new_start = future(days=8).isoformat()
+    assert client.patch(f"/events/{event.id}", json={"starts_at": new_start}).status_code == 200
+    (note,) = db.query(Notification).filter_by(user_id=GUEST).all()
+    assert note.body == "Hugo har ändrat eventet som du ska gå på."
+    assert db.query(Notification).filter_by(user_id=HOST, kind="event_changed").count() == 0
+
+
+def test_an_invited_person_who_has_not_answered_cannot_be_a_host(client, db, people):
+    from app.models import EventInvitation
+
+    event = add_event(db, CREATOR, visibility=EventVisibility.open)
+    db.add(EventInvitation(event_id=event.id, user_id=GUEST))
+    db.commit()
+    response = client.put(f"/events/{event.id}/hosts/{GUEST}")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "En medarrangör behöver ha svarat på eventet"
+
+
+def test_an_area_without_code_says_event(client, people):
+    response = client.post("/events/", json=payload(scope="lan"))
+    assert "Välj område för eventet" in str(response.json())
+
+
 def test_a_host_must_be_attending_and_only_the_creator_chooses(client, db, people):
     event = add_event(db, CREATOR, visibility=EventVisibility.open)
     response = client.put(f"/events/{event.id}/hosts/{GUEST}")

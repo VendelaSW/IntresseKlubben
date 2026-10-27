@@ -18,6 +18,7 @@ function GroupJoinRequests({
   load = getJoinRequests,
   approve = approveJoinRequest,
   decline = declineJoinRequest,
+  declinePlaceholder = 'T.ex. att klubben är full till hösten',
 }) {
   const [requests, setRequests] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
@@ -115,7 +116,7 @@ function GroupJoinRequests({
               maxLength={200}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="T.ex. att klubben är full till hösten"
+              placeholder={declinePlaceholder}
             />
             <p className="hint-text">Det du skriver följer med i notisen. Hen kan ansöka igen senare.</p>
             {error && <p className="status-error">{error}</p>}
