@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from '../Avatar'
+import LoadError, { useRetry } from '../LoadError'
 import Modal from '../Modal'
 import { approveJoinRequest, declineJoinRequest, getJoinRequests } from '../../services/groups'
 
@@ -17,13 +18,14 @@ function GroupJoinRequests({ group, onChanged }) {
   // Ansökan som ska nekas (rutan med förklaringen är öppen), och förklaringen.
   const [declining, setDeclining] = useState(null)
   const [reason, setReason] = useState('')
+  const [attempt, retry] = useRetry()
 
   useEffect(() => {
     setFailed(false)
     getJoinRequests(group.id)
       .then(setRequests)
       .catch(() => setFailed(true))
-  }, [group.id, group.request_count])
+  }, [group.id, group.request_count, attempt])
 
   // Ger om det gick, så att rutan för att neka kan stängas.
   async function answer(userId, action, ...args) {
@@ -54,7 +56,7 @@ function GroupJoinRequests({ group, onChanged }) {
     <div className="person-list person-list-compact group-requests">
       <p className="card-subheading">Ansökningar</p>
       {failed ? (
-        <p className="hint-text">Kunde inte hämta ansökningarna.</p>
+        <LoadError text="Kunde inte hämta ansökningarna." onRetry={retry} className="hint-text" />
       ) : requests === null ? (
         <p className="hint-text">Laddar ansökningar...</p>
       ) : requests.length === 0 ? (

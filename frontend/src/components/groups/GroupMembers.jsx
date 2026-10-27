@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Avatar from '../Avatar'
 import { useConfirm } from '../../hooks/useConfirm'
 import { getGroupMembers, removeGroupMember, setGroupMemberRole } from '../../services/groups'
+import LoadError, { useRetry } from '../LoadError'
 
 const ROLE_LABELS = { owner: 'Ägare', admin: 'Admin' }
 
@@ -21,13 +22,14 @@ function GroupMembers({ group, onChanged }) {
   const [failed, setFailed] = useState(false)
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
+  const [attempt, retry] = useRetry()
 
   useEffect(() => {
     setFailed(false)
     getGroupMembers(group.id)
       .then(setMembers)
       .catch(() => setFailed(true))
-  }, [group.id, group.member_count])
+  }, [group.id, group.member_count, attempt])
 
   async function run(userId, action) {
     setBusyId(userId)
@@ -66,7 +68,7 @@ function GroupMembers({ group, onChanged }) {
     }
   }
 
-  if (failed) return <p className="hint-text">Kunde inte hämta medlemmarna.</p>
+  if (failed) return <LoadError text="Kunde inte hämta medlemmarna." onRetry={retry} className="hint-text" />
   if (members === null) return <p className="hint-text">Laddar medlemmar...</p>
 
   return (

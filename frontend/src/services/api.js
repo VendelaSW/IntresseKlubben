@@ -49,8 +49,24 @@ async function request(path, options = {}) {
   return body
 }
 
-export function apiGet(path) {
-  return request(path)
+// En hämtning som misslyckas för att servern precis har vaknat (kallstart, se SCRUM-242)
+// görs om en gång efter en kort stund, innan sidan visar ett fel. Bara GET, som går att
+// göra om utan att något händer två gånger, och bara när ett nytt försök kan hjälpa:
+// nätverksfel (fetch kastar TypeError) och serverfel (5xx), inte t.ex. 401, 404 eller 422.
+const RETRY_DELAY_MS = 1000
+
+function worthRetrying(err) {
+  return err instanceof TypeError || (err instanceof ApiError && err.status >= 500)
+}
+
+export async function apiGet(path) {
+  try {
+    return await request(path)
+  } catch (err) {
+    if (!worthRetrying(err)) throw err
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+    return request(path)
+  }
 }
 
 export function apiPost(path, data) {

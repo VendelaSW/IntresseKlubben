@@ -35,6 +35,7 @@ import {
 } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
 import { getMunicipalities, getProfile } from '../../services/profile'
+import LoadError from '../LoadError'
 
 const TABS = [
   { id: 'mine', label: 'Mina klubbar', short: 'Mina' },
@@ -135,16 +136,17 @@ function GroupsPanel() {
 
   const handleError = (err) => setError(err.message)
 
-  useEffect(() => {
-    Promise.all([getAllInterests(), getMunicipalities(), getProfile(), getMyInterests()])
-      .then(([i, m, profile, mine]) => {
-        setInterests(i)
-        setMunicipalities(m)
-        setMyInterestIds(new Set(mine.map((interest) => interest.id)))
-        setMyMunicipality(profile?.municipality_code ?? '')
-      })
-      .catch(() => setStatus('error'))
+  // Det som filtren, markeringen av ens intressen och Skapa klubb behöver. Inget av
+  // det är klubbarna själva, så går något inte att hämta visas sidan ändå, bara
+  // utan det (t.ex. utan intressen i filtret). "Försök igen" hämtar om det.
+  const loadExtras = useCallback(() => {
+    getAllInterests().then(setInterests, () => {})
+    getMunicipalities().then(setMunicipalities, () => {})
+    getProfile().then((profile) => setMyMunicipality(profile?.municipality_code ?? ''), () => {})
+    getMyInterests().then((mine) => setMyInterestIds(new Set(mine.map((interest) => interest.id))), () => {})
   }, [])
+
+  useEffect(() => loadExtras(), [loadExtras])
 
   // Utan områdena fungerar filtret ändå, då bara på klubbar i själva kommunen.
   useEffect(() => {
@@ -336,8 +338,25 @@ function GroupsPanel() {
     setView(group.id, { replace: true })
   }
 
-  if (status === 'error' || overviewFailed) {
-    return <p className="status-error">Kunde inte hämta klubbarna. Försök igen senare.</p>
+  // Hämtar om allt efter ett fel (SCRUM-286), så att man inte behöver gå ut och in på sidan.
+  function retry() {
+    setStatus('loading')
+    loadExtras()
+    refetchOverview()
+    loadAll()
+      .then(() => setStatus('ready'))
+      .catch(() => setStatus('error'))
+  }
+
+  // Medan översikten hämtas om efter ett fel visas "Laddar klubbar..." i stället för felet.
+  if (status === 'error' || (overviewFailed && !overview.isFetching)) {
+    return (
+      <LoadError
+        text="Kunde inte hämta klubbarna."
+        onRetry={retry}
+        retrying={status === 'loading' || overview.isFetching}
+      />
+    )
   }
 
   // Mina klubbar och Förslag söks, filtreras och sorteras här. I Mina klubbar
