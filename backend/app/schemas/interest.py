@@ -17,12 +17,21 @@ class ProfileInterest(InterestResponse):
     InterestPlace), så att frontend kan samla flera intressen under sin
     kategori. area och area_slug är huvudområdet, som taggens färg följer
     (färgen slås upp på sluggen, så att den håller när området byter namn).
-    Bara för visning: hur intressen sparas och filtreras ändras inte."""
+    practices säger om personen själv håller på med intresset eller bara är
+    intresserad (SCRUM-271); personförslagen väger gemensamma intressen där
+    båda håller på tyngre."""
 
     parent_id: int | None
     path: list[str]
     area: str
     area_slug: str | None
+    practices: bool = False
+
+
+class PracticesIn(BaseModel):
+    """Om man själv håller på med intresset (true) eller bara är intresserad (false)."""
+
+    practices: bool
 
 
 class InterestBrowseItem(BaseModel):

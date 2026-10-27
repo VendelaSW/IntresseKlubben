@@ -178,7 +178,7 @@ def test_the_seal_covers_exactly_the_proposals_and_what_is_allowed_for_each(clie
     ai(extract=tree(("hårdrock", [])), clarify=clarify_for(("t1", "spela", [], "none")))
     body = analyze(client).json()
     assert read_token(body["token"], user.id) == [
-        {"key": "p1", "activity": "spela", "allowed": ["lyssna", "spela", "skapa", "besoka"], "interest_id": library["metal"].id}
+        {"key": "p1", "activity": "spela", "allowed": ["lyssna", "spela", "skapa", "besoka", "utova"], "interest_id": library["metal"].id}
     ]
 
 
@@ -414,7 +414,7 @@ def test_a_known_interest_is_suggested_without_any_ai_call(client, user, library
     assert proposal["interest"] == {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "is_new": False, "parent_key": None}
     assert llm.calls == [] and moderator.batches == []
     assert read_token(response.json()["token"], user.id) == [
-        {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka"], "interest_id": library["metal"].id}
+        {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka", "utova"], "interest_id": library["metal"].id}
     ]
 
 
@@ -534,7 +534,7 @@ def test_a_chosen_existing_interest_gets_a_seal_without_any_ai_call(client, user
     assert proposal["interest"] == {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "is_new": False, "parent_key": None}
     assert llm.calls == [] and moderator.batches == []
     assert read_token(response.json()["token"], user.id) == [
-        {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka"], "interest_id": library["metal"].id}
+        {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka", "utova"], "interest_id": library["metal"].id}
     ]
 
 
@@ -607,9 +607,21 @@ def test_with_follow_ups_off_the_model_is_asked_about_neither_activities_nor_que
     llm, _ = ai(extract=tree(("hårdrock", []), ("katter", [])), clarify=clarify_for(("t1", "spela", [], "none")))
     body = analyze(client, "Jag spelar hårdrock och har katter.").json()
     assert {call.name for call in llm.calls} == {"interests", "judge"}  # inget anrop om följdfrågor eller aktiviteter
-    assert [p["activity"] for p in body["proposals"]] == ["", ""]  # aktiviteten ur texten läses inte ut
+    # Följdfrågornas aktiviteter ("spela") läses inte ut. Om personen själv håller på med intresset kommer bara ur
+    # utläsningen (practices, SCRUM-271), och den säger det inte här.
+    assert [p["activity"] for p in body["proposals"]] == ["", ""]
     claims = read_token(body["token"], user.id)
-    assert [c["allowed"] for c in claims] == [["lyssna", "spela", "skapa", "besoka"], []]  # Katter har ingen lista i biblioteket
+    # Att man själv håller på med intresset (utova) går alltid, också när intresset inte har någon egen lista (Katter).
+    assert [c["allowed"] for c in claims] == [["lyssna", "spela", "skapa", "besoka", "utova"], ["utova"]]
+
+
+def test_an_interest_the_person_does_themselves_is_proposed_as_practising(client, user, library):
+    extract = tree(("hårdrock", []), ("katter", []))
+    extract["interests"][0]["practices"] = True
+    ai(extract=extract)
+    body = analyze(client, "Jag spelar hårdrock och gillar katter.").json()
+    assert [(p["interest"]["name"], p["activity"]) for p in body["proposals"]] == [("Metal", "utova"), ("Katter", "")]
+    assert [c["activity"] for c in read_token(body["token"], user.id)] == ["utova", ""]
 
 
 def test_follow_up_questions_are_sent_when_they_are_switched_on(client, user, library, monkeypatch):

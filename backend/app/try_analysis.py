@@ -1,7 +1,7 @@
 """
 Prova intervjuns analys med riktig AI, utan appen: skickar meningar genom analysen och skriver ut förslagen och
-vilka steg som kördes. Bra för att se att skyddsnätet och dess kontroll (SCRUM-261) gör rätt med den riktiga
-modellen, som testerna inte kan visa (de fejkar AI:n).
+vilka steg som kördes. Bra för att se att skyddsnätet och dess kontroll (SCRUM-261) och utövar eller intresserad
+(SCRUM-271) blir rätt med den riktiga modellen, som testerna inte kan visa (de fejkar AI:n).
 
 Kör från backend/:
 
@@ -19,9 +19,10 @@ from app.crud.interest import load_library_index
 from app.crud.interest_library import load_activities
 from app.db.session import SessionLocal
 from app.services.ai_clients import AIFailed, AINotConfigured, get_llm, set_clients
+from app.models.user_interest import PRACTISES
 from app.services.interest_analysis import analyze
 
-# Meningar där skyddsnätet kan slå till, och vad som borde hända.
+# Meningar där skyddsnätet kan slå till, och om man utövar eller bara är intresserad, och vad som borde hända.
 EXAMPLES = [
     ("Jag älskar att bada", "Bad och bastu"),
     ("Jag kör bil till jobbet varje dag", "inte Sjunga i kör, inte Bilar"),
@@ -30,6 +31,10 @@ EXAMPLES = [
     ("Jag har slutat spela fotboll", "inte Fotboll"),
     ("Jag lagar cykeln själv", "inte Matlagning"),
     ("Jag sjunger i kör på torsdagar", "Sjunga i kör"),
+    ("Jag spelar piano", "Piano (utövar)"),
+    ("Jag lyssnar på musik", "Musik"),
+    ("Jag bakar, och gillar att äta bakelser", "Bakning (utövar), Bakelser"),
+    ("Jag gillar fotboll", "Fotboll"),
 ]
 
 
@@ -67,7 +72,10 @@ def main() -> None:
         llm.steps.clear()
         llm.checks.clear()
         try:
-            names = [p["interest"]["name"] for p in analyze(text, index, catalog).proposals]
+            names = [
+                p["interest"]["name"] + (" (utövar)" if p["activity"] == PRACTISES else "")
+                for p in analyze(text, index, catalog).proposals
+            ]
             result = ", ".join(names) or "(inga förslag)"
         except AIFailed as err:
             result = f"(fel: {err})"

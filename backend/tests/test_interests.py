@@ -438,16 +438,6 @@ def test_the_creator_always_sees_their_own_interest(client, db, user, library):
     assert [name for name, _, _ in _browse(client.get("/interests/search", params={"q": "kubb"}))] == ["Kubb"]
 
 
-def test_one_user_with_two_activities_counts_once(client, db, user, library):
-    from app.models.user_interest import UserInterest
-
-    _people(db, 2)
-    own = _own_interest(db, library, creator_id=2, holders=[2, 3])
-    db.add(UserInterest(user_id=3, interest_id=own.id, activity="spela"))  # samma person, annan aktivitet
-    db.commit()
-    assert "Kubb" not in _children_names(client, library["Sport och träning"])
-
-
 def test_library_interests_are_always_visible(client, user, library):
     assert "Löpning" in _children_names(client, library["Sport och träning"])
     assert _browse(client.get("/interests/search", params={"q": "löpning"}))

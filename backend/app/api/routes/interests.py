@@ -39,11 +39,11 @@ from app.crud.interest import (
     remove_user_interest,
     search_interests,
     profile_interests,
-    sorted_interests,
+    set_practices,
 )
 from app.db.session import get_db
 from app.models.interest import Interest
-from app.schemas.interest import InterestBrowseItem, InterestResponse, ProfileInterest, SimilarItem
+from app.schemas.interest import InterestBrowseItem, InterestResponse, PracticesIn, ProfileInterest, SimilarItem
 from app.services.interest_embeddings import similar_interests
 from app.services.interest_spelling import spelling_matches
 
@@ -156,7 +156,7 @@ def read_my_interests(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return profile_interests(db, sorted_interests(_current_db_user(current_user, db)))
+    return profile_interests(db, _current_db_user(current_user, db))
 
 
 # PUT eftersom det går att upprepa: redan tillagt intresse ger samma svar.
@@ -172,7 +172,23 @@ def add_my_interest(
     interest = get_active_interest(db, interest_id)
     if interest is None:
         raise HTTPException(status_code=404, detail="Intresset finns inte")
-    return profile_interests(db, add_user_interest(db, user, interest))
+    add_user_interest(db, user, interest)
+    return profile_interests(db, user)
+
+
+@router.put("/profile/interests/{interest_id}/practices", response_model=list[ProfileInterest])
+def set_my_practices(
+    interest_id: int,
+    data: PracticesIn,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Om man själv håller på med intresset eller bara är intresserad (SCRUM-271), t.ex. för att rätta det
+    intervjun gissade. 404 om intresset inte finns på profilen."""
+    user = _current_db_user(current_user, db)
+    if not set_practices(db, user, interest_id, data.practices):
+        raise HTTPException(status_code=404, detail="Intresset finns inte")
+    return profile_interests(db, user)
 
 
 @router.delete("/profile/interests/{interest_id}", response_model=list[ProfileInterest])
@@ -188,4 +204,5 @@ def remove_my_interest(
     # Räknat i olika intressen: samma intresse med två aktiviteter är ett.
     if {i.id for i in user.interests} == {interest.id}:
         raise HTTPException(status_code=409, detail=msg.LAST_INTEREST_CANNOT_BE_REMOVED)
-    return profile_interests(db, remove_user_interest(db, user, interest))
+    remove_user_interest(db, user, interest)
+    return profile_interests(db, user)

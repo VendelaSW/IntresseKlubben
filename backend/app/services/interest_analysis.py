@@ -18,6 +18,7 @@ Inget sparas. Förslagen sparas i ett senare steg, och bara de som har ett gilti
 
 from dataclasses import dataclass, field
 
+from app.models.user_interest import PRACTISES
 from app.services.ai_clients import Deadline
 from app.services.interest_confirm import MIN_NAME_LENGTH
 from app.services.interest_extractor import (
@@ -135,7 +136,9 @@ def _assemble(result, index: LibraryIndex, followups_enabled: bool) -> Analysis:
             "interest": _interest_ref(match, index, keys, built),
             "activity": match.activity,
         }
-        sealed.append(_sealed(built[key], match, result.allowed.get(match.tag.key, []), keys))
+        # Att man själv håller på med intresset (PRACTISES) går alltid att spara (SCRUM-271).
+        allowed = list(dict.fromkeys([*result.allowed.get(match.tag.key, []), PRACTISES]))
+        sealed.append(_sealed(built[key], match, allowed, keys))
 
     followups = []
     if followups_enabled:

@@ -26,6 +26,10 @@ NEW_INTEREST_AREA = "Övrigt och nischat"
 _LISTING_LINE = re.compile(r"^(\d+): (.+?)(?: \(även: .*\))?$")
 
 
+# Ord som i testläget betyder att man själv håller på med intresset.
+_PRACTISING_WORDS = ("spelar", "tränar", "utövar", "håller på med")
+
+
 class FakeLLM:
     def __init__(self, interest_names: list[str]):
         # Längst först, så att "Trail running" hittas före "running".
@@ -37,7 +41,11 @@ class FakeLLM:
         for name, pattern in self._patterns:
             if pattern.search(lowered) and not any(name.lower() in other.lower() for other in found):
                 found.append(name)
-        return {"interests": [{"name": name, "aliases": [], "subtags": []} for name in found]}
+        # Utövar (SCRUM-271) om meningen har ett verb där man själv håller på, annars bara intresserad.
+        practices = any(word in lowered for word in _PRACTISING_WORDS)
+        return {
+            "interests": [{"name": name, "aliases": [], "practices": practices, "subtags": []} for name in found]
+        }
 
     @staticmethod
     def _judge(user: str) -> dict:

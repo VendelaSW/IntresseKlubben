@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.crud.group import _escape_like
 from app.models.interest import Interest, InterestSource, InterestStatus
 from app.models.user import User
-from app.models.user_interest import UserInterest
+from app.models.user_interest import PRACTISES, UserInterest
 from app.services.interest_matching import LibraryIndex, LibraryItem
 
 # Hur många träffar en sökning ger som mest.
@@ -169,10 +169,12 @@ def interest_place(db: Session, interest: Interest) -> InterestPlace:
     return interest_places(db, [interest])[interest.id]
 
 
-def profile_interests(db: Session, interests: list[Interest]) -> list[dict]:
-    """Intressena på en profil i den form ProfileInterest (schemas/interest.py) vill ha, med platsen i
-    trädet för hela listan på en gång."""
+def profile_interests(db: Session, user: User) -> list[dict]:
+    """Användarens intressen i namnordning, i den form ProfileInterest (schemas/interest.py) vill ha: med
+    platsen i trädet för hela listan på en gång, och om personen själv håller på med intresset (practices)."""
+    interests = sorted_interests(user)
     places = interest_places(db, interests)
+    practised = {link.interest_id for link in user.interest_links if link.activity == PRACTISES}
     return [
         {
             "id": i.id,
@@ -181,6 +183,7 @@ def profile_interests(db: Session, interests: list[Interest]) -> list[dict]:
             "path": list(places[i.id].path),
             "area": places[i.id].area,
             "area_slug": places[i.id].area_slug,
+            "practices": i.id in practised,
         }
         for i in interests
     ]
@@ -257,8 +260,19 @@ def add_user_interest(db: Session, user: User, interest: Interest) -> list[Inter
     return sorted_interests(user)
 
 
+def set_practices(db: Session, user: User, interest_id: int, practices: bool) -> bool:
+    """Sparar om användaren själv håller på med intresset (SCRUM-271), eller bara är intresserad. False om
+    användaren inte har intresset."""
+    link = next((link for link in user.interest_links if link.interest_id == interest_id), None)
+    if link is None:
+        return False
+    link.activity = PRACTISES if practices else ""
+    db.commit()
+    return True
+
+
 def remove_user_interest(db: Session, user: User, interest: Interest) -> list[Interest]:
-    """Tar bort intresset från profilen, med alla aktiviteter det sparats med."""
+    """Tar bort intresset från profilen."""
     links = [link for link in user.interest_links if link.interest_id == interest.id]
     for link in links:
         user.interest_links.remove(link)

@@ -250,8 +250,8 @@ class ContactRoutesTest(unittest.TestCase):
         self.assertEqual(person["municipality_name"], "Värmdö")
         self.assertEqual(person["district"], "Gustavsberg")
         self.assertEqual(person["interests"], [
-            {"id": history.id, "name": "Historia", "parent_id": None, "path": [], "area": "Historia", "area_slug": None},
-            {"id": coins.id, "name": "Mynt", "parent_id": history.id, "path": ["Historia"], "area": "Historia", "area_slug": None},
+            {"id": history.id, "name": "Historia", "parent_id": None, "path": [], "area": "Historia", "area_slug": None, "practices": False},
+            {"id": coins.id, "name": "Mynt", "parent_id": history.id, "path": ["Historia"], "area": "Historia", "area_slug": None, "practices": False},
         ])
 
 

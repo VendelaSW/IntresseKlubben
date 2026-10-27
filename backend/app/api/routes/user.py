@@ -116,7 +116,7 @@ from app.crud.dismissed_suggestion import (
     list_dismissed_user_ids,
     reset_dismissed_suggestions,
 )
-from app.crud.interest import profile_interests, sorted_interests
+from app.crud.interest import profile_interests
 from app.crud.profile import calculate_age, get_profile, list_people
 from app.crud.user import (
     EmailTakenError,
@@ -437,7 +437,7 @@ def _to_public_response(db: Session, profile) -> PublicProfileResponse:
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
         profile_text=profile.profile_text,
-        interests=profile_interests(db, sorted_interests(profile.user)),
+        interests=profile_interests(db, profile.user),
     )
 
 
