@@ -202,7 +202,7 @@ class ContactRoutesTest(unittest.TestCase):
                          {"id": 3, "username": "user3", "name": "Tre", "image_url": None})
         # Utan profil: bara användarnamnet, allt annat tomt.
         self.assertEqual(body["outgoing_requests"][0]["user"], {
-            "id": 2, "username": "user2", "name": None, "age": None, "municipality_name": None,
+            "id": 2, "username": "user2", "name": None, "age": None, "age_hidden": False, "municipality_name": None,
             "district": None, "image_url": None, "interests": []})
 
         self.actor_id = 5
