@@ -14,7 +14,6 @@ själva låset slår på det igen med fixturen `profile_lock` (se test_require_p
 """
 
 import os
-from unittest.mock import Mock
 
 # Måste sättas innan appen importeras. En miljövariabel går före backend/.env,
 # så den riktiga DATABASE_URL läses aldrig in under tester.
@@ -29,8 +28,6 @@ for _name in ("S3_BUCKET", "AWS_ENDPOINT_URL_S3", "AWS_ACCESS_KEY_ID", "AWS_SECR
 # råka anropa OpenAI på riktigt.
 os.environ["OPENAI_API_KEY"] = ""
 os.environ["OPENAI_MODEL"] = ""
-os.environ["MODERATION_SPACE"] = ""
-os.environ["HF_TOKEN"] = ""
 
 # Samma sak för mejlen: ingen riktig Resend-nyckel, och kravet på bekräftad e-post av som standard.
 os.environ["RESEND_API_KEY"] = ""
@@ -55,19 +52,6 @@ from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Municipality, User  # noqa: E402
-from app.services import ai_clients  # noqa: E402
-
-
-@pytest.fixture(autouse=True)
-def fake_moderation_client(monkeypatch):
-    remote = Mock()
-    remote.submit.return_value.result.return_value = {
-        "flagged": False, "translated_text": "Clean test text", "score": 0.01,
-    }
-    monkeypatch.setattr(ai_clients, "_get_hf_client", lambda: remote)
-    return remote
-
-
 @pytest.fixture(autouse=True)
 def fake_geocoder():
     """Inget test ska anropa Nominatim: adressökningen är en fejkad version utan träffar, om inte

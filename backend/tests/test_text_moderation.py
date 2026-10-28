@@ -1,93 +1,104 @@
 import ast
 from pathlib import Path
-from unittest.mock import Mock
 
 import pytest
 
-from app.services import text_moderation
-from app.services.ai_clients import AIFailed, ToxicityResult, set_clients
+from app.core.profanity import contains_profanity
+from app.models import Event, Group, Interest, Profile
+from app.services.text_moderation import WordFilterError, censor_message, check_fields
+from app.services.text_policy import TextNotAllowed, check_text
+from tests.event_helpers import payload as event_payload
+from tests.helpers import profile_payload
 
 
-@pytest.fixture
-def classifier(monkeypatch):
-    fake = Mock()
-    fake.classify.return_value = ToxicityResult(flagged=False, translated_text="Hello", score=0.01)
-    monkeypatch.setattr(text_moderation, "get_toxicity_classifier", lambda: fake)
-    return fake
-
-
-def test_local_only_fields_never_use_ai(classifier):
-    text_moderation.check_fields(name="Vendela", district="Majorna")
-    classifier.classify.assert_not_called()
-
-
-def test_local_baseline_runs_before_ai(classifier):
-    with pytest.raises(text_moderation.WordFilterError) as error:
-        text_moderation.check_fields(ai=True, description="FUCK")
+def test_local_filter_rejects_fields_with_swedish_validation_error():
+    with pytest.raises(WordFilterError) as error:
+        check_fields(description="Klubben använder FUCK i beskrivningen")
     assert error.value.field == "description"
-    classifier.classify.assert_not_called()
+    assert str(error.value) == "Beskrivningen innehåller otillåtet språk."
 
 
-def test_explicit_ai_checks_share_deadline(classifier):
-    text_moderation.check_fields(ai=True, title="Schack", description="Spela tillsammans")
-    assert classifier.classify.call_count == 2
-    assert classifier.classify.call_args_list[0].args[1] is classifier.classify.call_args_list[1].args[1]
+@pytest.mark.parametrize("text", [
+    "Slut på lagret för kaffefilter.",
+    "Vi läser om nazismens historia.",
+    "Fagottgruppen övar i kväll.",
+    "Vi följer horisonten längs leden.",
+    "En föreläsning om hormoner och träning.",
+])
+def test_local_filter_keeps_known_false_positive_traps(text):
+    assert contains_profanity(text) is False
+    check_fields(description=text)
 
 
-def test_flagged_public_text_is_rejected(classifier):
-    classifier.classify.return_value = ToxicityResult(flagged=True, translated_text="Toxic", score=0.9)
-    with pytest.raises(text_moderation.ToxicContentError):
-        text_moderation.check_fields(ai=True, description="Kontrolltext")
+def test_om_mig_policy_uses_local_filter_without_openai():
+    with pytest.raises(TextNotAllowed):
+        check_text("Jag använder FUCK som uttryck.")
+    assert check_text("Jag spelar fagott.") is None
 
 
-def test_ai_failure_falls_back_to_local_filter_and_logs_warning(classifier, caplog):
-    classifier.classify.side_effect = AIFailed()
-    assert text_moderation.check_fields(ai=True, description="Kontrolltext") is None
-    assert "lokal ordkontroll används" in caplog.text
+@pytest.mark.parametrize("field", ["title", "description", "place_name", "address"])
+@pytest.mark.parametrize("operation", ["create", "update"])
+def test_event_text_fields_use_local_filter_before_save(client, db, user, field, operation):
+    db.add(Interest(id=1, name="Löpning"))
+    db.commit()
+    if operation == "create":
+        response = client.post("/events/", json=event_payload(**{field: "FUCK"}))
+        expected_count = 0
+    else:
+        created = client.post("/events/", json=event_payload())
+        assert created.status_code == 201
+        response = client.patch(f"/events/{created.json()['id']}", json={field: "FUCK"})
+        expected_count = 1
+    assert response.status_code == 422
+    assert db.query(Event).count() == expected_count
 
 
-def test_ai_failure_does_not_bypass_local_word_filter(classifier, caplog):
-    classifier.classify.side_effect = AIFailed()
-    with pytest.raises(text_moderation.WordFilterError):
-        text_moderation.check_fields(ai=True, description="FUCK")
-    classifier.classify.assert_not_called()
+@pytest.mark.parametrize("field", ["name", "description", "meeting_info", "place_name", "address"])
+def test_group_text_fields_use_local_filter_before_save(client, db, user, municipalities, field):
+    db.add(Interest(id=1, name="Schack"))
+    db.commit()
+    response = client.post("/groups/", json={
+        "name": "Ny klubb",
+        "description": "Schack på torsdag.",
+        "meeting_info": "På torsdag",
+        "place_name": "Föreningslokalen",
+        "address": "Storgatan 1",
+        "interest_id": 1,
+        "municipality_code": "1480",
+        field: "FUCK",
+    })
+    assert response.status_code == 422
+    assert db.query(Group).count() == 0
 
 
-def test_explicitly_empty_ai_bundle_skips_remote_call(classifier):
-    text_moderation.check_fields(ai=True, ai_text="", place_name="Slottsskogen")
-    classifier.classify.assert_not_called()
+@pytest.mark.parametrize("operation", ["create", "update"])
+def test_profile_neighborhood_uses_local_filter(client, db, user, municipalities, operation):
+    interest = Interest(name="Yoga")
+    db.add(interest)
+    db.commit()
+    if operation == "create":
+        response = client.post("/profile/", json=profile_payload([interest.id], district="FUCK"))
+        expected_count = 0
+    else:
+        created = client.post("/profile/", json=profile_payload([interest.id], district="Majorna"))
+        assert created.status_code == 201
+        response = client.patch("/profile/", json={"district": "FUCK"})
+        expected_count = 1
+    assert response.status_code == 422
+    assert "otillåtet språk" in str(response.json()["detail"])
+    assert db.query(Profile).count() == expected_count
 
 
-def test_chat_censorship_never_uses_ai(classifier):
-    assert text_moderation.censor_message("Hej FUCK!") == "Hej ****!"
-    classifier.classify.assert_not_called()
-
-
-def test_toxicity_client_is_replaceable_through_shared_mock_boundary():
-    fake = Mock()
-    fake.classify.return_value = ToxicityResult(flagged=False, translated_text="Hello", score=0.01)
-    set_clients(toxicity=fake)
-    text_moderation.check_fields(ai=True, description="Hej")
-    fake.classify.assert_called_once()
+def test_chat_text_is_censored_locally():
+    assert censor_message("Din fitta!") == "Din *****!"
 
 
 @pytest.mark.parametrize("layer", ["crud", "schemas"])
-def test_content_checks_are_not_imported_in_storage_or_schemas(layer):
+def test_content_moderation_is_not_in_crud_or_pydantic_schemas(layer):
     root = Path(__file__).parents[1] / "app" / layer
-    forbidden = {
-        "app.services.moderation", "app.services.text_moderation",
-        "app.services.ai_clients", "app.services.text_policy",
-    }
+    forbidden = {"app.services.ai_clients", "app.services.text_policy", "app.services.text_moderation"}
     for path in root.glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
-                if node.module == "app.core.profanity":
-                    assert layer == "crud" and path.name in {
-                        "message.py", "group_message.py", "group_post.py",
-                    }, f"{path.name} imports the content filter"
                 assert node.module not in forbidden, f"{path.name} imports {node.module}"
-                if node.module == "app.services":
-                    assert not ({alias.name for alias in node.names} & {
-                        "moderation", "text_moderation", "ai_clients", "text_policy",
-                    }), path.name

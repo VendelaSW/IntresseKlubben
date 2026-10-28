@@ -23,7 +23,7 @@ from app.api.routes.reports import router as reports_router
 from app.api.routes.user import router as user_router
 from app.core.config import settings
 from app.core.error_messages import validation_error_handler
-from app.services.text_moderation import ToxicContentError, WordFilterError
+from app.services.text_moderation import WordFilterError
 
 app = FastAPI(title="Intresseklubben API")
 
@@ -33,11 +33,6 @@ async def word_filter_handler(request: Request, error: WordFilterError):
     return JSONResponse(status_code=422, content={"detail": [{
         "type": "value_error", "loc": ["body", error.field], "msg": f"Value error, {error.detail}",
     }]})
-
-
-@app.exception_handler(ToxicContentError)
-async def toxic_content_handler(request: Request, error: ToxicContentError):
-    return JSONResponse(status_code=422, content={"detail": "Innehållet innehåller otillåtet språk."})
 
 
 # Svenska texter på valideringsfel, för alla endpoints.

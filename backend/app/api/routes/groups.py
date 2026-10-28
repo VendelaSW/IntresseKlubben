@@ -117,7 +117,7 @@ def create(
     if db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail="Okänd kommun")
     check_fields(
-        ai=True, labels={"name": "Gruppnamnet"}, name=data.name, description=data.description,
+        labels={"name": "Gruppnamnet"}, name=data.name, description=data.description,
         meeting_info=data.meeting_info, place_name=data.place_name, address=data.address,
     )
     try:

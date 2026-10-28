@@ -1,11 +1,9 @@
-"""Benchmark the local profanity filter against the remote Hugging Face classifier.
+"""Benchmark the local profanity filter against a small, manually labeled set.
 
 Run from ``backend/`` with:
     python -m app.scripts.benchmark_moderation
 
-The manually assigned labels below are a small diagnostic set, not a general
-estimate of moderation quality. Review the text and labels before pasting the
-results into SCRUM-266.
+This diagnostic measures only the local word filter and makes no network calls.
 """
 
 from __future__ import annotations
@@ -14,8 +12,6 @@ from dataclasses import dataclass
 from time import perf_counter
 
 from app.core.profanity import contains_profanity
-from app.services.ai_clients import Deadline, ToxicityResult, get_toxicity_classifier
-from app.services.text_moderation import TOXICITY_THRESHOLD
 
 
 @dataclass(frozen=True)
@@ -28,11 +24,8 @@ class Example:
 @dataclass(frozen=True)
 class Result:
     example: Example
-    local_flagged: bool
-    ai_flagged: bool | None
-    score: float | None
+    flagged: bool
     latency_ms: float
-    error: str | None = None
 
 
 EXAMPLES = (
@@ -63,21 +56,14 @@ EXAMPLES = (
 )
 
 
-def _classify(classifier, text: str) -> tuple[ToxicityResult | None, float, str | None]:
-    started = perf_counter()
-    try:
-        result = classifier.classify(text, Deadline())
-    except Exception as error:
-        return None, (perf_counter() - started) * 1000, type(error).__name__
-    return result, (perf_counter() - started) * 1000, None
-
-
-def _confusion(examples: list[Example], predictions: list[bool]) -> dict[str, int]:
+def _confusion(results: tuple[Result, ...]) -> dict[str, int]:
     counts = {"TP": 0, "FP": 0, "FN": 0, "TN": 0}
-    for example, flagged in zip(examples, predictions, strict=True):
+    for result in results:
         key = (
-            "TP" if flagged else "FN"
-        ) if example.prohibited else ("FP" if flagged else "TN")
+            ("TP" if result.flagged else "FN")
+            if result.example.prohibited
+            else ("FP" if result.flagged else "TN")
+        )
         counts[key] += 1
     return counts
 
@@ -86,69 +72,38 @@ def _percent(numerator: int, denominator: int) -> str:
     return "n/a" if denominator == 0 else f"{numerator / denominator:.1%}"
 
 
-def _print_metrics(name: str, examples: list[Example], predictions: list[bool]) -> None:
-    counts = _confusion(examples, predictions)
-    total = len(examples)
-    print(f"\n{name} ({total}/{len(EXAMPLES)} bedömda)")
-    print("Mått       Värde")
-    print("---------- ------")
-    print(f"Träffsäkerhet {_percent(counts['TP'] + counts['TN'], total)}")
-    print(f"Precision     {_percent(counts['TP'], counts['TP'] + counts['FP'])}")
-    print(f"Recall        {_percent(counts['TP'], counts['TP'] + counts['FN'])}")
-    print(f"Missade       {counts['FN']}")
-    print(f"Falsklarm     {counts['FP']}")
-
-
-def run() -> int:
-    classifier = get_toxicity_classifier()
-    results: list[Result] = []
+def run() -> tuple[Result, ...]:
+    results = []
     for example in EXAMPLES:
-        local_flagged = contains_profanity(example.text)
-        ai_result, latency_ms, error = _classify(classifier, example.text)
-        ai_flagged = None if ai_result is None else ai_result.flagged or ai_result.score >= TOXICITY_THRESHOLD
-        results.append(Result(
-            example=example,
-            local_flagged=local_flagged,
-            ai_flagged=ai_flagged,
-            score=None if ai_result is None else ai_result.score,
-            latency_ms=latency_ms,
-            error=error,
-        ))
+        started = perf_counter()
+        flagged = contains_profanity(example.text)
+        results.append(Result(example, flagged, (perf_counter() - started) * 1000))
 
-    print("SCRUM-266: lokal ordkontroll jämfört med Hugging Face-moderering")
-    print("Förfacit är manuellt; detta lilla urval är diagnostiskt, inte en generell kvalitetsmätning.\n")
-    print("| # | Kategori | Facit | Lokalt | AI | Score | Latency ms | Text |")
-    print("|---:|---|---|---|---|---:|---:|---|")
-    for index, result in enumerate(results, start=1):
+    measured = tuple(results)
+    print("SCRUM-266: lokalt ordfilter (24 manuellt märkta meningar)")
+    print("Diagnostiskt urval; resultaten är inte en generell kvalitetsmätning.\n")
+    print("| # | Kategori | Facit | Lokalt | Latency ms | Text |")
+    print("|---:|---|---|---|---:|---|")
+    for index, result in enumerate(measured, start=1):
         example = result.example
-        local = "FLAGG" if result.local_flagged else "OK"
-        ai = "FEL" if result.error else "FLAGG" if result.ai_flagged else "OK"
-        score = "-" if result.score is None else f"{result.score:.3f}"
         text = example.text.replace("|", "\\|")
-        if result.error:
-            text += f" (fel: {result.error})"
         print(
             f"| {index} | {example.category} | {'OTILLÅTEN' if example.prohibited else 'OK'} "
-            f"| {local} | {ai} | {score} | {result.latency_ms:.0f} | {text} |"
+            f"| {'FLAGG' if result.flagged else 'OK'} | {result.latency_ms:.3f} | {text} |"
         )
 
-    local_predictions = [result.local_flagged for result in results]
-    ai_results = [result for result in results if result.ai_flagged is not None]
-    _print_metrics("Lokalt ordfilter", [result.example for result in results], local_predictions)
-    _print_metrics(
-        "HF-moderering",
-        [result.example for result in ai_results],
-        [result.ai_flagged for result in ai_results],
-    )
-    errors = sum(result.error is not None for result in results)
-    latencies = [result.latency_ms for result in results]
-    print(f"\nAI-fel: {errors}/{len(results)}")
-    print(f"Genomsnittlig AI-latency: {sum(latencies) / len(latencies):.0f} ms")
-    if errors:
-        print("Mätningen är ofullständig eftersom vissa AI-anrop inte gav något resultat.")
-        return 1
-    return 0
+    counts = _confusion(measured)
+    total = len(measured)
+    print("\nMått                 Värde")
+    print("-------------------- ------")
+    print(f"Träffsäkerhet         {_percent(counts['TP'] + counts['TN'], total)}")
+    print(f"Precision             {_percent(counts['TP'], counts['TP'] + counts['FP'])}")
+    print(f"Recall                {_percent(counts['TP'], counts['TP'] + counts['FN'])}")
+    print(f"Missade otillåtna     {counts['FN']}")
+    print(f"Falsklarm             {counts['FP']}")
+    print(f"Genomsnittlig latency {sum(row.latency_ms for row in measured) / total:.3f} ms")
+    return measured
 
 
 if __name__ == "__main__":
-    raise SystemExit(run())
+    run()
