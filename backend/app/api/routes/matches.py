@@ -58,6 +58,7 @@ def read_matches(
         matches.append(
             MatchResponse(
                 **to_person_response(db, user, current_user).model_dump(),
+                profile_text=user.profile.profile_text if user.profile else None,
                 percent=suggestion.match.percent,
                 level=suggestion.match.level,
                 shared_interests=shared,

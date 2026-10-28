@@ -185,6 +185,17 @@ def test_a_hidden_age_is_not_sent_to_the_one_looking(client, db, user, climbing)
     assert by_name["Shown"]["age"] is not None
 
 
+def test_a_suggestion_carries_the_whole_about_me_text(client, db, user, climbing):
+    """Kortet visar Om mig-texten i sin helhet (den är redan offentlig på personens profil)."""
+    _fill_profile(db, user, climbing)
+    long_text = ("Jag bouldrar och vandrar gärna. " * 20).strip()
+    _person(db, "writer", climbing, name="Writer", text=long_text)
+
+    match = next(m for m in _matches(client)["matches"] if m["name"] == "Writer")
+
+    assert match["profile_text"] == long_text
+
+
 def _names(client, **params):
     return {m["name"] for m in _matches(client, **params)["matches"]}
 
