@@ -176,18 +176,18 @@ function StyleGuide() {
         <h2>Knappar</h2>
         <p className="swatch-label">Typsnitt: Inter (versaler, bokstavsavstånd)</p>
         <div className="account-choice-links" style={{ marginTop: '1rem' }}>
-          <a href="#" className="account-choice-link" onClick={(e) => e.preventDefault()}>
+          <button className="secondary-button" type="button">
             Sekundär knapp
-          </a>
+          </button>
           <button className="primary-button" type="button">
             Primär knapp
           </button>
         </div>
         <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Liten variant (.button-small)</p>
         <div className="account-choice-links" style={{ marginTop: '1rem' }}>
-          <a href="#" className="account-choice-link button-small" onClick={(e) => e.preventDefault()}>
+          <button className="secondary-button button-small" type="button">
             Sekundär
-          </a>
+          </button>
           <button className="primary-button button-small" type="button">
             Primär
           </button>
@@ -537,6 +537,50 @@ function StyleGuide() {
             onChange={setFilterMunicipality}
             emptyLabel="Alla kommuner"
           />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Filter med sökruta (InterestFilter)
+        </p>
+        <p className="hint-text">
+          En rullista och en sökruta (input) i samma rad (.filter-select-row). Träffarna står i en ruta under raden
+          (.explorer med .explorer-box, .explorer-rows och .explorer-row), med en liten knapp (.secondary-button) per
+          träff; .filter-select-row-compact håller rutan lika smal som filtren. Det som är valt står som en tagg med ett
+          kryss (.interest-tag med .interest-tag-remove) som tar bort filtret.
+        </p>
+        <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
+          <select aria-label="Exempel 3"><option>Alla intressen</option></select>
+          <input type="search" aria-label="Exempel 4" placeholder="Sök andra intressen" />
+        </div>
+        <ul className="interest-tags" style={{ marginTop: '0.75rem' }}>
+          <li>
+            <span className="interest-tag">
+              Klättring
+              <button type="button" className="interest-tag-remove" aria-label="Ta bort filtret Klättring">
+                ×
+              </button>
+            </span>
+          </li>
+        </ul>
+        <div className="explorer filter-select-row-compact" style={{ marginTop: '0.75rem' }}>
+          <div className="explorer-box">
+            <ul className="explorer-rows">
+              <li className="explorer-row">
+                <span className="explorer-name">
+                  Bouldering
+                  <span className="hint-text">Friluftsliv › Klättring</span>
+                </span>
+                <button type="button" className="secondary-button">Välj</button>
+              </li>
+              <li className="explorer-row">
+                <span className="explorer-name">
+                  Sportklättring
+                  <span className="hint-text">Friluftsliv › Klättring</span>
+                </span>
+                <button type="button" className="secondary-button">Välj</button>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
