@@ -44,7 +44,7 @@ def read_matches(
         shared = sorted({link.interest.name for link in user.interest_links if link.interest_id in suggestion.match.shared})
         matches.append(
             MatchResponse(
-                **to_person_response(user).model_dump(),
+                **to_person_response(db, user, current_user).model_dump(),
                 percent=suggestion.match.percent,
                 level=suggestion.match.level,
                 shared_interests=shared,

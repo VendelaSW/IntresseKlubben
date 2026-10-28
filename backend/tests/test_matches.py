@@ -164,3 +164,18 @@ def test_the_list_is_seen_from_the_one_asking_so_covering_all_my_interests_ranks
     theirs = next(m for m in _matches(client)["matches"] if m["name"] == user.username.title())
 
     assert mine["percent"] > theirs["percent"]
+
+
+def test_a_hidden_age_is_not_sent_to_the_one_looking(client, db, user, climbing):
+    """Dölj åldern (SCRUM-134): kortet i förslagen får inte avslöja en ålder som personen har dolt."""
+    _fill_profile(db, user, climbing)
+    hidden = _person(db, "hidden", climbing, name="Hidden")
+    shown = _person(db, "shown", climbing, name="Shown")
+    hidden.profile.age_hidden = True
+    db.commit()
+
+    by_name = {m["name"]: m for m in _matches(client)["matches"]}
+
+    assert by_name["Hidden"]["age"] is None
+    assert by_name["Hidden"]["age_hidden"] is False  # den som tittar får inte veta att den är dold
+    assert by_name["Shown"]["age"] is not None
