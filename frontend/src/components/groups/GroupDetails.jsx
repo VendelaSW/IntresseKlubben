@@ -62,7 +62,7 @@ function GroupDetails({
       setInviteNotice(
         invited.length === 0
           ? 'Alla var redan inbjudna eller med.'
-          : `Bjöd in ${invited.length} ${invited.length === 1 ? 'person' : 'personer'}.`,
+          : `Bjöd in ${invited.length} ${invited.length === 1 ? 'medlem' : 'medlemmar'}.`,
       )
     } catch (err) {
       setInviteError(err.message)

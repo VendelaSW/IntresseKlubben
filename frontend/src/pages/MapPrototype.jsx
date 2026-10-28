@@ -250,7 +250,7 @@ function withCount(el, name, count) {
   const badge = countBadge(count)
   if (!badge) return
   el.append(badge)
-  el.setAttribute('aria-label', `${name}, ${countText(count)} personer`)
+  el.setAttribute('aria-label', `${name}, ${countText(count)} medlemmar`)
 }
 
 // Var ett landskapsnamn ska stå, utan att krocka med de namn och knappar som

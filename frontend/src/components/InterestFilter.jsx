@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { searchInterests } from '../services/interests'
 
-// Intressefiltret under Personer > Sök. Två sätt att välja, och bara ett gäller åt gången:
+// Intressefiltret under Medlemmar > Sök. Två sätt att välja, och bara ett gäller åt gången:
 //
 //  - Rullistan innehåller bara ens egna intressen (`myInterests`), så att man filtrerar på det man själv har.
 //  - Sökrutan söker bland hela biblioteket. Man väljer en träff och den visas som en tagg med ett kryss under filtren,

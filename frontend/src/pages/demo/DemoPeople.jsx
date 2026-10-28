@@ -3,7 +3,7 @@ import { PersonCard } from '../../components/DemoCards'
 import { matchPeople, useDemo } from '../../hooks/useDemo'
 
 const FILTERS = [
-  { key: 'suggested', label: 'Förslag' },
+  { key: 'suggested', label: 'Sök' },
   { key: 'requests', label: 'Kompisförfrågningar' },
   { key: 'contacts', label: 'Kompisar' },
 ]
@@ -23,12 +23,12 @@ function DemoPeople() {
   const empty = {
     suggested: 'Du är redan kompis med alla förslag. Snyggt!',
     requests: 'Inga kompisförfrågningar att svara på.',
-    contacts: 'Inga kompisar än. Skicka en kompisförfrågan till någon under Förslag.',
+    contacts: 'Inga kompisar än. Skicka en kompisförfrågan till någon under Sök.',
   }
 
   return (
     <section className="app-section">
-      <h1 className="app-title">Personer</h1>
+      <h1 className="app-title">Medlemmar</h1>
       <div className="filter-tabs" role="tablist">
         {FILTERS.map((f) => (
           <button

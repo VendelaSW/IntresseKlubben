@@ -29,7 +29,7 @@ function localInputValue(date) {
 // "2 personer och 1 klubb", eller en kort uppmaning om inget är valt än.
 function inviteSummary({ userIds, groupIds }) {
   const parts = []
-  if (userIds.length > 0) parts.push(`${userIds.length} ${userIds.length === 1 ? 'person' : 'personer'}`)
+  if (userIds.length > 0) parts.push(`${userIds.length} ${userIds.length === 1 ? 'medlem' : 'medlemmar'}`)
   if (groupIds.length > 0) parts.push(`${groupIds.length} ${groupIds.length === 1 ? 'klubb' : 'klubbar'}`)
   return parts.length > 0 ? `${parts.join(' och ')} valda. Skickas när eventet har skapats.` : 'Valfritt.'
 }

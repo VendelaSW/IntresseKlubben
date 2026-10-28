@@ -27,7 +27,7 @@ import { NotificationDetails, NotificationRow } from './NotificationsPage'
 const NAV_ICONS = [
   { icon: hemIcon, label: 'Hem' },
   { icon: brevIcon, label: 'Brev' },
-  { icon: personerIcon, label: 'Personer' },
+  { icon: personerIcon, label: 'Medlemmar' },
   { icon: klubbarIcon, label: 'Klubbar' },
   { icon: eventIcon, label: 'Events' },
 ]
@@ -502,7 +502,7 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           På dator ligger rubrik och flikar till vänster på alla sidor, på mobil centrerade (Brev,
-          Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
+          Medlemmar, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
           .app-section för sidor med kort i rutnät (Klubbar och Events): "+ Skapa"-knappen direkt efter
           rubriken och tätare avstånd. Flikarna är sammanhängande knappar med en ram runt, och den
           valda är gul (FilterTabs). På mobil fyller de bredden i en jämn rad, med korta namn (`short`) och antalet som
@@ -585,7 +585,7 @@ function StyleGuide() {
           Grupper i en lista (.match-group, .match-group-title) och "Ångra" (.undo-notice)
         </p>
         <p className="hint-text">
-          Förslag på Personer: de man har intressen gemensamt med står under "Personer med liknande
+          Sök på Medlemmar: de man har intressen gemensamt med står under "Medlemmar med liknande
           intressen", i grupper efter antal gemensamma intressen, med antalet som rubrik ovanför
           korten. Har man tagit bort någon står antalet och "Visa dem igen" under filtren. Direkt efter
           att man tagit bort någon visas .undo-notice med "Ångra" en stund, längst ner i blocket även

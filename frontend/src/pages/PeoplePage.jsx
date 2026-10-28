@@ -30,7 +30,7 @@ import { useConfirm } from '../hooks/useConfirm'
 import LoadError from '../components/LoadError'
 
 const TABS = [
-  { id: 'suggested', label: 'Förslag' },
+  { id: 'suggested', label: 'Sök' },
   { id: 'incoming', label: 'Kompisförfrågningar', short: 'Förfrågningar' },
   { id: 'contacts', label: 'Kompisar' },
 ]
@@ -51,10 +51,10 @@ const UNDO_MS = 8000
 
 // Vad fliken är till för, när den är tom (se EmptyState).
 const EMPTY_TEXT = {
-  suggested: 'Här föreslår vi personer som gillar samma saker som du. Lägg till fler intressen på din profil för fler träffar.',
+  suggested: 'Här föreslår vi medlemmar som gillar samma saker som du. Lägg till fler intressen på din profil för fler träffar.',
   incoming: 'När någon vill bli din kompis hamnar förfrågan här.',
   outgoing: 'Kompisförfrågningar du har skickat och som väntar på svar hamnar här.',
-  contacts: 'Här samlas dina kompisar. Skicka en kompisförfrågan till någon under Förslag.',
+  contacts: 'Här samlas dina kompisar. Skicka en kompisförfrågan till någon under Sök.',
 }
 
 function sharedCountOf(person, myInterestIds) {
@@ -84,17 +84,17 @@ function sharedInterestsText(person, myInterestIds) {
   return count === 0 ? null : <>Ni har {sharedCountText(count)}</>
 }
 
-// Personer-sidan: bläddra och filtrera andra användare (Förslag), svara på
+// Medlemmar-sidan: bläddra och filtrera andra användare (Sök), svara på
 // inkommande kompisförfrågningar och ångra skickade (Förfrågningar) och se
-// sina kompisar (Kompisar). Under Förslag står de man har intressen
-// gemensamt med under "Personer med liknande intressen", i grupper efter hur
+// sina kompisar (Kompisar). Under Sök står de man har intressen
+// gemensamt med under "Medlemmar med liknande intressen", i grupper efter hur
 // många intressen man har gemensamt (rubriken ovanför varje grupp, så att det
 // syns utan att läsa korten), och resten under "Fler i Intresseklubben". Inom
 // en grupp står de först som håller på med flest av samma intressen som en själv.
 // Sidan är ett <section className="app-section"> rakt av, precis som
 // pages/demo/DemoPeople.jsx - INTE inslaget i content-stack (den är byggd
 // för smala centrerade sidor och krymper annars hela sidan efter innehållet,
-// vilket flyttar om allt vid varje fliksbyte). Förslag kan filtreras på
+// vilket flyttar om allt vid varje fliksbyte). Sök kan filtreras på
 // intresse, kommun, kön och ålder.
 const NO_PEOPLE = []
 const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: [] }
@@ -122,7 +122,7 @@ function PeoplePage() {
   const [municipalities, setMunicipalities] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  // Den man nyss tog bort från Förslag ({ id, name }), med "Ångra" en stund.
+  // Den man nyss tog bort från Sök ({ id, name }), med "Ångra" en stund.
   const [removed, setRemoved] = useState(null)
 
   useEffect(() => {
@@ -168,12 +168,12 @@ function PeoplePage() {
     [interestId, municipalityCode, gender, minAge, maxAge, ageError],
   )
 
-  // Personerna och ens kompisar ur det delade minnet (se services/queryClient.js):
+  // Medlemmarna och ens kompisar ur det delade minnet (se services/queryClient.js):
   // har man varit här nyss visas de direkt och hämtas om i bakgrunden. När
   // filtren ändras ligger den förra listan kvar tills den nya har kommit.
   const peopleResult = useQuery({ ...peopleQuery(query), placeholderData: keepPreviousData })
   const contactsResult = useQuery(contactsQuery)
-  // Hur många man har tagit bort från Förslag. "Visa dem igen" syns bara då.
+  // Hur många man har tagit bort från Sök. "Visa dem igen" syns bara då.
   const dismissedCount = useQuery(dismissedCountQuery).data?.count ?? 0
   const people = peopleResult.data ?? NO_PEOPLE
   const contactsData = contactsResult.data ?? NO_CONTACTS
@@ -198,7 +198,7 @@ function PeoplePage() {
     return (
       <div className="content-stack">
         <LoadError
-          text="Kunde inte hämta personerna."
+          text="Kunde inte hämta medlemmarna."
           onRetry={retryPage}
           retrying={peopleResult.isFetching || contactsResult.isFetching}
         />
@@ -207,7 +207,7 @@ function PeoplePage() {
   }
 
   // Den som redan är ens kompis, eller har skickat en kompisförfrågan till en,
-  // har sin egen flik - visa dem inte i Förslag också. Den som redan fått en
+  // har sin egen flik - visa dem inte i Sök också. Den som redan fått en
   // förfrågan skickad till sig stannar kvar, men med en statuspill i stället
   // för "Skicka kompisförfrågan".
   const outgoingByUserId = new Map(
@@ -230,7 +230,7 @@ function PeoplePage() {
         sharedPractisedCount(b.person) - sharedPractisedCount(a.person),
     )
 
-  // Förslag delas i två: de man har minst ett intresse gemensamt med, och alla andra.
+  // Sök delas i två: de man har minst ett intresse gemensamt med, och alla andra.
   // De gemensamma grupperas efter antal, flest först (listan är redan sorterad).
   const matchGroups = []
   for (const item of suggested) {
@@ -242,7 +242,7 @@ function PeoplePage() {
   const others = suggested.filter(({ person }) => sharedCount(person) === 0)
 
   // Gemensamma intressen markerade och förklarade på korten under
-  // Kompisförfrågningar och Kompisar. Under Förslag står antalet i gruppens rubrik.
+  // Kompisförfrågningar och Kompisar. Under Sök står antalet i gruppens rubrik.
   function sharedProps(person) {
     return { sharedInterestIds: myInterestIds, reason: sharedInterestsText(person, myInterestIds) }
   }
@@ -325,9 +325,9 @@ function PeoplePage() {
 
   return (
     <section className="app-section">
-      <h1 className="app-title">Personer</h1>
+      <h1 className="app-title">Medlemmar</h1>
 
-      {/* Antalet bara på Förslag och Kompisförfrågningar, inte på Kompisar. */}
+      {/* Antalet bara på Sök och Kompisförfrågningar, inte på Kompisar. */}
       <FilterTabs
         tabs={TABS.map((t) => ({ ...t, count: t.id === 'contacts' ? undefined : lists[t.id].length }))}
         active={tab}
@@ -393,7 +393,7 @@ function PeoplePage() {
           )}
           {dismissedCount > 0 && (
             <p className="hint-text">
-              {dismissedCount === 1 ? '1 person borttagen' : `${dismissedCount} personer borttagna`} från förslagen.{' '}
+              {dismissedCount === 1 ? '1 medlem borttagen' : `${dismissedCount} medlemmar borttagna`} från förslagen.{' '}
               <button type="button" className="text-button" disabled={busy} onClick={handleResetDismissed}>
                 Visa dem igen
               </button>
@@ -464,7 +464,7 @@ function PeoplePage() {
         <>
           {matchGroups.length > 0 && (
             <>
-              <h2>Personer med liknande intressen</h2>
+              <h2>Medlemmar med liknande intressen</h2>
               <p className="hint-text">Flest gemensamma intressen först.</p>
               {matchGroups.map((group) => (
                 <section key={group.count} className="match-group">
