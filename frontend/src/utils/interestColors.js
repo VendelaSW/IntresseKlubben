@@ -5,10 +5,10 @@
 // färgschema (intressen_fargschema.pdf).
 //
 // Färgen slås upp på områdets slug (area_slug från backend), som inte ändras när
-// området byter namn (Kreativitet heter fortfarande "skapande"). Namnet är en
-// reserv för det som inte har någon slug, t.ex. förslag i intervjun. Ett nytt
-// huvudområde i biblioteket (backend/app/data/interests.json) behöver läggas
-// till här; tills dess får det den neutrala färgen.
+// området byter namn (Kreativitet heter fortfarande "skapande"). Allt som visar
+// intressetaggar får sluggen från backend, också intervjuns förslag (SCRUM-281).
+// Ett nytt huvudområde i biblioteket (backend/app/data/interests.json) behöver
+// läggas till här; tills dess får det den neutrala färgen.
 const AREA_COLORS = {
   musik: ['#ffd5d8', '#ffedee'],
   dans: ['#ffcdc4', '#ffeeea'],
@@ -39,44 +39,12 @@ const AREA_COLORS = {
   'ovrigt-och-nischat': ['#e9e4d8', '#f4f1ea'],
 }
 
-// Reserven: områdenas namn (nuvarande och tidigare) till sluggen.
-const SLUG_BY_NAME = {
-  Musik: 'musik',
-  Dans: 'dans',
-  'Scen och teater': 'scen-och-teater',
-  'Konst och museer': 'museer-och-konst',
-  Kreativitet: 'skapande',
-  Skapande: 'skapande',
-  'Mode och stil': 'mode-och-stil',
-  'Hem och inredning': 'hem-och-inredning',
-  'Mat och dryck': 'mat-och-dryck',
-  'Resor och äventyr': 'resor',
-  'Fordon och motorsport': 'fordon-och-motorsport',
-  'Sport och träning': 'sport-och-traning',
-  Friluftsliv: 'friluftsliv',
-  'Djur och natur': 'djur-och-natur',
-  'Hälsa och välmående': 'halsa-och-valmaende',
-  'Mystik och andlighet': 'mystik-och-andlighet',
-  Vetenskap: 'vetenskap',
-  Teknik: 'teknik',
-  Gaming: 'tv-spel',
-  'Sällskapsspel och pussel': 'spel-och-pussel',
-  'Spel och pussel': 'spel-och-pussel',
-  'Film och tv': 'film-och-tv',
-  'Podcasts och radio': 'podcasts-och-radio',
-  'Böcker och litteratur': 'bocker',
-  Språk: 'sprak',
-  Historia: 'kultur-och-samhalle-historia',
-  'Samhälle och engagemang': 'samhalle-och-engagemang',
-  'Övrigt och nischat': 'ovrigt-och-nischat',
-}
-
 const NEUTRAL = AREA_COLORS['ovrigt-och-nischat']
 
 // CSS-variablerna för en tagg i området: --tag-fill (taggen och rutan med
 // underintressen) och --tag-sub (underintressena). Används som style på taggen.
-// `slug` är områdets slug när den finns, `area` dess namn (reserven).
-export function areaColors(area, slug) {
-  const [fill, sub] = AREA_COLORS[slug] ?? AREA_COLORS[SLUG_BY_NAME[area]] ?? NEUTRAL
+// `slug` är huvudområdets slug; utan den, eller för ett okänt område, blir färgen neutral.
+export function areaColors(slug) {
+  const [fill, sub] = AREA_COLORS[slug] ?? NEUTRAL
   return { '--tag-fill': fill, '--tag-sub': sub }
 }
