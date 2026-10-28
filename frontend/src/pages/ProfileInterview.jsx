@@ -10,7 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
 import { sealInterest, suggestInterest } from '../services/interests'
-import { ABOUT_AI_NOTE, GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
+import { ABOUT_AI_NOTE, ABOUT_LABEL_SHORT, ABOUT_PLACEHOLDER, GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
 
 // Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions`
 // är undertexterna som visas under videon medan klippet spelas (för den som har ljudet
@@ -55,7 +55,7 @@ const STEPS = [
   },
   {
     id: 'person',
-    question: 'Till sist.\nVem är du? Beskriv din personlighet!',
+    question: 'Till sist.\nBeskriv dig själv och vilken sorts människor du skulle vilja träffa här!',
     video: '/video/person_fix.mp4',
     captions: [{ from: 0.9, to: 3.0, text: 'Berätta om din personlighet!' }],
   },
@@ -851,7 +851,7 @@ function ProfileInterview() {
                   )}
 
                   {step.id === 'person' && (
-                    <FormField id="interview-about" label="Berätta mer om dig som person">
+                    <FormField id="interview-about" label={ABOUT_LABEL_SHORT}>
                       <TextareaWithCount
                         id="interview-about"
                         value={answers.about}
@@ -861,6 +861,7 @@ function ProfileInterview() {
                         }}
                         maxLength={800}
                         rows={6}
+                        placeholder={ABOUT_PLACEHOLDER}
                         required
                       />
                       <p className="hint-text">{ABOUT_AI_NOTE}</p>
