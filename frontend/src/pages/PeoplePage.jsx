@@ -5,6 +5,7 @@ import MunicipalityPicker from '../components/MunicipalityPicker'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
 import EmptyState from '../components/EmptyState'
 import FilterTabs from '../components/FilterTabs'
+import InterestFilter from '../components/InterestFilter'
 import PersonCard from '../components/PersonCard'
 import { useTabParam } from '../hooks/useTabParam'
 import {
@@ -16,7 +17,7 @@ import {
   removeContactConfirm,
   sendContactRequest,
 } from '../services/contacts'
-import { getAllInterests, getMyInterests } from '../services/interests'
+import { getMyInterests } from '../services/interests'
 import { GENDER_OPTIONS, getMunicipalities } from '../services/profile'
 import {
   dismissSuggestion,
@@ -107,14 +108,17 @@ function PeoplePage() {
   const tab = urlTab ?? 'suggested'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [myPractisedIds, setMyPractisedIds] = useState(new Set())
+  // `interestId` är rullistans val (ett av ens egna intressen) och `pickedInterest` intresset man sökte fram bland alla;
+  // bara ett av dem gäller åt gången (se InterestFilter).
   const [filters, setFilters] = useState({
     interestId: '',
+    pickedInterest: null,
     municipalityCode: '',
     gender: '',
     minAge: '',
     maxAge: '',
   })
-  const [interests, setInterests] = useState([])
+  const [myInterests, setMyInterests] = useState([])
   const [municipalities, setMunicipalities] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -129,10 +133,10 @@ function PeoplePage() {
 
   const loadFilterData = useCallback(() => {
     setFilterDataFailed(false)
-    Promise.all([getAllInterests(), getMunicipalities(), getMyInterests()])
-      .then(([i, m, mine]) => {
-        setInterests(i)
+    Promise.all([getMunicipalities(), getMyInterests()])
+      .then(([m, mine]) => {
         setMunicipalities(m)
+        setMyInterests(mine)
         setMyInterestIds(new Set(mine.map((interest) => interest.id)))
         setMyPractisedIds(new Set(mine.filter((interest) => interest.practices).map((interest) => interest.id)))
       })
@@ -151,7 +155,8 @@ function PeoplePage() {
       : minAge !== null && maxAge !== null && minAge > maxAge
         ? 'Från-åldern kan inte vara högre än till-åldern.'
         : ''
-  const { interestId, municipalityCode, gender } = filters
+  const { municipalityCode, gender } = filters
+  const interestId = filters.pickedInterest ? String(filters.pickedInterest.id) : filters.interestId
   const query = useMemo(
     () => ({
       interestId,
@@ -331,19 +336,14 @@ function PeoplePage() {
 
       {tab === 'suggested' && (
         <>
+          <InterestFilter
+            myInterests={myInterests}
+            mineId={filters.interestId}
+            picked={filters.pickedInterest}
+            onPickMine={(id) => setFilters({ ...filters, interestId: id, pickedInterest: null })}
+            onPick={(interest) => setFilters({ ...filters, interestId: '', pickedInterest: interest })}
+          />
           <div className="filter-select-row filter-select-row-compact">
-            <select
-              aria-label="Filtrera på intresse"
-              value={filters.interestId}
-              onChange={(e) => setFilters({ ...filters, interestId: e.target.value })}
-            >
-              <option value="">Alla intressen</option>
-              {interests.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.name}
-                </option>
-              ))}
-            </select>
             <MunicipalityPicker
               aria-label="Filtrera på kommun"
               municipalities={municipalities}
