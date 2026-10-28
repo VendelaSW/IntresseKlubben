@@ -89,7 +89,7 @@ def test_an_existing_interest_is_proposed_with_its_place_in_the_tree_and_the_act
     assert proposal == {
         "key": "p1",
         "label": None,
-        "interest": {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "is_new": False, "parent_key": None},
+        "interest": {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "area_slug": "musik", "is_new": False, "parent_key": None},
         "activity": "spela",
     }
 
@@ -114,8 +114,8 @@ def test_a_missing_interest_and_its_missing_sub_are_both_proposed_the_sub_under_
     }
     ai(extract=tree(("modellbygge", ["fyrmodeller"])), match=match, clarify=clarify_for(("t1", "", ["skapa"], "none"), ("t2", "", [], "none")))
     top, sub = analyze(client, "Jag bygger fyrmodeller.").json()["proposals"]
-    assert top["interest"] == {"id": None, "name": "Modellbygge", "path": ["Skapande"], "is_new": True, "parent_key": None}
-    assert sub["interest"] == {"id": None, "name": "Fyrmodeller", "path": ["Skapande", "Modellbygge"], "is_new": True, "parent_key": "p1"}
+    assert top["interest"] == {"id": None, "name": "Modellbygge", "path": ["Skapande"], "area_slug": "skapande", "is_new": True, "parent_key": None}
+    assert sub["interest"] == {"id": None, "name": "Fyrmodeller", "path": ["Skapande", "Modellbygge"], "area_slug": "skapande", "is_new": True, "parent_key": "p1"}
 
 
 def test_the_proposals_have_keys_in_the_order_they_were_mentioned(client, user, library):
@@ -388,7 +388,7 @@ def test_the_proposals_are_the_same_with_the_filter_as_without_it(client, user, 
     monkeypatch.setattr(route, "CandidateFinder", lambda session: CandidateFinder(session, embedder=embedder, per_tag=1, for_text=1))
     ai(extract=tree(("modellbygge", [])), match=match)
     (proposal,) = analyze(client, "Jag bygger modeller.").json()["proposals"]
-    assert proposal["interest"] == {"id": None, "name": "Modellbygge", "path": ["Skapande"], "is_new": True, "parent_key": None}
+    assert proposal["interest"] == {"id": None, "name": "Modellbygge", "path": ["Skapande"], "area_slug": "skapande", "is_new": True, "parent_key": None}
 
 
 # ---------- Ett enda intresse med egna ord: POST /interests/suggest ----------
@@ -411,7 +411,7 @@ def test_a_known_interest_is_suggested_without_any_ai_call(client, user, library
     response = suggest(client, "Hårdrock")  # alias till Metal
     assert response.status_code == 200
     (proposal,) = response.json()["proposals"]
-    assert proposal["interest"] == {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "is_new": False, "parent_key": None}
+    assert proposal["interest"] == {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "area_slug": "musik", "is_new": False, "parent_key": None}
     assert llm.calls == [] and moderator.batches == []
     assert read_token(response.json()["token"], user.id) == [
         {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka", "utova"], "interest_id": library["metal"].id}
@@ -423,7 +423,7 @@ def test_a_new_interest_gets_a_parent_and_is_the_users_own_words_with_a_capital_
     response = suggest(client, "  bananskalning!  ")
     assert response.status_code == 200
     (proposal,) = response.json()["proposals"]
-    assert proposal["interest"] == {"id": None, "name": "Bananskalning", "path": ["Skapande"], "is_new": True, "parent_key": None}
+    assert proposal["interest"] == {"id": None, "name": "Bananskalning", "path": ["Skapande"], "area_slug": "skapande", "is_new": True, "parent_key": None}
     assert [claim["new"] for claim in read_token(response.json()["token"], user.id)] == [{"name": "Bananskalning", "parent_id": library["skapande"].id}]
 
 
@@ -531,7 +531,7 @@ def test_a_chosen_existing_interest_gets_a_seal_without_any_ai_call(client, user
     response = client.post(SUGGEST_URL, json={"interest_id": library["metal"].id})
     assert response.status_code == 200
     (proposal,) = response.json()["proposals"]
-    assert proposal["interest"] == {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "is_new": False, "parent_key": None}
+    assert proposal["interest"] == {"id": library["metal"].id, "name": "Metal", "path": ["Musik"], "area_slug": "musik", "is_new": False, "parent_key": None}
     assert llm.calls == [] and moderator.batches == []
     assert read_token(response.json()["token"], user.id) == [
         {"key": "p1", "activity": "", "allowed": ["lyssna", "spela", "skapa", "besoka", "utova"], "interest_id": library["metal"].id}

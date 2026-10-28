@@ -659,6 +659,21 @@ def test_the_whole_chain_from_analysis_to_a_saved_profile(client, user, municipa
     assert modellbygge.parent_id == library["skapande"].id and modellbygge.created_by_user_id == user.id
 
 
+def test_the_proposals_carry_the_area_slug_for_the_tag_color(client, user, profile, library, db, monkeypatch):
+    # SCRUM-281: taggarna i intervjun färgas efter huvudområdets slug, som överallt annars. Ett befintligt intresse
+    # har sitt områdes, ett nytt sin förälders, och ett nytt under ett annat nytt (Fyrmodeller) det överliggandes.
+    monkeypatch.setattr(settings, "openai_api_key", "test-nyckel")
+    monkeypatch.setattr(settings, "openai_model", "test-modell")
+    library["metal"].aliases = "hårdrock"
+    db.commit()
+    body = analyze_with_fakes(client, library).json()
+    assert [(p["interest"]["name"], p["interest"]["area_slug"]) for p in body["proposals"]] == [
+        ("Metal", "musik"),
+        ("Modellbygge", "skapande"),
+        ("Fyrmodeller", "skapande"),
+    ]
+
+
 def test_the_whole_chain_with_only_the_sub_approved_by_the_user(client, user, profile, library, db, monkeypatch):
     monkeypatch.setattr(settings, "openai_api_key", "test-nyckel")
     monkeypatch.setattr(settings, "openai_model", "test-modell")

@@ -49,16 +49,26 @@ def display_name(name: str) -> str:
 
 
 def _interest_ref(match: Match, index: LibraryIndex, keys: dict[str, str], built: dict[str, dict]) -> dict:
-    """Intresset förslaget pekar på: id, namn, plats i trädet och om det är nytt."""
+    """Intresset förslaget pekar på: id, namn, plats i trädet, huvudområdets slug (taggens färg) och om det är
+    nytt. Ett nytt intresse får sin förälders område."""
     if match.kind == "same":
         item = index.by_id[match.interest_id]
-        return {"id": item.id, "name": item.name, "path": list(item.path), "is_new": False, "parent_key": None}
+        return {
+            "id": item.id, "name": item.name, "path": list(item.path), "area_slug": item.area_slug,
+            "is_new": False, "parent_key": None,
+        }
     name = display_name(match.name or match.tag.name)
     if match.parent_key is not None:  # en sub under ett annat nytt förslag i samma analys
         parent = built[keys[match.parent_key]]["interest"]
-        return {"id": None, "name": name, "path": [*parent["path"], parent["name"]], "is_new": True, "parent_key": keys[match.parent_key]}
+        return {
+            "id": None, "name": name, "path": [*parent["path"], parent["name"]], "area_slug": parent["area_slug"],
+            "is_new": True, "parent_key": keys[match.parent_key],
+        }
     parent_item = index.by_id[match.parent_id]
-    return {"id": None, "name": name, "path": [*parent_item.path, parent_item.name], "is_new": True, "parent_key": None}
+    return {
+        "id": None, "name": name, "path": [*parent_item.path, parent_item.name], "area_slug": parent_item.area_slug,
+        "is_new": True, "parent_key": None,
+    }
 
 
 def _sealed(proposal: dict, match: Match, allowed: list[str], keys: dict[str, str]) -> dict:

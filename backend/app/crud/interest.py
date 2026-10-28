@@ -97,7 +97,7 @@ def _ancestor_ids(parents: dict[int, int | None], interest_id: int) -> list[int]
 def load_library_index(db: Session) -> LibraryIndex:
     """Alla aktiva intressen som ett uppslagsregister för matchningen (se
     services/interest_matching.py): nivå, plats i trädet, alias och om intresset är ett eget som en
-    användare skapat. Hämtas med en fråga, och trädet byggs i minnet."""
+    användare skapat, och huvudområdets slug för taggens färg. Hämtas med en fråga, och trädet byggs i minnet."""
     rows = _active(db).all()
     by_id = {row.id: row for row in rows}
     parents = {row.id: row.parent_id for row in rows}
@@ -116,6 +116,7 @@ def load_library_index(db: Session) -> LibraryIndex:
                 own=row.source != InterestSource.library.value,
                 activities=tuple(row.activities) if row.activities is not None else None,
                 allow_children=row.allow_children is not False,
+                area_slug=(chain[0] if chain else row).slug,
             )
         )
     items.sort(key=lambda item: (*item.path, item.name))
