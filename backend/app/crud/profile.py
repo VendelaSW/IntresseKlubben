@@ -197,6 +197,20 @@ def list_people(
     return query.all()
 
 
+def count_people_by_municipality(
+    db: Session, exclude_user_id: int, exclude_user_ids: set[int] | None = None
+) -> dict[str, int]:
+    """Hur många andra personer med profil som bor i varje kommun (kommunkod -> antal), med samma filter som list_people.
+    Kommuner där ingen bor finns inte med. Bara antal, aldrig vilka (SCRUM-82)."""
+    rows = (
+        _people_query(db, exclude_user_id, None, None, exclude_user_ids)
+        .with_entities(Profile.municipality_code, func.count(Profile.id))
+        .group_by(Profile.municipality_code)
+        .all()
+    )
+    return {code: count for code, count in rows if code}
+
+
 def count_people_by_node(
     db: Session,
     exclude_user_id: int,

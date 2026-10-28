@@ -235,15 +235,15 @@ function StyleGuide() {
         </p>
         <InterestTree
           proposals={profileTree([
-            { id: 1, name: 'Historia', parent_id: null, path: [] },
-            { id: 2, name: 'Mynt', parent_id: 1, path: ['Historia'] },
-            { id: 3, name: 'Vikingatiden', parent_id: 1, path: ['Historia'] },
-            { id: 4, name: 'Medeltiden', parent_id: 1, path: ['Historia'] },
-            { id: 5, name: 'Antiken', parent_id: 1, path: ['Historia'] },
-            { id: 6, name: 'Metal', parent_id: 7, path: ['Musik', 'Rock'] },
-            { id: 8, name: 'Löpning', parent_id: 10, path: ['Sport och träning'] },
-            { id: 9, name: 'Fotografering', parent_id: 11, path: ['Kreativitet'] },
-            { id: 12, name: 'Analog fotografering', parent_id: 9, path: ['Kreativitet', 'Fotografering'] },
+            { id: 1, name: 'Historia', parent_id: null, path: [], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 2, name: 'Mynt', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 3, name: 'Vikingatiden', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 4, name: 'Medeltiden', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 5, name: 'Antiken', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 6, name: 'Metal', parent_id: 7, path: ['Musik', 'Rock'], area_slug: 'musik' },
+            { id: 8, name: 'Löpning', parent_id: 10, path: ['Sport och träning'], area_slug: 'sport-och-traning' },
+            { id: 9, name: 'Fotografering', parent_id: 11, path: ['Kreativitet'], area_slug: 'skapande' },
+            { id: 12, name: 'Analog fotografering', parent_id: 9, path: ['Kreativitet', 'Fotografering'], area_slug: 'skapande' },
           ])}
           align="start"
           highlight={new Set(['id:2', 'id:8'])}

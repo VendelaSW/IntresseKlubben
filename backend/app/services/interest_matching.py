@@ -70,6 +70,8 @@ class LibraryItem:
     # Hur intresset kan utövas, som slugs. None = inget eget val, då gäller det närmaste överliggande.
     activities: tuple[str, ...] | None = None
     allow_children: bool = True  # False = får inte få nya underintressen (en plattform som PlayStation, se Interest.allow_children)
+    # Huvudområdets slug, som taggens färg följer (se crud/interest.py, InterestPlace).
+    area_slug: str | None = None
 
 
 class LibraryIndex:

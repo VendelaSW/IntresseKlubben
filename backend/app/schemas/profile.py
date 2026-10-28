@@ -189,6 +189,15 @@ class PublicProfileResponse(BaseModel):
     interests: list[ProfileInterest]
 
 
+class AreaCounts(BaseModel):
+    """GET /users/area-counts: hur många andra användare som finns per område, för kartan (SCRUM-82). Nycklarna är
+    kommunkod, landskapskod och "landskap:län". null betyder färre än 5, och ett område där ingen finns är inte med."""
+
+    kommun: dict[str, int | None]
+    landskap: dict[str, int | None]
+    lan: dict[str, int | None]
+
+
 class PersonResponse(BaseModel):
     # Används i listan över andra användare (filtrera/föreslå) - precis som
     # PublicProfileResponse, men med id (för att länka till /anvandare/{id}),

@@ -1,5 +1,5 @@
 import { apiDelete, apiGet, apiPost } from './api'
-import { SECOND, invalidate, queryClient } from './queryClient'
+import { MINUTE, SECOND, cached, invalidate, queryClient } from './queryClient'
 
 export const PEOPLE_KEY = ['people']
 
@@ -24,6 +24,12 @@ export function peopleQuery({ interestId, municipalityCode, gender, minAge, maxA
 
 export function getPeople(filters) {
   return queryClient.fetchQuery(peopleQuery(filters))
+}
+
+// Hur många andra användare som finns per område, för kartan (SCRUM-82): { kommun, landskap, lan }, med kommunkod,
+// landskapskod och "landskap:län" som nycklar. null betyder färre än 5, och ett område där ingen finns saknas.
+export function getAreaCounts() {
+  return cached([...PEOPLE_KEY, 'area-counts'], () => apiGet('/users/area-counts'), 5 * MINUTE)
 }
 
 // Döljer en person från Förslag. Permanent tills man nollställer (se nedan).
