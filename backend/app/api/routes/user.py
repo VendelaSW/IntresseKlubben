@@ -64,7 +64,8 @@ GET /users/ - andra användare med sparad profil, valfritt filtrerade på
 ?interest_id=, ?municipality_code=, ?gender= och ?min_age=/?max_age= (0-120,
 400 om min_age är större än max_age). ?gender= ger bara dem som själva valt att
 gå att hitta på kön (gender_searchable), så att filtret inte avslöjar könet
-hos alla andra. Utesluter dig själv, dina
+hos alla andra. Listan kommer med de som har flest intressen gemensamt med dig först, därefter i
+namnordning (filtren väljer bara vilka som är med). Utesluter dig själv, dina
 borttagna förslag och alla som har blockerat dig eller som du har blockerat. Samma
 dataminimering som PublicProfileResponse, men med id (länk till
 /anvandare/{id}) och interests (taggar/matchning) - se PersonResponse.
@@ -121,7 +122,13 @@ from app.crud.dismissed_suggestion import (
     reset_dismissed_suggestions,
 )
 from app.crud.interest import profile_interests
-from app.crud.profile import calculate_age, count_people_by_municipality, get_profile, list_people
+from app.crud.profile import (
+    calculate_age,
+    count_people_by_municipality,
+    get_profile,
+    list_people,
+    sort_by_shared_interests,
+)
 from app.crud.user import (
     EmailTakenError,
     UsernameTakenError,
@@ -373,6 +380,8 @@ def read_people(
         db, current_user.id, interest_id, municipality_code, hidden_ids,
         gender=gender, min_age=min_age, max_age=max_age,
     )
+    my_interest_ids = {link.interest_id for link in current_user.interest_links}
+    profiles = sort_by_shared_interests(profiles, my_interest_ids)
     return [to_person_response(db, p.user, current_user) for p in profiles]
 
 
