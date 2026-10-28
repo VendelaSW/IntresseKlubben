@@ -69,6 +69,10 @@ borttagna förslag och alla som har blockerat dig eller som du har blockerat. Sa
 dataminimering som PublicProfileResponse, men med id (länk till
 /anvandare/{id}) och interests (taggar/matchning) - se PersonResponse.
 
+GET /users/area-counts - hur många andra användare som finns per kommun, landskap och del av ett län, för kartan
+(SCRUM-82). Bara antal. 1-4 skickas som null ("färre än 5"), så att ett litet tal aldrig kommer nära att peka ut
+någon, och områden där ingen finns är inte med. Avstängda och de man har en blockering med räknas inte.
+
 GET /users/{user_id}/profile - visar en annan användares profil,
 skrivskyddat. Via id, aldrig användarnamn: användarnamn ska inte synas i
 några adresser. Ger samma 404 som för en profil som inte finns om någon av er
@@ -117,7 +121,7 @@ from app.crud.dismissed_suggestion import (
     reset_dismissed_suggestions,
 )
 from app.crud.interest import profile_interests
-from app.crud.profile import calculate_age, get_profile, list_people
+from app.crud.profile import calculate_age, count_people_by_municipality, get_profile, list_people
 from app.crud.user import (
     EmailTakenError,
     UsernameTakenError,
@@ -131,7 +135,7 @@ from app.crud.user import (
 from app.db.session import get_db
 from app.models.profile import GenderEnum
 from app.models.user import User
-from app.schemas.profile import PersonResponse, PublicProfileResponse
+from app.schemas.profile import AreaCounts, PersonResponse, PublicProfileResponse
 from app.schemas.user import (
     AccountDelete,
     CurrentUserOut,
@@ -156,6 +160,7 @@ from app.services.password_emails import (
     send_reset_email,
 )
 
+from app.services.regions import people_per_area
 from app.services.text_moderation import check_fields
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -369,6 +374,21 @@ def read_people(
         gender=gender, min_age=min_age, max_age=max_age,
     )
     return [to_person_response(db, p.user, current_user) for p in profiles]
+
+
+# Under så här många visas inte det exakta antalet på kartan, bara "färre än 5" (SCRUM-82).
+FEW_PEOPLE = 5
+
+
+def _shown(count: int) -> int | None:
+    return None if count < FEW_PEOPLE else count
+
+
+@router.get("/area-counts", response_model=AreaCounts, dependencies=[Depends(require_profile)])
+def read_area_counts(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> AreaCounts:
+    hidden = blocked_user_ids(db, current_user.id) | suspended_user_ids(db)
+    areas = people_per_area(count_people_by_municipality(db, current_user.id, hidden))
+    return AreaCounts(**{level: {code: _shown(n) for code, n in counts.items()} for level, counts in areas.items()})
 
 
 @router.post(

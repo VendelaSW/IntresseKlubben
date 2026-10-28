@@ -22,7 +22,7 @@ const PRACTICE_CHOICES = [
 // Komponenten sparar inget själv: `onAdd(interest)` och `onRemove(interest)`
 // gör det (direkt på profilen, eller i formuläret när profilen skapas). De får
 // returnera ett promise; misslyckas det visas felet här. `selected` är de valda
-// intressena ({ id, name, parent_id, path, area, area_slug }, eller { id, name, path, area_slug } från
+// intressena ({ id, name, parent_id, path, area_slug }, eller { id, name, path, area_slug } från
 // sökningen och biblioteket när profilen skapas), som visas som taggar
 // (InterestTree, se utils/interestGroups.js). Med `onAddNew(result)` erbjuds man
 // att lägga till ett intresse som inte finns när sökningen inte ger någon träff
@@ -152,7 +152,6 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
                 <PickTag
                   key={item.id}
                   interest={item}
-                  area={item.path[0] ?? item.name}
                   areaSlug={item.area_slug}
                   title={[...item.path, item.name].join(' › ')}
                   on={selectedIds.has(item.id)}

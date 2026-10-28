@@ -53,6 +53,22 @@ def area_name(scope: str, code: str, municipality_name: str | None = None) -> st
     return _names()[scope].get(code, code)
 
 
+def people_per_area(per_kommun: dict[str, int]) -> dict[str, dict[str, int]]:
+    """Antal per område för kartan (SCRUM-82), ur antalet per kommun: per kommun, per landskap och per del av ett län som
+    ligger i ett landskap (nyckel "landskap:län", som länens namn i kartans landskapsvy). En kommun räknas till det
+    landskap den hör till här (se ovan). Exakta tal; att små tal inte visas sköter den som anropar."""
+    landskap: dict[str, int] = {}
+    lan_in_landskap: dict[str, int] = {}
+    for code, count in per_kommun.items():
+        place = regions()["kommuner"].get(code)
+        if place is None:
+            continue
+        landskap[place["landskap"]] = landskap.get(place["landskap"], 0) + count
+        key = f"{place['landskap']}:{place['lan']}"
+        lan_in_landskap[key] = lan_in_landskap.get(key, 0) + count
+    return {"kommun": dict(per_kommun), "landskap": landskap, "lan": lan_in_landskap}
+
+
 def areas_of_kommun(kommun_code: str) -> list[tuple[str, str]]:
     """Alla områden en kommun ligger i, som (räckvidd, kod): kommunen, länet, landskapet, landsdelen och
     hela Sverige. En klubb gäller kommunen om den har någon av dem (t.ex. en Norrlandsklubb för Umeå)."""

@@ -314,7 +314,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
       <div className="detail-aside">
         <div className="detail-view-section">
           <InterestTags
-            interests={[{ id: event.interest_id, name: event.interest_name, area: event.interest_area, area_slug: event.interest_area_slug }]}
+            interests={[{ id: event.interest_id, name: event.interest_name, area_slug: event.interest_area_slug }]}
             highlight={myInterestIds}
           />
         </div>
