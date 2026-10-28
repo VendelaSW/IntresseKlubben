@@ -6,6 +6,7 @@ import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
 import EmptyState from '../components/EmptyState'
 import FilterTabs from '../components/FilterTabs'
 import InterestFilter from '../components/InterestFilter'
+import MatchPanel from '../components/MatchPanel'
 import PersonCard from '../components/PersonCard'
 import { useTabParam } from '../hooks/useTabParam'
 import {
@@ -30,6 +31,7 @@ import { useConfirm } from '../hooks/useConfirm'
 import LoadError from '../components/LoadError'
 
 const TABS = [
+  { id: 'match', label: 'Matcha' },
   { id: 'suggested', label: 'Sök' },
   { id: 'incoming', label: 'Kompisförfrågningar', short: 'Förfrågningar' },
   { id: 'contacts', label: 'Kompisar' },
@@ -105,7 +107,8 @@ function PeoplePage() {
   const [filterDataFailed, setFilterDataFailed] = useState(false)
   // Fliken står i adressen, så att Tillbaka från en profil kommer hit igen (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
-  const tab = urlTab ?? 'suggested'
+  // Matcha är första fliken och den som öppnas när adressen inte säger något annat.
+  const tab = urlTab ?? 'match'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [myPractisedIds, setMyPractisedIds] = useState(new Set())
   // `interestId` är rullistans val (ett av ens egna intressen) och `pickedInterest` intresset man sökte fram bland alla;
@@ -327,22 +330,24 @@ function PeoplePage() {
     <section className="app-section">
       <h1 className="app-title">Medlemmar</h1>
 
-      {/* Antalet bara på Sök och Kompisförfrågningar, inte på Kompisar. */}
+      {/* Antalet bara på Sök och Kompisförfrågningar, inte på Matcha och Kompisar. */}
       <FilterTabs
-        tabs={TABS.map((t) => ({ ...t, count: t.id === 'contacts' ? undefined : lists[t.id].length }))}
+        tabs={TABS.map((t) => ({ ...t, count: t.id === 'contacts' || t.id === 'match' ? undefined : lists[t.id].length }))}
         active={tab}
         onChange={setTab}
       />
 
-      {tab === 'suggested' && (
+      {(tab === 'suggested' || tab === 'match') && (
         <>
-          <InterestFilter
-            myInterests={myInterests}
-            mineId={filters.interestId}
-            picked={filters.pickedInterest}
-            onPickMine={(id) => setFilters({ ...filters, interestId: id, pickedInterest: null })}
-            onPick={(interest) => setFilters({ ...filters, interestId: '', pickedInterest: interest })}
-          />
+          {tab === 'suggested' && (
+            <InterestFilter
+              myInterests={myInterests}
+              mineId={filters.interestId}
+              picked={filters.pickedInterest}
+              onPickMine={(id) => setFilters({ ...filters, interestId: id, pickedInterest: null })}
+              onPick={(interest) => setFilters({ ...filters, interestId: '', pickedInterest: interest })}
+            />
+          )}
           <div className="filter-select-row filter-select-row-compact">
             <MunicipalityPicker
               aria-label="Filtrera på kommun"
@@ -391,7 +396,7 @@ function PeoplePage() {
           {filters.gender && (
             <p className="hint-text">Visar bara dem som valt att synas när man filtrerar på kön.</p>
           )}
-          {dismissedCount > 0 && (
+          {tab === 'suggested' && dismissedCount > 0 && (
             <p className="hint-text">
               {dismissedCount === 1 ? '1 medlem borttagen' : `${dismissedCount} medlemmar borttagna`} från förslagen.{' '}
               <button type="button" className="text-button" disabled={busy} onClick={handleResetDismissed}>
@@ -404,7 +409,16 @@ function PeoplePage() {
 
       {error && <p className="status-error">{error}</p>}
 
-      {status === 'loading' ? (
+      {tab === 'match' ? (
+        <MatchPanel
+          municipalityCode={query.municipalityCode}
+          gender={query.gender}
+          minAge={query.minAge}
+          maxAge={query.maxAge}
+          myInterestIds={myInterestIds}
+          onChanged={loadAll}
+        />
+      ) : status === 'loading' ? (
         <p className="hint-text">Laddar...</p>
       ) : tab === 'incoming' ? (
         <>
