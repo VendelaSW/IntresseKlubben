@@ -1,8 +1,11 @@
 """GET /matches (api/routes/matches.py och services/match_suggestions.py): vilka som föreslås, i vilken ordning och vilka som aldrig
 gör det. Vektorerna är påhittade och korta (SQLite lagrar dem som JSON), och poängens formel testas i test_matching.py."""
 
+from datetime import date, timedelta
+
 import pytest
 
+from app.models.profile import GenderEnum
 from app.models.user_interest import PRACTISES
 from app.models import Contact, DismissedSuggestion, Interest, ProfileEmbedding, User, UserInterest
 from app.models.interest_embedding import InterestEmbedding
@@ -180,6 +183,92 @@ def test_a_hidden_age_is_not_sent_to_the_one_looking(client, db, user, climbing)
     assert by_name["Hidden"]["age"] is None
     assert by_name["Hidden"]["age_hidden"] is False  # den som tittar får inte veta att den är dold
     assert by_name["Shown"]["age"] is not None
+
+
+def _names(client, **params):
+    return {m["name"] for m in _matches(client, **params)["matches"]}
+
+
+def _born_years_ago(years):
+    today = date.today()
+    return today.replace(year=today.year - years) - timedelta(days=30)  # en månad över, så att födelsedagen inte spelar in
+
+
+def test_suggestions_can_be_limited_to_a_municipality(client, db, user, climbing):
+    _fill_profile(db, user, climbing)
+    _person(db, "local", climbing, name="Local")
+    far = _person(db, "far", climbing, name="Far")
+    far.profile.municipality_code = "0180"
+    db.commit()
+
+    assert _names(client) == {"Local", "Far"}
+    assert _names(client, municipality_code="0180") == {"Far"}
+
+
+def test_a_gender_filter_only_finds_those_who_chose_to_be_found_on_gender(client, db, user, climbing):
+    _fill_profile(db, user, climbing)
+    findable = _person(db, "findable", climbing, name="Findable")
+    private = _person(db, "private", climbing, name="Private")
+    other = _person(db, "other", climbing, name="Other")
+    for person, gender, searchable in ((findable, GenderEnum.kvinna, True), (private, GenderEnum.kvinna, False), (other, GenderEnum.man, True)):
+        person.profile.gender = gender
+        person.profile.gender_searchable = searchable
+    db.commit()
+
+    assert _names(client, gender="kvinna") == {"Findable"}  # Private syns inte, annars avslöjar filtret könet
+
+
+def test_an_age_filter_leaves_out_hidden_ages_and_both_ends_count(client, db, user, climbing):
+    _fill_profile(db, user, climbing)
+    ages = {"Young": 22, "Middle": 30, "Old": 45, "Hidden": 30}
+    for name, age in ages.items():
+        person = _person(db, name.lower(), climbing, name=name)
+        person.profile.birth_date = _born_years_ago(age)
+        person.profile.age_hidden = name == "Hidden"
+    db.commit()
+
+    assert _names(client) == set(ages)
+    assert _names(client, min_age=25) == {"Middle", "Old"}
+    assert _names(client, max_age=30) == {"Young", "Middle"}
+    assert _names(client, min_age=22, max_age=30) == {"Young", "Middle"}  # Hidden syns inte när man filtrerar på ålder
+
+
+def test_a_minimum_age_above_the_maximum_is_refused(client, db, user, climbing):
+    _fill_profile(db, user, climbing)
+
+    response = client.get("/matches", params={"min_age": 40, "max_age": 30})
+
+    assert response.status_code == 400
+    assert client.get("/matches", params={"min_age": 130}).status_code == 422
+
+
+def test_a_persons_score_is_the_same_with_and_without_a_filter(client, db, user, climbing, music):
+    """Filtret väljer bara vilka som kan föreslås: poängen räknas per par och påverkas inte av vilka andra som finns."""
+    _fill_profile(db, user, climbing)
+    _person(db, "same", climbing, name="Same")
+    partial = _person(db, "partial", climbing[:1] + music[:2], name="Partial")
+    partial.profile.municipality_code = "0180"
+    db.commit()
+
+    everyone = {m["name"]: m["percent"] for m in _matches(client)["matches"]}
+    filtered = {m["name"]: m["percent"] for m in _matches(client, municipality_code="0180")["matches"]}
+
+    assert set(filtered) == {"Partial"}
+    assert filtered["Partial"] == everyone["Partial"]
+
+
+def test_pages_of_a_filtered_list_continue_where_the_last_one_stopped(client, db, user, climbing):
+    _fill_profile(db, user, climbing)
+    for i in range(3):
+        _person(db, f"far{i}", climbing, name=f"Far{i}").profile.municipality_code = "0180"
+    _person(db, "local", climbing, name="Local")
+    db.commit()
+
+    first = _matches(client, municipality_code="0180", limit=2)
+    second = _matches(client, municipality_code="0180", limit=2, offset=2)
+
+    assert len(first["matches"]) == 2 and first["has_more"] is True
+    assert len(second["matches"]) == 1 and second["has_more"] is False
 
 
 def _reasons(client, name):

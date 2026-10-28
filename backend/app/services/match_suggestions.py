@@ -23,10 +23,10 @@ from app.crud.contact import accepted_contact_ids, blocked_user_ids, pending_req
 from app.crud.dismissed_suggestion import list_dismissed_user_ids
 from app.crud.interest_people import load_tree
 from app.crud.moderation import suspended_user_ids
-from app.crud.profile import get_profile
+from app.crud.profile import filter_by_profile, get_profile
 from app.models.interest import Interest
 from app.models.interest_embedding import InterestEmbedding
-from app.models.profile import Profile
+from app.models.profile import GenderEnum, Profile
 from app.models.profile_embedding import ProfileEmbedding
 from app.models.user_interest import PRACTISES, UserInterest
 from app.services.interest_embeddings import _cosine_similarity, text_hash
@@ -151,9 +151,22 @@ def text_cosines(db: Session, my_vector: list[float], profiles: dict[int, str]) 
     }
 
 
-def suggestions_for(db: Session, user_id: int, limit: int, offset: int = 0, config: MatchConfig = DEFAULT_CONFIG) -> SuggestionPage:
+def suggestions_for(
+    db: Session,
+    user_id: int,
+    limit: int,
+    offset: int = 0,
+    config: MatchConfig = DEFAULT_CONFIG,
+    *,
+    municipality_code: str | None = None,
+    gender: GenderEnum | None = None,
+    min_age: int | None = None,
+    max_age: int | None = None,
+) -> SuggestionPage:
     """En sida förslag för user_id, bäst först. Stoppas användaren av minimikraven är listan tom och `readiness` säger vad
-    som saknas. Poängen räknas för alla som kan föreslås på varje anrop, så att ordningen är densamma på alla sidor."""
+    som saknas. Poängen räknas för alla som kan föreslås på varje anrop, så att ordningen är densamma på alla sidor.
+    Kommun, kön och ålder begränsar vilka som kan föreslås, med samma regler som listan över personer (crud.profile.filter_by_profile,
+    inklusive att dolt kön och dold ålder inte avslöjas); en persons poäng är densamma med och utan filter."""
     profile = get_profile(db, user_id)
     if profile is None:
         return SuggestionPage(Readiness(False, MIN_INTERESTS, MIN_TEXT_CHARS))
@@ -167,6 +180,7 @@ def suggestions_for(db: Session, user_id: int, limit: int, offset: int = 0, conf
     hidden = hidden_user_ids(db, user_id)
     if hidden:
         candidates = candidates.filter(Profile.user_id.notin_(hidden))
+    candidates = filter_by_profile(candidates, municipality_code, gender, min_age, max_age)
     people: dict[int, tuple[int, str]] = {}  # användar-id -> (profil-id, text)
     for profile_id, other_id, text in candidates:
         people[other_id] = (profile_id, (text or "").strip())

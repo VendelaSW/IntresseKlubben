@@ -133,6 +133,18 @@ def _people_query(
         query = query.filter(Profile.user_id.notin_(exclude_user_ids))
     if interest_ids:
         query = query.filter(User.interests.any(Interest.id.in_(interest_ids)))
+    return filter_by_profile(query, municipality_code, gender, min_age, max_age)
+
+
+def filter_by_profile(
+    query,
+    municipality_code: str | None = None,
+    gender: GenderEnum | None = None,
+    min_age: int | None = None,
+    max_age: int | None = None,
+):
+    """Filtret på kommun, kön och ålder för en fråga över Profile. Det delas av listan (list_people) och förslagen (GET /matches),
+    så att de aldrig kan skilja sig, och det är det som hindrar filtret från att avslöja något man har valt att dölja."""
     if municipality_code is not None:
         query = query.filter(Profile.municipality_code == municipality_code)
     if gender is not None:
