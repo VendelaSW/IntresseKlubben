@@ -761,8 +761,9 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Moderering (ModerationPage, bara för moderatorer) visar anmälningarna som kort (.moderation-card)
-          med anledningen som .status-pill-error och texten som .report-quote. Rutan "Stäng av …" har en
-          gul påminnelse (.moderation-reminder) om personen har varit avstängd förut, och nästa steg är förvalt.
+          med anledningen som .status-pill-error och texten som .report-quote. "Varna …" skickar en notis om
+          vilken regel som bröts. Rutan "Stäng av …" har en gul påminnelse (.moderation-reminder) om personen
+          har fått varningar eller varit avstängd förut, och nästa steg är förvalt.
         </p>
         <button type="button" className="secondary-button button-small" style={{ marginTop: '1rem' }} onClick={() => setModalOpen(true)}>
           Öppna exempel

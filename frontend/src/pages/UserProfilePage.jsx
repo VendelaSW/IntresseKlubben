@@ -28,6 +28,7 @@ import { getMyInterests } from '../services/interests'
 import { getUserProfile } from '../services/profile'
 import { REPORT_TARGET } from '../services/reports'
 import { useConfirm } from '../hooks/useConfirm'
+import LoadError, { useRetry } from '../components/LoadError'
 
 // Vem man är i förhållande till personen man tittar på, hämtat från
 // GET /contacts och matchat på id. contactId pekar på själva
@@ -186,12 +187,12 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
 // sak med namn och en detalj under. `items` är [{ key, to, title, detail }],
 // eller undefined medan listan laddas. Ett klick öppnar saken, och Tillbaka går
 // hit igen.
-function ProfileLinkList({ title, items, isError, errorText, loadingText, emptyText }) {
+function ProfileLinkList({ title, items, isError, errorText, onRetry, retrying, loadingText, emptyText }) {
   return (
     <section className="profile-events">
       <h2>{title}</h2>
       {isError ? (
-        <p className="hint-text">{errorText}</p>
+        <LoadError text={errorText} onRetry={onRetry} retrying={retrying} className="hint-text" />
       ) : items === undefined ? (
         <p className="hint-text">{loadingText}</p>
       ) : items.length === 0 ? (
@@ -219,7 +220,7 @@ function ProfileLinkList({ title, items, isError, errorText, loadingText, emptyT
 // event bara för inbjudna eller för en klubb man inte är med i syns inte här
 // heller.
 function CreatedEvents({ userId, isMe }) {
-  const { data: events, isError } = useQuery(eventsQuery)
+  const { data: events, isError, refetch, isFetching } = useQuery(eventsQuery)
   const created = events?.filter((event) => event.creator_id === userId)
 
   return (
@@ -233,6 +234,8 @@ function CreatedEvents({ userId, isMe }) {
       }))}
       isError={isError}
       errorText="Kunde inte hämta events."
+      onRetry={() => refetch()}
+      retrying={isFetching}
       loadingText="Laddar events..."
       emptyText="Inga kommande events."
     />
@@ -243,7 +246,7 @@ function CreatedEvents({ userId, isMe }) {
 // Servern visar bara öppna klubbar, och privata som man själv är med i (se
 // GET /groups/member/{id}).
 function MemberClubs({ userId, isMe }) {
-  const { data: groups, isError } = useQuery(memberGroupsQuery(userId))
+  const { data: groups, isError, refetch, isFetching } = useQuery(memberGroupsQuery(userId))
 
   return (
     <ProfileLinkList
@@ -256,6 +259,8 @@ function MemberClubs({ userId, isMe }) {
       }))}
       isError={isError}
       errorText="Kunde inte hämta klubbar."
+      onRetry={() => refetch()}
+      retrying={isFetching}
       loadingText="Laddar klubbar..."
       emptyText={isMe ? 'Du är inte med i någon klubb än.' : 'Inga klubbar att visa.'}
     />
@@ -279,6 +284,7 @@ function UserProfilePage() {
   // Den egna profilen kan öppnas via adressen, men man ska inte kunna
   // skicka kompisförfrågan, meddelande eller blockera sig själv.
   const isMe = user?.id === userId
+  const [attempt, retry] = useRetry()
 
   useEffect(() => {
     setStatus('loading')
@@ -289,7 +295,7 @@ function UserProfilePage() {
         setStatus(data === null ? 'not-found' : 'ready')
       })
       .catch(() => setStatus('error'))
-  }, [userId])
+  }, [userId, attempt])
 
   useEffect(() => {
     getMyInterests()
@@ -315,7 +321,7 @@ function UserProfilePage() {
       <BackButton onClick={handleBack} />
       {status === 'loading' && <p>Laddar profil...</p>}
       {status === 'not-found' && <p className="form-error">Den profilen finns inte.</p>}
-      {status === 'error' && <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>}
+      {status === 'error' && <LoadError text="Kunde inte hämta profilen." onRetry={retry} className="form-error" />}
 
       {status === 'ready' && (
         <div className="card card-wide content-stack profile-card">

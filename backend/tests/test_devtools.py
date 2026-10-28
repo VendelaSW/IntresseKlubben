@@ -75,6 +75,13 @@ def test_seed_gives_anna_something_of_everything(seeded, client, dev_client):
     assert badges["unread_conversations"] == 2
 
 
+def test_seed_has_a_moderator_with_a_new_report_about_someone_already_warned(seeded, client, dev_client):
+    token = dev_client.post("/dev/login", json={"username": "bertil"}).json()["access_token"]
+    (report,) = client.get("/moderation/reports", headers={"Authorization": f"Bearer {token}"}).json()
+    assert report["reported"]["id"] == seeded["maximiliana"]
+    assert [w["reason"] for w in report["reported"]["warnings"]] == ["spam"]
+
+
 def test_seed_has_open_events_near_anna_this_week(seeded, client, dev_client):
     # För Förslag och "I närheten den här veckan" på Att göra: öppna events i Göteborg som Anna inte är inbjuden till.
     token = dev_client.post("/dev/login", json={"username": "anna"}).json()["access_token"]

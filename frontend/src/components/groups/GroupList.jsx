@@ -8,20 +8,41 @@ export function memberCountText(count) {
   return `${count} ${count === 1 ? 'medlem' : 'medlemmar'}`
 }
 
-// T.ex. "3 medlemmar i Göteborg".
+// T.ex. "3 medlemmar i Göteborg", "12 medlemmar i Norrland" eller "5 medlemmar i hela Sverige"
+// (klubbens område, SCRUM-282). Med max antal: "3 av 10 medlemmar i Göteborg".
 export function groupMembersText(group) {
-  const members = memberCountText(group.member_count)
-  return group.municipality_name ? `${members} i ${group.municipality_name}` : members
+  const count = group.max_members ? `${group.member_count} av ${memberCountText(group.max_members)}` : memberCountText(group.member_count)
+  const area = group.scope === 'country' ? 'hela Sverige' : (group.scope_name ?? group.municipality_name)
+  return area ? `${count} i ${area}` : count
 }
 
-// Mörk för ägare, grön för medlem, så att de är lätta att skilja åt.
+// Knappen på ett kort för den som inte är med: Gå med, eller Ansök för en klubb
+// man ansöker till (öppnar klubben, där man kan skriva till ägaren), eller att
+// man redan har ansökt eller att klubben är full (SCRUM-159, SCRUM-216).
+export function JoinCardButton({ group, busy, onJoin, onSelect }) {
+  if (group.is_full) return <span className="status-pill">Full</span>
+  if (group.visibility === 'application' && !group.is_invited) {
+    if (group.has_applied) return <span className="status-pill">Ansökt</span>
+    return (
+      <button type="button" className="primary-button button-small" onClick={() => onSelect(group)}>
+        Ansök
+      </button>
+    )
+  }
+  return (
+    <button type="button" className="primary-button button-small" disabled={busy} onClick={() => onJoin(group)}>
+      Gå med
+    </button>
+  )
+}
+
+// Mörk för ägare, grön för medlem, så att de är lätta att skilja åt. En
+// administratör (SCRUM-160) är också mörk.
 export function RoleBadge({ group }) {
   if (!group.is_member) return null
-  return group.is_owner ? (
-    <span className="status-pill status-pill-owner">Ägare</span>
-  ) : (
-    <span className="status-pill status-pill-success">Medlem</span>
-  )
+  if (group.is_owner) return <span className="status-pill status-pill-owner">Ägare</span>
+  if (group.is_admin) return <span className="status-pill status-pill-owner">Admin</span>
+  return <span className="status-pill status-pill-success">Medlem</span>
 }
 
 // Ett kort per grupp, i samma rutnät som personkorten. Klick på kortet visar
@@ -60,12 +81,12 @@ function GroupList({ groups, emptyText, emptyAction, myInterestIds, busy, onSele
             <span className="card-title">{group.name}</span>
             {/* En rad, längre kortas med "…" (se .list-card-meta). */}
             <span className="card-subheading list-card-meta">
-              {group.municipality_name} · {memberCountText(group.member_count)}
+              {group.scope_name ?? group.municipality_name} · {memberCountText(group.member_count)}
             </span>
             {group.description && <span className="card-text list-card-description">{group.description}</span>}
           </button>
           <InterestTags
-            interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area }]}
+            interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area, area_slug: group.interest_area_slug }]}
             highlight={myInterestIds}
           />
           <div className="card-actions">
@@ -73,9 +94,7 @@ function GroupList({ groups, emptyText, emptyAction, myInterestIds, busy, onSele
               <RoleBadge group={group} />
             ) : (
               <>
-                <button type="button" className="primary-button button-small" disabled={busy} onClick={() => onJoin(group)}>
-                  Gå med
-                </button>
+                <JoinCardButton group={group} busy={busy} onJoin={onJoin} onSelect={onSelect} />
                 {onDecline && group.is_invited && (
                   <button
                     type="button"
@@ -123,17 +142,15 @@ function ClubCards({ style, groups, myInterestIds, busy, onSelect, onJoin, onDec
             {group.description && <span className="card-text list-card-description">{group.description}</span>}
           </button>
           <InterestTags
-            interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area }]}
+            interests={[{ id: group.interest_id, name: group.interest_name, area: group.interest_area, area_slug: group.interest_area_slug }]}
             highlight={myInterestIds}
           />
           <div className="club-card-foot">
             {group.is_member ? (
-              <span className="club-card-role">{group.is_owner ? 'Ägare' : 'Medlem'}</span>
+              <span className="club-card-role">{group.is_owner ? 'Ägare' : group.is_admin ? 'Admin' : 'Medlem'}</span>
             ) : (
               <span className="club-card-buttons">
-                <button type="button" className="primary-button button-small" disabled={busy} onClick={() => onJoin(group)}>
-                  Gå med
-                </button>
+                <JoinCardButton group={group} busy={busy} onJoin={onJoin} onSelect={onSelect} />
                 {onDecline && group.is_invited && (
                   <button
                     type="button"

@@ -1,8 +1,9 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from './api'
 import { SECOND, invalidate, queryClient } from './queryClient'
 
-// Värdena måste matcha EventVisibility i backend/app/models/event.py.
-export const EVENT_VISIBILITY = { open: 'open', inviteOnly: 'invite_only' }
+// Värdena måste matcha EventVisibility i backend/app/models/event.py. `application`:
+// man ansöker och skaparen eller en medarrangör godkänner (SCRUM-296).
+export const EVENT_VISIBILITY = { open: 'open', application: 'application', inviteOnly: 'invite_only' }
 
 // Kommande events man får se (öppna, ens egna, inbjudningar och klubbarnas),
 // tidigast först. Passerade events döljs av backend. Med groupId visas bara den
@@ -56,6 +57,36 @@ export function inviteToEvent(eventId, { userIds = [], groupIds = [] }) {
 // Ändrar bara de fält som skickas, t.ex. { guests_can_invite: true }. Bara skaparen får.
 export function updateEvent(eventId, changes) {
   return changingEvents(apiPatch(`/events/${eventId}`, changes))
+}
+
+// ---------- Ansökningar och medarrangörer (SCRUM-296) ----------
+
+// Ansöker till ett event, med ett valfritt meddelande. Svaret är eventet.
+export function applyToEvent(eventId, message) {
+  return changingEvents(apiPut(`/events/${eventId}/requests/me`, { message }))
+}
+
+export function withdrawEventApplication(eventId) {
+  return changingEvents(apiDelete(`/events/${eventId}/requests/me`))
+}
+
+// Ansökningarna som väntar, för skaparen och medarrangörerna: [{ user, message, created_at }].
+export function getEventRequests(eventId) {
+  return apiGet(`/events/${eventId}/requests`)
+}
+
+export function approveEventRequest(eventId, userId) {
+  return changingEvents(apiPut(`/events/${eventId}/requests/${userId}`))
+}
+
+// `message` (valfritt): varför, till den som ansökt (följer med i notisen).
+export function declineEventRequest(eventId, userId, message) {
+  return changingEvents(apiDelete(`/events/${eventId}/requests/${userId}`, { message: message || null }))
+}
+
+// Skaparen gör någon som är inbjuden eller har svarat till medarrangör, eller tar tillbaka det.
+export function setEventHost(eventId, userId, host) {
+  return changingEvents(host ? apiPut(`/events/${eventId}/hosts/${userId}`) : apiDelete(`/events/${eventId}/hosts/${userId}`))
 }
 
 // Ställer in eventet: tar bort det med dess inbjudningar och svar. De som har

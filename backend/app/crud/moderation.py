@@ -1,11 +1,12 @@
 """
-Moderering (SCRUM-131): anmälningarna (se crud/report.py) och avstängningar.
+Moderering (SCRUM-131): anmälningarna (se crud/report.py), varningar (SCRUM-268) och avstängningar.
 
 Bara moderatorer (User.is_moderator, se require_moderator) kommer åt det här.
 En avstängd användare kan inte logga in och loggas ut vid nästa anrop (se
 auth/security.py), och syns inte under Personer. Avstängningarna sparas som
 historik (models/suspension.py), så att moderatorn ser om någon har varit
-avstängd förut.
+avstängd förut. Varningarna (models/moderation_warning.py) är ett mellansteg: personen får en
+notis om vilken regel som bröts, och varningen syns i samma historik.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -13,8 +14,11 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.crud.notification import notify
 from app.models.email_token import utc_now
-from app.models.report import Report
+from app.models.moderation_warning import ModerationWarning
+from app.models.notification import NotificationKind
+from app.models.report import Report, ReportReason
 from app.models.suspension import Suspension
 
 # Hur länge en avstängning kan vara, i dagar. None = tills vidare.
@@ -84,6 +88,60 @@ def lift_suspension(db: Session, user_id: int, moderator_id: int, commit: bool =
     return current is not None
 
 
+# Regeln som bröts, som den står i varningens notis. Samma ord som anledningarna i anmälan (services/reports.js).
+RULE_TEXT = {
+    ReportReason.harassment.value: "trakasserier eller hot",
+    ReportReason.inappropriate.value: "olämpligt eller sexuellt innehåll",
+    ReportReason.spam.value: "spam eller bedrägeri",
+    ReportReason.fake_profile.value: "falsk profil",
+    ReportReason.other.value: "brott mot Intresseklubbens regler",
+}
+
+
+def warn_user(
+    db: Session, report: Report, reason: str, message: str | None, moderator_id: int
+) -> ModerationWarning:
+    """Varnar den anmälda (SCRUM-268): sparar varningen, skickar en notis om vilken regel som bröts (med
+    moderatorns meddelande som citat) och markerar anmälan som hanterad. Allt sparas på en gång."""
+    warning = ModerationWarning(
+        user_id=report.reported_user_id, reason=reason, message=message, report_id=report.id, created_by=moderator_id
+    )
+    db.add(warning)
+    notify(
+        db,
+        [report.reported_user_id],
+        NotificationKind.moderation_warning,
+        title=f"Du har fått en varning: {RULE_TEXT.get(reason, RULE_TEXT[ReportReason.other.value])}",
+        body="En moderator har sett något du har gjort som bryter mot reglerna. Fortsätter det kan du bli avstängd.",
+        quote=message,
+        quote_by="Moderator" if message else None,
+    )
+    set_handled(db, report, moderator_id, handled=True, commit=False)
+    db.commit()
+    db.refresh(warning)
+    return warning
+
+
+def has_warning(db: Session, report_id: int) -> bool:
+    """Har anmälan redan gett en varning? En anmälan ger högst en, så att personen inte får två notiser för
+    samma sak (t.ex. om moderatorn öppnar en hanterad anmälan igen)."""
+    return db.query(ModerationWarning.id).filter(ModerationWarning.report_id == report_id).first() is not None
+
+
+def warning_history(db: Session, user_ids: set[int]) -> dict[int, list[ModerationWarning]]:
+    """Alla varningar per användare, äldsta först."""
+    history: dict[int, list[ModerationWarning]] = {user_id: [] for user_id in user_ids}
+    if user_ids:
+        rows = (
+            db.query(ModerationWarning)
+            .filter(ModerationWarning.user_id.in_(user_ids))
+            .order_by(ModerationWarning.created_at, ModerationWarning.id)
+        )
+        for warning in rows:
+            history[warning.user_id].append(warning)
+    return history
+
+
 def list_reports(db: Session, handled: bool) -> list[Report]:
     """Nya (ohanterade) eller hanterade anmälningar, nyaste först."""
     query = db.query(Report).filter(Report.handled_at.is_not(None) if handled else Report.handled_at.is_(None))
@@ -102,21 +160,26 @@ def report_counts(db: Session, user_ids: set[int]) -> dict[int, int]:
     return dict(rows.all())
 
 
-def set_handled(db: Session, report: Report, moderator_id: int, handled: bool) -> Report:
+def set_handled(db: Session, report: Report, moderator_id: int, handled: bool, commit: bool = True) -> Report:
     """Markerar anmälan som hanterad, eller flyttar tillbaka den till de nya."""
     report.handled_at = utc_now() if handled else None
     report.handled_by = moderator_id if handled else None
     report.status = "handled" if handled else "new"
-    db.commit()
-    db.refresh(report)
+    if commit:
+        db.commit()
+        db.refresh(report)
     return report
 
 
 def delete_user_moderation(db: Session, user_id: int) -> None:
-    """Ett raderat kontos avstängningar tas bort, och det kontot står inte längre
-    som moderator på andras avstängningar eller hanterade anmälningar. Sparar inte
-    (se delete_user)."""
+    """Ett raderat kontos avstängningar och varningar tas bort, och det kontot står inte
+    längre som moderator på andras avstängningar, varningar eller hanterade anmälningar.
+    Sparar inte (se delete_user)."""
     db.query(Suspension).filter(Suspension.user_id == user_id).delete(synchronize_session=False)
+    db.query(ModerationWarning).filter(ModerationWarning.user_id == user_id).delete(synchronize_session=False)
+    db.query(ModerationWarning).filter(ModerationWarning.created_by == user_id).update(
+        {ModerationWarning.created_by: None}, synchronize_session=False
+    )
     db.query(Suspension).filter(Suspension.created_by == user_id).update(
         {Suspension.created_by: None}, synchronize_session=False
     )

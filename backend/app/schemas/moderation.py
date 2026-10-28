@@ -19,14 +19,22 @@ class SuspensionOut(BaseModel):
     lifted_at: datetime | None
 
 
+class WarningOut(BaseModel):
+    report_id: int | None  # anmälan varningen gavs från
+    created_at: datetime
+    reason: str
+    message: str | None
+
+
 class ReportedUser(PersonRef):
     """Den anmälda, med det moderatorn behöver för att bestämma vad som ska hända:
-    hur många gånger hen har anmälts, avstängningen som gäller nu och tidigare
-    avstängningar (äldsta först)."""
+    hur många gånger hen har anmälts, avstängningen som gäller nu, tidigare
+    avstängningar och varningar (SCRUM-268), äldsta först."""
 
     report_count: int
     suspension: SuspensionOut | None
     previous_suspensions: list[SuspensionOut]
+    warnings: list[WarningOut]
 
 
 class ModerationReportOut(BaseModel):
@@ -60,3 +68,20 @@ class SuspendIn(BaseModel):
         if value not in SUSPENSION_DAYS:
             raise ValueError(msg.SUSPENSION_DAYS_INVALID)
         return value
+
+
+class WarnIn(BaseModel):
+    """POST /moderation/reports/{id}/warning: regeln som bröts och ett valfritt meddelande till
+    personen. Tom text sparas som inget meddelande."""
+
+    reason: ReportReason
+    message: str | None = None
+
+    @field_validator("message")
+    @classmethod
+    def message_empty_or_short(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        if len(value.strip()) > 500:
+            raise ValueError(msg.WARNING_MESSAGE_TOO_LONG)
+        return value.strip()

@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
@@ -26,6 +26,7 @@ import {
   undoDismissSuggestion,
 } from '../services/people'
 import { useConfirm } from '../hooks/useConfirm'
+import LoadError from '../components/LoadError'
 
 const TABS = [
   { id: 'suggested', label: 'Förslag' },
@@ -59,6 +60,12 @@ function sharedCountOf(person, myInterestIds) {
   return (person.interests ?? []).filter((interest) => myInterestIds.has(interest.id)).length
 }
 
+// Hur många av de gemensamma intressena båda själva håller på med (SCRUM-271).
+// `myPractisedIds` är ens egna intressen där practices är sant.
+function sharedPractisedCountOf(person, myPractisedIds) {
+  return (person.interests ?? []).filter((interest) => interest.practices && myPractisedIds.has(interest.id)).length
+}
+
 // "3 gemensamma intressen", med siffran framhävd. Vilka det är syns redan på
 // kortet (gula taggar), så texten behöver inte räkna upp dem.
 function sharedCountText(count) {
@@ -81,7 +88,8 @@ function sharedInterestsText(person, myInterestIds) {
 // sina kompisar (Kompisar). Under Förslag står de man har intressen
 // gemensamt med under "Personer med liknande intressen", i grupper efter hur
 // många intressen man har gemensamt (rubriken ovanför varje grupp, så att det
-// syns utan att läsa korten), och resten under "Fler i Intresseklubben".
+// syns utan att läsa korten), och resten under "Fler i Intresseklubben". Inom
+// en grupp står de först som håller på med flest av samma intressen som en själv.
 // Sidan är ett <section className="app-section"> rakt av, precis som
 // pages/demo/DemoPeople.jsx - INTE inslaget i content-stack (den är byggd
 // för smala centrerade sidor och krymper annars hela sidan efter innehållet,
@@ -98,6 +106,7 @@ function PeoplePage() {
   const [urlTab, setTab] = useTabParam(TABS)
   const tab = urlTab ?? 'suggested'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
+  const [myPractisedIds, setMyPractisedIds] = useState(new Set())
   const [filters, setFilters] = useState({
     interestId: '',
     municipalityCode: '',
@@ -118,15 +127,19 @@ function PeoplePage() {
     return () => clearTimeout(timer)
   }, [removed])
 
-  useEffect(() => {
+  const loadFilterData = useCallback(() => {
+    setFilterDataFailed(false)
     Promise.all([getAllInterests(), getMunicipalities(), getMyInterests()])
       .then(([i, m, mine]) => {
         setInterests(i)
         setMunicipalities(m)
         setMyInterestIds(new Set(mine.map((interest) => interest.id)))
+        setMyPractisedIds(new Set(mine.filter((interest) => interest.practices).map((interest) => interest.id)))
       })
       .catch(() => setFilterDataFailed(true))
   }, [])
+
+  useEffect(() => loadFilterData(), [loadFilterData])
 
   // Åldrarna skickas bara när de går ihop, så att en halvskriven ålder inte
   // ger ett fel från servern. Felet visas i stället under filtren.
@@ -169,10 +182,21 @@ function PeoplePage() {
   // Efter en åtgärd (förfrågan, ta bort förslag...): hämta om, så att listorna stämmer.
   const loadAll = () => Promise.all([peopleResult.refetch(), contactsResult.refetch()])
 
+  // "Försök igen" när sidan inte gick att hämta (SCRUM-286): bara det som misslyckades hämtas om.
+  function retryPage() {
+    if (filterDataFailed) loadFilterData()
+    if (failed(peopleResult)) peopleResult.refetch()
+    if (failed(contactsResult)) contactsResult.refetch()
+  }
+
   if (status === 'error') {
     return (
       <div className="content-stack">
-        <p className="status-error">Kunde inte hämta personerna. Försök igen senare.</p>
+        <LoadError
+          text="Kunde inte hämta personerna."
+          onRetry={retryPage}
+          retrying={peopleResult.isFetching || contactsResult.isFetching}
+        />
       </div>
     )
   }
@@ -190,11 +214,16 @@ function PeoplePage() {
   ])
 
   const sharedCount = (person) => sharedCountOf(person, myInterestIds)
+  const sharedPractisedCount = (person) => sharedPractisedCountOf(person, myPractisedIds)
 
   const suggested = people
     .filter((person) => !excludedUserIds.has(person.id))
     .map((person) => ({ person, outgoing: outgoingByUserId.get(person.id) }))
-    .sort((a, b) => sharedCount(b.person) - sharedCount(a.person))
+    .sort(
+      (a, b) =>
+        sharedCount(b.person) - sharedCount(a.person) ||
+        sharedPractisedCount(b.person) - sharedPractisedCount(a.person),
+    )
 
   // Förslag delas i två: de man har minst ett intresse gemensamt med, och alla andra.
   // De gemensamma grupperas efter antal, flest först (listan är redan sorterad).
