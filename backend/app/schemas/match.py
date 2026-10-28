@@ -7,6 +7,26 @@ from pydantic import BaseModel
 from app.schemas.profile import PersonResponse
 
 
+class NearPair(BaseModel):
+    mine: str  # ett av dina intressen
+    theirs: str  # det av hens intressen som liknar det mest
+
+
+class MatchReason(BaseModel):
+    """Ett skäl till att personen föreslås. Backend skickar vad, frontend skriver meningen. Inga poäng eller siffror.
+
+    shared     interests: intressen ni båda har valt
+    near       pairs: dina intressen och hens som liknar dem utan att vara samma (Bouldering och Sportklättring)
+    practices  interests: intressen ni båda utövar
+    text       Om mig-texterna liknar varandra tydligt (ingen data utöver detta)
+    area       interests: huvudområden ni båda har något under, när inget av de andra skälen finns
+    """
+
+    kind: Literal["shared", "near", "practices", "text", "area"]
+    interests: list[str] = []
+    pairs: list[NearPair] = []
+
+
 class MatchResponse(PersonResponse):
     """En föreslagen person: personkortet plus hur bra matchningen är."""
 
@@ -15,6 +35,7 @@ class MatchResponse(PersonResponse):
     level: Literal["super", "strong", "good", "okay"]
     shared_interests: list[str]  # namnen på intressen ni båda har valt
     low_confidence: bool  # True: baserat på lite information (få intressen, kort text eller en del saknas)
+    reasons: list[MatchReason]  # varför personen föreslås, de viktigaste först, högst tre
 
 
 class MatchPageResponse(BaseModel):

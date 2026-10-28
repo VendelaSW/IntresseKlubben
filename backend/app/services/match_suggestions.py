@@ -13,6 +13,7 @@ Den som själv inte har minst MIN_INTERESTS intressen och MIN_TEXT_CHARS tecken 
 vad som saknas. Samma krav gäller dem som föreslås. Förslag under den lägsta nivån (MIN_SHOWN_PERCENT) tas inte med. Poängen är sedd från den inloggades håll.
 """
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 
 from sqlalchemy import func, select
@@ -23,24 +24,29 @@ from app.crud.dismissed_suggestion import list_dismissed_user_ids
 from app.crud.interest_people import load_tree
 from app.crud.moderation import suspended_user_ids
 from app.crud.profile import get_profile
+from app.models.interest import Interest
 from app.models.interest_embedding import InterestEmbedding
 from app.models.profile import Profile
 from app.models.profile_embedding import ProfileEmbedding
-from app.models.user_interest import UserInterest
+from app.models.user_interest import PRACTISES, UserInterest
 from app.services.interest_embeddings import _cosine_similarity, text_hash
 from app.services.matching import (
     DEFAULT_CONFIG,
     MIN_INTERESTS,
     MIN_SHOWN_PERCENT,
     MIN_TEXT_CHARS,
+    TEXT_REASON_MIN,
     Match,
     MatchConfig,
     Person,
     Readiness,
     blend_directions,
     combine,
+    common_areas,
     near_interests,
+    near_pairs,
     readiness,
+    root_of,
 )
 from app.services.profile_embeddings import profile_vector
 
@@ -182,3 +188,60 @@ def suggestions_for(db: Session, user_id: int, limit: int, offset: int = 0, conf
             ranked.append(Suggestion(other_id, match))
     ranked.sort(key=lambda s: (-s.match.percent, s.user_id))
     return SuggestionPage(ready, ranked[offset : offset + limit], has_more=len(ranked) > offset + limit)
+
+
+@dataclass
+class Reason:
+    """Ett skäl till ett förslag (schemas/match.py MatchReason): vad som är gemensamt, som namn."""
+
+    kind: str  # shared, near, practices, text eller area
+    interests: list[str] = field(default_factory=list)
+    pairs: list[tuple[str, str]] = field(default_factory=list)  # (mitt intresse, hens), för near
+
+
+MAX_REASONS = 3
+MAX_SHARED_NAMES = 5
+
+
+def reasons_for(db: Session, viewer_id: int, suggestions: list[Suggestion]) -> dict[int, list[Reason]]:
+    """Varför varje förslag på sidan föreslås, per användar-id: högst MAX_REASONS skäl, i den här ordningen: delade intressen, närliggande
+    par, intressen ni båda utövar, lika Om mig-texter, och (bara om varken delade eller närliggande finns) gemensamt huvudområde.
+    Räknas bara för sidans förslag, så kostnaden växer inte med antalet personer: en handfull frågor, för intressena, deras
+    vektorer och namn. Skälen innehåller bara det som redan syns på personkorten, plus ett ja/nej om texterna."""
+    if not suggestions:
+        return {}
+    user_ids = {viewer_id} | {s.user_id for s in suggestions}
+    interests: dict[int, set[int]] = defaultdict(set)
+    practised: dict[int, set[int]] = defaultdict(set)
+    rows = db.query(UserInterest.user_id, UserInterest.interest_id, UserInterest.activity).filter(UserInterest.user_id.in_(user_ids))
+    for user_id, interest_id, activity in rows:
+        interests[user_id].add(interest_id)
+        if activity == PRACTISES:
+            practised[user_id].add(interest_id)
+    parents = load_tree(db).parents
+    all_ids = set().union(*interests.values()) if interests else set()
+    roots = {root_of(i, parents) for i in all_ids}
+    vectors = {i: list(v) for i, v in db.query(InterestEmbedding.interest_id, InterestEmbedding.embedding).filter(InterestEmbedding.interest_id.in_(all_ids))}
+    names = dict(db.query(Interest.id, Interest.name).filter(Interest.id.in_(all_ids | roots)))
+
+    result: dict[int, list[Reason]] = {}
+    for suggestion in suggestions:
+        mine, theirs = frozenset(interests[viewer_id]), frozenset(interests[suggestion.user_id])
+        reasons: list[Reason] = []
+        shared = sorted(names[i] for i in suggestion.match.shared if i in names)
+        if shared:
+            reasons.append(Reason("shared", interests=shared[:MAX_SHARED_NAMES]))
+        pairs = near_pairs(mine, theirs, vectors)
+        if pairs:
+            reasons.append(Reason("near", pairs=[(names[i], names[j]) for i, j in pairs]))
+        both_practise = sorted(names[i] for i in practised[viewer_id] & practised[suggestion.user_id] if i in names)
+        if both_practise:
+            reasons.append(Reason("practices", interests=both_practise[:MAX_SHARED_NAMES]))
+        if suggestion.match.parts.get("text", 0.0) >= TEXT_REASON_MIN:
+            reasons.append(Reason("text"))
+        if not shared and not pairs:
+            areas = [names[a] for a in common_areas(mine, theirs, parents) if a in names]
+            if areas:
+                reasons.append(Reason("area", interests=areas))
+        result[suggestion.user_id] = reasons[:MAX_REASONS]
+    return result

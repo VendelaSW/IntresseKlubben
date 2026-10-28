@@ -60,6 +60,12 @@ THIN_CHARS = 200
 
 PART_NAMES = ("intressen", "narliggande", "text")
 
+# Skälen till ett förslag (se services/match_suggestions.py): hur lika två intressen ska vara för att visas som "liknar", hur många
+# par som visas, och hur hög textdelen (0..1) ska vara för att säga att beskrivningarna liknar varandra.
+NEAR_REASON_MIN = 0.60
+NEAR_REASON_PAIRS = 2
+TEXT_REASON_MIN = 0.4
+
 
 @dataclass(frozen=True)
 class MatchConfig:
@@ -235,6 +241,50 @@ def near_interests(a: frozenset[int], b: frozenset[int], vectors: dict[int, list
     """Råa cosinus-snittet mellan personernas intressen: hur nära kandidatens intressen ligger betraktarens (framåt, a till b) och
     tvärtom, blandat med `forward_share` på betraktarens håll. None om vektorer saknas."""
     return blend_directions(_best_match(a, b, vectors), _best_match(b, a, vectors), forward_share)
+
+
+def near_pairs(
+    mine: frozenset[int],
+    theirs: frozenset[int],
+    vectors: dict[int, list[float]],
+    minimum: float = NEAR_REASON_MIN,
+    limit: int = NEAR_REASON_PAIRS,
+) -> list[tuple[int, int]]:
+    """De par (mitt intresse, hens intresse) som liknar varandra mest och minst `minimum` i cosinus, de likaste först, högst `limit`.
+    Intressen ni båda har räknas inte (de är delade, inte närliggande), och ett av hennes intressen visas bara en gång."""
+    mine_only, theirs_only = mine - theirs, theirs - mine
+    best_for_each = []
+    for i in mine_only:
+        if i not in vectors:
+            continue
+        scored = [(_cosine(vectors[i], vectors[j]), j) for j in theirs_only if j in vectors]
+        if scored:
+            cosine, j = max(scored, key=lambda pair: (pair[0], -pair[1]))
+            if cosine >= minimum:
+                best_for_each.append((cosine, i, j))
+    best_for_each.sort(key=lambda found: (-found[0], found[1], found[2]))
+    pairs, used = [], set()
+    for _, i, j in best_for_each:
+        if j not in used:
+            used.add(j)
+            pairs.append((i, j))
+        if len(pairs) == limit:
+            break
+    return pairs
+
+
+def root_of(interest_id: int, parents: dict[int, int | None]) -> int:
+    """Huvudområdet (översta intresset i trädet) som intresset ligger under, eller intresset självt om det är ett."""
+    node, seen = interest_id, set()
+    while parents.get(node) is not None and node not in seen:
+        seen.add(node)
+        node = parents[node]
+    return node
+
+
+def common_areas(a: frozenset[int], b: frozenset[int], parents: dict[int, int | None]) -> list[int]:
+    """Huvudområdena som båda har minst ett intresse under."""
+    return sorted({root_of(i, parents) for i in a} & {root_of(i, parents) for i in b})
 
 
 def _reliability(have: int, full: int, floor: float) -> float:

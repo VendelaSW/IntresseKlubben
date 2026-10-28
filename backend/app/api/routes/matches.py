@@ -15,8 +15,8 @@ from app.db.session import get_db
 from app.models.profile import Profile
 from app.models.user import User
 from app.models.user_interest import UserInterest
-from app.schemas.match import MatchPageResponse, MatchResponse
-from app.services.match_suggestions import suggestions_for
+from app.schemas.match import MatchPageResponse, MatchReason, MatchResponse, NearPair
+from app.services.match_suggestions import reasons_for, suggestions_for
 
 router = APIRouter(prefix="/matches", tags=["matches"], dependencies=[Depends(require_profile)])
 
@@ -38,6 +38,7 @@ def read_matches(
         )
         .filter(User.id.in_([s.user_id for s in page.suggestions]))
     }
+    reasons = reasons_for(db, current_user.id, page.suggestions)
     matches = []
     for suggestion in page.suggestions:
         user = users[suggestion.user_id]
@@ -49,6 +50,10 @@ def read_matches(
                 level=suggestion.match.level,
                 shared_interests=shared,
                 low_confidence=suggestion.match.low_confidence,
+                reasons=[
+                    MatchReason(kind=r.kind, interests=r.interests, pairs=[NearPair(mine=m, theirs=t) for m, t in r.pairs])
+                    for r in reasons[suggestion.user_id]
+                ],
             )
         )
     return MatchPageResponse(

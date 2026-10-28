@@ -16,9 +16,11 @@ from app.services.matching import (
     Person,
     blend_directions,
     combine,
+    common_areas,
     expand,
     level_for,
     near_interests,
+    near_pairs,
     readiness,
     score,
     tree_overlap,
@@ -302,3 +304,33 @@ def test_a_cosine_that_is_not_a_finite_number_counts_as_missing_not_as_full_mark
         assert not result.complete and result.low_confidence
     assert "narliggande" not in combine(a, b, PARENTS, bad, 0.50).parts
     assert "text" not in combine(a, b, PARENTS, 0.45, bad).parts
+
+
+def test_near_pairs_gives_the_most_similar_pairs_that_are_not_the_same_interest():
+    # Mina: Bouldering (3) och Jazz (11). Hens: Sportklättring (4), Vandring (5) och Opera (10).
+    pairs = near_pairs(frozenset({3, 11}), frozenset({4, 5, 10}), VECTORS)
+    assert pairs[0] == (3, 4)  # Bouldering liknar Sportklättring mest
+    assert (11, 10) in pairs  # Jazz liknar Opera
+    assert all(i != j for i, j in pairs)
+
+
+def test_near_pairs_leaves_out_shared_interests_weak_pairs_and_repeats():
+    assert near_pairs(frozenset({3}), frozenset({3, 13}), VECTORS) == []  # 3 är delat, och 13 liknar inte
+    assert near_pairs(frozenset({3}), frozenset({13}), VECTORS) == []  # under gränsen
+    # två av mina liknar samma av hennes: hon visas bara en gång
+    assert len(near_pairs(frozenset({3, 5}), frozenset({4}), VECTORS)) == 1
+    assert near_pairs(frozenset({3, 5}), frozenset({4, 11}), VECTORS, limit=1) == [(3, 4)]
+
+
+def test_near_pairs_ignores_interests_without_a_vector():
+    assert near_pairs(frozenset({3, 99}), frozenset({4, 98}), VECTORS) == [(3, 4)]
+
+
+def test_common_areas_are_the_top_level_interests_both_have_something_under():
+    assert common_areas(frozenset({3}), frozenset({5}), PARENTS) == [1]  # båda under Friluftsliv
+    assert common_areas(frozenset({3}), frozenset({11}), PARENTS) == []
+    assert common_areas(frozenset({1}), frozenset({3}), PARENTS) == [1]  # ett huvudområde räknas som sitt eget
+
+
+def test_common_areas_survives_cyclic_parent_links():
+    assert common_areas(frozenset({3}), frozenset({3}), {1: 2, 2: 1, 3: 1}) in ([1], [2])
