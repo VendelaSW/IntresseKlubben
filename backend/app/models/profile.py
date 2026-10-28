@@ -35,6 +35,11 @@ class Profile(Base):
     # någon filtrerar Personer på kön (vilket avslöjar könet), därför är det
     # avstängt tills man själv väljer det.
     gender_searchable = Column(Boolean, nullable=False, default=False, server_default=false())
+    # Dölj åldern för andra användare (SCRUM-134). Man ser den själv, och moderatorerna ser den alltid. Med dold
+    # ålder kommer man inte med när andra filtrerar på ålder, så att filtret inte avslöjar den.
+    age_hidden = Column(Boolean, nullable=False, default=False, server_default=false())
 
     user = relationship("User", back_populates="profile")
     municipality = relationship("Municipality")
+    # Vektorn för Om mig-texten (se models/profile_embedding.py). Följer med när profilen raderas, också i testernas SQLite.
+    embedding_row = relationship("ProfileEmbedding", uselist=False, cascade="all, delete-orphan")

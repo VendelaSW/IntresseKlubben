@@ -176,6 +176,15 @@ def accepted_contact_ids(db: Session, user_id: int) -> set[int]:
     return {c.addressee_id if c.requester_id == user_id else c.requester_id for c in rows}
 
 
+def pending_request_ids(db: Session, user_id: int) -> set[int]:
+    """Id:n på dem user_id har en obesvarad förfrågan till eller från, så att de inte föreslås en gång till."""
+    rows = (db.query(Contact)
+            .filter(Contact.status == "PENDING",
+                    or_(Contact.requester_id == user_id, Contact.addressee_id == user_id))
+            .all())
+    return {c.addressee_id if c.requester_id == user_id else c.requester_id for c in rows}
+
+
 def blocked_by_me_ids(db: Session, user_id: int) -> set[int]:
     """Id:n på dem user_id själv har blockerat, inte dem som har blockerat
     user_id. För varningar som bara den som blockerat ska se (t.ex. i events

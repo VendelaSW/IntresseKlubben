@@ -17,8 +17,9 @@ import CreateButton from '../components/CreateButton'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
+import FilterTabs from '../components/FilterTabs'
 import FormField from '../components/FormField'
-import InterestTree, { PROFILE_MAX_SUBS, profileTree } from '../components/InterestTree'
+import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { NotificationDetails, NotificationRow } from './NotificationsPage'
@@ -91,6 +92,7 @@ const EXAMPLE_MUNICIPALITIES = [
 
 function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
+  const [exampleTab, setExampleTab] = useState('forsta')
   const [exampleMunicipality, setExampleMunicipality] = useState('')
   const [exampleBirthDate, setExampleBirthDate] = useState('')
   const [filterMunicipality, setFilterMunicipality] = useState('')
@@ -165,7 +167,7 @@ function StyleGuide() {
             >
               {size.label}
             </p>
-            <p className="swatch-code">{size.name} · {size.rem}</p>
+            <p className="swatch-code">{size.name}, {size.rem}</p>
           </div>
         ))}
       </section>
@@ -217,24 +219,34 @@ function StyleGuide() {
           <li><button type="button" className="tag tag-selected">Vald</button></li>
         </ul>
 
-        <h3>Intressen som träd (components/InterestTree.jsx)</h3>
+        <h3>Intressetaggar (components/InterestTagGroup.jsx)</h3>
         <p className="hint-text">
-          Profilens intressen. Ett intresse vars förälder också är vald ligger under den, i mindre format. Högst{' '}
-          {PROFILE_MAX_SUBS} syns, resten fälls ut med ⋯. På någon annans profil är bara gemensamma intressen gula.
+          Intressen på profiler, personkort, klubbar, events och i intervjun (.interest-tag, inte .tag). Färgen följer
+          huvudområdet (utils/interestColors.js): en fyllning per område och en ljusare nyans för underintressen. Mörk
+          kant, handritad form och hård skugga som kartans lappar. Den ritade pilen (DrawnArrow) betyder att intresset har underintressen; ett tryck
+          lägger dem i en ruta över taggarna under. Allt man valt syns, och varje intresse är en egen tagg tills fler än
+          tre ligger under samma kategori; då samlas de i den (utils/interestGroups.js), den närmaste kategorin först
+          (fyra mysiga spel blir Mysiga spel ▼, också om man inte valt Mysiga spel). Gemensamma intressen har fetstil
+          och en bock på gul botten. På Min profil har taggarna × bara efter "Redigera", och intressen läggs till med
+          sökrutan direkt i kortet eller i Intressebiblioteket (InterestLibrary, över hela blocket). Där är intressena
+          taggar att trycka på (.interest-pick: ljus nyans och + när de inte är valda, områdets färg och ✓ när de är
+          valda), och pilen efter den streckade linjen öppnar underintressena i samma ruta som här. Tryck på Historia
+          (fyra under den) och se Fotografering (bara tre under Kreativitet):
         </p>
         <InterestTree
           proposals={profileTree([
-            { id: 1, name: 'Historia', parent_id: null },
-            { id: 2, name: 'Mynt', parent_id: 1 },
-            { id: 3, name: 'Vikingatiden', parent_id: 1 },
-            { id: 4, name: 'Medeltiden', parent_id: 1 },
-            { id: 5, name: 'Antiken', parent_id: 1 },
-            { id: 6, name: 'Metal', parent_id: 7 },
-            { id: 8, name: 'Löpning', parent_id: null },
+            { id: 1, name: 'Historia', parent_id: null, path: [], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 2, name: 'Mynt', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 3, name: 'Vikingatiden', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 4, name: 'Medeltiden', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 5, name: 'Antiken', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 6, name: 'Metal', parent_id: 7, path: ['Musik', 'Rock'], area_slug: 'musik' },
+            { id: 8, name: 'Löpning', parent_id: 10, path: ['Sport och träning'], area_slug: 'sport-och-traning' },
+            { id: 9, name: 'Fotografering', parent_id: 11, path: ['Kreativitet'], area_slug: 'skapande' },
+            { id: 12, name: 'Analog fotografering', parent_id: 9, path: ['Kreativitet', 'Fotografering'], area_slug: 'skapande' },
           ])}
           align="start"
-          maxSubs={PROFILE_MAX_SUBS}
-          highlight={new Set(['id:1', 'id:2', 'id:3', 'id:4', 'id:5', 'id:6'])}
+          highlight={new Set(['id:2', 'id:8'])}
         />
 
         <h3>Lägg till ett intresse (components/AddInterest.jsx)</h3>
@@ -436,10 +448,11 @@ function StyleGuide() {
 
       <section className="style-section">
         <h2>Notiser</h2>
-        <p className="swatch-label">Klocklappen på kartan (Notiser, notiser.svg)</p>
+        <p className="swatch-label">Notiser på kartan (notiser.svg i appens meny)</p>
         <p className="hint-text">
-          Lappen ligger sist bland sidornas lappar på kartan (MapPageWidgets) och har samma röda siffra som de andra
-          (.map-widget-badge i map.css): antalet olästa notiser. Den studsar till när siffran går upp.
+          På kartan ligger Notiser i profillappens meny (MapProfileWidget), under Profilsida. Antalet olästa notiser
+          står som en röd siffra (.map-widget-badge i map.css) på namnet tills menyn öppnas, och sedan vid Notiser i
+          menyn.
         </p>
         <div className="swatch-grid" style={{ marginTop: '1rem' }}>
           <div className="swatch">
@@ -492,7 +505,8 @@ function StyleGuide() {
           Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
           .app-section för sidor med kort i rutnät (Klubbar och Events): "+ Skapa"-knappen direkt efter
           rubriken och tätare avstånd. Flikarna är sammanhängande knappar med en ram runt, och den
-          valda är gul; på mobil bryts de till flera rader. En tom flik har en knapp vidare. Vald flik sparas i adressen med useTabParam (?flik=kompisar),
+          valda är gul (FilterTabs). På mobil fyller de bredden i en jämn rad, med korta namn (`short`) och antalet som
+          en bricka, så att de aldrig bryts på två rader. En tom flik har en knapp vidare. Vald flik sparas i adressen med useTabParam (?flik=kompisar),
           så att Tillbaka kommer tillbaka till samma flik.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
@@ -500,11 +514,15 @@ function StyleGuide() {
             <h1 className="app-title">Exempel</h1>
             <CreateButton label="Skapa" onClick={() => {}} />
           </div>
-          <div className="filter-tabs" role="tablist">
-            <button type="button" role="tab" aria-selected="true" className="tag tag-selected">Första (2)</button>
-            <button type="button" role="tab" aria-selected="false" className="tag">Andra (0)</button>
-            <button type="button" role="tab" aria-selected="false" className="tag">Tredje (5)</button>
-          </div>
+          <FilterTabs
+            tabs={[
+              { id: 'forsta', label: 'Mina klubbar', short: 'Mina', count: 2 },
+              { id: 'andra', label: 'Förslag', count: 0 },
+              { id: 'tredje', label: 'Inbjudningar', count: 5 },
+            ]}
+            active={exampleTab}
+            onChange={setExampleTab}
+          />
         </section>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
@@ -529,14 +547,16 @@ function StyleGuide() {
           .card-actions. Korten i .card-grid-compact är lika höga i varje rad, och på dator fyller de
           bredden kant i kant med rubriken, så många per rad som får plats. Klubb- och eventkort är
           minst --card-height höga; namnet kortas av efter två rader och beskrivningen efter tre, med
-          "…". Personkorten är så höga som innehållet och visar högst tre intressen på en rad (så
+          "…". Ort och medlemmar (en rad) eller tid och plats (två rader) ligger nederst, ovanför
+          intresset (.list-card-meta), så att de och taggen står på samma plats på alla kort; varje rad
+          kortas med "…". Personkorten är så höga som innehållet och visar högst tre intressen på en rad (så
           många som får plats hela); fler fälls ut i en ruta med ⋯.
         </p>
         <div className="card-grid card-grid-compact" style={{ marginTop: '1rem' }}>
           <article className="card card-interactive list-card">
             <button type="button" className="list-card-link">
               <span className="card-title">Exempel</span>
-              <span className="card-subheading">Göteborg · 3 medlemmar</span>
+              <span className="card-subheading list-card-meta">Göteborg · 3 medlemmar</span>
               <span className="card-text list-card-description">
                 En kort beskrivning som visas på kortet. Är den lång kortas den av efter tre rader.
               </span>
@@ -544,6 +564,19 @@ function StyleGuide() {
             <div className="card-actions">
               <span className="status-pill status-pill-success">Medlem</span>
               <span className="status-pill">Privat</span>
+            </div>
+          </article>
+          <article className="card card-interactive list-card">
+            <button type="button" className="list-card-link">
+              <span className="card-title">Ett event med ett namn som är så långt att det kortas av</span>
+              <span className="card-subheading list-card-meta">
+                <span>lör 10 okt 13:30 – 16:00</span>
+                <span>Slottsskogen, vid stora dammen nedanför Björngårdsvillan</span>
+              </span>
+              <span className="card-text list-card-description">Tiden på en rad och platsen under.</span>
+            </button>
+            <div className="card-actions">
+              <span className="status-pill status-pill-success">Öppet</span>
             </div>
           </article>
         </div>
@@ -592,7 +625,7 @@ function StyleGuide() {
         <div className="card sheet" style={{ marginTop: '1rem' }}>
           <section className="detail-view">
             <p className="card-title">Exempel</p>
-            <p className="card-subheading">Göteborg · 3 medlemmar</p>
+            <p className="card-subheading">3 medlemmar i Göteborg</p>
             <p className="card-text">Hela beskrivningen visas här.</p>
             <div className="card-actions">
               <button type="button" className="primary-button">Gå med</button>
@@ -613,7 +646,7 @@ function StyleGuide() {
               <p className="card-title">Exempel</p>
               <span className="status-pill">Öppet</span>
             </div>
-            <p className="card-subheading">lör 10 okt. 13:30 · Slottsskogen</p>
+            <p className="card-subheading">lör 10 okt. 13:30, Slottsskogen</p>
           </section>
         </div>
 
@@ -697,13 +730,13 @@ function StyleGuide() {
               <li>
                 <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
                   <span>Fota katter</span>
-                  <span className="hint-text">lör 10 okt 13:30 · I plugget</span>
+                  <span className="hint-text">lör 10 okt 13:30, I plugget</span>
                 </a>
               </li>
               <li>
                 <a href="#" className="person-list-item" onClick={(e) => e.preventDefault()}>
                   <span>Stenjakt</span>
-                  <span className="hint-text">sön 11 okt 10:00 · Slottsskogen</span>
+                  <span className="hint-text">sön 11 okt 10:00, Slottsskogen</span>
                 </a>
               </li>
             </ul>
@@ -728,8 +761,9 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Moderering (ModerationPage, bara för moderatorer) visar anmälningarna som kort (.moderation-card)
-          med anledningen som .status-pill-error och texten som .report-quote. Rutan "Stäng av …" har en
-          gul påminnelse (.moderation-reminder) om personen har varit avstängd förut, och nästa steg är förvalt.
+          med anledningen som .status-pill-error och texten som .report-quote. "Varna …" skickar en notis om
+          vilken regel som bröts. Rutan "Stäng av …" har en gul påminnelse (.moderation-reminder) om personen
+          har fått varningar eller varit avstängd förut, och nästa steg är förvalt.
         </p>
         <button type="button" className="secondary-button button-small" style={{ marginTop: '1rem' }} onClick={() => setModalOpen(true)}>
           Öppna exempel

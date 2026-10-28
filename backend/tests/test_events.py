@@ -48,6 +48,8 @@ def test_create_event_defaults_to_invite_only(client, user, interest):
     assert body["ends_at"] is None
     assert body["group_id"] is None
     assert body["interest_name"] == "Löpning"
+    assert body["interest_area"] == "Löpning"
+    assert body["interest_area_slug"] is None  # intresset i testet har ingen slug
     assert body["creator_id"] == user.id
     assert body["creator_username"] == "testuser"
     assert body["is_owner"] is True
@@ -311,3 +313,15 @@ def test_the_creator_can_turn_the_setting_on_and_off_but_nobody_else(client, db,
 
     theirs = add_event(db, other.id, visibility=EventVisibility.open)
     assert client.patch(f"/events/{theirs.id}", json={"guests_can_invite": True}).status_code == 403
+
+
+def test_event_interest_has_its_areas_name_and_slug(client, user, db):
+    # Taggens färg följer huvudområdet och slås upp på sluggen, så att den håller när området byter namn.
+    creative = Interest(name="Kreativitet", slug="kreativitet")
+    db.add(creative)
+    db.flush()
+    photo = Interest(name="Fotografering", slug="fotografering", parent_id=creative.id)
+    db.add(photo)
+    db.commit()
+    body = client.post("/events/", json=payload(interest_id=photo.id)).json()
+    assert (body["interest_area"], body["interest_area_slug"]) == ("Kreativitet", "kreativitet")

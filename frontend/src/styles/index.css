@@ -43,6 +43,14 @@
   --color-line: #bfd7ed;
   --color-white: #ffffff;
   --color-muted: #6b6b6b;
+  --color-ink: #3a2f25;
+  /* TILLFÄLLIGT: mjuka bakgrundsfärger för de nya klubbkorten i testläget (se .club-card). */
+  --color-pastel-green: #e4efd8;
+  --color-pastel-peach: #fae3cc;
+  --color-pastel-blue: #dfeaf5;
+  --color-pastel-yellow: #faf0cf;
+  --color-pastel-lilac: #ebe4f4;
+  --color-pastel-rose: #f7e1e1;
   --color-success: #3b6d11;
   --color-error: #a32d2d;
   /* Brev: pappret (aningen mörkare än bakgrunden, som ett gammalt papper), dess
@@ -206,6 +214,58 @@ h2 {
 /* Centrerad variant, på startsidan (se ProblemStatement). */
 .problem-statement-centered {
   text-align: center;
+}
+
+/* Startsidan på mobil: loggan, devisen (högst två rader), texten och
+   knapparna får plats på en skärm utan att scrolla, också med "Ha det!" efter
+   utloggning. Testlägets inloggning kommer under. */
+@media (max-width: 480px) {
+  .home-page {
+    gap: 1rem;
+    padding: 1.25rem 1rem;
+  }
+
+  .home-page .hero {
+    gap: 0.4rem;
+  }
+
+  .home-page .logo {
+    max-width: 120px;
+  }
+
+  .home-page .tagline {
+    font-size: 2.6rem;
+  }
+
+  .home-page .problem-statement {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  /* "Ha det!": kompisen bredvid lappen, som på dator, i stället för ovanför. */
+  .home-page .home-farewell {
+    flex-direction: row;
+    gap: 0.75rem;
+    margin: 0;
+  }
+
+  .home-page .home-farewell .empty-state-kompis {
+    width: 92px;
+  }
+
+  .home-page .home-farewell .empty-state-note {
+    padding: 0.8rem 0.9rem 0.7rem;
+  }
+
+  .home-page .home-farewell .empty-state-title {
+    font-size: 1.4rem;
+  }
+
+  .home-page .home-farewell .empty-state-note::after {
+    left: -9px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+  }
 }
 
 .info-link {
@@ -488,6 +548,246 @@ button.banner-button {
   margin: 0;
 }
 
+/* Profilhuvudet (components/ProfileHeader.jsx): bilden till vänster, namnet och
+   en rad med det viktigaste till höger, i stället för en stor centrerad bild och
+   en tabell. Tar en bråkdel av höjden, så att man slipper scrolla. */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+  text-align: left;
+}
+
+/* Två klasser, så att storleken vinner över .profile-avatar längre ner. */
+.profile-header .profile-header-avatar {
+  flex: none;
+  width: 88px;
+  height: 88px;
+}
+
+.profile-header .profile-header-avatar.profile-avatar-empty {
+  font-size: 2.6rem;
+}
+
+.profile-header-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.profile-header-name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-card-title);
+  font-weight: 700;
+  line-height: 1.05;
+  /* Långa namn bryts mellan orden, och ett ord som ändå inte får plats med
+     bindestreck, inte mitt i ("Maximilian-a"). */
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Smal skärm: mindre bild och namn, så att namnet får plats bredvid. */
+@media (max-width: 480px) {
+  .profile-header {
+    gap: 0.9rem;
+  }
+
+  .profile-header .profile-header-avatar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .profile-header .profile-header-avatar.profile-avatar-empty {
+    font-size: 2rem;
+  }
+
+  .profile-header-name {
+    font-size: 1.8rem;
+  }
+}
+
+.profile-header-facts {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+/* Konto och inställningar på Min profil: ihopfällt, eftersom det sällan behövs. */
+.profile-account {
+  width: 100%;
+  text-align: left;
+}
+
+.profile-account summary {
+  padding: 0.5rem 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profile-account[open] > summary {
+  margin-bottom: 0.75rem;
+}
+
+.profile-account > * + * {
+  margin-top: 0.75rem;
+}
+
+/* Andras profil: bredare kort med två spalter på dator (personen och knapparna
+   till vänster, intressen, events och klubbar till höger), så att det mesta
+   syns utan att scrolla. Under varandra på smala skärmar. */
+.card-wide.profile-card {
+  max-width: 920px;
+}
+
+/* Redigera profil: lika brett som profilen. Överst rubriken med en handritad
+   pil tillbaka till vänster och bilden i mitten, sist en rad med knapparna.
+   Tätt, så att allt får plats i blocket utan att scrolla. */
+.card-wide.profile-edit {
+  max-width: 920px;
+  align-items: stretch;
+  gap: 0.9rem;
+  padding: 1rem 1.25rem;
+  text-align: left;
+}
+
+.profile-edit-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-edit-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.profile-edit-head h1 {
+  margin: 0;
+  font-size: 2.2rem;
+}
+
+.profile-edit-back {
+  display: grid;
+  place-items: center;
+  padding: 0.2rem;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.profile-edit-back:hover,
+.profile-edit-back:focus-visible {
+  background: var(--color-accent-soft);
+}
+
+.profile-edit-head .profile-image {
+  gap: 0.45rem;
+}
+
+.profile-edit-head .profile-avatar {
+  width: 72px;
+  height: 72px;
+}
+
+.profile-edit-head .profile-avatar-empty {
+  font-size: 2.2rem;
+}
+
+.profile-edit-head .profile-image label {
+  white-space: nowrap;
+}
+
+.profile-edit-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.profile-edit-save,
+.profile-edit-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+/* Mobil: rubriken och bilden under varandra, bilden i mitten. */
+@media (max-width: 600px) {
+  .profile-edit-head {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .profile-edit-head h1 {
+    font-size: 1.9rem;
+  }
+}
+
+/* Tillbaka ovanför kortet följer dess bredd, så att knappen linjerar med kortets vänsterkant. */
+.back-row:has(+ .profile-card) {
+  max-width: 920px;
+}
+
+.profile-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.profile-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.profile-column > .soft-box {
+  max-width: none;
+}
+
+/* Min profil: allt vänsterställt och lika brett, som på andras profiler. */
+.profile-own {
+  align-items: stretch;
+  text-align: left;
+}
+
+.profile-own > .soft-box {
+  max-width: none;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-actions-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .profile-columns {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 2rem;
+  }
+}
+
 /* Avsnittet Intressen på profilen. */
 /* Intressena och personens events på en profil: en vänsterställd kolumn. */
 .profile-interests,
@@ -743,6 +1043,55 @@ span.tag-selected:hover {
   font-size: var(--text-small);
 }
 
+/* Ett val bland några alternativ i ett formulär, t.ex. hur man kommer med i en klubb. */
+.form-choice {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.form-choice legend {
+  margin-bottom: 0.2rem;
+  padding: 0;
+  font-weight: 700;
+}
+
+/* En medlem som ägaren eller en administratör kan hantera (GroupMembers, SCRUM-160): knapparna under namnet. */
+.group-member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.8rem;
+  padding-left: 2.6rem;
+  font-size: var(--text-small);
+}
+
+/* En ansökan till en klubb (GroupJoinRequests): namnet, meddelandet och knapparna. */
+.group-request {
+  display: grid;
+  gap: 0.3rem;
+  padding-block: 0.4rem;
+}
+
+.group-request + .group-request {
+  border-top: 1px dashed var(--color-line);
+}
+
+.group-request-message {
+  margin: 0;
+  font-size: var(--text-small);
+  overflow-wrap: anywhere;
+}
+
+/* Ett fel som går att försöka igen: texten och "Försök igen" under den (t.ex. Klubbar). */
+.load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;
@@ -783,6 +1132,239 @@ span.tag-selected:hover {
 .tag-selected:hover,
 .tag-selected:focus-visible {
   opacity: 0.85;
+}
+
+/* ---------- Intressetaggar (InterestTagGroup, InterestTags, InterestTree) ----------
+   Varje tagg har sitt huvudområdes färg (--tag-fill, se utils/interestColors.js)
+   och ser ut som kartans lappar: mörk kant, handritad form och en hård skugga.
+   Varannan tagg har den spegelvända formen, så att raden ser handritad ut. Har
+   intresset underintressen visar ▼ det, och ett tryck lägger dem i en ruta i
+   samma färg över taggarna under (inget flyttar sig). Gemensamma intressen har
+   fetstil och en bock på gul botten uppe på vänstra kanten. Egna klasser i
+   stället för .tag, så att flikar och filter inte påverkas. */
+.interest-tags {
+  --tag-ink: #3a2f25;
+  --tag-shape: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  --tag-shape-alt: 225px 12px 255px 12px / 12px 255px 12px 225px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.interest-tags-center {
+  justify-content: center;
+}
+
+.interest-tag-group {
+  position: relative;
+}
+
+.interest-tag-group.is-open {
+  z-index: 5;
+}
+
+.interest-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  min-height: 1.75rem;
+  padding: 0.15rem 0.65rem;
+  border: 1.5px solid var(--tag-ink);
+  border-radius: var(--tag-shape);
+  background: var(--tag-fill, var(--color-white));
+  box-shadow: 2px 2px 0 var(--tag-ink);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.interest-tags > li:nth-child(even) > .interest-tag,
+.interest-tag-panel > li:nth-child(even) > .interest-tag {
+  border-radius: var(--tag-shape-alt);
+}
+
+/* Taggen med underintressen är en knapp över hela taggen. Den trycks ner vid
+   hovring och när rutan är öppen, som kartans lappar. */
+.interest-tag-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.interest-tag:has(.interest-tag-toggle) {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.interest-tag:has(.interest-tag-toggle:hover),
+.interest-tag-group.is-open > .interest-tag {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.interest-tag-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+/* Den skissade pilen (DrawnArrow): kontur och skraffering i textens färg, som
+   blyerts. Lika stor på taggarna och under Utforska. */
+.drawn-arrow {
+  flex-shrink: 0;
+  width: 0.85em;
+  height: 0.72em;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  rotate: -4deg;
+}
+
+.drawn-arrow-hatch {
+  stroke-width: 0.7;
+  opacity: 0.85;
+}
+
+/* Pilarna lutar lite olika på taggarna bredvid varandra, som om de ritats en
+   och en. Fem vinklar som går runt, efter taggens plats i raden. */
+.interest-tags > li:nth-child(5n + 1) .drawn-arrow {
+  rotate: -7deg;
+}
+
+.interest-tags > li:nth-child(5n + 2) .drawn-arrow {
+  rotate: 4deg;
+}
+
+.interest-tags > li:nth-child(5n + 3) .drawn-arrow {
+  rotate: -2deg;
+}
+
+.interest-tags > li:nth-child(5n + 4) .drawn-arrow {
+  rotate: 8deg;
+}
+
+.interest-tags > li:nth-child(5n) .drawn-arrow {
+  rotate: -5deg;
+}
+
+.interest-tag-arrow {
+  transition: transform 0.15s ease;
+}
+
+.interest-tag-group.is-open .interest-tag-arrow {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interest-tag,
+  .interest-tag-arrow {
+    transition: none;
+  }
+}
+
+.interest-tag-remove {
+  padding: 0 0 0 0.1rem;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.interest-tag-remove:hover,
+.interest-tag-remove:focus-visible {
+  opacity: 1;
+}
+
+.interest-tag.is-shared {
+  font-weight: 700;
+}
+
+.interest-tag.is-shared::after {
+  content: "";
+  position: absolute;
+  top: -0.5rem;
+  left: -0.5rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 1.5px solid var(--tag-ink);
+  border-radius: 50%;
+  background: var(--color-accent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b1d10' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 13c2 1.5 3.5 3.5 5 6 3-7 6.5-11 11-14'/%3E%3C/svg%3E")
+    center / 0.7rem no-repeat;
+  rotate: -8deg;
+}
+
+/* Medan en ruta är öppen döljs bockarna på taggarna bakom den, så att de inte
+   sticker upp ovanför rutan. */
+.interest-tags:has(.is-open) > li:not(.is-open) > .interest-tag.is-shared::after {
+  visibility: hidden;
+}
+
+/* Rutan med underintressen: taggens färg, mörk kant och lite snett, som en lapp. */
+.interest-tag-panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.4rem;
+  width: max-content;
+  max-width: min(16rem, 80vw);
+  margin: 0;
+  padding: 0.75rem 0.7rem 0.65rem;
+  list-style: none;
+  background: var(--tag-fill, var(--color-white));
+  border: 1.5px solid var(--tag-ink);
+  border-radius: var(--tag-shape-alt);
+  box-shadow: 3px 3px 0 var(--tag-ink);
+  rotate: -0.6deg;
+}
+
+.interest-tag-sub {
+  min-height: 1.5rem;
+  padding: 0.1rem 0.5rem;
+  background: var(--tag-sub, var(--color-white));
+  font-size: 0.7rem;
+}
+
+/* ⋯ på personkortet, som visar alla intressen. */
+.interest-tag-more {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.interest-tag-more:hover,
+.interest-tag-more:focus-visible {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+/* Rubriken "Dina intressen" med Redigera/Klar till höger. */
+.explorer-heading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 /* ---------- Demo-flödet (/demo) ---------- */
@@ -1238,6 +1820,28 @@ span.tag-selected:hover {
   border-color: var(--color-text);
 }
 
+/* En stämpel, som om någon stämplat kortet för hand: handskriven text i en
+   ram, lite snett. För vem ett event är till för ("Öppet för alla", "Endast
+   inbjudna"), så att det inte ser ut som en statusknapp eller en varning. */
+.stamp {
+  display: inline-block;
+  flex-shrink: 0;
+  padding: 0 0.6rem;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  transform: rotate(-4deg);
+}
+
+.stamp-success {
+  color: var(--color-success);
+}
+
 .card-avatar-initials {
   display: flex;
   align-items: center;
@@ -1328,27 +1932,37 @@ span.tag-selected:hover {
   margin-bottom: 0;
 }
 
-/* Intressena på personkortet (se CardInterests i PersonCard): högst tre på en
-   rad, och bara så många som får plats hela. Raden bryts aldrig. Får inte ens
-   ett namn plats (is-tight) kortas det med "…". */
+/* Intressena på personkortet (se CardInterests i PersonCard): så många som
+   får plats hela på två rader, resten bakom ⋯. Får inte ens ett namn plats
+   (is-tight) står det ensamt på raden och kortas med "…". */
 .person-card-interests {
   position: relative;
 }
 
-.person-card-interests > .tags {
+/* Plats för två rader alltid (luften för bockarna, två taggar på 1.75rem och
+   radavståndet), så att alla kort är lika stora och knapparna står på samma
+   höjd. Med en rad ligger den där den första av två rader ligger. */
+.person-card-interests > .interest-tags {
+  /* Luft för bockarna, som sticker upp ovanför taggarna. */
+  padding: 0.45rem 0 0 0.45rem;
+  min-height: calc(0.45rem + 2 * 1.75rem + 0.6rem);
+  align-content: flex-start;
+}
+
+.person-card-interests.is-tight > .interest-tags {
   flex-wrap: nowrap;
 }
 
-.person-card-interests > .tags > li {
+.person-card-interests > .interest-tags > li {
   flex-shrink: 0;
 }
 
-.person-card-interests.is-tight > .tags > li:first-child {
+.person-card-interests.is-tight > .interest-tags > li:first-child {
   flex-shrink: 1;
   min-width: 0;
 }
 
-.person-card-interests.is-tight > .tags .tag-static {
+.person-card-interests.is-tight > .interest-tags > li:first-child .interest-tag-name {
   display: block;
   max-width: 100%;
   overflow: hidden;
@@ -1385,14 +1999,15 @@ span.tag-selected:hover {
   margin-top: auto;
 }
 
-.person-card > .person-card-interests + .card-actions {
-  margin-top: 0;
+/* Med två rader taggar är luften ovanför (från staden, eller raden "Ni har …
+   gemensamma intressen") lika stor som luften under, ner till knapparna.
+   Padding ovanför, eftersom marginalen (auto) trycker ner raden. */
+.person-card > .person-card-interests {
+  padding-top: 0.4rem;
 }
 
-/* Utan raden om gemensamma intressen kommer intressena direkt efter staden:
-   lite extra luft där (padding, eftersom marginalen ovan trycker ner raden). */
-.person-card-link + .person-card-interests {
-  padding-top: 0.5rem;
+.person-card > .person-card-interests + .card-actions {
+  margin-top: 0.6rem;
 }
 
 /* Knapparna på personkorten: den första mot vänsterkanten och den andra mot
@@ -2052,6 +2667,18 @@ span.tag-selected:hover {
   padding-right: 3.2rem;
 }
 
+.notepad-message-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+}
+
+/* I raden med Ta bort och Anmäl (se .notepad-message-actions) står knapparna bredvid varandra. */
+.notepad-message-actions .report-link {
+  position: static;
+}
+
 .report-link {
   position: absolute;
   top: 0;
@@ -2301,6 +2928,110 @@ span.tag-selected:hover {
   opacity: 1;
 }
 
+/* Antalet efter namnet (FilterTabs) som en liten gul bricka med mörk siffra och
+   tunn bläckkant, så att den syns tydligt (vit på den valda, gula fliken). Alltid
+   i vanlig text (inte handstil), så att siffran är lätt att läsa. Noll visas
+   inte alls. Det korta namnet syns bara på mobil (se nedan). */
+.filter-tab-count {
+  min-width: 1.35rem;
+  margin-left: 0.4rem;
+  padding: 0 0.3rem;
+  border: 1px solid rgba(58, 47, 37, 0.55);
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25rem;
+  text-align: center;
+}
+
+/* På den valda (gula) fliken blir brickan vit, så att den syns. */
+.tag-selected .filter-tab-count {
+  background: var(--color-white);
+}
+
+.filter-tab-short {
+  display: none;
+}
+
+/* Mobil: flikarna fyller bredden i en jämn rad, lika breda, så att de aldrig
+   bryts på två rader. Kortare namn där det finns (`short` i FilterTabs), och
+   antalet som en liten rund bricka under namnet. Minst 48 px höga. */
+@media (max-width: 767px) {
+  .filter-tabs {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    width: 100%;
+  }
+
+  .filter-tabs > .tag {
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0.35rem 0.1rem;
+    font-size: 0.76rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .filter-tabs > .tag:has(.filter-tab-short) .filter-tab-label {
+    display: none;
+  }
+
+  .filter-tab-short {
+    display: inline;
+  }
+
+  .filter-tab-count {
+    margin: 0;
+  }
+}
+
+.filter-tabs-small > .tag {
+  font-size: var(--text-small);
+  padding: 0.3rem 0.7rem;
+}
+
+/* Utövar eller intresserad under "Redigera" i Dina intressen (SCRUM-271): en rad per intresse. */
+.practices-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.practices-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+}
+
+/* Mobil: den lilla varianten (Utövar/Intresserad) ska inte fylla bredden som flikarna ovan, men
+   knapparna är fortfarande minst 48 px höga (se CONTRIBUTING). */
+@media (max-width: 767px) {
+  .filter-tabs.filter-tabs-small {
+    display: flex;
+    width: fit-content;
+  }
+
+  .filter-tabs-small > .tag {
+    flex-direction: row;
+    padding: 0.3rem 0.8rem;
+    font-size: var(--text-small);
+  }
+}
+
 .demo-create-form {
   max-width: 480px;
 }
@@ -2439,7 +3170,8 @@ span.tag-selected:hover {
 }
 
 /* En klubbs egen vy: klubbens ruta och klubbchatten. På mobil ligger chatten
-   under rutan, på dator bredvid till höger (också i kartans block). */
+   under rutan, på dator bredvid till höger (också i kartans block), lika hög
+   som rutan. */
 .group-layout {
   display: flex;
   flex-direction: column;
@@ -2450,17 +3182,68 @@ span.tag-selected:hover {
 @media (min-width: 768px) {
   .group-layout {
     flex-direction: row;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   .group-layout > .sheet {
     flex: 0 1 480px;
   }
 
-  .group-layout > .notepad {
+  .group-layout > .group-chat-slot {
     flex: 1 1 0;
     min-width: 0;
   }
+
+  /* Den som inte är med ser bara klubbens ruta: hela bredden. */
+  .group-layout > .sheet:only-child {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+}
+
+/* Chatten har en fast storlek: lika hög som klubbens ruta bredvid (på dator),
+   eller en fast höjd under den (på mobil). Fler meddelanden gör den inte längre,
+   de scrollar i rutan i stället. Chatten ligger utanför flödet (absolute), så
+   att det bara är klubbens ruta som bestämmer höjden. */
+.group-chat-slot {
+  position: relative;
+  min-height: 26rem;
+}
+
+@media (min-width: 768px) {
+  .group-chat-slot {
+    min-height: 22rem;
+  }
+}
+
+.group-chat-slot > .notepad {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  /* Linjerna räknas nerifrån, så att svarsraden alltid står på en linje
+     oavsett hur hög rutan är. */
+  background-image:
+    radial-gradient(ellipse at center, transparent 60%, var(--color-paper-edge) 100%),
+    linear-gradient(90deg, transparent calc(var(--paper-margin) - 1px), var(--color-paper-margin) calc(var(--paper-margin) - 1px), var(--color-paper-margin) calc(var(--paper-margin) + 1px), transparent calc(var(--paper-margin) + 1px)),
+    linear-gradient(to bottom, transparent calc(var(--line-gap) - 1px), var(--color-line) calc(var(--line-gap) - 1px));
+  background-size: auto, auto, 100% var(--line-gap);
+  background-repeat: no-repeat, no-repeat, repeat-y;
+  background-position: 0 0, 0 0, 0 100%;
+}
+
+.group-chat-slot .notepad-messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+/* Utan meddelanden ("Inga meddelanden än") står svarsraden ändå längst ner. */
+.group-chat-slot .notepad-reply {
+  flex: none;
+  margin-top: auto;
+  padding-top: var(--line-gap);
+  box-sizing: content-box;
 }
 
 /* En handritad lapp: vit (stilguidens färg för kort och boxar) med ojämna
@@ -2491,6 +3274,119 @@ span.tag-selected:hover {
   height: 18px;
   transform: translateX(-50%) rotate(3deg);
   background: rgba(244, 196, 48, 0.55);
+}
+
+/* En tom lista (components/EmptyState.jsx): Intressekompisen till vänster och en
+   handritad lapp (.paper-note) bredvid, lite lutad, med en liten spets mot
+   kompisen så att det ser ut som att han säger det. Mitt i blocket, så att en
+   tom sida inte ser övergiven ut. På smala skärmar under varandra. */
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  width: 100%;
+  margin: 2rem auto;
+  text-align: left;
+}
+
+.empty-state-kompis {
+  flex: none;
+  width: 120px;
+}
+
+/* En annan bild på kompisen (`image` i EmptyState). De bilderna har mer luft
+   runt figuren och är bredare än höga, så de får lite mer plats för att
+   kompisen ska bli lika stor som den vanliga. */
+.empty-state-kompis > img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.empty-state-kompis:has(> img) {
+  width: 170px;
+}
+
+.empty-state.is-compact .empty-state-kompis:has(> img) {
+  width: 90px;
+}
+
+@media (max-width: 480px) {
+  .empty-state-kompis:has(> img) {
+    width: 132px;
+  }
+}
+
+.empty-state-note {
+  position: relative;
+  max-width: 22rem;
+  padding: 1.2rem 1.1rem 1rem;
+  font-size: var(--text-small);
+  transform: rotate(-1deg);
+}
+
+/* Spetsen mot kompisen. */
+.empty-state-note::after {
+  content: "";
+  position: absolute;
+  left: -9px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-left: 1.5px solid #3a2f25;
+  border-bottom: 1.5px solid #3a2f25;
+  background: var(--color-white);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.empty-state-title {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.empty-state-text {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+.empty-state-action {
+  margin-top: 0.85rem;
+}
+
+/* Mindre, för en del av en sida. */
+.empty-state.is-compact {
+  margin: 0.75rem 0;
+  justify-content: flex-start;
+}
+
+.empty-state.is-compact .empty-state-kompis {
+  width: 64px;
+}
+
+.empty-state.is-compact .empty-state-title {
+  font-size: 1.4rem;
+}
+
+@media (max-width: 480px) {
+  .empty-state {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .empty-state-kompis {
+    width: 96px;
+  }
+
+  .empty-state-note::after {
+    left: 50%;
+    top: -9px;
+    transform: translateX(-50%) rotate(135deg);
+  }
 }
 
 /* Klubbens anslagstavla (components/groups/GroupPosts.jsx), överst på
@@ -2552,6 +3448,18 @@ span.tag-selected:hover {
   border-radius: 4px;
   background: var(--color-white);
   font-size: var(--text-small);
+}
+
+/* Hela anslagstavlan, som en egen vy i klubben (GroupPosts med `full`): en stor
+   kork som fyller blocket, med alla lappar. */
+.board-full {
+  min-height: 34rem;
+}
+
+@media (max-width: 767px) {
+  .board-full {
+    min-height: 28rem;
+  }
 }
 
 /* Dator: de fyra senaste lapparna på en rad, resten med "Visa alla". */
@@ -2929,6 +3837,112 @@ button.board-note:focus-visible {
   max-width: 300px;
 }
 
+/* Klubbar: sök och filter på en rad (GroupsPanel). Ett brett, runt sökfält
+   med förstoringsglas, och intresse, kommun och sortering som rundade knappar
+   bredvid, med en liten pil. På mobil hamnar knapparna på en egen rad under. */
+.club-filters {
+  display: flex;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.club-search {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  min-height: 2.9rem;
+  padding: 0 1.1rem;
+  border: 1.5px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-white);
+  color: var(--color-muted);
+  cursor: text;
+}
+
+.club-search:focus-within {
+  border-color: var(--color-ink);
+}
+
+.club-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+}
+
+.club-filter-pills {
+  display: flex;
+  flex: none;
+  gap: 0.5rem;
+}
+
+select.club-filter,
+.club-filter-kommun input {
+  min-height: 2.9rem;
+  padding: 0 2.1rem 0 1.1rem;
+  border: 1.5px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M3.5 2 L6.5 5 L3.5 8' fill='none' stroke='%233a2f25' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.9rem center / 0.7rem;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  appearance: none;
+  cursor: pointer;
+}
+
+select.club-filter {
+  max-width: 12rem;
+}
+
+.club-filter-kommun input {
+  width: 10.5rem;
+}
+
+select.club-filter:focus-visible,
+.club-filter-kommun input:focus-visible {
+  outline: none;
+  border-color: var(--color-ink);
+}
+
+/* Kommunlistan får plats med långa namn, fast fältet är smalt. */
+.club-filter-kommun .municipality-picker-list {
+  right: auto;
+  min-width: 14rem;
+}
+
+.club-filters .sort-menu-button {
+  width: 2.9rem;
+  height: 2.9rem;
+  border-width: 1.5px;
+  border-radius: 999px;
+}
+
+@media (max-width: 767px) {
+  .club-filters {
+    flex-direction: column;
+  }
+
+  .club-filter-pills {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  select.club-filter,
+  .club-filter-kommun input {
+    width: 100%;
+    max-width: none;
+    padding: 0 1.6rem 0 0.8rem;
+    background-position: right 0.65rem center;
+  }
+}
+
 /* Sökfältet för klubbar med sorteringsknappen bredvid, ovanför filtren. */
 .search-row {
   display: flex;
@@ -3085,6 +4099,41 @@ button.board-note:focus-visible {
   margin-right: -0.25em;
 }
 
+/* Ort och medlemmar (klubbar) eller tid och plats (events) längst ner i den
+   klickbara delen, precis ovanför intresset, så att de och taggen ligger på
+   samma ställe på alla kort hur lång titeln och beskrivningen än är. Luften
+   hamnar ovanför, under beskrivningen. Varje rad kortas med "…" i stället för
+   att brytas: en rad på klubbar, två (tid, och plats under) på events. */
+.list-card-link {
+  flex: 1;
+}
+
+.list-card-link .list-card-meta {
+  order: 1;
+  margin-top: auto;
+  width: 100%;
+}
+
+/* Radhöjden är lite större än titelns (1.1), så att g, j och p inte klipps
+   där raden kortas av (overflow: hidden). */
+.list-card-link .list-card-meta {
+  line-height: 1.3;
+}
+
+.list-card-meta,
+.list-card-meta > span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Lika hög knapprad på alla kort ("Gå med" är lägre än märkena), så att
+   taggen ovanför står på samma höjd. */
+.list-card > .card-actions {
+  min-height: 2.2rem;
+}
+
 /* Bara början av beskrivningen på kortet; hela syns i postens egen vy. */
 .list-card-description {
   display: -webkit-box;
@@ -3093,10 +4142,140 @@ button.board-note:focus-visible {
   overflow: hidden;
 }
 
+/* TILLFÄLLIGT, de nya klubbkorten i testläget (ClubCards i GroupList): mjuk färg i stället för vitt (en av fyra, efter
+   klubbens id), rundade hörn och en tunn kant i en mörkare ton av färgen.
+   Klubbikonen överst, och nertill ens roll eller Gå med till vänster och en
+   pil till höger. Lyfts lite vid hover, med en skugga i samma ton. */
+.card.club-card {
+  --tone: var(--color-pastel-blue);
+  position: relative;
+  /* Klubbikonen tar en rad till, så klubbkorten är lite högre än eventkorten,
+     men alla klubbkort är lika höga. */
+  min-height: 19.5rem;
+  padding: 1.2rem 1.3rem 1rem;
+  border: 1.5px solid color-mix(in srgb, var(--tone) 72%, var(--color-ink));
+  border-radius: 18px;
+  background: var(--tone);
+}
+
+.card.club-card-green {
+  --tone: var(--color-pastel-green);
+}
+
+.card.club-card-peach {
+  --tone: var(--color-pastel-peach);
+}
+
+.card.club-card-yellow {
+  --tone: var(--color-pastel-yellow);
+}
+
+.card.club-card-lilac {
+  --tone: var(--color-pastel-lilac);
+}
+
+.card.club-card-rose {
+  --tone: var(--color-pastel-rose);
+}
+
+.card.club-card.card-interactive:hover,
+.card.club-card.card-interactive:focus-within {
+  border-color: color-mix(in srgb, var(--tone) 50%, var(--color-ink));
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--tone) 65%, var(--color-ink));
+}
+
+.club-card-icon {
+  width: 30px;
+  height: 30px;
+  margin-bottom: 0.2rem;
+}
+
+.club-card-meta {
+  color: #5a5148;
+  font-size: var(--text-small);
+}
+
+.club-card .card-text {
+  color: #463d35;
+}
+
+.club-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: auto;
+}
+
+.club-card-role {
+  font-size: var(--text-small);
+  font-weight: 700;
+}
+
+.club-card-buttons {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* Öppen eller privat: en liten etikett med ett hänglås (öppet eller låst) uppe i
+   högra hörnet, lika långt från kanten som ikonen till vänster. Mjuk färg och
+   text i en mörkare ton av samma färg: grön för öppen, lila för privat. */
+.club-card-visibility {
+  position: absolute;
+  top: 1.1rem;
+  right: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem 0.15rem 0.45rem;
+  border-radius: 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.club-card-visibility svg {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.club-card-visibility.is-open {
+  background: #dcf1e0;
+  color: #22673a;
+}
+
+.club-card-visibility.is-private {
+  background: #ebe3f7;
+  color: #573b8a;
+}
+
+.club-card-open {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.club-card:hover .club-card-open {
+  background: rgba(255, 255, 255, 0.65);
+}
+
 /* Titel till vänster och ett märke (.status-pill) i högerkanten, i en posts egen
    vy. Titeln bryts på flera rader om den är lång, märket behåller sin storlek. */
+/* Märket eller stämpeln bryts till en egen rad om rubriken inte får plats bredvid. */
 .title-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
@@ -3107,7 +4286,8 @@ button.board-note:focus-visible {
   min-width: 0;
 }
 
-.title-row .status-pill {
+.title-row .status-pill,
+.title-row .stamp {
   flex-shrink: 0;
   margin-top: 0.35rem;
 }
@@ -3135,6 +4315,52 @@ button.board-note:focus-visible {
   align-items: flex-start;
   gap: 0.5rem;
   margin-top: 1rem;
+}
+
+/* Ett events eller en klubbs egen vy (EventDetails, GroupDetails): hela
+   blockets bredd, med eventet eller klubben till vänster och resten (intresset,
+   Kommer du? och vilka som svarat, eller klubbens events och medlemmar) till
+   höger, så att en lång beskrivning inte trycker ner resten och man slipper
+   scrolla. Spalterna följer rutans egen bredd (container query), inte skärmens,
+   så att de hamnar under varandra i ett smalt block på mobil och i klubbens
+   ruta bredvid chatten. */
+.detail-sheet {
+  max-width: none;
+  container-type: inline-size;
+}
+
+.detail-main,
+.detail-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Listorna (vilka som svarat, medlemmar) och Kommer du? fyller spalten, så att
+   namnen inte kortas i onödan. */
+.detail-aside {
+  align-items: stretch;
+}
+
+@container (min-width: 40rem) {
+  .detail-sheet .detail-view {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+    gap: 2.5rem;
+  }
+
+  .detail-sheet .detail-aside {
+    padding-left: 2rem;
+    border-left: 1px dashed var(--color-line);
+  }
+
+  .detail-sheet .detail-aside > .detail-view-section:first-child {
+    margin-top: 0;
+  }
 }
 
 /* Ett formulär (.auth-form) som fyller hela bredden i stället för att vara smalt.
@@ -3209,6 +4435,37 @@ button.board-note:focus-visible {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 0.5rem;
+}
+
+/* Ett formulär i två spalter (.form-split med .form-columns och två .form-column):
+   bredvid varandra när formuläret är brett nog, annars under varandra. Följer
+   formulärets egen bredd (container query), så att det blir en spalt i ett smalt
+   block på mobil. Knapparna och felmeddelandet ligger under spalterna. */
+.form-split {
+  container-type: inline-size;
+}
+
+.form-columns,
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  min-width: 0;
+}
+
+@container (min-width: 40rem) {
+  .form-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 2rem;
+  }
+}
+
+/* Skapa och redigera klubb eller event: hela blockets bredd, så att det finns
+   plats för två spalter. */
+.sheet.sheet-form {
+  max-width: none;
 }
 
 /* Var på kartan (components/LocationPicker.jsx): sök fram adressen, välj en
@@ -3376,6 +4633,12 @@ button.board-note:focus-visible {
   min-height: 0;
 }
 
+/* Bara listan krymper och rullar när popupen blir för hög; resten (rubrik,
+   flikar, knappar) behåller sin höjd i stället för att klippas. */
+.modal-content > :not(.modal-scroll) {
+  flex-shrink: 0;
+}
+
 /* En rad som hela går att klicka på för att bocka i (kryssruta först). */
 label.person-list-item {
   cursor: pointer;
@@ -3462,12 +4725,6 @@ label.person-list-item {
   border-radius: 4px;
 }
 
-/* Det öppna området ligger i listan med kategorier, direkt under raden med den
-   man tryckte på, och tar hela bredden (kategorierna efter hamnar under). */
-.explorer .explorer-panel {
-  flex-basis: 100%;
-}
-
 .explorer .explorer-rows {
   margin: 0;
   padding: 0;
@@ -3493,33 +4750,6 @@ label.person-list-item {
   min-height: 44px;
   justify-content: center;
   font-size: var(--text-body);
-}
-
-/* Ett intresse med underintressen: klicka för att gå ner en nivå. */
-.explorer .explorer-drill {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 44px;
-  padding: 0 0.25rem;
-  border: none;
-  border-radius: 4px;
-  background: none;
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: var(--text-body);
-  text-transform: none;
-  letter-spacing: normal;
-  text-align: left;
-  cursor: pointer;
-}
-
-.explorer .explorer-drill:hover,
-.explorer .explorer-drill:focus-visible {
-  background: var(--color-bg);
-  outline: none;
-  opacity: 1;
 }
 
 /* + / ✓: lägg till eller ta bort. Gul när det är valt, som de valda taggarna. */
@@ -3553,39 +4783,36 @@ label.person-list-item {
   font-weight: 700;
 }
 
-/* Huvudområdena som taggar. Det öppna får gul kant och fetstil; gult fyllt
-   betyder fortfarande "valt". */
-.explorer .tag {
-  text-transform: none;
-  letter-spacing: normal;
+/* Huvudområdena som intressetaggar i sin egen färg (.interest-tag). De trycks
+   ner vid hovring, och det öppna är nedtryckt och i fetstil. */
+.explorer .explorer-area {
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.explorer .explorer-area:hover,
+.explorer .explorer-area-open {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.explorer .explorer-area:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
 }
 
 .explorer .explorer-area-open {
-  border-color: var(--color-accent);
   font-weight: 700;
 }
 
 /* Svart trekant: nedåt när området går att öppna, uppåt när det är öppet. */
 .explorer .explorer-arrow {
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid var(--color-text);
   transition: transform 0.15s ease;
 }
 
-/* "Lägg till intressen" / "Klar" på profilen. Triangeln vänds när den är öppen,
-   som på områdestaggarna. */
-.explorer .explorer-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  align-self: flex-start;
-}
-
-.explorer .explorer-area-open .explorer-arrow,
-.explorer .explorer-toggle-open .explorer-arrow {
+.explorer .explorer-area-open .explorer-arrow {
   transform: rotate(180deg);
 }
 
@@ -3595,38 +4822,129 @@ label.person-list-item {
   }
 }
 
-/* Var man är: "Sport och träning › Löpning". */
-.explorer .explorer-crumbs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: var(--text-small);
+/* Intressebiblioteket (InterestLibrary): det öppna området i en ruta i sin
+   ljusa färg, med intressena som taggar att trycka på. */
+.library-area {
+  margin-top: 0.9rem;
+  padding: 0.9rem 0.9rem 1rem;
+  background: var(--tag-sub, var(--color-white));
+  border: 1.5px solid #3a2f25;
+  border-radius: 225px 12px 255px 12px / 12px 255px 12px 225px;
+  box-shadow: 3px 3px 0 #3a2f25;
 }
 
-.explorer .explorer-crumb {
+.library-area-title {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  line-height: 1.1;
+}
+
+/* Ett intresse att välja (PickTag): ljus nyans och + när det inte är valt,
+   områdets färg, ✓, fetstil och nedtryckt när det är valt. */
+.interest-pick {
+  background: var(--tag-sub, var(--color-white));
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.interest-pick.is-on {
+  background: var(--tag-fill, var(--color-white));
+  font-weight: 700;
+}
+
+.interest-pick.is-on,
+.interest-pick:not(.interest-pick-group):hover,
+.interest-pick-group:has(.interest-pick-toggle:hover) {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.interest-pick:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.interest-pick:disabled {
+  cursor: progress;
+}
+
+.interest-pick-mark {
+  display: inline-block;
+  width: 0.7em;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* I rutan med underintressen (som har områdets färg) är de vita tills de är valda. */
+.interest-tag-panel .interest-pick {
+  background: var(--color-white);
+}
+
+.interest-tag-panel .interest-pick.is-on {
+  background: var(--tag-sub, var(--color-white));
+}
+
+/* Ett intresse med underintressen: själva taggen väljer, och pilen (efter en
+   streckad linje) öppnar rutan med underintressena. */
+.interest-pick-group {
+  padding: 0;
+  cursor: default;
+}
+
+.interest-pick-toggle,
+.interest-pick-drill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-}
-
-.explorer .explorer-crumb button {
-  padding: 0 0 1px;
+  gap: 0.3rem;
+  min-height: 1.75rem;
   border: none;
-  border-bottom: 2px solid var(--color-accent);
-  border-radius: 0;
   background: none;
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: var(--text-small);
-  font-weight: 700;
-  text-transform: none;
-  letter-spacing: normal;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
 }
 
-.explorer .explorer-crumb-current {
-  font-weight: 700;
+.interest-pick-toggle {
+  padding: 0.15rem 0.5rem 0.15rem 0.65rem;
+}
+
+.interest-pick-drill {
+  padding: 0 0.55rem 0 0.4rem;
+  border-left: 1.5px dashed #3a2f25;
+}
+
+.interest-pick-toggle:focus-visible,
+.interest-pick-drill:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.interest-pick-toggle:disabled {
+  cursor: progress;
+}
+
+.interest-tag-group.is-open .interest-pick-drill .interest-tag-arrow {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interest-pick {
+    transition: none;
+  }
+}
+
+/* "Intressebiblioteket →" på profilen, under sökrutan. */
+.explorer .explorer-open-library {
+  align-self: flex-start;
+}
+
+/* Intressebiblioteket över hela blocket (ProfilePage, ?bibliotek=1). */
+.explorer-library {
+  width: 100%;
+  max-width: none;
 }
 
 /* Moderering (pages/ModerationPage.jsx, bara för moderatorer): ett kort per

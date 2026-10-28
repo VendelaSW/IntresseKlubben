@@ -96,6 +96,28 @@ def test_interests_on_person_cards_have_parent_id(client, db, user):
     assert {i["name"]: i["parent_id"] for i in body["interests"]} == {"Historia": None, "Mynt": history.id}
 
 
+def test_interests_on_person_cards_have_their_area_and_path(client, db, user):
+    # Huvudområdet är det översta i trädet, också två nivåer ner, och ett huvudområde är sitt eget. path är alla
+    # namnen ovanför, också de som personen inte har valt (Fotografering). area_slug är huvudområdets slug, som
+    # taggens färg följer.
+    creative = Interest(name="Skapande", slug="kreativitet")
+    db.add(creative)
+    db.flush()
+    photo = Interest(name="Fotografering", parent_id=creative.id)
+    db.add(photo)
+    db.flush()
+    portrait = Interest(name="Porträttfoto", parent_id=photo.id)
+    db.add(portrait)
+    db.commit()
+    _create_person(db, "bob", "Bob", interests=[creative, portrait])
+
+    body = client.get("/users/").json()[0]
+
+    assert {i["name"]: i["area"] for i in body["interests"]} == {"Skapande": "Skapande", "Porträttfoto": "Skapande"}
+    assert {i["name"]: i["path"] for i in body["interests"]} == {"Skapande": [], "Porträttfoto": ["Skapande", "Fotografering"]}
+    assert {i["name"]: i["area_slug"] for i in body["interests"]} == {"Skapande": "kreativitet", "Porträttfoto": "kreativitet"}
+
+
 def test_interests_are_sorted_by_name(client, db, user):
     # Tillagda i omvänd bokstavsordning, för att inte råka stämma av misstag.
     schack = Interest(name="Schack")
@@ -114,7 +136,7 @@ def test_private_fields_not_in_response(client, db, user):
 
     body = client.get("/users/").json()[0]
 
-    assert set(body) == {"id", "username", "name", "age", "municipality_name", "district", "image_url", "interests"}
+    assert set(body) == {"id", "username", "name", "age", "age_hidden", "municipality_name", "district", "image_url", "interests"}
 
 
 def test_excludes_dismissed_suggestions(client, db, user):

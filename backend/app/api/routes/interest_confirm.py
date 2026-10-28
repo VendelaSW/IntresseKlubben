@@ -31,6 +31,7 @@ from app.schemas.interest_confirm import (
     UserInterestOut,
 )
 from app.services.interest_confirm import ApprovedItem, Batch, ConfirmError, apply_batches
+from app.services.profile_embeddings import EmbeddingJob
 from app.services.text_moderation import check_fields
 
 router = APIRouter(tags=["interests"])
@@ -82,7 +83,8 @@ def complete_interview(
     if db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
     check_fields(name=data.name, profile_text=data.profile_text, district=data.district)
-    _check_profile_text(data.profile_text, current_user.id)
+    embedding = EmbeddingJob(data.profile_text)  # vektorn räknas samtidigt som AI-kontrollen (se services/profile_embeddings.py)
+    _check_profile_text(data.profile_text, current_user.id, on_ai_check=embedding.start)
     user = db.get(User, current_user.id)
     profile = Profile(
         user_id=user.id,
@@ -102,6 +104,7 @@ def complete_interview(
         raise HTTPException(status_code=422, detail=msg.CONFIRM_NO_INTERESTS)
     user.onboarding_completed_at = datetime.now(timezone.utc)
     db.commit()
+    embedding.finish(db, profile)  # kastar aldrig: profilen är sparad
     db.refresh(profile)
     db.refresh(user)
     return {"profile": _to_response(profile), "interests": _out(user)}

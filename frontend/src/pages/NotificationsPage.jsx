@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
+import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import { useGoBack } from '../hooks/useCanGoBack'
 import {
@@ -12,6 +13,7 @@ import {
   notificationsQuery,
 } from '../services/notifications'
 import { formatSentAt } from '../utils/formatSentAt'
+import LoadError from '../components/LoadError'
 
 // Notiser från Intresseklubben (lappen Notiser på kartan), som en inkorg:
 // listan visar en kompakt rad per notis, och olästa är markerade. Ett klick
@@ -20,7 +22,7 @@ import { formatSentAt } from '../utils/formatSentAt'
 // står som ny. Notiserna är allmänna (rubrik, text, citat, länk) och skrivs i
 // backend (se crud/notification.py), så en ny sorts notis behöver inget här.
 function NotificationsPage() {
-  const { data: notifications = [], isSuccess, isError } = useQuery(notificationsQuery)
+  const { data: notifications = [], isSuccess, isError, refetch, isFetching } = useQuery(notificationsQuery)
   const [searchParams, setSearchParams] = useSearchParams()
   const openId = Number(searchParams.get('notis')) || null
   const goBack = useGoBack(() => setSearchParams({}, { replace: true }))
@@ -38,7 +40,7 @@ function NotificationsPage() {
     }
   }
 
-  if (isError) return <p className="status-error">Kunde inte hämta notiserna. Försök igen senare.</p>
+  if (isError) return <LoadError text="Kunde inte hämta notiserna." onRetry={() => refetch()} retrying={isFetching} />
   if (!isSuccess) return <p className="hint-text">Laddar notiser...</p>
 
   if (openId) {
@@ -112,7 +114,7 @@ function NotificationsPage() {
       )}
       {error && <p className="status-error">{error}</p>}
       {notifications.length === 0 ? (
-        <p className="hint-text">Inga notiser. Här hamnar besked från Intresseklubben, t.ex. om ett event du ska gå på ändras.</p>
+        <EmptyState text="Här hamnar besked från Intresseklubben, till exempel om ett event du ska gå på får ny tid eller ställs in." />
       ) : (
         <ul className="notification-list">
           {notifications.map((n) => (
@@ -164,7 +166,7 @@ export function NotificationDetails({ notification: n, onRemove }) {
   return (
     <article className="card card-wide notification-details">
       <p className="notification-meta">
-        Från Intresseklubben · <time dateTime={n.created_at}>{formatSentAt(n.created_at)}</time>
+        Från Intresseklubben, <time dateTime={n.created_at}>{formatSentAt(n.created_at)}</time>
       </p>
       <h2 className="notification-details-title">{n.title}</h2>
       {n.body && <p className="card-text">{n.body}</p>}

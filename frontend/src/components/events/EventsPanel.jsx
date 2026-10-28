@@ -1,12 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useTabParam } from '../../hooks/useTabParam'
+import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
 import CreateOffer from '../CreateOffer'
+import { PadHeadAction } from '../PadHead'
+import EmptyState from '../EmptyState'
+import FilterTabs from '../FilterTabs'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
 import { contactsQuery } from '../../services/contacts'
@@ -16,16 +20,18 @@ import { getAllInterests, getMyInterests } from '../../services/interests'
 import { useAuth } from '../../hooks/useAuth'
 import { markEventsSeen } from '../../services/eventsSeen'
 import { TIME_FILTERS, inTimeFilter } from '../../utils/eventTime'
+import LoadError from '../LoadError'
 
 const TABS = [
-  { id: 'mine', label: 'Mina events' },
+  { id: 'mine', label: 'Mina events', short: 'Mina' },
   { id: 'invitations', label: 'Inbjudningar' },
   { id: 'suggested', label: 'Förslag' },
 ]
 
+// Vad fliken är till för, när den är tom (se EmptyState).
 const EMPTY_TEXT = {
-  mine: 'Du har inga events ännu.',
-  invitations: 'Du har inga inbjudningar just nu.',
+  mine: 'Här samlas events du ordnar eller ska gå på. Hitta något under Förslag, eller skapa ett eget.',
+  invitations: 'När någon bjuder in dig till ett event hamnar inbjudan här, så att du kan svara.',
   suggested: 'Det finns inga events att föreslå just nu.',
 }
 
@@ -41,7 +47,8 @@ function splitEvents(events) {
   for (const event of events) {
     const answeredYesOrMaybe = event.my_answer === 'yes' || event.my_answer === 'maybe'
     // Ens eget event ligger alltid under Mina events, även om man svarar Nej.
-    if (event.is_owner || answeredYesOrMaybe) lists.mine.push(event)
+    // Ens eget event, och de man är medarrangör för (SCRUM-296), ligger alltid under Mina events.
+    if (event.is_host || answeredYesOrMaybe) lists.mine.push(event)
     else if (event.my_answer === 'no') lists.declined.push(event)
     else if (event.is_invited && event.my_answer === null) lists.invitations.push(event)
     else if (!event.is_invited && event.my_answer === null) lists.suggested.push(event)
@@ -137,7 +144,8 @@ function EventsPanel() {
     setSearchParams(interestId ? { skapa: '1', intresse: String(interestId) } : { skapa: '1' })
   }
 
-  useEffect(() => {
+  const loadInterests = useCallback(() => {
+    setInterestsStatus('loading')
     Promise.all([getAllInterests(), getMyInterests()])
       .then(([allInterests, mine]) => {
         setInterests(allInterests)
@@ -146,6 +154,16 @@ function EventsPanel() {
       })
       .catch(() => setInterestsStatus('error'))
   }, [])
+
+  useEffect(() => loadInterests(), [loadInterests])
+
+  // "Försök igen" när sidan inte gick att hämta (SCRUM-286): bara det som misslyckades hämtas om.
+  function retryPage() {
+    if (interestsStatus === 'error') loadInterests()
+    if (failed(groupsResult)) groupsResult.refetch()
+    if (failed(contactsResult)) contactsResult.refetch()
+    if (eventsFailed) eventsResult.refetch()
+  }
 
   async function handleCreated(created, problem) {
     setInviteProblem(problem ? `Eventet skapades, men inbjudningarna gick inte att skicka: ${problem}` : '')
@@ -195,24 +213,35 @@ function EventsPanel() {
   // eller passerat. Visas med en förklaring i stället för att listan dyker upp
   // utan att man förstår varför (t.ex. via en gammal länk eller kartan).
   const missing = typeof view === 'number' && !selected && eventsResult.isSuccess
+  const newPadHead = useDesignChoice('padHead') !== PRE_DEV
 
   return (
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Events</h1>
-        {view !== 'create' && (
-          <CreateButton label="Skapa event" onClick={() => openCreate()} />
+        {/* TILLFÄLLIGT: med den nya rubriken i testläget (useDesignChoice('padHead')) står knappen i blockets
+            rubrikrad, och inte i ett events vy. Annars här, som vanligt. */}
+        {view !== 'create' && !(newPadHead && (selected || missing)) && (
+          <PadHeadAction>
+            <CreateButton label="Skapa event" onClick={() => openCreate()} />
+          </PadHeadAction>
         )}
       </div>
 
       {status === 'loading' ? (
         <p className="hint-text">Laddar events...</p>
       ) : status === 'error' ? (
-        <p className="status-error">Kunde inte hämta sidan. Försök igen senare.</p>
+        <LoadError
+          text="Kunde inte hämta sidan."
+          onRetry={retryPage}
+          retrying={
+            interestsStatus === 'loading' || groupsResult.isFetching || contactsResult.isFetching || eventsResult.isFetching
+          }
+        />
       ) : view === 'create' ? (
         <>
           <BackButton onClick={goBack} />
-          <div className="card sheet">
+          <div className="card sheet sheet-form">
             <CreateEventForm
               interests={interests}
               groups={myGroups}
@@ -226,29 +255,24 @@ function EventsPanel() {
         </>
       ) : (
         <>
-          <div className="filter-tabs" role="tablist">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.id}
-                className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-                onClick={() => setTab(t.id)}
-              >
-                {t.label} ({lists[t.id].length})
-              </button>
-            ))}
-          </div>
+          {/* Flikarna bara i listan. I ett events vy går man tillbaka till dem med "← Events". */}
+          {!selected && !missing && (
+            // Antalet bara där det är något nytt att se (Inbjudningar och Förslag), inte på Mina events.
+            <FilterTabs
+              tabs={TABS.map((t) => ({ ...t, count: t.id === 'mine' ? undefined : lists[t.id].length }))}
+              active={tab}
+              onChange={setTab}
+            />
+          )}
 
           {inviteProblem && <p className="status-error">{inviteProblem}</p>}
           {notice && <p className="status-success">{notice}</p>}
           {eventsFailed ? (
-            <p className="status-error">Kunde inte hämta events. Försök igen senare.</p>
-          ) : selected && editing && selected.is_owner ? (
+            <LoadError text="Kunde inte hämta events." onRetry={loadEvents} retrying={eventsResult.isFetching} />
+          ) : selected && editing && selected.is_host ? (
             <>
               <BackButton onClick={() => setEditing(false)} />
-              <div className="card sheet">
+              <div className="card sheet sheet-form">
                 <CreateEventForm
                   // key: ett nytt formulär (med eventets uppgifter) varje gång man börjar redigera.
                   key={selected.id}
@@ -274,7 +298,7 @@ function EventsPanel() {
           ) : selected ? (
             <>
               <BackButton onClick={goBack} />
-              <div className="card sheet">
+              <div className="card sheet detail-sheet">
                 <EventDetails
                   event={selected}
                   myInterestIds={myInterestIds}
@@ -319,11 +343,12 @@ function EventsPanel() {
               ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
                 <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
               ) : shown[tab].length === 0 && tab === 'suggested' ? (
-                <CreateOffer
-                  text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}
-                  createLabel="Skapa event"
-                  onCreate={() => openCreate()}
-                />
+                // Inga förslag alls: Intressekompisen erbjuder att skapa ett (SCRUM-221), som de andra tomma flikarna.
+                <EmptyState text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}>
+                  <button type="button" className="primary-button" onClick={() => openCreate()}>
+                    Skapa event
+                  </button>
+                </EmptyState>
               ) : (
                 <EventList
                   events={shown[tab]}

@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import FilterTabs from '../components/FilterTabs'
 import Modal from '../components/Modal'
+import TextareaWithCount from '../components/TextareaWithCount'
 import { useAuth } from '../hooks/useAuth'
 import { useTabParam } from '../hooks/useTabParam'
 import {
@@ -11,9 +13,12 @@ import {
   setReportHandled,
   suggestedDays,
   suspendUser,
+  warnUser,
 } from '../services/moderation'
 import { REPORT_REASONS } from '../services/reports'
 import { formatSentAt } from '../utils/formatSentAt'
+import { useConfirm } from '../hooks/useConfirm'
+import LoadError from '../components/LoadError'
 
 const TABS = [
   { id: 'new', label: 'Nya' },
@@ -39,13 +44,31 @@ function timesText(count) {
   return count === 1 ? '1 gång' : `${count} gånger`
 }
 
+// Personens tidigare varningar (SCRUM-268) och avstängningar i en mening:
+// "fått 2 varningar och varit avstängd 1 gång". Tom text om det inte finns några.
+function historyText(warningCount, suspensionCount) {
+  return [
+    warningCount > 0 && `fått ${warningCount === 1 ? '1 varning' : `${warningCount} varningar`}`,
+    suspensionCount > 0 && `varit avstängd ${timesText(suspensionCount)}`,
+  ]
+    .filter(Boolean)
+    .join(' och ')
+}
+
+// "senast 12 okt., spam eller bedrägeri" för den senaste varningen eller avstängningen.
+function latestText(item, at) {
+  return `senast ${day.format(new Date(at))}, ${reasonLabel(item.reason).toLowerCase()}`
+}
+
 // Moderering (block på kartan, bara för moderatorer, se MapProfileWidget):
 // anmälningarna från SCRUM-130 under Nya och Hanterade. Varje kort visar vem
 // som anmäldes och av vem, var, varför och en kopia av texten, plus hur många
-// gånger personen har anmälts och om hen är eller har varit avstängd. Härifrån
-// markeras anmälan som hanterad och personen kan stängas av (SuspendDialog).
+// gånger personen har anmälts, har varnats och om hen är eller har varit avstängd.
+// Härifrån markeras anmälan som hanterad, personen kan varnas (WarnDialog,
+// SCRUM-268) och stängas av (SuspendDialog).
 // Servern släpper bara in moderatorer (routes/moderation.py).
 function ModerationPage() {
+  const confirm = useConfirm()
   const { user } = useAuth()
   const [urlTab, setTab] = useTabParam(TABS)
   const tab = urlTab ?? 'new'
@@ -53,6 +76,7 @@ function ModerationPage() {
   const newReports = useQuery({ ...moderationReportsQuery(false), enabled })
   const handledReports = useQuery({ ...moderationReportsQuery(true), enabled })
   const [suspending, setSuspending] = useState(null) // anmälan vars person ska stängas av
+  const [warning, setWarning] = useState(null) // anmälan vars person ska varnas
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -73,29 +97,16 @@ function ModerationPage() {
     }
   }
 
-  function handleLift(person) {
-    if (!window.confirm(`Häv avstängningen för ${person.name}?`)) return
+  async function handleLift(person) {
+    if (!(await confirm({ title: 'Häv avstängningen', text: `Häv avstängningen för ${person.name}?`, confirmLabel: 'Häv' })))
+      return
     run(() => liftSuspension(person.id))
   }
 
   return (
     <section className="app-section">
       <h1 className="app-title">Moderering</h1>
-      <div className="filter-tabs" role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-            {lists[t.id].data ? ` (${lists[t.id].data.length})` : ''}
-          </button>
-        ))}
-      </div>
+      <FilterTabs tabs={TABS.map((t) => ({ ...t, count: lists[t.id].data?.length }))} active={tab} onChange={setTab} />
       {error && (
         <p className="status-error" role="alert">
           {error}
@@ -103,7 +114,7 @@ function ModerationPage() {
       )}
 
       {current.isError ? (
-        <p className="status-error">Kunde inte hämta anmälningarna. Försök igen senare.</p>
+        <LoadError text="Kunde inte hämta anmälningarna." onRetry={() => current.refetch()} retrying={current.isFetching} />
       ) : !current.data ? (
         <p className="hint-text">Laddar...</p>
       ) : current.data.length === 0 ? (
@@ -116,12 +127,15 @@ function ModerationPage() {
               report={report}
               busy={busy}
               onHandled={(handled) => run(() => setReportHandled(report.id, handled))}
+              onWarn={() => setWarning(report)}
               onSuspend={() => setSuspending(report)}
               onLift={() => handleLift(report.reported)}
             />
           ))}
         </ul>
       )}
+
+      {warning && <WarnDialog report={warning} onClose={() => setWarning(null)} />}
 
       {suspending && (
         <SuspendDialog
@@ -134,9 +148,12 @@ function ModerationPage() {
   )
 }
 
-function ReportCard({ report, busy, onHandled, onSuspend, onLift }) {
+function ReportCard({ report, busy, onHandled, onWarn, onSuspend, onLift }) {
   const { reported, reporter } = report
-  const previous = reported?.previous_suspensions.length ?? 0
+  const history = reported ? historyText(reported.warnings.length, reported.previous_suspensions.length) : ''
+  const lastWarning = reported?.warnings.at(-1)
+  // En anmälan ger högst en varning (backend säger nej till en till).
+  const warned = reported?.warnings.some((w) => w.report_id === report.id)
   const where = [WHERE[report.target_type], report.group_name].filter(Boolean).join(' i ')
   return (
     <li className="card moderation-card">
@@ -161,18 +178,23 @@ function ReportCard({ report, busy, onHandled, onSuspend, onLift }) {
         <span className="status-pill status-pill-error">{reasonLabel(report.reason)}</span>
       </div>
       <p className="hint-text moderation-meta">
-        {where} · {formatSentAt(report.created_at)}
-        {reported && ` · anmäld ${timesText(reported.report_count)} totalt`}
+        {where}, {formatSentAt(report.created_at)}.
+        {reported && ` Anmäld ${timesText(reported.report_count)} totalt.`}
       </p>
       {reported?.suspension && (
         <p className="moderation-status">Avstängd {untilText(reported.suspension)}</p>
       )}
-      {previous > 0 && <p className="hint-text">Har varit avstängd {timesText(previous)} tidigare.</p>}
+      {history && (
+        <p className="hint-text">
+          Har {history} tidigare.
+          {lastWarning && ` Varnad ${latestText(lastWarning, lastWarning.created_at)}.`}
+        </p>
+      )}
       {report.content && <blockquote className="report-quote">{report.content}</blockquote>}
       {report.comment && <p className="moderation-comment">Kommentar: {report.comment}</p>}
       {report.handled_at && (
         <p className="hint-text">
-          Hanterad {formatSentAt(report.handled_at)}
+          {warned ? 'Varnad' : 'Hanterad'} {formatSentAt(report.handled_at)}
           {report.handled_by && ` av ${report.handled_by}`}
         </p>
       )}
@@ -192,25 +214,121 @@ function ReportCard({ report, busy, onHandled, onSuspend, onLift }) {
               Häv avstängningen
             </button>
           ) : (
-            <button type="button" className="secondary-button button-small" disabled={busy} onClick={onSuspend}>
-              Stäng av {reported.name}
-            </button>
+            <>
+              {/* Utan namnet i texten, så att knapparna får plats på mobil även med ett långt namn
+                  (det står överst på kortet). Skärmläsare får namnet med aria-label. */}
+              {!warned && (
+                <button
+                  type="button"
+                  className="secondary-button button-small"
+                  disabled={busy}
+                  onClick={onWarn}
+                  aria-label={`Varna ${reported.name}`}
+                >
+                  Varna
+                </button>
+              )}
+              <button
+                type="button"
+                className="secondary-button button-small"
+                disabled={busy}
+                onClick={onSuspend}
+                aria-label={`Stäng av ${reported.name}`}
+              >
+                Stäng av
+              </button>
+            </>
           ))}
       </div>
     </li>
   )
 }
 
+// Rutan "Varna …" (SCRUM-268): vilken regel som bröts (förvalt anmälans anledning)
+// och ett valfritt meddelande. Personen får en notis, och anmälan blir hanterad.
+function WarnDialog({ report, onClose }) {
+  const person = report.reported
+  const [reason, setReason] = useState(report.reason)
+  const [message, setMessage] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      await warnUser(report.id, reason, message)
+      onClose()
+    } catch (err) {
+      setError(err.message)
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal title={`Varna ${person.name}`} onClose={onClose} locked={saving}>
+      <form className="auth-form form-compact" onSubmit={handleSubmit}>
+        <p className="hint-text">
+          {person.name} får en notis om vilken regel som bröts, med ditt meddelande om du skriver ett. Anmälan markeras
+          som hanterad.
+        </p>
+        <label htmlFor="warning-reason">Vilken regel bröts?</label>
+        <select id="warning-reason" value={reason} onChange={(e) => setReason(e.target.value)}>
+          {REPORT_REASONS.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </select>
+        <label htmlFor="warning-message">Meddelande till {person.name} (valfritt)</label>
+        <TextareaWithCount
+          id="warning-message"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          maxLength={500}
+          rows={3}
+          placeholder="T.ex. Håll en vänlig ton i klubbchatten."
+        />
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="form-actions">
+          <button type="submit" disabled={saving}>
+            {saving ? 'Skickar...' : 'Skicka varningen'}
+          </button>
+          <button type="button" className="button-secondary" onClick={onClose} disabled={saving}>
+            Avbryt
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
 // Rutan "Stäng av …": hur länge och varför. Förvalt är nästa steg efter hur många
-// gånger personen har varit avstängd förut (suggestedDays), med en påminnelse om
-// historiken, och anmälans anledning.
+// gånger personen har varit avstängd förut och om hen har fått varningar
+// (suggestedDays), med en påminnelse om historiken, och anmälans anledning.
 function SuspendDialog({ person, defaultReason, onClose }) {
   const previous = person.previous_suspensions
-  const [days, setDays] = useState(suggestedDays(previous.length))
+  const warnings = person.warnings
+  const [days, setDays] = useState(suggestedDays(previous.length, warnings.length))
   const [reason, setReason] = useState(defaultReason)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const last = previous.at(-1)
+  const lastWarning = warnings.at(-1)
+  const history = historyText(warnings.length, previous.length)
+  const latest = [
+    lastWarning && `varning ${latestText(lastWarning, lastWarning.created_at)}`,
+    last && `avstängd ${latestText(last, last.starts_at)}`,
+  ]
+    .filter(Boolean)
+    .join('; ')
+  const nextStep =
+    previous.length === 0 ? '7 dagar' : previous.length === 1 ? '30 dagar eller tills vidare' : 'tills vidare'
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -228,13 +346,12 @@ function SuspendDialog({ person, defaultReason, onClose }) {
   return (
     <Modal title={`Stäng av ${person.name}`} onClose={onClose}>
       <form className="auth-form form-compact" onSubmit={handleSubmit}>
-        {previous.length > 0 && (
+        {history && (
           <p className="moderation-reminder">
             <strong>
-              {person.name} har varit avstängd {timesText(previous.length)} tidigare
+              {person.name} har {history} tidigare
             </strong>{' '}
-            (senast {day.format(new Date(last.starts_at))}, {reasonLabel(last.reason).toLowerCase()}). Nästa steg brukar
-            vara {previous.length === 1 ? '30 dagar eller tills vidare' : 'tills vidare'}.
+            ({latest}). Nästa steg brukar vara {nextStep}.
           </p>
         )}
         <p className="hint-text">

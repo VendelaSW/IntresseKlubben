@@ -348,15 +348,15 @@ export function attachPinsAndThread(map, layer, onChange) {
       if (detour) {
         // Hellre en rak tråd och ett ärligt besked än en stor omväg.
         path = [ends.start, ends.goal]
-        tagText = `Rakt fram · ${formatDistance(straight)} (vägen dit kan vara krånglig)`
+        tagText = `Rakt fram ${formatDistance(straight)} (vägen dit kan vara krånglig)`
       } else {
         // Från startnålen, längs vägen, till målnålen.
         path = [ends.start, ...result.coordinates, ends.goal]
-        tagText = `${formatDuration(result.seconds)} promenad · ${formatDistance(result.meters)}`
+        tagText = `${formatDuration(result.seconds)} promenad (${formatDistance(result.meters)})`
       }
     } catch {
       if (current !== request) return
-      tagText = `Ingen väg hittades · ${formatDistance(straightDistance(from, to))} fågelvägen`
+      tagText = `Ingen väg hittades (${formatDistance(straightDistance(from, to))} fågelvägen)`
     }
     render()
   }
