@@ -16,6 +16,14 @@ export function genderLabel(value) {
   return GENDER_OPTIONS.find((o) => o.value === value)?.label ?? null
 }
 
+// Rubriken och platshållaren för "Om mig"-fältet. Den långa rubriken står i Redigera profil, där frågan inte syns. I intervjun
+// står frågan redan ovanför rutan, så där räcker den korta (annars säger de nästan samma sak två gånger och steget får inte
+// plats på en liten mobil).
+export const ABOUT_LABEL = 'Beskriv dig själv och vilken sorts människor du vill träffa'
+export const ABOUT_LABEL_SHORT = 'Om dig'
+export const ABOUT_PLACEHOLDER =
+  'T.ex. Jag är lugn och nyfiken, jobbar som lärare och är ny i stan. På fritiden klättrar jag och spelar brädspel. Jag vill träffa folk som också gillar klättring och spelkvällar, helst någon som är lika pratglad som jag och gärna tar initiativ.'
+
 // Under "Om mig"-fältet, i intervjun och i Redigera profil: att texten läses av en AI-tjänst.
 export const ABOUT_AI_NOTE =
   'Vi låter en AI-tjänst läsa din text. Den kollar att tonen är trevlig och hjälper oss att para ihop dig med personer som delar dina intressen.'
