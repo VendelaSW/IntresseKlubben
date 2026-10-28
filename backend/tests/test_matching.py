@@ -195,6 +195,10 @@ def test_levels_are_given_by_the_score_and_nothing_is_shown_below_the_lowest():
         {"weight_text": -1.0},
         {"weight_interests": 0.0, "weight_near": 0.0, "weight_text": 0.0},
         {"weight_text": float("nan")},
+        {"near_lo": float("-inf"), "near_hi": float("inf")},
+        {"text_hi": float("inf")},
+        {"text_lo": float("nan")},
+        {"reliability_floor": float("inf")},
     ],
 )
 def test_a_broken_configuration_is_refused_at_once(change):
@@ -285,3 +289,16 @@ def test_a_match_is_marked_uncertain_when_either_has_few_interests_or_a_short_te
     assert not score(person(1, enough, **full), person(2, enough, **full), PARENTS, VECTORS).low_confidence
     assert score(person(1, enough, **full), person(2, enough[:-1], **full), PARENTS, VECTORS).low_confidence
     assert score(person(1, enough, **full), person(2, enough, chars=THIN_CHARS - 1), PARENTS, VECTORS).low_confidence
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+def test_a_cosine_that_is_not_a_finite_number_counts_as_missing_not_as_full_marks(bad):
+    a, b = person(1, [3, 4, 5]), person(2, [10, 11, 13])  # intressena skiljer sig helt
+    reference = combine(a, b, PARENTS, 0.45, 0.50)
+    assert reference.percent == 0
+    for near, text in ((bad, 0.50), (0.45, bad), (bad, bad)):
+        result = combine(a, b, PARENTS, near, text)
+        assert result.percent == 0
+        assert not result.complete and result.low_confidence
+    assert "narliggande" not in combine(a, b, PARENTS, bad, 0.50).parts
+    assert "text" not in combine(a, b, PARENTS, 0.45, bad).parts

@@ -42,7 +42,7 @@ fortsätta använda filtret.
 """
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 
 from app.services.interest_embeddings import _cosine_similarity
 
@@ -88,6 +88,10 @@ class MatchConfig:
         """En felaktig inställning ska stoppas här och inte ge tysta, konstiga poäng senare."""
         weights = (self.weight_interests, self.weight_near, self.weight_text)
         problems = []
+        not_finite = [f.name for f in fields(self) if not math.isfinite(getattr(self, f.name))]
+        if not_finite:
+            # Utan den här kontrollen släpper till exempel near_hi=inf igenom och ger NaN, som _clamp gör till full poäng.
+            problems.append("alla tal måste vara ändliga (" + ", ".join(not_finite) + ")")
         if any(w < 0 or not math.isfinite(w) for w in weights) or sum(weights) <= 0:
             problems.append("vikterna måste vara icke-negativa och inte alla noll")
         if not self.near_hi > self.near_lo:
@@ -261,8 +265,15 @@ def combine(
 ) -> Match | None:
     """Poängen för b sett av a, ur de råa cosinusvärdena `near` (närliggande intressen, se near_interests) och `text_cosine`,
     None när de saknas. Det här är sättet att räkna när likheterna kommer från databasen (services/match_suggestions.py) och
-    inte från vektorer i minnet."""
+    inte från vektorer i minnet.
+
+    Ett värde som inte är ett ändligt tal (NaN eller oändligt, till exempel från pgvector för en nollvektor) räknas som saknat:
+    annars gör _clamp NaN till 1,0, alltså full delpoäng. Poängen blir då mindre säker (complete=False) men inte fel."""
     c = config
+    if near is not None and not math.isfinite(near):
+        near = None
+    if text_cosine is not None and not math.isfinite(text_cosine):
+        text_cosine = None
     parts: dict[str, float] = {"intressen": tree_overlap(a.interests, b.interests, parents, c.tree_decay, c.coverage_share)}
     raw: dict[str, float] = {}
     complete = True
