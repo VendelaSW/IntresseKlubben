@@ -10,7 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
 import { sealInterest, suggestInterest } from '../services/interests'
-import { ABOUT_AI_NOTE, ABOUT_LABEL, ABOUT_PLACEHOLDER, GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
+import { ABOUT_AI_NOTE, ABOUT_LABEL_SHORT, ABOUT_PLACEHOLDER, GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
 
 // Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions`
 // är undertexterna som visas under videon medan klippet spelas (för den som har ljudet
@@ -851,7 +851,7 @@ function ProfileInterview() {
                   )}
 
                   {step.id === 'person' && (
-                    <FormField id="interview-about" label={ABOUT_LABEL}>
+                    <FormField id="interview-about" label={ABOUT_LABEL_SHORT}>
                       <TextareaWithCount
                         id="interview-about"
                         value={answers.about}
