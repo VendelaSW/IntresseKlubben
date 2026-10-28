@@ -82,17 +82,22 @@ def notify_event_cancelled(db: Session, event: Event, message: str | None) -> No
     )
 
 
-def notify_event_changed(db: Session, event: Event, time_changed: bool, place_changed: bool) -> None:
-    """Notiser om att eventet har fått ny tid och/eller plats, med en länk till eventet. Sparar."""
+def notify_event_changed(db: Session, event: Event, time_changed: bool, place_changed: bool, by=None) -> None:
+    """Notiser om att eventet har fått ny tid och/eller plats, med en länk till eventet. Sparar. `by` är den som
+    ändrade (skaparen eller en medarrangör, SCRUM-296): hen nämns i notisen och får ingen själv."""
     if not (time_changed or place_changed):
         return
     what = "ny tid och plats" if time_changed and place_changed else "ny tid" if time_changed else "ny plats"
+    if by is None:
+        name = _creator_name(event)
+    else:
+        name = (by.profile.name if by.profile else None) or by.username
     notify(
         db,
-        _attendee_ids(db, event),
+        [user_id for user_id in _attendee_ids(db, event) if by is None or user_id != by.id],
         NotificationKind.event_changed,
         title=f"«{event.title}» har fått {what}",
-        body=f"{_creator_name(event)} har ändrat eventet som du ska gå på.",
+        body=f"{name} har ändrat eventet som du ska gå på.",
         link=f"/events?event={event.id}",
     )
     db.commit()

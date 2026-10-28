@@ -19,10 +19,11 @@ import { useBadgeCounts } from '../hooks/useBadgeCounts'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
 import { getEvents } from '../services/events'
 import { searchPlaces } from '../services/geocode'
-import { getGroups, getMyGroups } from '../services/groups'
+import { getAllGroups, getMyGroups } from '../services/groups'
 import { getProfile } from '../services/profile'
 import { HOUR, cachedInBrowser } from '../services/queryClient'
 import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
+import { areasFrom, attachAreaSymbols } from './mapPrototypeAreaSymbols'
 import {
   ZOOM_LEVELS,
   allKommuner,
@@ -844,6 +845,8 @@ function MapPrototype() {
   const flyTokenRef = useRef(0)
   const activitiesRef = useRef(null) // klubbarnas och eventens lappar på kartan
   const activitiesLayerRef = useRef(null)
+  const areaClubsRef = useRef(null) // symbolerna för klubbar och events utan nål (se mapPrototypeAreaSymbols.js)
+  const areaClubsLayerRef = useRef(null)
 
   // Hämtar klubbar och events som syns för användaren (samma som listorna i
   // appen) och lägger dem på kartan.
@@ -854,7 +857,7 @@ function MapPrototype() {
   async function loadActivities() {
     try {
       const [publicGroups, myGroups, events, kommuner] = await Promise.all([
-        getGroups(),
+        getAllGroups(),
         getMyGroups(),
         getEvents(),
         allKommuner(),
@@ -862,6 +865,8 @@ function MapPrototype() {
       const groups = [...new Map([...publicGroups, ...myGroups].map((g) => [g.id, g])).values()]
       kommunerRef.current = kommuner
       const items = activitiesFrom({ groups, events, kommuner })
+      // Symbolerna först, så att lapparna kan flytta sig undan för dem.
+      areaClubsRef.current?.setAreas(areasFrom({ groups, events, eventItems: items, kommuner }))
       activitiesRef.current?.setItems(items)
       // Samma klubbar och events går att söka fram i sökrutan (se MapPlaceSearch).
       setActivityItems(items)
@@ -975,6 +980,7 @@ function MapPrototype() {
     // täcker allt utom det valda landskapet på landskapsnivån, så rita om.
     labelsApiRef.current?.render()
     outsideApiRef.current?.render()
+    areaClubsRef.current?.render()
     activitiesRef.current?.render()
     const hidden = next === 'sverige' ? HIDDEN_ON_SWEDEN : next === 'landskap' ? HIDDEN_ON_LANDSKAP : []
     const shown = next === 'landskap' ? SHOWN_ON_LANDSKAP : []
@@ -1069,6 +1075,7 @@ function MapPrototype() {
           const found = await findDistrict(district, kommun)
           if (stale()) return
           if (found) {
+            areaClubsRef.current?.setKommunCenter(kommun.kod, found)
             map.easeTo({ center: found, zoom: DISTRICT_ZOOM, duration: 1600 })
             setLevelName(district.trim())
             return
@@ -1086,6 +1093,8 @@ function MapPrototype() {
       }
       const center = match?.geometry.coordinates ?? kommun.label
       if (!center) return
+      // Klubbarna utan nål i kommunen (symbolen) står där kartan stannar, så att de syns direkt.
+      areaClubsRef.current?.setKommunCenter(kommun.kod, center)
       map.easeTo({ center, zoom: DISTRICT_ZOOM, duration: 1600 })
       if (match) setLevelName(match.properties['name:sv'] ?? match.properties.name)
     })
@@ -1346,9 +1355,20 @@ function MapPrototype() {
       onHoverLan: (id) => setHoveredLan(id),
     })
     startAtHome(map)
+    // Symbolerna före lapparna, så att de ritas först när kartan rör sig och lapparna kan flytta sig undan.
+    areaClubsRef.current = attachAreaSymbols(map, areaClubsLayerRef.current, {
+      getView: () => ({
+        mode: modeRef.current,
+        landskap: selectedLandskapRef.current,
+        lan: selectedLanRef.current,
+        kommun: selectedKommunRef.current,
+      }),
+      onOpen: (item) => openActivityRef.current(item),
+    })
     activitiesRef.current = attachActivityMarkers(map, activitiesLayerRef.current, {
       getKommun: () => selectedKommunRef.current,
       onPick: (item, compact) => pickActivityRef.current(item, compact),
+      getFixed: () => areaClubsRef.current?.boxes() ?? [],
     })
     loadActivities()
     labelsApiRef.current = labelsApi
@@ -1419,6 +1439,7 @@ function MapPrototype() {
       <div ref={signsRef} className="map-sketch-signs" aria-hidden="true" />
       <div ref={labelsRef} className="map-sketch-labels" aria-hidden="true" />
       <div ref={activitiesLayerRef} className="map-sketch-activities" />
+      <div ref={areaClubsLayerRef} className="map-sketch-activities map-sketch-area-clubs" />
       <div ref={notesRef} className="map-sketch-notes" />
       <div ref={threadRef} className="map-sketch-thread" hidden={!pinsShown} />
       <svg className="map-sketch-compass" viewBox="0 0 80 80" aria-hidden="true">

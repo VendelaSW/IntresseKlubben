@@ -28,7 +28,19 @@ export function eventWhenWhereText(event) {
 // Vem eventet är till för, som en stämpel: grön för öppet, mörk för endast inbjudna.
 export function VisibilityStamp({ event }) {
   const open = event.visibility === 'open'
-  return <span className={`stamp${open ? ' stamp-success' : ''}`}>{open ? 'Öppet för alla' : 'Endast inbjudna'}</span>
+  const label = open ? 'Öppet för alla' : event.visibility === 'application' ? 'Ansökan' : 'Endast inbjudna'
+  return <span className={`stamp${open ? ' stamp-success' : ''}`}>{label}</span>
+}
+
+// "3 kommer", "3 av 10 kommer" eller "Fullt" (SCRUM-293), och området om eventet gäller ett större (SCRUM-295).
+export function eventExtrasText(event) {
+  const coming = event.max_attendees
+    ? event.is_full
+      ? 'Fullt'
+      : `${event.yes_count} av ${event.max_attendees} kommer`
+    : null
+  const area = event.scope === 'country' ? 'Hela Sverige' : event.scope_name
+  return [area, coming].filter(Boolean).join(' · ')
 }
 
 // Ett kort per event, i samma rutnät som klubbkorten. Klick på kortet öppnar
@@ -52,11 +64,13 @@ function EventList({ events, emptyText, myInterestIds, onSelect }) {
             <span className="card-text list-card-description">{event.description}</span>
           </button>
           <InterestTags
-            interests={[{ id: event.interest_id, name: event.interest_name, area: event.interest_area }]}
+            interests={[{ id: event.interest_id, name: event.interest_name, area: event.interest_area, area_slug: event.interest_area_slug }]}
             highlight={myInterestIds}
           />
           <div className="card-actions">
             {event.is_owner && <span className="status-pill status-pill-owner">Skapare</span>}
+            {!event.is_owner && event.is_host && <span className="status-pill status-pill-owner">Medarrangör</span>}
+            {event.is_full && <span className="status-pill">Fullt</span>}
             <VisibilityStamp event={event} />
           </div>
         </article>
