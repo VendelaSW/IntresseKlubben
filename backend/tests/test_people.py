@@ -4,6 +4,7 @@ kommun, kön och/eller ålder (skrivskyddat, kräver inloggning)."""
 from datetime import date
 
 import pytest
+from sqlalchemy import event
 
 from app.crud.profile import calculate_age
 from app.models.interest import Interest
@@ -265,3 +266,82 @@ def test_filters_combine(client, db, user, municipalities, fixed_today):
     names = [p["name"] for p in client.get("/users/", params=params).json()]
 
     assert names == ["Sara"]
+
+
+# ---------- Ordningen: flest gemensamma intressen först ----------
+
+
+def _interests(db, *names):
+    interests = [Interest(name=name) for name in names]
+    db.add_all(interests)
+    db.commit()
+    return interests
+
+
+def _give_user_interests(db, user, interests):
+    db.add(make_profile(user.id, name="Jag"))
+    user.interests = interests
+    db.commit()
+
+
+def test_people_with_most_interests_in_common_come_first_then_by_name(client, db, user):
+    a, b, c, d = _interests(db, "A", "B", "C", "D")
+    _give_user_interests(db, user, [a, b, c])
+    _create_person(db, "anna", "Anna", interests=[d])  # inget gemensamt
+    _create_person(db, "bo", "Bo", interests=[a])
+    _create_person(db, "cia", "Cia", interests=[a, b])
+    _create_person(db, "dag", "Dag", interests=[a, b, c, d])
+    _create_person(db, "eva", "Eva", interests=[b, c])
+
+    names = [p["name"] for p in client.get("/users/").json()]
+
+    assert names == ["Dag", "Cia", "Eva", "Bo", "Anna"]  # Cia och Eva har lika många: namnordning
+
+
+def test_filters_choose_who_is_in_the_list_but_not_the_order(client, db, user, municipalities):
+    a, b = _interests(db, "A", "B")
+    _give_user_interests(db, user, [a, b])
+    _create_person(db, "ann", "Ann", interests=[a])
+    _create_person(db, "bea", "Bea", interests=[a, b])
+    _create_person(db, "cai", "Cai", interests=[a, b], municipality_code="1481")
+    _create_person(db, "dan", "Dan", interests=[a], municipality_code="1481")
+
+    everyone = [p["name"] for p in client.get("/users/").json()]
+    in_molndal = [p["name"] for p in client.get("/users/", params={"municipality_code": "1481"}).json()]
+
+    assert everyone == ["Bea", "Cai", "Ann", "Dan"]
+    assert in_molndal == ["Cai", "Dan"]
+
+
+def test_someone_without_interests_gets_the_list_in_name_order(client, db, user):
+    a, = _interests(db, "A")
+    _give_user_interests(db, user, [])
+    _create_person(db, "bo", "Bo", interests=[a])
+    _create_person(db, "anna", "Anna")
+
+    assert [p["name"] for p in client.get("/users/").json()] == ["Anna", "Bo"]
+
+
+def test_the_number_of_queries_does_not_grow_with_the_number_of_people(client, db, user):
+    a, b = _interests(db, "A", "B")
+    _give_user_interests(db, user, [a, b])
+    for i in range(2):
+        _create_person(db, f"first{i}", f"First{i}", interests=[a])
+    client.get("/users/")  # första anropet efter commit laddar om utgångna attribut: räknas inte
+
+    def count():
+        queries = []
+        listener = lambda *args, **kwargs: queries.append(1)  # noqa: E731
+        event.listen(db.get_bind(), "before_cursor_execute", listener)
+        try:
+            assert client.get("/users/").status_code == 200
+        finally:
+            event.remove(db.get_bind(), "before_cursor_execute", listener)
+        return len(queries)
+
+    few = count()
+    for i in range(6):
+        _create_person(db, f"more{i}", f"More{i}", interests=[a, b])
+    client.get("/users/")
+
+    assert count() == few

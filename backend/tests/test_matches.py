@@ -4,12 +4,14 @@ gör det. Vektorerna är påhittade och korta (SQLite lagrar dem som JSON), och 
 from datetime import date, timedelta
 
 import pytest
+from sqlalchemy import event
 
 from app.models.profile import GenderEnum
 from app.models.user_interest import PRACTISES
 from app.models import Contact, DismissedSuggestion, Interest, ProfileEmbedding, User, UserInterest
 from app.models.interest_embedding import InterestEmbedding
 from app.services.interest_embeddings import text_hash
+from app.services.match_suggestions import scores_for
 from tests.helpers import make_profile
 
 CLIMBING, MUSIC = [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]
@@ -269,6 +271,58 @@ def test_pages_of_a_filtered_list_continue_where_the_last_one_stopped(client, db
 
     assert len(first["matches"]) == 2 and first["has_more"] is True
     assert len(second["matches"]) == 1 and second["has_more"] is False
+
+
+def test_scores_for_gives_the_same_points_as_the_suggestions_and_also_for_those_below_the_lowest_level(client, db, user, climbing, music):
+    """scores_for är det en lista (t.ex. personlistan) sorterar efter: samma poäng som GET /matches, men utan gränsen på lägsta poäng."""
+    _fill_profile(db, user, climbing)
+    twin = _person(db, "twin", climbing, name="Twin")
+    partly = _person(db, "partly", [climbing[0], music[0], music[1]], name="Partly", vector=[0.8, 0.6, 0.0])
+    opposite = _person(db, "opposite", music, name="Opposite", vector=MUSIC)
+    thin = _person(db, "thin", climbing[:1], name="Thin")  # klarar inte minimikraven
+
+    scores = scores_for(db, user.id, {twin.id, partly.id, opposite.id, thin.id})
+    shown = {m["name"]: m["percent"] for m in _matches(client)["matches"]}
+
+    assert scores[twin.id].percent == shown["Twin"]
+    assert scores[partly.id].percent == shown["Partly"]
+    assert opposite.id in scores and scores[opposite.id].percent < 15 and "Opposite" not in shown
+    assert thin.id not in scores
+
+
+def test_scores_for_is_empty_for_someone_who_does_not_meet_the_minimum_or_has_no_profile(db, user, climbing):
+    other = _person(db, "other", climbing, name="Other")
+    assert scores_for(db, user.id, {other.id}) == {}  # ingen profil
+
+    _fill_profile(db, user, climbing[:1], text="Kort.")
+    assert scores_for(db, user.id, {other.id}) == {}  # för lite
+    assert scores_for(db, user.id, set()) == {}
+
+
+def test_scores_for_leaves_out_the_one_asking(db, user, climbing):
+    _fill_profile(db, user, climbing)
+    other = _person(db, "other", climbing, name="Other")
+
+    assert set(scores_for(db, user.id, {user.id, other.id})) == {other.id}
+
+
+def test_the_number_of_queries_for_scores_does_not_grow_with_the_number_of_people(db, user, climbing):
+    _fill_profile(db, user, climbing)
+    first = [_person(db, f"a{i}", climbing, name=f"A{i}").id for i in range(2)]
+    more = first + [_person(db, f"b{i}", climbing, name=f"B{i}").id for i in range(6)]
+
+    def count(ids):
+        queries = []
+        listener = lambda *args, **kwargs: queries.append(1)  # noqa: E731
+        event.listen(db.get_bind(), "before_cursor_execute", listener)
+        try:
+            scores_for(db, user.id, set(ids))
+        finally:
+            event.remove(db.get_bind(), "before_cursor_execute", listener)
+        return len(queries)
+
+    scores_for(db, user.id, set(first))  # första anropet efter commit laddar om utgångna attribut: räknas inte
+    assert count(more) == count(first)
 
 
 def _reasons(client, name):

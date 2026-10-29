@@ -61,12 +61,6 @@ function sharedCountOf(person, myInterestIds) {
   return (person.interests ?? []).filter((interest) => myInterestIds.has(interest.id)).length
 }
 
-// Hur många av de gemensamma intressena båda själva håller på med (SCRUM-271).
-// `myPractisedIds` är ens egna intressen där practices är sant.
-function sharedPractisedCountOf(person, myPractisedIds) {
-  return (person.interests ?? []).filter((interest) => interest.practices && myPractisedIds.has(interest.id)).length
-}
-
 // "3 gemensamma intressen", med siffran framhävd. Vilka det är syns redan på
 // kortet (gula taggar), så texten behöver inte räkna upp dem.
 function sharedCountText(count) {
@@ -89,8 +83,8 @@ function sharedInterestsText(person, myInterestIds) {
 // sina kompisar (Kompisar). Under Sök står de man har intressen
 // gemensamt med under "Medlemmar med liknande intressen", i grupper efter hur
 // många intressen man har gemensamt (rubriken ovanför varje grupp, så att det
-// syns utan att läsa korten), och resten under "Fler i Intresseklubben". Inom
-// en grupp står de först som håller på med flest av samma intressen som en själv.
+// syns utan att läsa korten), och resten under "Fler i Intresseklubben". Ordningen
+// kommer från API:t (flest gemensamma intressen först, därefter namn) och sorteras inte om här.
 // Sidan är ett <section className="app-section"> rakt av, precis som
 // pages/demo/DemoPeople.jsx - INTE inslaget i content-stack (den är byggd
 // för smala centrerade sidor och krymper annars hela sidan efter innehållet,
@@ -107,7 +101,6 @@ function PeoplePage() {
   const [urlTab, setTab] = useTabParam(TABS)
   const tab = urlTab ?? 'suggested'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
-  const [myPractisedIds, setMyPractisedIds] = useState(new Set())
   // `interestId` är rullistans val (ett av ens egna intressen) och `pickedInterest` intresset man sökte fram bland alla;
   // bara ett av dem gäller åt gången (se InterestFilter).
   const [filters, setFilters] = useState({
@@ -138,7 +131,6 @@ function PeoplePage() {
         setMunicipalities(m)
         setMyInterests(mine)
         setMyInterestIds(new Set(mine.map((interest) => interest.id)))
-        setMyPractisedIds(new Set(mine.filter((interest) => interest.practices).map((interest) => interest.id)))
       })
       .catch(() => setFilterDataFailed(true))
   }, [])
@@ -219,19 +211,14 @@ function PeoplePage() {
   ])
 
   const sharedCount = (person) => sharedCountOf(person, myInterestIds)
-  const sharedPractisedCount = (person) => sharedPractisedCountOf(person, myPractisedIds)
 
+  // Ordningen kommer från API:t (GET /users/: flest gemensamma intressen först, därefter namn), så den sorteras inte om här.
   const suggested = people
     .filter((person) => !excludedUserIds.has(person.id))
     .map((person) => ({ person, outgoing: outgoingByUserId.get(person.id) }))
-    .sort(
-      (a, b) =>
-        sharedCount(b.person) - sharedCount(a.person) ||
-        sharedPractisedCount(b.person) - sharedPractisedCount(a.person),
-    )
 
   // Sök delas i två: de man har minst ett intresse gemensamt med, och alla andra.
-  // De gemensamma grupperas efter antal, flest först (listan är redan sorterad).
+  // De gemensamma grupperas efter antal, flest först (listan kommer redan så från API:t).
   const matchGroups = []
   for (const item of suggested) {
     const count = sharedCount(item.person)
