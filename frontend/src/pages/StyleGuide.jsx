@@ -16,8 +16,10 @@ import ConversationCard from '../components/ConversationCard'
 import CreateButton from '../components/CreateButton'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
+import OptionPicker from '../components/OptionPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
 import FilterTabs from '../components/FilterTabs'
+import DrawnArrow from '../components/DrawnArrow'
 import MatchCard from '../components/MatchCard'
 import MatchThumb from '../components/MatchThumb'
 import FormField from '../components/FormField'
@@ -127,6 +129,7 @@ function StyleGuide() {
   const [exampleMunicipality, setExampleMunicipality] = useState('')
   const [exampleBirthDate, setExampleBirthDate] = useState('')
   const [filterMunicipality, setFilterMunicipality] = useState('')
+  const [filterGender, setFilterGender] = useState('')
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [examplePosition, setExamplePosition] = useState(null)
@@ -571,6 +574,29 @@ function StyleGuide() {
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Filter som papperslappar (.filter-select-row-paper, utöver .filter-select-row)
+        </p>
+        <p className="hint-text">
+          Små rundade lappar i varmt papper med en tunn kant och en liten skugga nedåt, och alla på samma rad (som sökraden i
+          Klubbar med utseendet Papperslappar). Används på filterraden i Matcha-fliken. Kön är en egen lista (OptionPicker, .option-picker) i stället för en vanlig
+          &lt;select&gt;, så att valen kan vara ljusgula (listan i en &lt;select&gt; ritas av webbläsaren och går inte att färga).
+        </p>
+        <div className="filter-select-row filter-select-row-compact filter-select-row-paper" style={{ marginTop: '1rem' }}>
+          <OptionPicker
+            aria-label="Exempel 5"
+            value={filterGender}
+            onChange={setFilterGender}
+            options={[{ value: '', label: 'Alla kön' }, { value: 'kvinna', label: 'Kvinna' }, { value: 'man', label: 'Man' }]}
+          />
+          <select aria-label="Exempel 6"><option>Alla kommuner</option></select>
+          <div className="filter-age-range">
+            <span aria-hidden="true">Ålder</span>
+            <input type="number" placeholder="från" aria-label="Exempel från" />
+            <input type="number" placeholder="till" aria-label="Exempel till" />
+          </div>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Filter med sökruta (InterestFilter)
         </p>
         <p className="hint-text">
@@ -627,9 +653,52 @@ function StyleGuide() {
         </p>
         <div className="card-grid" style={{ marginTop: '1.75rem', gap: '2rem 1rem' }}>
           {EXAMPLE_MATCHES.map((match) => (
-            <MatchCard key={match.id} match={match} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onSkip={() => {}} onDismiss={() => {}} />
+            <MatchCard key={match.id} match={match} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onDismiss={() => {}} />
           ))}
         </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Matchningskortet som affisch (.match-card-poster), "Nicklas förslag 1"
+        </p>
+        <p className="hint-text">
+          En av matchningssidans layouter (väljaren "Matchningssidan" i testläget): kortet som klubbkortet Affisch, med vitt
+          papper utan kant, en färgad rad överst, ett rasterhörn, namnet i tryckbokstäver, en mörkare mjuk skugga och en lätt
+          lutning, bredare eftersom det visas ensamt. Raden är delad i en färg per huvudområde som personens intressen ligger
+          i (högst fyra, de ni har gemensamt först). Orten ligger i en svart ruta direkt under namnet, bredvid bilden (som antalet på klubbkorten). Knapparna ligger
+          närmare texten, och "Gå vidare" är pilarna vid sidorna (nedan). Samma affischstil har personkorten i Sök,
+          Förfrågningar och Kompisar (PersonCard, .person-card-poster, 320 px i rutnät).
+        </p>
+        <div style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'center' }}>
+          <MatchCard poster match={EXAMPLE_MATCHES[2]} sharedInterestIds={new Set([2])} onSend={() => {}} onDismiss={() => {}} />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Pilar vid kortets sidor (.match-stage, .match-arrow)
+        </p>
+        <p className="hint-text">
+          Nästa åt höger och tillbaka åt vänster, i stället för en knapp. Den skissade pilen (DrawnArrow) tjockare, med svart
+          kant och fylld med den gula färgen. Pilen åt vänster är nedtonad när det inte finns något att gå tillbaka till.
+        </p>
+        <div className="match-stage" style={{ marginTop: '1.25rem' }}>
+          <button type="button" className="match-arrow" aria-label="Förra förslaget" disabled>
+            <DrawnArrow className="match-arrow-prev" />
+          </button>
+          <MatchCard match={EXAMPLE_MATCHES[0]} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onDismiss={() => {}} />
+          <button type="button" className="match-arrow" aria-label="Nästa förslag">
+            <DrawnArrow className="match-arrow-next" />
+          </button>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Börja matcha och rutan ovanpå allt (.match-start, .match-overlay), "Nicklas förslag 1"
+        </p>
+        <p className="hint-text">
+          Matcha-fliken har filtren och en knapp, Börja matcha (.match-start), med de första i kön som förhandsvisning.
+          Knappen öppnar kortet som en ruta ovanpå hela sidan (MatchOverlay, byggd på &lt;dialog&gt;, .match-overlay): en
+          mörk bakgrund, ett kryss (.match-overlay-close) och Esc stänger, och kortet får aldrig bli högre än skärmen. Bara Om
+          mig-texten inuti kortet scrollar om den är lång, så att knapparna alltid syns. Pilarna ligger vid sidorna, och de
+          närmast på tur som små kort under.
+        </p>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Små kort för de närmast på tur (MatchThumb, .match-thumb i .match-thumbs)
@@ -643,6 +712,15 @@ function StyleGuide() {
         <ul className="match-thumbs" style={{ marginTop: '0.75rem' }}>
           {EXAMPLE_MATCHES.map((match, i) => (
             <MatchThumb key={match.id} match={match} place={i + 1} />
+          ))}
+        </ul>
+        <p className="hint-text">
+          I "Nicklas förslag 1" är de små korten i samma affischstil som det stora kortet (.match-thumb-poster): vitt papper
+          utan kant, en färgad rad överst i färgerna på personens områden, mjuk skugga och en lätt lutning.
+        </p>
+        <ul className="match-thumbs" style={{ marginTop: '0.75rem' }}>
+          {EXAMPLE_MATCHES.map((match, i) => (
+            <MatchThumb key={match.id} poster match={match} place={i + 1} />
           ))}
         </ul>
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { searchInterests } from '../services/interests'
+import OptionPicker from './OptionPicker'
 
 // Intressefiltret under Medlemmar > Sök. Två sätt att välja, och bara ett gäller åt gången:
 //
@@ -9,6 +10,8 @@ import { searchInterests } from '../services/interests'
 //
 // Sidan äger valet: `mineId` är rullistans val ('' = Alla intressen), `picked` är intresset från sökningen ({ id, name })
 // eller null. `onPickMine(id)` och `onPick(interest | null)` anropas när man väljer, och sidan nollställer det andra.
+// `paper` (TILLFÄLLIGT, testläget, Nicklas förslag 1): raden som papperslappar, och rullistan som en egen lista (OptionPicker) i
+// stället för en <select>, som filterraden i Matcha-fliken.
 
 // Samma väntan efter senaste tangenttrycket som i AddInterest, så att inte varje bokstav blir ett anrop.
 const SEARCH_DELAY_MS = 300
@@ -21,7 +24,7 @@ const swedishOrder = new Intl.Collator('sv')
 // Måste stämma med AddInterest (och backend).
 const MAX_QUERY_LENGTH = 40
 
-function InterestFilter({ myInterests, mineId, picked, onPickMine, onPick }) {
+function InterestFilter({ myInterests, mineId, picked, onPickMine, onPick, paper = false }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null) // null = ingen sökning, annars { text, items } för texten som söktes
   const [failed, setFailed] = useState(false)
@@ -56,19 +59,28 @@ function InterestFilter({ myInterests, mineId, picked, onPickMine, onPick }) {
 
   return (
     <>
-      <div className="filter-select-row filter-select-row-compact">
-        <select
-          aria-label="Filtrera på ett av dina intressen"
-          value={picked ? '' : mineId}
-          onChange={(e) => onPickMine(e.target.value)}
-        >
-          <option value="">Alla intressen</option>
-          {sortedMine.map((interest) => (
-            <option key={interest.id} value={interest.id}>
-              {interest.name}
-            </option>
-          ))}
-        </select>
+      <div className={`filter-select-row filter-select-row-compact${paper ? ' filter-select-row-paper' : ''}`}>
+        {paper ? (
+          <OptionPicker
+            aria-label="Filtrera på ett av dina intressen"
+            value={picked ? '' : mineId}
+            onChange={onPickMine}
+            options={[{ value: '', label: 'Alla intressen' }, ...sortedMine.map((interest) => ({ value: String(interest.id), label: interest.name }))]}
+          />
+        ) : (
+          <select
+            aria-label="Filtrera på ett av dina intressen"
+            value={picked ? '' : mineId}
+            onChange={(e) => onPickMine(e.target.value)}
+          >
+            <option value="">Alla intressen</option>
+            {sortedMine.map((interest) => (
+              <option key={interest.id} value={interest.id}>
+                {interest.name}
+              </option>
+            ))}
+          </select>
+        )}
         <input
           type="search"
           aria-label="Sök bland alla intressen"

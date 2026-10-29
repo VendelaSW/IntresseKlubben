@@ -7,7 +7,9 @@ import EmptyState from '../components/EmptyState'
 import FilterTabs from '../components/FilterTabs'
 import InterestFilter from '../components/InterestFilter'
 import MatchPanel from '../components/MatchPanel'
+import OptionPicker from '../components/OptionPicker'
 import PersonCard from '../components/PersonCard'
+import { useDesignChoice } from '../hooks/useDesignChoice'
 import { useTabParam } from '../hooks/useTabParam'
 import {
   CANCEL_REQUEST,
@@ -103,12 +105,16 @@ const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: []
 
 function PeoplePage() {
   const confirm = useConfirm()
+  // TILLFÄLLIGT (testläget): matchningssidans layout (väljaren "Matchningssidan"), se MatchPanel.
+  const matchLayout = useDesignChoice('matchLayout')
   // Intressena och kommunerna (för filtren) och ens egna intressen kommer ur minnet.
   const [filterDataFailed, setFilterDataFailed] = useState(false)
   // Fliken står i adressen, så att Tillbaka från en profil kommer hit igen (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
   // Matcha är första fliken och den som öppnas när adressen inte säger något annat.
   const tab = urlTab ?? 'match'
+  // Filterraderna som papperslappar med egna listor: i Matcha och Sök, i layouten Nicklas förslag 1 (se OptionPicker).
+  const paperRow = (tab === 'match' || tab === 'suggested') && matchLayout === 'nicklas-1'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [myPractisedIds, setMyPractisedIds] = useState(new Set())
   // `interestId` är rullistans val (ett av ens egna intressen) och `pickedInterest` intresset man sökte fram bland alla;
@@ -346,9 +352,15 @@ function PeoplePage() {
               picked={filters.pickedInterest}
               onPickMine={(id) => setFilters({ ...filters, interestId: id, pickedInterest: null })}
               onPick={(interest) => setFilters({ ...filters, interestId: '', pickedInterest: interest })}
+            paper={paperRow}
             />
           )}
-          <div className="filter-select-row filter-select-row-compact">
+          {/* I Matcha och Sök, i layouten Nicklas förslag 1, är fälten papperslappar (se .filter-select-row-paper). */}
+          <div
+            className={`filter-select-row filter-select-row-compact${
+              paperRow ? ' filter-select-row-paper' : ''
+            }`}
+          >
             <MunicipalityPicker
               aria-label="Filtrera på kommun"
               municipalities={municipalities}
@@ -356,18 +368,28 @@ function PeoplePage() {
               onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
               emptyLabel="Alla kommuner"
             />
-            <select
-              aria-label="Filtrera på kön"
-              value={filters.gender}
-              onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
-            >
-              <option value="">Alla kön</option>
-              {GENDER_FILTER_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            {paperRow ? (
+              // Egen lista i stället för <select>, så att valen kan vara gula (se OptionPicker).
+              <OptionPicker
+                aria-label="Filtrera på kön"
+                value={filters.gender}
+                onChange={(gender) => setFilters({ ...filters, gender })}
+                options={[{ value: '', label: 'Alla kön' }, ...GENDER_FILTER_OPTIONS]}
+              />
+            ) : (
+              <select
+                aria-label="Filtrera på kön"
+                value={filters.gender}
+                onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
+              >
+                <option value="">Alla kön</option>
+                {GENDER_FILTER_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="filter-age-range">
               <span aria-hidden="true">Ålder</span>
               <input

@@ -1,3 +1,5 @@
+import { useDesignChoice } from '../hooks/useDesignChoice'
+import { posterStrip } from '../utils/matchPoster'
 import MatchLevel from './MatchLevel'
 import PersonCard from './PersonCard'
 
@@ -34,20 +36,34 @@ function reasonLines(reasons, name) {
 
 // Ett förslag i Matcha-fliken: personkortet (PersonCard) med nivån i hörnet, personens Om mig-text i sin helhet och
 // "Därför matchar ni" med skälen som punkter. `match` är ett förslag från GET /matches. Knapparna är Skicka kompisförfrågan,
-// Gå vidare (visa nästa utan att ta bort något) och Ta bort förslag (försvinner för gott, med Ångra). `sharedInterestIds`
-// (en Set) markerar gemensamma intressen med en bock, och bara de: skälen har egna punkter.
-function MatchCard({ match, sharedInterestIds, busy, onSend, onSkip, onDismiss }) {
+// Gå vidare (visa nästa utan att ta bort något, bara om `onSkip` skickas med) och Ta bort förslag (försvinner för gott, med
+// Ångra). `sharedInterestIds` (en Set) markerar gemensamma intressen med en bock, och bara de: skälen har egna punkter.
+// TILLFÄLLIGT (testläget): matchningssidan finns i flera layouter (väljaren "Matchningssidan"). I "Nicklas förslag 1" är
+// kortet en affisch (.match-card-poster) och "Gå vidare" är pilarna vid sidorna (MatchPanel), så då skickas inget `onSkip`.
+// `poster` tvingar affischen oavsett val (för stilguiden).
+function MatchCard({ match, sharedInterestIds, busy, onSend, onSkip, onDismiss, poster }) {
   const name = match.name ?? match.username
   const reasons = reasonLines(match.reasons, name)
+  // TILLFÄLLIGT (testläget): utseendet "gnistor" står under namnet i stället för i hörnet (se MatchLevel).
+  const sparks = useDesignChoice('matchCard') === 'gnistor'
+  const layout = useDesignChoice('matchLayout')
+  const isPoster = poster ?? layout === 'nicklas-1'
+  // Raden överst på kortet har färgerna på personens områden, de ni har gemensamt först (se posterStrip).
+  const [posterColor, posterStops] = posterStrip(match.interests, sharedInterestIds)
 
   return (
     <PersonCard
-      className="match-card"
+      className={`match-card${isPoster ? ' match-card-poster' : ''}`}
+      poster={false}
+      style={{ '--poster': posterColor, '--poster-strip': posterStops }}
       person={match}
+      // Affischen visar bara staden (kommunen), i en svart ruta under namnet.
+      place={isPoster ? match.municipality_name : undefined}
       sharedInterestIds={sharedInterestIds}
-      badge={<MatchLevel level={match.level} />}
+      badge={sparks ? null : <MatchLevel level={match.level} />}
       intro={
         <>
+          {sparks && <MatchLevel level={match.level} />}
           {match.profile_text && <p className="match-about">{match.profile_text}</p>}
           {reasons.length > 0 && (
             <>
@@ -67,9 +83,11 @@ function MatchCard({ match, sharedInterestIds, busy, onSend, onSkip, onDismiss }
             Skicka kompisförfrågan
           </button>
           <div className="match-actions-row">
-            <button type="button" className="secondary-button button-small" disabled={busy} onClick={onSkip}>
-              Gå vidare
-            </button>
+            {onSkip && (
+              <button type="button" className="secondary-button button-small" disabled={busy} onClick={onSkip}>
+                Gå vidare
+              </button>
+            )}
             <button type="button" className="text-button" disabled={busy} onClick={onDismiss}>
               Ta bort förslag
             </button>
