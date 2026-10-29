@@ -704,3 +704,9 @@
     padding: 1.05rem 1.05rem 0.9rem;
   }
 }
+
+/* Bilden är inte kvadratisk (200 x 224): utan detta pressas den ihop till 30 x 30 och ser utdragen ut. */
+.club-style-7 .club-card-icon {
+  object-fit: contain;
+  object-position: left center;
+}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './padBackgrounds.css'
 import './uiStyles.css'
 import './matchCards.css'
+import './matchLayout.css'
 
 // TILLFÄLLIGT, bara i testläget: välj utseenden att jämföra (klubbkorten, sökraden, blockets rubrik
 // och bakgrund, flikarna och Öppen/Privat-taggen). Varje val sparas i webbläsaren och läggs som ett data-attribut på

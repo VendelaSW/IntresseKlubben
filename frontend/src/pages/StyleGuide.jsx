@@ -16,13 +16,10 @@ import ConversationCard from '../components/ConversationCard'
 import CreateButton from '../components/CreateButton'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
-import OptionPicker from '../components/OptionPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
 import FilterTabs from '../components/FilterTabs'
-import DrawnArrow from '../components/DrawnArrow'
 import MatchCard from '../components/MatchCard'
 import MatchThumb from '../components/MatchThumb'
-import { EventTicket } from '../components/events/EventList'
 import FormField from '../components/FormField'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
@@ -82,13 +79,6 @@ const EXAMPLE_MATCHES = [
   },
 ]
 
-// Ett event, för eventbiljetten (väljaren "Eventkort").
-const EXAMPLE_EVENT = {
-  id: 12, title: 'Fotopromenad i Haga', description: 'Vi går en runda med kamera, byter tips och slutar med fika. Alla nivåer är välkomna.',
-  starts_at: '2026-11-07T10:00:00', ends_at: '2026-11-07T12:30:00', place_name: 'Haga kyrkoplan', interest_id: 9, interest_name: 'Fotografering',
-  interest_area_slug: 'skapande', visibility: 'open', is_owner: false, is_host: false, is_full: false,
-}
-
 const EXAMPLE_CONVERSATIONS = [
   { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), last_message_from_me: false, isNew: true },
   { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', last_message_from_me: true, isNew: false },
@@ -137,7 +127,6 @@ function StyleGuide() {
   const [exampleMunicipality, setExampleMunicipality] = useState('')
   const [exampleBirthDate, setExampleBirthDate] = useState('')
   const [filterMunicipality, setFilterMunicipality] = useState('')
-  const [filterGender, setFilterGender] = useState('')
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [examplePosition, setExamplePosition] = useState(null)
@@ -582,30 +571,6 @@ function StyleGuide() {
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Filter som papperslappar (.filter-select-row-paper, utöver .filter-select-row)
-        </p>
-        <p className="hint-text">
-          Små rundade lappar i varmt papper med en tunn kant och en liten skugga nedåt, och alla på samma rad (som sökraden i
-          Klubbar med utseendet Papperslappar). Används på filterraderna i Matcha och Sök. På en smal skärm ligger fälten bakom en knapp, Filter (.filter-toggle med .filter-panel),
-          som visar hur många filter som är på, och fäller ut fälten; på en bred skärm syns fälten och inte knappen. Kön är en egen lista (OptionPicker, .option-picker) i stället för en vanlig
-          &lt;select&gt;, så att valen kan vara ljusgula (listan i en &lt;select&gt; ritas av webbläsaren och går inte att färga).
-        </p>
-        <div className="filter-select-row filter-select-row-compact filter-select-row-paper" style={{ marginTop: '1rem' }}>
-          <OptionPicker
-            aria-label="Exempel 5"
-            value={filterGender}
-            onChange={setFilterGender}
-            options={[{ value: '', label: 'Alla kön' }, { value: 'kvinna', label: 'Kvinna' }, { value: 'man', label: 'Man' }]}
-          />
-          <select aria-label="Exempel 6"><option>Alla kommuner</option></select>
-          <div className="filter-age-range">
-            <span aria-hidden="true">Ålder</span>
-            <input type="number" placeholder="från" aria-label="Exempel från" />
-            <input type="number" placeholder="till" aria-label="Exempel till" />
-          </div>
-        </div>
-
-        <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Filter med sökruta (InterestFilter)
         </p>
         <p className="hint-text">
@@ -615,7 +580,7 @@ function StyleGuide() {
           kryss (.interest-tag med .interest-tag-remove) som tar bort filtret.
         </p>
         <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
-          <select aria-label="Exempel 3"><option>Dina intressen</option></select>
+          <select aria-label="Exempel 3"><option>Alla intressen</option></select>
           <input type="search" aria-label="Exempel 4" placeholder="Sök andra intressen" />
         </div>
         <ul className="interest-tags" style={{ marginTop: '0.75rem' }}>
@@ -662,52 +627,9 @@ function StyleGuide() {
         </p>
         <div className="card-grid" style={{ marginTop: '1.75rem', gap: '2rem 1rem' }}>
           {EXAMPLE_MATCHES.map((match) => (
-            <MatchCard key={match.id} match={match} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onDismiss={() => {}} />
+            <MatchCard key={match.id} match={match} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onSkip={() => {}} onDismiss={() => {}} />
           ))}
         </div>
-
-        <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Matchningskortet som affisch (.match-card-poster), "Nicklas förslag 1"
-        </p>
-        <p className="hint-text">
-          En av matchningssidans layouter (väljaren "Matchningssidan" i testläget): kortet som klubbkortet Affisch, med vitt
-          papper utan kant, en färgad rad överst, ett rasterhörn, namnet i tryckbokstäver, en mörkare mjuk skugga och en lätt
-          lutning, bredare eftersom det visas ensamt. Raden är delad i en färg per huvudområde som personens intressen ligger
-          i (högst fyra, de ni har gemensamt först). Orten ligger i en svart ruta direkt under namnet, bredvid bilden (som antalet på klubbkorten). Knapparna ligger
-          närmare texten, och "Gå vidare" är pilarna vid sidorna (nedan). Samma affischstil har personkorten i Sök,
-          Förfrågningar och Kompisar (PersonCard, .person-card-poster, 320 px i rutnät).
-        </p>
-        <div style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'center' }}>
-          <MatchCard poster match={EXAMPLE_MATCHES[2]} sharedInterestIds={new Set([2])} onSend={() => {}} onDismiss={() => {}} />
-        </div>
-
-        <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Pilar vid kortets sidor (.match-stage, .match-arrow)
-        </p>
-        <p className="hint-text">
-          Nästa åt höger och tillbaka åt vänster, i stället för en knapp. Den skissade pilen (DrawnArrow) tjockare, med svart
-          kant och fylld med den gula färgen. Pilen åt vänster är nedtonad när det inte finns något att gå tillbaka till.
-        </p>
-        <div className="match-stage" style={{ marginTop: '1.25rem' }}>
-          <button type="button" className="match-arrow" aria-label="Förra förslaget" disabled>
-            <DrawnArrow className="match-arrow-prev" />
-          </button>
-          <MatchCard match={EXAMPLE_MATCHES[0]} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onDismiss={() => {}} />
-          <button type="button" className="match-arrow" aria-label="Nästa förslag">
-            <DrawnArrow className="match-arrow-next" />
-          </button>
-        </div>
-
-        <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Börja matcha och rutan ovanpå allt (.match-start, .match-overlay), "Nicklas förslag 1"
-        </p>
-        <p className="hint-text">
-          Matcha-fliken har filtren och en knapp, Börja matcha (.match-start), med de första i kön som förhandsvisning.
-          Knappen öppnar kortet som en ruta ovanpå hela sidan (MatchOverlay, byggd på &lt;dialog&gt;, .match-overlay): en
-          mörk bakgrund, ett kryss (.match-overlay-close) och Esc stänger, och kortet får aldrig bli högre än skärmen. Bara Om
-          mig-texten inuti kortet scrollar om den är lång, så att knapparna alltid syns. Pilarna ligger vid sidorna, och de
-          närmast på tur som små kort under.
-        </p>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Små kort för de närmast på tur (MatchThumb, .match-thumb i .match-thumbs)
@@ -723,28 +645,6 @@ function StyleGuide() {
             <MatchThumb key={match.id} match={match} place={i + 1} />
           ))}
         </ul>
-        <p className="hint-text">
-          I "Nicklas förslag 1" är de små korten i samma affischstil som det stora kortet (.match-thumb-poster): vitt papper
-          utan kant, en färgad rad överst i färgerna på personens områden, mjuk skugga och en lätt lutning.
-        </p>
-        <ul className="match-thumbs" style={{ marginTop: '0.75rem' }}>
-          {EXAMPLE_MATCHES.map((match, i) => (
-            <MatchThumb key={match.id} poster match={match} place={i + 1} />
-          ))}
-        </ul>
-
-        <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Eventbiljetten (EventTicket, .event-ticket)
-        </p>
-        <p className="hint-text">
-          Eventkortet som en biljett för att komma in, i pappersstilen som klubbkorten (väljaren "Eventkort" i testläget): en färgad
-          rad överst i intressets färg, titeln i tryckbokstäver och ett avrivbart kvitto längst ner, med en perforerad linje och ett
-          urtag i vardera kanten. Överst står "EVENT" i små tryckta versaler. Datumet står stort, med klockslaget och platsen. Skuggan ligger på omslaget
-          (.event-ticket-wrap), eftersom urtagen är en mask.
-        </p>
-        <div className="card-grid card-grid-compact" style={{ marginTop: '1.25rem' }}>
-          <EventTicket event={EXAMPLE_EVENT} onSelect={() => {}} />
-        </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Listkort (.list-card) i ett rutnät (.card-grid .card-grid-compact)

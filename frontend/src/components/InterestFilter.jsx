@@ -6,9 +6,9 @@ import OptionPicker from './OptionPicker'
 //
 //  - Rullistan innehåller bara ens egna intressen (`myInterests`), så att man filtrerar på det man själv har.
 //  - Sökrutan söker bland hela biblioteket. Man väljer en träff och den visas som en tagg med ett kryss under filtren,
-//    även när rullistan står på "Dina intressen". Ett nytt intresse går inte att lägga till härifrån (det görs på profilen).
+//    även när rullistan står på "Alla intressen". Ett nytt intresse går inte att lägga till härifrån (det görs på profilen).
 //
-// Sidan äger valet: `mineId` är rullistans val ('' = Dina intressen, alltså inget valt), `picked` är intresset från sökningen ({ id, name })
+// Sidan äger valet: `mineId` är rullistans val ('' = Alla intressen, alltså inget valt), `picked` är intresset från sökningen ({ id, name })
 // eller null. `onPickMine(id)` och `onPick(interest | null)` anropas när man väljer, och sidan nollställer det andra.
 // `paper` (TILLFÄLLIGT, testläget, Nicklas förslag 1): raden som papperslappar, och rullistan som en egen lista (OptionPicker) i
 // stället för en <select>, som filterraden i Matcha-fliken. `children` (bara med `paper`) läggs i samma rad efter sökrutan, så att
@@ -74,7 +74,7 @@ function InterestFilter({ myInterests, mineId, picked, onPickMine, onPick, paper
             value={picked ? '' : mineId}
             onChange={(e) => onPickMine(e.target.value)}
           >
-            <option value="">Dina intressen</option>
+            <option value="">Alla intressen</option>
             {sortedMine.map((interest) => (
               <option key={interest.id} value={interest.id}>
                 {interest.name}
