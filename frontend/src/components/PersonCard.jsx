@@ -88,13 +88,17 @@ function CardInterests({ interests, sharedIds }) {
 // `reason` är valfri: en kort förklaring till varför personen föreslås,
 // t.ex. "Ni har 2 gemensamma intressen" (text eller JSX). Intressena visas
 // på en rad, se CardInterests.
-function PersonCard({ person, sharedInterestIds, reason, actions }) {
+// Tre valfria delar för kort som bygger vidare på det här (se MatchCard): `className` läggs
+// till på kortet, `badge` är något som sitter på kortets kant (t.ex. nivån) och `intro` står
+// mellan namnet och intressena.
+function PersonCard({ person, sharedInterestIds, reason, actions, className, badge, intro }) {
   // Kompisar/förfrågningar har bara username garanterat (inget namn valt än).
   const displayName = person.name ?? person.username
   const place = [person.district, person.municipality_name].filter(Boolean).join(', ')
 
   return (
-    <article className="card card-interactive person-card">
+    <article className={`card card-interactive person-card${className ? ` ${className}` : ''}`}>
+      {badge}
       <Link to={`/anvandare/${person.id}`} className="person-card-link">
         <Avatar name={displayName} imageUrl={person.image_url} className="card-avatar" maxLetters={2} />
         <p className="card-title">
@@ -105,6 +109,7 @@ function PersonCard({ person, sharedInterestIds, reason, actions }) {
         </p>
         {place && <p className="card-subheading">{place}</p>}
       </Link>
+      {intro}
       {reason && <p className="hint-text">{reason}</p>}
       {person.interests?.length > 0 && <CardInterests interests={person.interests} sharedIds={sharedInterestIds} />}
       {actions}
