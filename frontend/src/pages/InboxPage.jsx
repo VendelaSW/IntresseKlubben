@@ -54,7 +54,7 @@ function InboxPage() {
       {status === 'loading' ? (
         <p className="hint-text">Laddar brev...</p>
       ) : conversations.length === 0 ? (
-        <EmptyState text="Här hamnar brev mellan dig och dina kompisar. Skriv till någon från deras profil under Personer." />
+        <EmptyState text="Här hamnar brev mellan dig och dina kompisar. Skriv till någon från deras profil under Medlemmar." />
       ) : (
         <>
           {/* Antalet bara på Nya, det som är nytt att läsa. */}

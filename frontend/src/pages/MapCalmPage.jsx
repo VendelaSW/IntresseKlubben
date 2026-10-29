@@ -169,7 +169,7 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
               )}
               {todo.requests > 0 && (
                 <TodoLine onClick={() => onOpen('personer')} done={false}>
-                  {plural(todo.requests, 'person vill', 'personer vill')} bli din kompis
+                  {plural(todo.requests, 'medlem vill', 'medlemmar vill')} bli din kompis
                 </TodoLine>
               )}
               {todo.notifications > 0 && (

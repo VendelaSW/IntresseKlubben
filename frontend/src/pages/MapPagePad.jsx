@@ -45,8 +45,8 @@ export const MAP_PAGES = {
 const PAD_ROUTES = [
   { path: '/meddelanden', title: 'Brev', Page: InboxPage },
   { path: '/meddelanden/:userId', title: 'Brev', Page: ConversationPage },
-  { path: '/personer', title: 'Personer', Page: PeoplePage },
-  { path: '/anvandare/:userId', title: 'Personer', Page: UserProfilePage },
+  { path: '/personer', title: 'Medlemmar', Page: PeoplePage },
+  { path: '/anvandare/:userId', title: 'Medlemmar', Page: UserProfilePage },
   { path: '/klubbar', title: 'Klubbar', Page: GroupsPage },
   { path: '/events', title: 'Events', Page: EventsPage },
   { path: '/notiser', title: 'Notiser', Page: NotificationsPage },
