@@ -15,18 +15,12 @@ function joinNames(names) {
 
 // Skälen till förslaget (`reasons` från GET /matches) som meningar. Backend skickar vad, den här skriver meningen. Bara det
 // som kortet visar redan: inga siffror. "practices" (intressen ni båda utövar) visas inte, utövar är inte avgjort.
-function reasonLines(reasons, name) {
+function reasonLines(reasons) {
   const lines = []
   for (const reason of reasons ?? []) {
     if (reason.kind === 'shared') lines.push({ key: 'shared', text: <>Ni delar {joinNames(reason.interests)}</> })
-    else if (reason.kind === 'near') {
-      const pairs = reason.pairs.map((pair, i) => (
-        <span key={`${pair.mine}-${pair.theirs}`}>
-          {i > 0 && '; '}Du gillar {pair.mine}, {name} gillar {pair.theirs}
-        </span>
-      ))
-      lines.push({ key: 'near', text: <>{pairs}</> })
-    } else if (reason.kind === 'text') lines.push({ key: 'text', text: 'Era presentationer låter lika' })
+    else if (reason.kind === 'near') lines.push({ key: 'near', text: 'Ni har liknande intressen' })
+    else if (reason.kind === 'text') lines.push({ key: 'text', text: 'Era presentationer låter lika' })
     else if (reason.kind === 'area') {
       lines.push({ key: 'area', text: <>Ni är båda intresserade av {joinNames(reason.interests)}</> })
     }
@@ -42,8 +36,7 @@ function reasonLines(reasons, name) {
 // kortet en affisch (.match-card-poster) och "Gå vidare" är pilarna vid sidorna (MatchPanel), så då skickas inget `onSkip`.
 // `poster` tvingar affischen oavsett val (för stilguiden).
 function MatchCard({ match, sharedInterestIds, busy, onSend, onSkip, onDismiss, poster }) {
-  const name = match.name ?? match.username
-  const reasons = reasonLines(match.reasons, name)
+  const reasons = reasonLines(match.reasons)
   // TILLFÄLLIGT (testläget): utseendet "gnistor" står under namnet i stället för i hörnet (se MatchLevel).
   const sparks = useDesignChoice('matchCard') === 'gnistor'
   const layout = useDesignChoice('matchLayout')
