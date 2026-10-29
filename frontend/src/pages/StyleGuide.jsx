@@ -22,6 +22,7 @@ import FilterTabs from '../components/FilterTabs'
 import DrawnArrow from '../components/DrawnArrow'
 import MatchCard from '../components/MatchCard'
 import MatchThumb from '../components/MatchThumb'
+import { EventTicket } from '../components/events/EventList'
 import FormField from '../components/FormField'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
@@ -80,6 +81,13 @@ const EXAMPLE_MATCHES = [
     reasons: [{ kind: 'area', interests: ['Friluftsliv'], pairs: [] }],
   },
 ]
+
+// Ett event, för eventbiljetten (väljaren "Eventkort").
+const EXAMPLE_EVENT = {
+  id: 12, title: 'Fotopromenad i Haga', description: 'Vi går en runda med kamera, byter tips och slutar med fika. Alla nivåer är välkomna.',
+  starts_at: '2026-11-07T10:00:00', ends_at: '2026-11-07T12:30:00', place_name: 'Haga kyrkoplan', interest_id: 9, interest_name: 'Fotografering',
+  interest_area_slug: 'skapande', visibility: 'open', is_owner: false, is_host: false, is_full: false,
+}
 
 const EXAMPLE_CONVERSATIONS = [
   { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), last_message_from_me: false, isNew: true },
@@ -724,6 +732,19 @@ function StyleGuide() {
             <MatchThumb key={match.id} poster match={match} place={i + 1} />
           ))}
         </ul>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Eventbiljetten (EventTicket, .event-ticket)
+        </p>
+        <p className="hint-text">
+          Eventkortet som en biljett för att komma in, i pappersstilen som klubbkorten (väljaren "Eventkort" i testläget): en färgad
+          rad överst i intressets färg, titeln i tryckbokstäver och ett avrivbart kvitto längst ner, med en perforerad linje och ett
+          urtag i vardera kanten. Överst står "EVENT" i små tryckta versaler. Datumet står stort, med klockslaget och platsen. Skuggan ligger på omslaget
+          (.event-ticket-wrap), eftersom urtagen är en mask.
+        </p>
+        <div className="card-grid card-grid-compact" style={{ marginTop: '1.25rem' }}>
+          <EventTicket event={EXAMPLE_EVENT} onSelect={() => {}} />
+        </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Listkort (.list-card) i ett rutnät (.card-grid .card-grid-compact)

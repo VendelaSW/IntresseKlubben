@@ -103,6 +103,16 @@ const PICKERS = [
     ],
   },
   {
+    key: 'testlage-eventkort',
+    attr: 'eventCard',
+    label: 'Eventkort',
+    fallback: 'pre-dev',
+    options: [
+      { id: 'pre-dev', label: '0. Som nu (pre-dev)' },
+      { id: 'biljett', label: '1. Biljett' },
+    ],
+  },
+  {
     key: 'testlage-matchningssidan',
     attr: 'matchLayout',
     label: 'Matchningssidan',
