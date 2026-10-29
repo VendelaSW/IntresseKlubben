@@ -13,18 +13,12 @@ function joinNames(names) {
 
 // Skälen till förslaget (`reasons` från GET /matches) som meningar. Backend skickar vad, den här skriver meningen. Bara det
 // som kortet visar redan: inga siffror. "practices" (intressen ni båda utövar) visas inte, utövar är inte avgjort.
-function reasonLines(reasons, name) {
+function reasonLines(reasons) {
   const lines = []
   for (const reason of reasons ?? []) {
     if (reason.kind === 'shared') lines.push({ key: 'shared', text: <>Ni delar {joinNames(reason.interests)}</> })
-    else if (reason.kind === 'near') {
-      const pairs = reason.pairs.map((pair, i) => (
-        <span key={`${pair.mine}-${pair.theirs}`}>
-          {i > 0 && '; '}Du gillar {pair.mine}, {name} gillar {pair.theirs}
-        </span>
-      ))
-      lines.push({ key: 'near', text: <>{pairs}</> })
-    } else if (reason.kind === 'text') lines.push({ key: 'text', text: 'Era presentationer låter lika' })
+    else if (reason.kind === 'near') lines.push({ key: 'near', text: 'Ni har liknande intressen' })
+    else if (reason.kind === 'text') lines.push({ key: 'text', text: 'Era presentationer låter lika' })
     else if (reason.kind === 'area') {
       lines.push({ key: 'area', text: <>Ni är båda intresserade av {joinNames(reason.interests)}</> })
     }
@@ -37,8 +31,7 @@ function reasonLines(reasons, name) {
 // Gå vidare (visa nästa utan att ta bort något) och Ta bort förslag (försvinner för gott, med Ångra). `sharedInterestIds`
 // (en Set) markerar gemensamma intressen med en bock, och bara de: skälen har egna punkter.
 function MatchCard({ match, sharedInterestIds, busy, onSend, onSkip, onDismiss }) {
-  const name = match.name ?? match.username
-  const reasons = reasonLines(match.reasons, name)
+  const reasons = reasonLines(match.reasons)
 
   return (
     <PersonCard
