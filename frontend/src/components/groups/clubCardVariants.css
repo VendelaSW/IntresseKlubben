@@ -610,6 +610,66 @@
   text-transform: uppercase;
 }
 
+/* ---------- 7. Affisch, Nicklas variant ----------
+   Som Affisch (5), som klassen club-style-5 också ger, med några ändringar: inget häftstift, klubbikonen som stämpel i hörnet i stället för pilen, den färgade
+   raden överst har intressets färg (--poster sätts på kortet, se ClubCards), rivlapparna med den streckade
+   perforeringen nederst är borta, och meta-raden visar bara antalet medlemmar. Ligger efter 5, så att den vinner. */
+.club-style-7 .card.club-card {
+  --tabs-height: 0px;
+  background:
+    linear-gradient(var(--poster), var(--poster)) top / 100% 7px no-repeat,
+    #fffdf7;
+}
+
+.club-grid.club-style-7 .card.club-card {
+  /* Texten börjar under "Öppen"/"Privat" uppe i hörnet (den satt förut bredvid ikonen, som nu är borta). */
+  padding-top: 2.7rem;
+  padding-bottom: 1.1rem;
+}
+
+/* Prickarna över Ö, Å och Ä klipps annars: titeln har overflow: hidden (för "…" efter två rader) och line-height: 1 i
+   Affisch (5), så versalerna med prickar går över radens överkant. Luft ovanför och under inuti klippet, och lika mycket
+   negativ marginal, så att kortet inte blir högre (samma knep som .list-card-link .card-title i index.css). */
+.club-style-7 .club-card .card-title {
+  padding-block: 0.25em;
+  margin-block: -0.25em;
+}
+
+/* Ingen häftstift. */
+.club-style-7 .club-card::before {
+  display: none;
+}
+
+.club-style-7 .club-card::after {
+  display: none;
+}
+
+/* Klubbikonen sitter som en stämpel i hörnet nere till höger, i stället för pilen och i stället för ikonen överst. */
+.club-style-7 .club-card-icon,
+.club-style-7 .club-card-open {
+  display: none;
+}
+
+.club-style-7 .club-card-stamp {
+  display: block;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin-left: auto;
+  object-fit: contain;
+  opacity: 0.85;
+  rotate: -9deg;
+}
+
+/* Mörkare skugga än i Affisch (5): 0.18 och 0.2 där. */
+.club-style-7 .card.club-card {
+  box-shadow: 1px 3px 6px rgba(58, 47, 37, 0.32);
+}
+
+.club-style-7 .card.club-card.card-interactive:hover,
+.club-style-7 .card.club-card.card-interactive:focus-within {
+  box-shadow: 2px 8px 12px rgba(58, 47, 37, 0.38);
+}
+
 /* Affischerna: intresset lite upp från rivlapparna och perforeringen, som
    annars ligger tätt under det (kortets text tar all plats ovanför, se
    .list-card-link i index.css). .tags nu, .interest-tags med Emmys taggar. */

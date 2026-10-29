@@ -3,15 +3,21 @@ import './clubCardVariants.css'
 import EmptyState from '../EmptyState'
 import InterestTags from '../InterestTags'
 import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
+import { areaColors } from '../../utils/interestColors'
 
 export function memberCountText(count) {
   return `${count} ${count === 1 ? 'medlem' : 'medlemmar'}`
 }
 
+// Bara antalet, utan var: "3 medlemmar", eller "3 av 10 medlemmar" med max antal.
+export function groupCountText(group) {
+  return group.max_members ? `${group.member_count} av ${memberCountText(group.max_members)}` : memberCountText(group.member_count)
+}
+
 // T.ex. "3 medlemmar i Göteborg", "12 medlemmar i Norrland" eller "5 medlemmar i hela Sverige"
 // (klubbens område, SCRUM-282). Med max antal: "3 av 10 medlemmar i Göteborg".
 export function groupMembersText(group) {
-  const count = group.max_members ? `${group.member_count} av ${memberCountText(group.max_members)}` : memberCountText(group.member_count)
+  const count = groupCountText(group)
   const area = group.scope === 'country' ? 'hela Sverige' : (group.scope_name ?? group.municipality_name)
   return area ? `${count} i ${area}` : count
 }
@@ -124,9 +130,15 @@ const TONES = ['green', 'peach', 'blue', 'yellow', 'lilac', 'rose']
 
 function ClubCards({ style, groups, myInterestIds, busy, onSelect, onJoin, onDecline }) {
   return (
-    <div className={`card-grid card-grid-compact club-grid club-style-${style}`}>
+    // Variant 7 (Affisch, Nicklas variant) bygger på 5 (Affisch) och ändrar några saker, se clubCardVariants.css.
+    <div className={`card-grid card-grid-compact club-grid club-style-${style}${style === '7' ? ' club-style-5' : ''}`}>
       {groups.map((group) => (
-        <article key={group.id} className={`card card-interactive list-card club-card club-card-${TONES[group.id % TONES.length]}`}>
+        <article
+          key={group.id}
+          className={`card card-interactive list-card club-card club-card-${TONES[group.id % TONES.length]}`}
+          // Variant 7: den färgade raden överst har intressets färg (samma som taggen).
+          style={style === '7' ? { '--poster': areaColors(group.interest_area_slug)['--tag-fill'] } : undefined}
+        >
           {/* Öppen eller privat, uppe i högra hörnet mitt emot ikonen. */}
           <span className={`club-card-visibility${group.visibility === 'private' ? ' is-private' : ' is-open'}`}>
             <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
@@ -138,7 +150,8 @@ function ClubCards({ style, groups, myInterestIds, busy, onSelect, onJoin, onDec
           <button type="button" className="list-card-link" onClick={() => onSelect(group)}>
             <img src={klubbarIcon} alt="" className="club-card-icon" />
             <span className="card-title">{group.name}</span>
-            <span className="club-card-meta">{groupMembersText(group)}</span>
+            {/* Variant 7 visar bara antalet, utan var. */}
+            <span className="club-card-meta">{style === '7' ? groupCountText(group) : groupMembersText(group)}</span>
             {group.description && <span className="card-text list-card-description">{group.description}</span>}
           </button>
           <InterestTags
@@ -163,6 +176,8 @@ function ClubCards({ style, groups, myInterestIds, busy, onSelect, onJoin, onDec
                 )}
               </span>
             )}
+            {/* Variant 7: klubbikonen som en stämpel i hörnet, där pilen annars sitter (pilen döljs i CSS). */}
+            {style === '7' && <img src={klubbarIcon} alt="" className="club-card-stamp" />}
             {/* Pilen öppnar också klubben (samma som kortet), därför inte i tabbordningen. */}
             <button type="button" className="club-card-open" tabIndex={-1} aria-hidden="true" onClick={() => onSelect(group)}>
               {/* En handritad pil, lite ojämn. */}
