@@ -1,0 +1,59 @@
+/* TILLFÄLLIGT, bara i testläget: utseenden för nivån på matchningskortet att jämföra (väljaren "Matchningskort (nivån)" i
+   testpanelen, se PadBackgroundPicker och components/MatchLevel.jsx). Utan val gäller stämpeln, som är i index.css.
+   Tas bort när ett utseende är valt; det valda flyttas då in i appen. */
+
+/* ---------- 1. Gnistor: fyra stjärnor och namnet, under kortets namn ---------- */
+.match-sparks {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.match-stars {
+  display: inline-flex;
+  gap: 0.15rem;
+}
+
+.match-stars svg {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.match-sparks-label {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.match-sparks-super .match-sparks-label {
+  font-size: 1.9rem;
+}
+
+/* ---------- 2. Tejp: en remsa över kortets övre kant ---------- */
+.match-level.match-level-tape {
+  top: -1rem;
+  right: auto;
+  left: 1.2rem;
+  padding: 0.15rem 1.2rem 0.2rem;
+  border: 0;
+  border-radius: 0;
+  box-shadow: 0 2px 0 rgba(58, 47, 37, 0.25);
+  clip-path: polygon(0 0, 100% 0, 98% 25%, 100% 50%, 98% 75%, 100% 100%, 0 100%, 2% 75%, 0 50%, 2% 25%);
+  font-size: 1.35rem;
+  rotate: -3deg;
+  animation: none;
+  background: repeating-linear-gradient(135deg, var(--level-fill) 0 6px, color-mix(in srgb, var(--level-fill) 88%, #6b5a3a) 6px 12px);
+}
+
+/* Okej är vit på stämpeln, men en vit remsa syns inte på det vita kortet. */
+.match-level-okay.match-level-tape {
+  --level-fill: #ece6d6;
+  color: var(--color-ink);
+}
+
+.match-level-super.match-level-tape {
+  padding: 0.25rem 1.5rem 0.3rem;
+  font-size: 1.7rem;
+  rotate: -2deg;
+}
