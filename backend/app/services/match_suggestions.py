@@ -151,6 +151,51 @@ def text_cosines(db: Session, my_vector: list[float], profiles: dict[int, str]) 
     }
 
 
+def _viewer(db: Session, user_id: int) -> tuple[Person | None, Readiness]:
+    """Den som tittar, med vektor för Om mig-texten, och om hen klarar minimikraven. Utan profil: (None, ej klar)."""
+    profile = get_profile(db, user_id)
+    if profile is None:
+        return None, Readiness(False, MIN_INTERESTS, MIN_TEXT_CHARS)
+    my_interests = _interests_by_user(db, {user_id})[user_id]
+    me = Person(id=user_id, interests=frozenset(my_interests), text_chars=len((profile.profile_text or "").strip()), text_vector=profile_vector(db, profile))
+    return me, readiness(me)
+
+
+def score_people(db: Session, me: Person, people: dict[int, tuple[int, str]], config: MatchConfig = DEFAULT_CONFIG) -> dict[int, Match]:
+    """Poängen (se matching.combine) sedd från `me` för varje person i `people` (användar-id -> (profil-id, Om mig-text)). Den som
+    inte klarar minimikraven eller inte går att jämföra saknas i svaret. Ingen gräns för lägsta poäng läggs på här: det avgör den
+    som anropar (förslagen tar bara MIN_SHOWN_PERCENT och uppåt). Antalet frågor är detsamma oavsett hur många personerna är."""
+    interests = _interests_by_user(db, set(people))
+    eligible = {
+        other_id: Person(id=other_id, interests=frozenset(interests[other_id]), text_chars=len(text))
+        for other_id, (_, text) in people.items()
+        if readiness(Person(id=other_id, interests=frozenset(interests[other_id]), text_chars=len(text))).ok
+    }
+
+    near = near_cosines(db, set(me.interests), {other_id: set(person.interests) for other_id, person in eligible.items()}, config.near_viewer_share)
+    texts = text_cosines(db, me.text_vector, {people[other_id][0]: people[other_id][1] for other_id in eligible}) if me.text_vector else {}
+    parents = load_tree(db).parents
+
+    scored = {}
+    for other_id, other in eligible.items():
+        match = combine(me, other, parents, near.get(other_id), texts.get(people[other_id][0]), config)
+        if match is not None:
+            scored[other_id] = match
+    return scored
+
+
+def scores_for(db: Session, user_id: int, candidate_ids: set[int], config: MatchConfig = DEFAULT_CONFIG) -> dict[int, Match]:
+    """Poängen för de angivna användarna sedd från user_id, för att sortera en lista (t.ex. personlistan) efter matchning med samma
+    poäng som GET /matches. Tom om user_id själv inte klarar minimikraven; den som saknar profil, inte klarar minimikraven eller
+    inte går att jämföra saknas. Vilka som får synas avgör anroparen: ingen av uteslutningarna i suggestions_for görs här."""
+    me, ready = _viewer(db, user_id)
+    if me is None or not ready.ok or not candidate_ids:
+        return {}
+    rows = db.query(Profile.id, Profile.user_id, Profile.profile_text).filter(Profile.name.isnot(None), Profile.user_id.in_(candidate_ids - {user_id}))
+    people = {other_id: (profile_id, (text or "").strip()) for profile_id, other_id, text in rows}
+    return score_people(db, me, people, config)
+
+
 def suggestions_for(
     db: Session,
     user_id: int,
@@ -167,13 +212,8 @@ def suggestions_for(
     som saknas. Poängen räknas för alla som kan föreslås på varje anrop, så att ordningen är densamma på alla sidor.
     Kommun, kön och ålder begränsar vilka som kan föreslås, med samma regler som listan över personer (crud.profile.filter_by_profile,
     inklusive att dolt kön och dold ålder inte avslöjas); en persons poäng är densamma med och utan filter."""
-    profile = get_profile(db, user_id)
-    if profile is None:
-        return SuggestionPage(Readiness(False, MIN_INTERESTS, MIN_TEXT_CHARS))
-    my_interests = _interests_by_user(db, {user_id})[user_id]
-    me = Person(id=user_id, interests=frozenset(my_interests), text_chars=len((profile.profile_text or "").strip()), text_vector=profile_vector(db, profile))
-    ready = readiness(me)
-    if not ready.ok:
+    me, ready = _viewer(db, user_id)
+    if me is None or not ready.ok:
         return SuggestionPage(ready)
 
     candidates = db.query(Profile.id, Profile.user_id, Profile.profile_text).filter(Profile.name.isnot(None), Profile.user_id != user_id)
@@ -184,22 +224,7 @@ def suggestions_for(
     people: dict[int, tuple[int, str]] = {}  # användar-id -> (profil-id, text)
     for profile_id, other_id, text in candidates:
         people[other_id] = (profile_id, (text or "").strip())
-    interests = _interests_by_user(db, set(people))
-    eligible = {
-        other_id: Person(id=other_id, interests=frozenset(interests[other_id]), text_chars=len(text))
-        for other_id, (_, text) in people.items()
-        if readiness(Person(id=other_id, interests=frozenset(interests[other_id]), text_chars=len(text))).ok
-    }
-
-    near = near_cosines(db, set(my_interests), {other_id: set(person.interests) for other_id, person in eligible.items()}, config.near_viewer_share)
-    texts = text_cosines(db, me.text_vector, {people[other_id][0]: people[other_id][1] for other_id in eligible}) if me.text_vector else {}
-    parents = load_tree(db).parents
-
-    ranked = []
-    for other_id, other in eligible.items():
-        match = combine(me, other, parents, near.get(other_id), texts.get(people[other_id][0]), config)
-        if match is not None and match.percent >= MIN_SHOWN_PERCENT:
-            ranked.append(Suggestion(other_id, match))
+    ranked = [Suggestion(other_id, match) for other_id, match in score_people(db, me, people, config).items() if match.percent >= MIN_SHOWN_PERCENT]
     ranked.sort(key=lambda s: (-s.match.percent, s.user_id))
     return SuggestionPage(ready, ranked[offset : offset + limit], has_more=len(ranked) > offset + limit)
 
