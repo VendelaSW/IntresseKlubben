@@ -89,8 +89,9 @@
 .event-ticket-stub {
   flex: none;
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.15rem 0.9rem;
+  /* Lika breda kolumner på sidorna (datumet till vänster, en tom till höger), så att tiden och platsen ligger mitt på kortet. */
+  grid-template-columns: 3.4rem 1fr 3.4rem;
+  gap: 0.15rem 0.5rem;
   align-items: center;
   height: var(--stub-h);
   margin: 0 -1.05rem;
@@ -125,19 +126,21 @@
 .event-ticket-when {
   display: flex;
   flex-direction: column;
+  align-items: center;
   min-width: 0;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   line-height: 1.25;
+  text-align: center;
 }
 
 /* Tiden större, i en svart ruta med ljus text, som antalet på klubbkorten. */
 .event-ticket-when strong {
-  align-self: flex-start;
-  margin-bottom: 0.25rem;
-  padding: 0.25rem 0.6rem;
+  align-self: center;
+  margin-bottom: 0.3rem;
+  padding: 0.25rem 0.65rem;
   background: var(--color-ink);
   color: #fffdf7;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   line-height: 1.1;
@@ -147,9 +150,10 @@
 }
 
 .event-ticket-place {
+  max-width: 100%;
   overflow: hidden;
-  color: #5a5148;
-  font-size: 0.78rem;
+  color: #4a4038;
+  font-size: 0.9rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
