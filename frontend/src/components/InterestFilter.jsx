@@ -6,12 +6,13 @@ import OptionPicker from './OptionPicker'
 //
 //  - Rullistan innehåller bara ens egna intressen (`myInterests`), så att man filtrerar på det man själv har.
 //  - Sökrutan söker bland hela biblioteket. Man väljer en träff och den visas som en tagg med ett kryss under filtren,
-//    även när rullistan står på "Alla intressen". Ett nytt intresse går inte att lägga till härifrån (det görs på profilen).
+//    även när rullistan står på "Dina intressen". Ett nytt intresse går inte att lägga till härifrån (det görs på profilen).
 //
-// Sidan äger valet: `mineId` är rullistans val ('' = Alla intressen), `picked` är intresset från sökningen ({ id, name })
+// Sidan äger valet: `mineId` är rullistans val ('' = Dina intressen, alltså inget valt), `picked` är intresset från sökningen ({ id, name })
 // eller null. `onPickMine(id)` och `onPick(interest | null)` anropas när man väljer, och sidan nollställer det andra.
 // `paper` (TILLFÄLLIGT, testläget, Nicklas förslag 1): raden som papperslappar, och rullistan som en egen lista (OptionPicker) i
-// stället för en <select>, som filterraden i Matcha-fliken.
+// stället för en <select>, som filterraden i Matcha-fliken. `children` (bara med `paper`) läggs i samma rad efter sökrutan, så att
+// andra filter (kommun, kön, ålder) kan ligga på samma rad; taggen och sökträffarna ligger under raden.
 
 // Samma väntan efter senaste tangenttrycket som i AddInterest, så att inte varje bokstav blir ett anrop.
 const SEARCH_DELAY_MS = 300
@@ -24,7 +25,7 @@ const swedishOrder = new Intl.Collator('sv')
 // Måste stämma med AddInterest (och backend).
 const MAX_QUERY_LENGTH = 40
 
-function InterestFilter({ myInterests, mineId, picked, onPickMine, onPick, paper = false }) {
+function InterestFilter({ myInterests, mineId, picked, onPickMine, onPick, paper = false, children }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null) // null = ingen sökning, annars { text, items } för texten som söktes
   const [failed, setFailed] = useState(false)
@@ -65,7 +66,7 @@ function InterestFilter({ myInterests, mineId, picked, onPickMine, onPick, paper
             aria-label="Filtrera på ett av dina intressen"
             value={picked ? '' : mineId}
             onChange={onPickMine}
-            options={[{ value: '', label: 'Alla intressen' }, ...sortedMine.map((interest) => ({ value: String(interest.id), label: interest.name }))]}
+            options={[{ value: '', label: 'Dina intressen' }, ...sortedMine.map((interest) => ({ value: String(interest.id), label: interest.name }))]}
           />
         ) : (
           <select
@@ -73,7 +74,7 @@ function InterestFilter({ myInterests, mineId, picked, onPickMine, onPick, paper
             value={picked ? '' : mineId}
             onChange={(e) => onPickMine(e.target.value)}
           >
-            <option value="">Alla intressen</option>
+            <option value="">Dina intressen</option>
             {sortedMine.map((interest) => (
               <option key={interest.id} value={interest.id}>
                 {interest.name}
@@ -89,6 +90,7 @@ function InterestFilter({ myInterests, mineId, picked, onPickMine, onPick, paper
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        {paper && children}
       </div>
 
       {picked && (

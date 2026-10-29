@@ -133,6 +133,8 @@ function PeoplePage() {
   const [error, setError] = useState('')
   // Den man nyss tog bort från Sök ({ id, name }), med "Ångra" en stund.
   const [removed, setRemoved] = useState(null)
+  // Filterfälten är utfällda på en smal skärm (bara i layouten Nicklas förslag 1: där är de bakom en Filter-knapp).
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => {
     if (!removed) return undefined
@@ -332,6 +334,71 @@ function PeoplePage() {
     runAction(() => resetDismissedSuggestions())
   }
 
+  // Hur många filter som är på, för Filter-knappen på en smal skärm. Intressefiltret finns bara i Sök.
+  const activeFilters =
+    (tab === 'suggested' && (filters.interestId || filters.pickedInterest) ? 1 : 0) +
+    (filters.municipalityCode ? 1 : 0) +
+    (filters.gender ? 1 : 0) +
+    (filters.minAge !== '' || filters.maxAge !== '' ? 1 : 0)
+
+  // Kommun, kön och ålder: i Matcha en egen rad, i Sök (papperslapparna) på samma rad som intressefiltret.
+  const demographics = (
+    <>
+        <MunicipalityPicker
+          aria-label="Filtrera på kommun"
+          municipalities={municipalities}
+          value={filters.municipalityCode}
+          onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+          emptyLabel="Alla kommuner"
+        />
+        {paperRow ? (
+          // Egen lista i stället för <select>, så att valen kan vara gula (se OptionPicker).
+          <OptionPicker
+            aria-label="Filtrera på kön"
+            value={filters.gender}
+            onChange={(gender) => setFilters({ ...filters, gender })}
+            options={[{ value: '', label: 'Alla kön' }, ...GENDER_FILTER_OPTIONS]}
+          />
+        ) : (
+          <select
+            aria-label="Filtrera på kön"
+            value={filters.gender}
+            onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
+          >
+            <option value="">Alla kön</option>
+            {GENDER_FILTER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        )}
+        <div className="filter-age-range">
+          <span aria-hidden="true">Ålder</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={120}
+            placeholder="från"
+            aria-label="Från ålder"
+            value={filters.minAge}
+            onChange={(e) => setFilters({ ...filters, minAge: e.target.value })}
+          />
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={120}
+            placeholder="till"
+            aria-label="Till ålder"
+            value={filters.maxAge}
+            onChange={(e) => setFilters({ ...filters, maxAge: e.target.value })}
+          />
+        </div>
+    </>
+  )
+
   return (
     <section className="app-section">
       <h1 className="app-title">Medlemmar</h1>
@@ -345,74 +412,38 @@ function PeoplePage() {
 
       {(tab === 'suggested' || tab === 'match') && (
         <>
-          {tab === 'suggested' && (
-            <InterestFilter
-              myInterests={myInterests}
-              mineId={filters.interestId}
-              picked={filters.pickedInterest}
-              onPickMine={(id) => setFilters({ ...filters, interestId: id, pickedInterest: null })}
-              onPick={(interest) => setFilters({ ...filters, interestId: '', pickedInterest: interest })}
-            paper={paperRow}
-            />
+          {/* Nicklas förslag 1: på en smal skärm är filterfälten bakom en knapp, som visar hur många filter som är på. */}
+          {paperRow && (
+            <button
+              type="button"
+              className={`filter-toggle${filtersOpen ? ' is-open' : ''}`}
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen((open) => !open)}
+            >
+              Filter{activeFilters > 0 ? ` · ${activeFilters}` : ''}
+            </button>
           )}
-          {/* I Matcha och Sök, i layouten Nicklas förslag 1, är fälten papperslappar (se .filter-select-row-paper). */}
-          <div
-            className={`filter-select-row filter-select-row-compact${
-              paperRow ? ' filter-select-row-paper' : ''
-            }`}
-          >
-            <MunicipalityPicker
-              aria-label="Filtrera på kommun"
-              municipalities={municipalities}
-              value={filters.municipalityCode}
-              onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
-              emptyLabel="Alla kommuner"
-            />
-            {paperRow ? (
-              // Egen lista i stället för <select>, så att valen kan vara gula (se OptionPicker).
-              <OptionPicker
-                aria-label="Filtrera på kön"
-                value={filters.gender}
-                onChange={(gender) => setFilters({ ...filters, gender })}
-                options={[{ value: '', label: 'Alla kön' }, ...GENDER_FILTER_OPTIONS]}
-              />
-            ) : (
-              <select
-                aria-label="Filtrera på kön"
-                value={filters.gender}
-                onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
+          <div className={`filter-panel${filtersOpen ? ' is-open' : ''}`}>
+            {tab === 'suggested' && (
+              <InterestFilter
+                myInterests={myInterests}
+                mineId={filters.interestId}
+                picked={filters.pickedInterest}
+                onPickMine={(id) => setFilters({ ...filters, interestId: id, pickedInterest: null })}
+                onPick={(interest) => setFilters({ ...filters, interestId: '', pickedInterest: interest })}
+                paper={paperRow}
               >
-                <option value="">Alla kön</option>
-                {GENDER_FILTER_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+                {paperRow ? demographics : null}
+              </InterestFilter>
             )}
-            <div className="filter-age-range">
-              <span aria-hidden="true">Ålder</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={120}
-                placeholder="från"
-                aria-label="Från ålder"
-                value={filters.minAge}
-                onChange={(e) => setFilters({ ...filters, minAge: e.target.value })}
-              />
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={120}
-                placeholder="till"
-                aria-label="Till ålder"
-                value={filters.maxAge}
-                onChange={(e) => setFilters({ ...filters, maxAge: e.target.value })}
-              />
-            </div>
+            {/* I Matcha och Sök, i layouten Nicklas förslag 1, är fälten papperslappar (se .filter-select-row-paper). */}
+            {!(paperRow && tab === 'suggested') && (
+              <div
+                className={`filter-select-row filter-select-row-compact${paperRow ? ' filter-select-row-paper' : ''}`}
+              >
+                {demographics}
+              </div>
+            )}
           </div>
           {ageError && <p className="status-error">{ageError}</p>}
           {filters.gender && (
@@ -501,7 +532,6 @@ function PeoplePage() {
           {matchGroups.length > 0 && (
             <>
               <h2>Medlemmar med liknande intressen</h2>
-              <p className="hint-text">Flest gemensamma intressen först.</p>
               {matchGroups.map((group) => (
                 <section key={group.count} className="match-group">
                   <h3 className="match-group-title">{sharedCountText(group.count)}</h3>

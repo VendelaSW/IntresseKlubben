@@ -57,3 +57,12 @@
   font-size: 1.7rem;
   rotate: -2deg;
 }
+
+/* ---------- Nicklas förslag 1: siffran i "3 gemensamma intressen" ----------
+   Det gula strecket går genom siffran, som en överstrykningspenna (som den valda fliken i utseendet "Handskrivet"), i stället för
+   att ligga under den som en länk. */
+:root[data-match-layout='nicklas-1'] .shared-count {
+  padding: 0 0.15em;
+  border-bottom: 0;
+  background: linear-gradient(176deg, transparent 52%, rgba(244, 196, 48, 0.8) 52%, rgba(244, 196, 48, 0.8) 88%, transparent 88%);
+}

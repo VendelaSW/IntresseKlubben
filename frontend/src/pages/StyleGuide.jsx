@@ -578,7 +578,8 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Små rundade lappar i varmt papper med en tunn kant och en liten skugga nedåt, och alla på samma rad (som sökraden i
-          Klubbar med utseendet Papperslappar). Används på filterraden i Matcha-fliken. Kön är en egen lista (OptionPicker, .option-picker) i stället för en vanlig
+          Klubbar med utseendet Papperslappar). Används på filterraderna i Matcha och Sök. På en smal skärm ligger fälten bakom en knapp, Filter (.filter-toggle med .filter-panel),
+          som visar hur många filter som är på, och fäller ut fälten; på en bred skärm syns fälten och inte knappen. Kön är en egen lista (OptionPicker, .option-picker) i stället för en vanlig
           &lt;select&gt;, så att valen kan vara ljusgula (listan i en &lt;select&gt; ritas av webbläsaren och går inte att färga).
         </p>
         <div className="filter-select-row filter-select-row-compact filter-select-row-paper" style={{ marginTop: '1rem' }}>
@@ -606,7 +607,7 @@ function StyleGuide() {
           kryss (.interest-tag med .interest-tag-remove) som tar bort filtret.
         </p>
         <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
-          <select aria-label="Exempel 3"><option>Alla intressen</option></select>
+          <select aria-label="Exempel 3"><option>Dina intressen</option></select>
           <input type="search" aria-label="Exempel 4" placeholder="Sök andra intressen" />
         </div>
         <ul className="interest-tags" style={{ marginTop: '0.75rem' }}>
