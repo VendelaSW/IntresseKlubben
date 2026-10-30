@@ -19,7 +19,9 @@ const HomePolaroids = DEV_MODE ? lazy(() => import('../devtools/HomePolaroids'))
 
 function Home() {
   const { user, loading } = useAuth()
-  const polaroids = useDesignChoice('homePage') === 'polaroider' && HomePolaroids !== null
+  const homeChoice = useDesignChoice('homePage')
+  const polaroids = (homeChoice === 'polaroider' || homeChoice === 'utspridda') && HomePolaroids !== null
+  const scattered = polaroids && homeChoice === 'utspridda'
   // Precis utloggad (Logga ut i menyn skickar med det): kompisen säger "Ha det!" överst på startsidan.
   const loggedOut = Boolean(useLocation().state?.loggedOut)
   const [view, setView] = useState(null) // null | 'login' | 'register' | 'forgot'
@@ -40,7 +42,7 @@ function Home() {
 
   return (
     <div
-      className={`page home-page${polaroids && view === null ? ' home-page-polaroids' : ''}`}
+      className={`page home-page${polaroids && view === null ? ' home-page-polaroids' : ''}${scattered && view === null ? ' home-page-scattered' : ''}`}
       style={view === null ? undefined : { gap: '1.25rem' }}
     >
       <section className="hero">
@@ -63,7 +65,7 @@ function Home() {
       )}
       {polaroids && view === null && (
         <Suspense fallback={null}>
-          <HomePolaroids />
+          <HomePolaroids scattered={scattered} />
         </Suspense>
       )}
       {view === null &&

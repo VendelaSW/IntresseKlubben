@@ -120,3 +120,38 @@
     top: -0.45rem;
   }
 }
+
+/* Version 2, utspridda (väljaren "Förstasidan"): på en bred skärm ligger polaroiderna i sidorna, tre på varje sida och på olika
+   höjd, och texten i mitten är fri. Två sticker ut över kanten. Allt ligger ovanpå sidan och tar ingen plats, och texten
+   centreras i höjd. På en smalare skärm finns inte plats i sidorna, då ligger de i raden som i version 1. */
+@media (min-width: 1100px) {
+  .home-page-scattered {
+    min-height: 100svh;
+    justify-content: center;
+    overflow-x: clip;
+  }
+
+  .home-polaroids-scattered {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100svh;
+    display: block;
+    width: auto;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .home-polaroids-scattered .home-polaroid {
+    position: absolute;
+    flex: none;
+    width: var(--w);
+    margin: 0;
+    top: var(--y);
+    left: var(--left, auto);
+    right: var(--right, auto);
+    z-index: 1;
+    transform: rotate(var(--tilt));
+  }
+}
