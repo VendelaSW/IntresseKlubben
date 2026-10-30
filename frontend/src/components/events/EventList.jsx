@@ -2,7 +2,6 @@ import { useDesignChoice } from '../../hooks/useDesignChoice'
 import { areaColors } from '../../utils/interestColors'
 import EmptyState from '../EmptyState'
 import InterestTags from '../InterestTags'
-import './eventCardVariants.css'
 
 const startFormat = new Intl.DateTimeFormat('sv-SE', {
   weekday: 'short',

@@ -3,6 +3,7 @@ import './padBackgrounds.css'
 import './uiStyles.css'
 import './matchCards.css'
 import './matchLayout.css'
+import '../components/events/eventCardVariants.css'
 
 // TILLFÄLLIGT, bara i testläget: välj utseenden att jämföra (klubbkorten, sökraden, blockets rubrik
 // och bakgrund, flikarna och Öppen/Privat-taggen). Varje val sparas i webbläsaren och läggs som ett data-attribut på
