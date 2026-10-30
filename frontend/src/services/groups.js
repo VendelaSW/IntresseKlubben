@@ -65,6 +65,10 @@ export const GROUP_SORTS = [
   { value: 'newest', label: 'Skapad', forwardLabel: 'Nyast först', reverseLabel: 'Äldst först' },
 ]
 
+// Förslag har en sortering till, förvald där: ordningen backend ger (närmast först, och inom det det intresse
+// som ligger närmast ens egna, se list_suggested_groups i backend/app/crud/group.py). Bara åt ett håll.
+export const SUGGESTED_SORTS = [{ value: 'fit', label: 'Passar dig', forwardLabel: 'Närmast först' }, ...GROUP_SORTS]
+
 const swedishOrder = new Intl.Collator('sv')
 
 // Samma sökning och sortering som GET /groups/, för listorna som redan finns
@@ -79,6 +83,7 @@ export function matchesSearch(group, q) {
 }
 
 export function sortGroups(groups, sort, reverse) {
+  if (sort === 'fit') return [...groups] // som backend gav dem (se SUGGESTED_SORTS)
   const byName = (a, b) => swedishOrder.compare(a.name, b.name) || a.id - b.id
   const compare = {
     name: byName,
