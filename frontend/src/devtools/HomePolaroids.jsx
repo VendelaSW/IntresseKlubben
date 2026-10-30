@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './homePolaroids.css'
 
 // TILLFÄLLIGT, bara i testläget: filmerna på startsidan som polaroider (väljaren "Förstasidan", se Home och
@@ -23,6 +23,8 @@ const CLIPS = [
   { name: 'saxo', tilt: 4, drop: '-0.3rem', collage: ['min(calc(100% - 5rem), calc(50% + 35rem))', '14%'] },
 ]
 const BASE_COUNT = 6
+// Hur många som ligger i raden (version 1) på en bred skärm (laptop). På en smal skärm är det BASE_COUNT.
+const ROW_COUNT = 8
 
 const file = (name, extension) => `/src/devtools/video/${name}.${extension}`
 
@@ -47,7 +49,36 @@ function HomePolaroids({ scattered = false, collage = false }) {
   const wide = useMinWidth(1100)
   // Alla tio i kollaget på en bred skärm, annars de sex första (färre filmer som spelar på en mobil).
   const showAll = collage && wide
-  const clips = showAll ? CLIPS : CLIPS.slice(0, BASE_COUNT)
+  // Raden (version 1) får fler polaroider på en bred skärm; ringen (version 2) har sex.
+  const count = showAll ? CLIPS.length : wide && !scattered ? ROW_COUNT : BASE_COUNT
+  const clips = CLIPS.slice(0, count)
+
+  // Filmerna spelar bara medan de syns: de pausas när sidan är scrollad förbi dem eller fliken är dold, så att de inte
+  // belastar datorn eller telefonen i onödan.
+  const videos = useRef([])
+  useEffect(() => {
+    if (still) return undefined
+    const inView = new Set()
+    const sync = () =>
+      videos.current.forEach((video) => {
+        if (!video) return
+        if (inView.has(video) && !document.hidden) video.play().catch(() => {})
+        else video.pause()
+      })
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => (entry.isIntersecting ? inView.add(entry.target) : inView.delete(entry.target)))
+        sync()
+      },
+      { threshold: 0.1 },
+    )
+    videos.current.forEach((video) => video && observer.observe(video))
+    document.addEventListener('visibilitychange', sync)
+    return () => {
+      observer.disconnect()
+      document.removeEventListener('visibilitychange', sync)
+    }
+  }, [still, count])
 
   return (
     <ul
@@ -63,6 +94,9 @@ function HomePolaroids({ scattered = false, collage = false }) {
             style={{ '--tilt': `${clip.tilt}deg`, '--drop': clip.drop, '--i': index, '--cx': cx, '--cy': cy }}
           >
             <video
+              ref={(element) => {
+                videos.current[index] = element
+              }}
               src={file(clip.name, 'mp4')}
               poster={file(clip.name, 'jpg')}
               autoPlay={!still}

@@ -138,6 +138,13 @@
   }
 }
 
+/* Raden (version 1) på en bred skärm (laptop): fler polaroider, så raden får bli bredare. */
+@media (min-width: 1100px) {
+  .home-polaroids:not(.home-polaroids-scattered) {
+    width: min(100%, 78rem);
+  }
+}
+
 /* Version 2, utspridda (väljaren "Förstasidan"): på en bred skärm ligger polaroiderna i en ring runt texten, alla lika stora:
    två över (vid loggan), två på sidorna och två under. Allt ligger ovanpå sidan och tar ingen plats, och texten centreras i
    höjd. På en smalare skärm finns inte plats runt texten, då ligger de i raden som i version 1. */
