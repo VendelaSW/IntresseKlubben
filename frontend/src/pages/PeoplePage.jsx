@@ -97,6 +97,11 @@ function sharedInterestsText(person, myInterestIds) {
 const NO_PEOPLE = []
 const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: [] }
 
+// Ett omslag runt filterraderna när `wrap` är sant, annars bara raderna.
+function FilterPanel({ wrap, className, children }) {
+  return wrap ? <div className={className}>{children}</div> : <>{children}</>
+}
+
 function PeoplePage() {
   const confirm = useConfirm()
   // TILLFÄLLIGT (testläget): matchningssidans layout (väljaren "Matchningssidan"), se MatchPanel.
@@ -410,7 +415,8 @@ function PeoplePage() {
               Filter{activeFilters > 0 ? ` · ${activeFilters}` : ''}
             </button>
           )}
-          <div className={`filter-panel${filtersOpen ? ' is-open' : ''}`}>
+          {/* Omslaget (.filter-panel) finns bara i Nicklas förslag 1: i övrigt ligger raderna direkt i listan, så att de behåller sitt vanliga avstånd. */}
+          <FilterPanel className={`filter-panel${filtersOpen ? ' is-open' : ''}`} wrap={paperRow}>
             {tab === 'suggested' && (
               <InterestFilter
                 myInterests={myInterests}
@@ -431,7 +437,7 @@ function PeoplePage() {
                 {demographics}
               </div>
             )}
-          </div>
+          </FilterPanel>
           {ageError && <p className="status-error">{ageError}</p>}
           {filters.gender && (
             <p className="hint-text">Visar bara dem som valt att synas när man filtrerar på kön.</p>
@@ -519,6 +525,7 @@ function PeoplePage() {
           {matchGroups.length > 0 && (
             <>
               <h2>Medlemmar med liknande intressen</h2>
+              {!paperRow && <p className="hint-text">Flest gemensamma intressen först.</p>}
               {matchGroups.map((group) => (
                 <section key={group.count} className="match-group">
                   <h3 className="match-group-title">{sharedCountText(group.count)}</h3>
