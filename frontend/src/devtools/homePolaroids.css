@@ -121,6 +121,23 @@
   }
 }
 
+/* Mobil (upp till 600 px): två rader med tre, större än i en enda rad. Sidan har gott om höjd, så de får plats under
+   texten, lite sneda och tätt tillsammans. */
+@media (max-width: 600px) {
+  .home-polaroids:not(.home-polaroids-scattered),
+  .home-polaroids-scattered {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem 0.4rem;
+    width: 100%;
+  }
+
+  .home-polaroids > .home-polaroid {
+    flex: none;
+    margin-left: 0;
+  }
+}
+
 /* Version 2, utspridda (väljaren "Förstasidan"): på en bred skärm ligger polaroiderna i en ring runt texten, alla lika stora:
    två över (vid loggan), två på sidorna och två under. Allt ligger ovanpå sidan och tar ingen plats, och texten centreras i
    höjd. På en smalare skärm finns inte plats runt texten, då ligger de i raden som i version 1. */
