@@ -39,7 +39,10 @@ function Home() {
   if (user) return <Navigate to="/hem" replace />
 
   return (
-    <div className="page home-page" style={view === null ? undefined : { gap: '1.25rem' }}>
+    <div
+      className={`page home-page${polaroids && view === null ? ' home-page-polaroids' : ''}`}
+      style={view === null ? undefined : { gap: '1.25rem' }}
+    >
       <section className="hero">
         {/* Mindre logga i inloggnings-/registreringsvyerna så att hela formuläret
             syns utan att man behöver scrolla. */}
@@ -65,7 +68,7 @@ function Home() {
       )}
       {view === null &&
         (polaroids ? (
-          <p className="home-pitch">Vi är inte en dejtingapp. Vi vill bara att människor ska träffas och ha kul!</p>
+          <p className="home-pitch">Vi är inte en dejtingapp. Vi vill bara att människor ska träffas!</p>
         ) : (
           <ProblemStatement centered />
         ))}
