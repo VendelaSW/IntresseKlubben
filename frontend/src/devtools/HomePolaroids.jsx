@@ -4,15 +4,17 @@ import './homePolaroids.css'
 // homePolaroids.css). De spelas samtidigt, var och en i en slinga och utan ljud. Filmerna och stillbilderna ligger i
 // src/devtools/video och hämtas direkt från dev-servern (inte via import eller public), så att de inte följer med i en
 // vanlig build. Utanför testläget visas inte komponenten alls. De är prydnad och har ingen alternativtext.
-// `tilt` och `drop` gäller raden (version 1). Utspridda (version 2): `side` och `x` är avståndet från vänster eller höger kant
-// (negativt = sticker ut över kanten), `y` hur långt ner i fönstret och `w` bredden.
+//
+// `tilt` och `drop` gäller raden (version 1). Utspridda (version 2): alla är lika stora och ligger i en ring runt texten, två
+// över (vid loggan), två på sidorna och två under. `cx` och `cy` är mitten på polaroiden: i sidled (från mitten av sidan)
+// och i höjd (i fönstret).
 const CLIPS = [
-  { name: 'swim', tilt: -5, drop: '0.7rem', side: 'left', x: '10%', y: '9%', w: 'clamp(7.5rem, 12vw, 11rem)' },
-  { name: 'mat', tilt: 3, drop: '-0.5rem', side: 'left', x: '3%', y: '40%', w: 'clamp(8.5rem, 13vw, 12.5rem)' },
-  { name: 'spel', tilt: -2, drop: '0.9rem', side: 'left', x: '17%', y: '68%', w: 'clamp(7.5rem, 11vw, 10.5rem)' },
-  { name: 'dans', tilt: 4, drop: '-0.3rem', side: 'right', x: '16%', y: '7%', w: 'clamp(7.5rem, 11vw, 10.5rem)' },
-  { name: 'klattra', tilt: -4, drop: '0.6rem', side: 'right', x: '3%', y: '38%', w: 'clamp(8.5rem, 13vw, 12.5rem)' },
-  { name: 'katt', tilt: 2, drop: '-0.4rem', side: 'right', x: '11%', y: '67%', w: 'clamp(7.5rem, 12vw, 11rem)' },
+  { name: 'swim', tilt: -5, drop: '0.7rem', cx: 'calc(50% - 14rem)', cy: '21%' },
+  { name: 'mat', tilt: 3, drop: '-0.5rem', cx: 'calc(50% + 17rem)', cy: '83%' },
+  { name: 'spel', tilt: -2, drop: '0.9rem', cx: 'calc(50% - 17rem)', cy: '84%' },
+  { name: 'dans', tilt: 4, drop: '-0.3rem', cx: 'calc(50% + 14rem)', cy: '20%' },
+  { name: 'klattra', tilt: -4, drop: '0.6rem', cx: 'calc(50% - 27rem)', cy: '48%' },
+  { name: 'katt', tilt: 2, drop: '-0.4rem', cx: 'calc(50% + 27rem)', cy: '51%' },
 ]
 
 const file = (name, extension) => `/src/devtools/video/${name}.${extension}`
@@ -26,14 +28,11 @@ function HomePolaroids({ scattered = false }) {
   return (
     <ul className={`home-polaroids${scattered ? ' home-polaroids-scattered' : ''}`} aria-hidden="true">
       {CLIPS.map((clip, index) => (
-        <li key={clip.name} className="home-polaroid" style={{
-            '--tilt': `${clip.tilt}deg`,
-            '--drop': clip.drop,
-            '--i': index,
-            [`--${clip.side}`]: clip.x,
-            '--y': clip.y,
-            '--w': clip.w,
-          }}>
+        <li
+          key={clip.name}
+          className="home-polaroid"
+          style={{ '--tilt': `${clip.tilt}deg`, '--drop': clip.drop, '--i': index, '--cx': clip.cx, '--cy': clip.cy }}
+        >
           <video
             src={file(clip.name, 'mp4')}
             poster={file(clip.name, 'jpg')}

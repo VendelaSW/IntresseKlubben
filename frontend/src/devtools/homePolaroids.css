@@ -121,9 +121,9 @@
   }
 }
 
-/* Version 2, utspridda (väljaren "Förstasidan"): på en bred skärm ligger polaroiderna i sidorna, tre på varje sida och på olika
-   höjd, och texten i mitten är fri. Två sticker ut över kanten. Allt ligger ovanpå sidan och tar ingen plats, och texten
-   centreras i höjd. På en smalare skärm finns inte plats i sidorna, då ligger de i raden som i version 1. */
+/* Version 2, utspridda (väljaren "Förstasidan"): på en bred skärm ligger polaroiderna i en ring runt texten, alla lika stora:
+   två över (vid loggan), två på sidorna och två under. Allt ligger ovanpå sidan och tar ingen plats, och texten centreras i
+   höjd. På en smalare skärm finns inte plats runt texten, då ligger de i raden som i version 1. */
 @media (min-width: 1100px) {
   .home-page-scattered {
     min-height: 100svh;
@@ -131,7 +131,14 @@
     overflow-x: clip;
   }
 
+  /* Loggan är lite större här, med polaroiderna tätt omkring. */
+  .home-page-scattered .logo {
+    max-width: 200px;
+  }
+
   .home-polaroids-scattered {
+    /* Lika stora; på en låg skärm mindre, så att de över och under texten får plats. */
+    --w: min(clamp(8.5rem, 13vw, 12.5rem), 24vh);
     position: absolute;
     top: 0;
     left: 0;
@@ -143,15 +150,36 @@
     pointer-events: none;
   }
 
+  /* Testlägets inloggning ligger under första skärmen i stället för mellan texten och polaroiderna. */
+  .home-page-scattered .dev-login {
+    position: absolute;
+    top: calc(100svh + 1rem);
+    left: 50%;
+    width: min(28rem, calc(100% - 3rem));
+    transform: translateX(-50%);
+  }
+
   .home-polaroids-scattered .home-polaroid {
     position: absolute;
     flex: none;
     width: var(--w);
     margin: 0;
-    top: var(--y);
-    left: var(--left, auto);
-    right: var(--right, auto);
+    left: var(--cx);
+    top: var(--cy);
     z-index: 1;
-    transform: rotate(var(--tilt));
+    transform: translate(-50%, -50%) rotate(var(--tilt));
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .home-polaroids-scattered .home-polaroid {
+      animation-name: home-polaroid-in-ring;
+    }
+
+    @keyframes home-polaroid-in-ring {
+      from {
+        opacity: 0;
+        transform: translate(-50%, calc(-50% - 1.2rem)) rotate(calc(var(--tilt) * 2.5));
+      }
+    }
   }
 }
