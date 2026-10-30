@@ -28,6 +28,7 @@ import { getMyInterests } from '../services/interests'
 import { getUserProfile } from '../services/profile'
 import { REPORT_TARGET } from '../services/reports'
 import { useConfirm } from '../hooks/useConfirm'
+import { joinNames } from '../utils/joinNames'
 import LoadError, { useRetry } from '../components/LoadError'
 
 // Vem man är i förhållande till personen man tittar på, hämtat från
@@ -267,6 +268,37 @@ function MemberClubs({ userId, isMe }) {
   )
 }
 
+const swedishOrder = new Intl.Collator('sv')
+const monthAndYear = new Intl.DateTimeFormat('sv-SE', { month: 'long', year: 'numeric' })
+// Fler namn än så skrivs som "och 4 till", så att raden inte blir en hel lista.
+const MAX_NAMES = 3
+
+// Förtroendesignaler på någon annans profil (SCRUM-219): stämplar för bekräftad e-post och hur länge personen har
+// varit med, och vilka kompisar och klubbar ni har gemensamt. Bara det som finns visas, inget "0 gemensamma" eller
+// "ej bekräftad", så att en ny användare inte ser misstänkt ut.
+function TrustSignals({ profile }) {
+  const friends = [...profile.mutual_friends].sort(swedishOrder.compare)
+  const clubs = [...profile.shared_clubs].sort(swedishOrder.compare)
+  const shown = (names) => joinNames(names.slice(0, MAX_NAMES), Math.max(0, names.length - MAX_NAMES))
+
+  return (
+    <>
+      <div className="trust-stamps">
+        {profile.email_verified && <span className="stamp stamp-success">E-post bekräftad</span>}
+        {profile.member_since && (
+          <span className="stamp">Medlem sedan {monthAndYear.format(new Date(profile.member_since))}</span>
+        )}
+      </div>
+      {friends.length > 0 && (
+        <p className="profile-header-facts">
+          {friends.length === 1 ? '1 gemensam kompis' : `${friends.length} gemensamma kompisar`}: {shown(friends)}
+        </p>
+      )}
+      {clubs.length > 0 && <p className="profile-header-facts">Ni är båda med i {shown(clubs)}</p>}
+    </>
+  )
+}
+
 // Visar en annan användares profil, skrivskyddat. Ingen redigering och
 // ingen bilduppladdning här - det är bara ägaren som kan ändra sin profil.
 function UserProfilePage() {
@@ -331,7 +363,9 @@ function UserProfilePage() {
             imageUrl={profile.image_url}
             facts={profileFacts(profile)}
             heading="h1"
-          />
+          >
+            {!isMe && <TrustSignals profile={profile} />}
+          </ProfileHeader>
           {/* Två spalter på dator, så att det mesta syns utan att scrolla: personen och knapparna till
               vänster, intressen, events och klubbar till höger. Under varandra på mobil. */}
           <div className="profile-columns">

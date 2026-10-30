@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, field_validator
@@ -187,6 +187,13 @@ class PublicProfileResponse(BaseModel):
     image_url: str | None
     profile_text: str | None
     interests: list[ProfileInterest]
+    # Förtroendesignaler (SCRUM-219): om e-posten är bekräftad (aldrig själva adressen), när kontot skapades, och
+    # namnen på era gemensamma kompisar och klubbar (tomma på den egna profilen). Bara sådant som visar att det är en
+    # riktig person; det som saknas visas inte alls.
+    email_verified: bool = False
+    member_since: datetime | None = None
+    mutual_friends: list[str] = []
+    shared_clubs: list[str] = []
 
 
 class AreaCounts(BaseModel):

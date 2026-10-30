@@ -190,6 +190,19 @@ def list_user_groups(db: Session, user_id: int) -> list[Group]:
     )
 
 
+def shared_group_names(db: Session, user_id: int, other_id: int) -> list[str]:
+    """Namnen på klubbarna både user_id och other_id är med i (förtroendesignal på en profil, SCRUM-219). user_id är
+    med i dem, så också privata klubbar får visas."""
+    mine = select(GroupMember.group_id).where(GroupMember.user_id == user_id)
+    rows = (
+        db.query(Group.name)
+        .join(GroupMember, GroupMember.group_id == Group.id)
+        .filter(GroupMember.user_id == other_id, Group.id.in_(mine))
+        .order_by(Group.id)
+    )
+    return [name for (name,) in rows]
+
+
 def list_member_groups_visible_to(db: Session, member_id: int, viewer_id: int) -> list[Group]:
     """Klubbarna `member_id` är med i, som `viewer_id` får se: alla öppna, och
     privata bara om `viewer_id` också är med i dem (för en persons profil)."""
