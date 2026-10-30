@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { GROUP_SORTS } from '../../services/groups'
 
 // Sorteringsknappen bredvid sökfältet: en ikon som öppnar en meny där varje
-// sortering finns åt båda hållen. Stängs vid val, Escape eller klick utanför.
-function GroupSortMenu({ sort, reverse, onChange }) {
+// sortering finns åt båda hållen (en utan reverseLabel bara åt ett). Stängs vid
+// val, Escape eller klick utanför. `sorts` är sorteringarna att välja bland.
+function GroupSortMenu({ sorts = GROUP_SORTS, sort, reverse, onChange }) {
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
 
@@ -23,7 +24,7 @@ function GroupSortMenu({ sort, reverse, onChange }) {
     }
   }, [open])
 
-  const current = GROUP_SORTS.find((s) => s.value === sort)
+  const current = sorts.find((s) => s.value === sort)
   const currentLabel = `${current.label}: ${reverse ? current.reverseLabel : current.forwardLabel}`
 
   return (
@@ -50,10 +51,10 @@ function GroupSortMenu({ sort, reverse, onChange }) {
       </button>
       {open && (
         <div className="sort-menu-list" role="menu">
-          {GROUP_SORTS.map((s) => (
+          {sorts.map((s) => (
             <div key={s.value} className="sort-menu-group" role="group" aria-label={s.label}>
               <span className="sort-menu-heading">{s.label}</span>
-              {[false, true].map((rev) => {
+              {(s.reverseLabel ? [false, true] : [false]).map((rev) => {
                 const checked = s.value === sort && rev === reverse
                 return (
                   <button
