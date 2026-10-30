@@ -21,8 +21,9 @@ const HomePolaroids = DEV_MODE ? lazy(() => import('../devtools/HomePolaroids'))
 function Home() {
   const { user, loading } = useAuth()
   const homeChoice = useDesignChoice('homePage')
-  const polaroids = (homeChoice === 'polaroider' || homeChoice === 'utspridda') && HomePolaroids !== null
-  const scattered = polaroids && homeChoice === 'utspridda'
+  const polaroids = (homeChoice === 'polaroider' || homeChoice === 'utspridda' || homeChoice === 'kollage') && HomePolaroids !== null
+  const collage = polaroids && homeChoice === 'kollage'
+  const scattered = polaroids && (homeChoice === 'utspridda' || collage)
   // Precis utloggad (Logga ut i menyn skickar med det): kompisen säger "Ha det!" överst på startsidan.
   const loggedOut = Boolean(useLocation().state?.loggedOut)
   const [view, setView] = useState(null) // null | 'login' | 'register' | 'forgot'
@@ -66,7 +67,7 @@ function Home() {
       )}
       {polaroids && view === null && (
         <Suspense fallback={null}>
-          <HomePolaroids scattered={scattered} />
+          <HomePolaroids scattered={scattered} collage={collage} />
         </Suspense>
       )}
       {view === null &&
