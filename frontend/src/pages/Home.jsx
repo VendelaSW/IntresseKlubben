@@ -68,7 +68,7 @@ function Home() {
       )}
       {view === null &&
         (polaroids ? (
-          <p className="home-pitch">Vi är ingen dejtingapp. Vi vill bara hjälpa människor att hitta på saker!</p>
+          <p className="home-pitch">Vi är ingen dejtingapp. Vi vill bara hjälpa människor att hitta på saker tillsammans!</p>
         ) : (
           <ProblemStatement centered />
         ))}
