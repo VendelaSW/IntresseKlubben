@@ -146,6 +146,8 @@
     min-height: 100svh;
     justify-content: center;
     overflow-x: clip;
+    /* Loggan och texten ligger lite över mitten av fönstret (i mitten ser de ut att sitta för lågt). */
+    padding-bottom: 14svh;
   }
 
   /* Loggan är lite större här, med polaroiderna tätt omkring. */
