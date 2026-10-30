@@ -5,6 +5,7 @@ import kompisHaDet from '../assets/kompis-ha-det.webp'
 import EmptyState from '../components/EmptyState'
 import ForgotPasswordFields from '../components/ForgotPasswordFields'
 import LoginFields from '../components/LoginFields'
+import Modal from '../components/Modal'
 import ProblemStatement from '../components/ProblemStatement'
 import RegisterFields from '../components/RegisterFields'
 import ServiceDetails from '../components/ServiceDetails'
@@ -133,16 +134,26 @@ function Home() {
         </>
       )}
 
+      {/* TILLFÄLLIGT (testläget, förstasidan med polaroider): "Läs mer" öppnas i en ruta ovanpå sidan i stället för att fällas
+          ut nedåt, eftersom sidan fyller hela skärmen. */}
       <button
         type="button"
         className="info-link"
-        aria-expanded={aboutOpen}
-        aria-controls="service-details"
+        {...(polaroids
+          ? { 'aria-haspopup': 'dialog' }
+          : { 'aria-expanded': aboutOpen, 'aria-controls': 'service-details' })}
         onClick={() => setAboutOpen((open) => !open)}
       >
-        {aboutOpen ? 'Visa mindre' : 'Läs mer om tjänsten'}
+        {aboutOpen && !polaroids ? 'Visa mindre' : 'Läs mer om tjänsten'}
       </button>
-      {aboutOpen && <ServiceDetails id="service-details" />}
+      {aboutOpen && !polaroids && <ServiceDetails id="service-details" />}
+      {aboutOpen && polaroids && (
+        <Modal title="Läs mer om tjänsten" onClose={() => setAboutOpen(false)}>
+          <div className="modal-scroll">
+            <ServiceDetails id="service-details" />
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
