@@ -6,7 +6,7 @@ import './homePolaroids.css'
 // src/devtools/video och hämtas direkt från dev-servern (inte via import eller public), så att de inte följer med i en
 // vanlig build. Utanför testläget visas inte komponenten alls. De är prydnad och har ingen alternativtext.
 //
-// De första sex är med i alla varianter. De tre sista är bara med i kollaget (version 3) på en bred skärm.
+// De första sex är med i alla varianter. De fyra sista är bara med i kollaget (version 3) på en bred skärm.
 // `tilt` och `drop` gäller raden (version 1). `ring` är placeringen i ringen runt texten (version 2) och `collage` i kollaget
 // (version 3): `cx` och `cy` är mitten på polaroiden, i sidled (från mitten av sidan) och i höjd (i fönstret). `max(...)` på de
 // yttre håller dem synliga också på en smal skärm; en negativ sida (längre ut än kanten) skulle klippa dem.
@@ -20,6 +20,7 @@ const CLIPS = [
   { name: 'gaming', tilt: -3, drop: '0.4rem', collage: ['max(5rem, calc(50% - 35rem))', '15%'] },
   { name: 'origami', tilt: 5, drop: '-0.6rem', collage: ['max(5rem, calc(50% - 35rem))', '78%'] },
   { name: 'spa', tilt: -4, drop: '0.5rem', collage: ['min(calc(100% - 5rem), calc(50% + 35rem))', '80%'] },
+  { name: 'saxo', tilt: 4, drop: '-0.3rem', collage: ['min(calc(100% - 5rem), calc(50% + 35rem))', '14%'] },
 ]
 const BASE_COUNT = 6
 
@@ -44,7 +45,7 @@ function HomePolaroids({ scattered = false, collage = false }) {
   // Den som har valt bort rörelse i systemet får bara stillbilderna.
   const still = reducedMotion()
   const wide = useMinWidth(1100)
-  // Alla nio i kollaget på en bred skärm, annars de sex första (färre filmer som spelar på en mobil).
+  // Alla tio i kollaget på en bred skärm, annars de sex första (färre filmer som spelar på en mobil).
   const showAll = collage && wide
   const clips = showAll ? CLIPS : CLIPS.slice(0, BASE_COUNT)
 
