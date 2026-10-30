@@ -114,6 +114,16 @@ const PICKERS = [
     ],
   },
   {
+    key: 'testlage-forstasidan',
+    attr: 'homePage',
+    label: 'Förstasidan',
+    fallback: 'pre-dev',
+    options: [
+      { id: 'pre-dev', label: '0. Som nu (pre-dev)' },
+      { id: 'polaroider', label: '1. Polaroider' },
+    ],
+  },
+  {
     key: 'testlage-matchningssidan',
     attr: 'matchLayout',
     label: 'Matchningssidan',

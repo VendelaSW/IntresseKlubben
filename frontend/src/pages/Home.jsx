@@ -10,12 +10,16 @@ import RegisterFields from '../components/RegisterFields'
 import ServiceDetails from '../components/ServiceDetails'
 import { DEV_MODE } from '../devtools/devMode'
 import { useAuth } from '../hooks/useAuth'
+import { useDesignChoice } from '../hooks/useDesignChoice'
 
 // "Logga in som ..." finns bara i testläget (npm run dev:test), och kommer inte ens med i en vanlig build.
 const DevLogin = DEV_MODE ? lazy(() => import('../devtools/DevLogin')) : null
+// TILLFÄLLIGT (testläget): startsidan med polaroider (väljaren "Förstasidan").
+const HomePolaroids = DEV_MODE ? lazy(() => import('../devtools/HomePolaroids')) : null
 
 function Home() {
   const { user, loading } = useAuth()
+  const polaroids = useDesignChoice('homePage') === 'polaroider' && HomePolaroids !== null
   // Precis utloggad (Logga ut i menyn skickar med det): kompisen säger "Ha det!" överst på startsidan.
   const loggedOut = Boolean(useLocation().state?.loggedOut)
   const [view, setView] = useState(null) // null | 'login' | 'register' | 'forgot'
@@ -54,7 +58,17 @@ function Home() {
           text="Välkommen tillbaka när du vill!"
         />
       )}
-      {view === null && <ProblemStatement centered />}
+      {polaroids && view === null && (
+        <Suspense fallback={null}>
+          <HomePolaroids />
+        </Suspense>
+      )}
+      {view === null &&
+        (polaroids ? (
+          <p className="home-pitch">Vi är inte en dejtingapp. Vi vill bara att människor ska träffas och ha kul!</p>
+        ) : (
+          <ProblemStatement centered />
+        ))}
 
       {view === null && (
         <div className="account-choice-links">

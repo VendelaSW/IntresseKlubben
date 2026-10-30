@@ -1,0 +1,91 @@
+/* TILLFÄLLIGT, bara i testläget: startsidan med bilder som polaroider (väljaren "Förstasidan", se HomePolaroids och Home).
+   Tas bort när ett utseende är valt; det valda flyttas då in i appen. */
+
+/* En lös rad som överlappar lite, som foton utlagda på ett bord. Bilderna krymper så att alla får plats i bredd. */
+.home-polaroids {
+  display: flex;
+  justify-content: center;
+  width: min(100%, 60rem);
+  margin: 0.5rem auto 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-polaroid {
+  position: relative;
+  flex: 0 1 11.5rem;
+  min-width: 0;
+  margin-left: -1.1rem;
+  padding: 0.5rem 0.5rem 1.7rem;
+  background: var(--color-white);
+  box-shadow: 0 3px 10px rgba(58, 47, 37, 0.28);
+  transform: translateY(var(--drop)) rotate(var(--tilt));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.home-polaroid:first-child {
+  margin-left: 0;
+}
+
+.home-polaroid img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.home-polaroid:hover {
+  z-index: 1;
+  transform: translateY(calc(var(--drop) - 0.4rem)) rotate(var(--tilt)) scale(1.04);
+  box-shadow: 0 8px 18px rgba(58, 47, 37, 0.32);
+}
+
+/* En tejpbit högst upp, lite sned. */
+.home-polaroid-tape::before {
+  content: '';
+  position: absolute;
+  top: -0.7rem;
+  left: 50%;
+  width: 4rem;
+  height: 1.4rem;
+  background: rgba(244, 196, 48, 0.7);
+  box-shadow: 0 1px 2px rgba(58, 47, 37, 0.18);
+  transform: translateX(-50%) rotate(-4deg);
+}
+
+/* Bilderna landar en och en när sidan öppnas. */
+@media (prefers-reduced-motion: no-preference) {
+  .home-polaroid {
+    animation: home-polaroid-in 0.5s ease backwards;
+    animation-delay: calc(var(--i) * 0.09s);
+  }
+
+  @keyframes home-polaroid-in {
+    from {
+      opacity: 0;
+      transform: translateY(-1.2rem) rotate(calc(var(--tilt) * 2.5));
+    }
+  }
+}
+
+/* Texten under bilderna: kort, och i samma röst som devisen. */
+.home-pitch {
+  max-width: var(--content-width);
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+}
+
+@media (max-width: 480px) {
+  .home-polaroid {
+    margin-left: -0.6rem;
+    padding: 0.3rem 0.3rem 1rem;
+  }
+
+  .home-polaroid-tape::before {
+    width: 2.4rem;
+    height: 0.9rem;
+    top: -0.45rem;
+  }
+}
