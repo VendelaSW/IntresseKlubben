@@ -7,12 +7,12 @@ import './homePolaroids.css'
 // `tilt` och `drop` gäller raden (version 1). Utspridda (version 2): `side` och `x` är avståndet från vänster eller höger kant
 // (negativt = sticker ut över kanten), `y` hur långt ner i fönstret och `w` bredden.
 const CLIPS = [
-  { name: 'swim', tilt: -5, drop: '0.7rem', side: 'left', x: '5%', y: '9%', w: 'clamp(7.5rem, 12vw, 11rem)' },
-  { name: 'mat', tilt: 3, drop: '-0.5rem', side: 'left', x: '-1.8rem', y: '40%', w: 'clamp(8.5rem, 13vw, 12.5rem)' },
-  { name: 'spel', tilt: -2, drop: '0.9rem', side: 'left', x: '12%', y: '68%', w: 'clamp(7.5rem, 11vw, 10.5rem)' },
-  { name: 'dans', tilt: 4, drop: '-0.3rem', side: 'right', x: '11%', y: '7%', w: 'clamp(7.5rem, 11vw, 10.5rem)' },
-  { name: 'klattra', tilt: -4, drop: '0.6rem', side: 'right', x: '-1.8rem', y: '38%', w: 'clamp(8.5rem, 13vw, 12.5rem)' },
-  { name: 'katt', tilt: 2, drop: '-0.4rem', side: 'right', x: '6%', y: '67%', w: 'clamp(7.5rem, 12vw, 11rem)' },
+  { name: 'swim', tilt: -5, drop: '0.7rem', side: 'left', x: '10%', y: '9%', w: 'clamp(7.5rem, 12vw, 11rem)' },
+  { name: 'mat', tilt: 3, drop: '-0.5rem', side: 'left', x: '3%', y: '40%', w: 'clamp(8.5rem, 13vw, 12.5rem)' },
+  { name: 'spel', tilt: -2, drop: '0.9rem', side: 'left', x: '17%', y: '68%', w: 'clamp(7.5rem, 11vw, 10.5rem)' },
+  { name: 'dans', tilt: 4, drop: '-0.3rem', side: 'right', x: '16%', y: '7%', w: 'clamp(7.5rem, 11vw, 10.5rem)' },
+  { name: 'klattra', tilt: -4, drop: '0.6rem', side: 'right', x: '3%', y: '38%', w: 'clamp(8.5rem, 13vw, 12.5rem)' },
+  { name: 'katt', tilt: 2, drop: '-0.4rem', side: 'right', x: '11%', y: '67%', w: 'clamp(7.5rem, 12vw, 11rem)' },
 ]
 
 const file = (name, extension) => `/src/devtools/video/${name}.${extension}`
