@@ -1,0 +1,159 @@
+/* TILLFÄLLIGT: eventkortet som en biljett (väljaren "Eventkort" i testpanelen, se EventTicket i EventList). Utan val, och utanför
+   testläget, gäller de vanliga korten, och klasserna här används då inte. När ett utseende är valt flyttas det in i index.css.
+
+   Ett stående kort i pappersstilen som klubbkorten: vitt papper, en färgad rad överst i intressets färg (--poster), och längst ner ett
+   kvitto (.event-ticket-stub) med en perforerad linje ovanför och ett urtag i vardera kanten. Urtagen är en mask (kvittot har en
+   fast höjd, --stub-h, så att de hamnar på rätt ställe), och skuggan ligger på omslaget (.event-ticket-wrap) som en drop-shadow,
+   eftersom en mask annars klipper bort kortets egen skugga. */
+.event-ticket-wrap {
+  display: flex;
+  filter: drop-shadow(1px 3px 5px rgba(58, 47, 37, 0.3));
+  transform: rotate(-0.5deg);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.event-ticket-wrap:nth-child(even) {
+  transform: rotate(0.6deg);
+}
+
+.event-ticket-wrap:hover,
+.event-ticket-wrap:focus-within {
+  filter: drop-shadow(2px 7px 8px rgba(58, 47, 37, 0.36));
+  transform: translateY(-3px);
+}
+
+.event-ticket.card {
+  --stub-h: 6.2rem;
+  --notch: 0.6rem;
+  --poster: var(--color-accent);
+  --poster-soft: #fdf6e0;
+  position: relative;
+  flex: 1;
+  gap: 0.55rem;
+  min-height: 0;
+  padding: 1.05rem 1.05rem 0;
+  border: 0;
+  border-radius: 3px;
+  background:
+    linear-gradient(var(--poster), var(--poster)) top / 100% 7px no-repeat,
+    #fffdf7;
+  box-shadow: none;
+  mask:
+    radial-gradient(circle at left calc(100% - var(--stub-h)), #0000 var(--notch), #000 calc(var(--notch) + 0.5px)) left / 51% 100% no-repeat,
+    radial-gradient(circle at right calc(100% - var(--stub-h)), #0000 var(--notch), #000 calc(var(--notch) + 0.5px)) right / 51% 100% no-repeat;
+}
+
+/* Hovern ligger på omslaget (se ovan), inte på kortet. */
+.event-ticket.card.card-interactive:hover,
+.event-ticket.card.card-interactive:focus-within {
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+/* "EVENT" överst, som tryckt på en biljett. */
+.event-ticket-head {
+  display: flex;
+  margin-top: 0.15rem;
+  color: #5a5148;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Titeln i raka tryckbokstäver, som affischen, med luft över prickarna på Ö, Å och Ä. */
+.event-ticket .card-title {
+  padding-block: 0.25em;
+  margin-block: -0.25em;
+  font-family: var(--font-body);
+  font-size: 1.25rem;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+.event-ticket .list-card-description {
+  color: #4a4038;
+  -webkit-line-clamp: 2;
+}
+
+.event-ticket .card-actions {
+  margin-top: auto;
+  padding-bottom: 0.7rem;
+}
+
+/* Kvittot: en perforerad linje ovanför (med urtagen i kanterna), intressets ljusa färg som bakgrund och datumet stort. */
+.event-ticket-stub {
+  flex: none;
+  display: grid;
+  /* Lika breda kolumner på sidorna (datumet till vänster, en tom till höger), så att tiden och platsen ligger mitt på kortet. */
+  grid-template-columns: 3.4rem 1fr 3.4rem;
+  gap: 0.15rem 0.5rem;
+  align-items: center;
+  height: var(--stub-h);
+  margin: 0 -1.05rem;
+  padding: 0.6rem 1.05rem 0.7rem;
+  border-top: 2px dashed rgba(58, 47, 37, 0.4);
+  background: var(--poster-soft);
+}
+
+.event-ticket-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 3.1rem;
+  line-height: 1;
+  transform: rotate(-3deg);
+}
+
+.event-ticket-day {
+  font-family: var(--font-heading);
+  font-size: 2.7rem;
+  font-weight: 700;
+}
+
+.event-ticket-month {
+  margin-top: -0.1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.event-ticket-when {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  text-align: center;
+}
+
+/* Tiden större, i en svart ruta med ljus text, som antalet på klubbkorten. */
+.event-ticket-when strong {
+  align-self: center;
+  margin-bottom: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  background: var(--color-ink);
+  color: #fffdf7;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: rotate(-1.5deg);
+}
+
+.event-ticket-place {
+  max-width: 100%;
+  overflow: hidden;
+  color: #4a4038;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
