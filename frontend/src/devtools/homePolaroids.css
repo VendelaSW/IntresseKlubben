@@ -138,20 +138,73 @@
   }
 }
 
-/* Mobil (upp till 600 px): två rader med tre, större än i en enda rad. Sidan har gott om höjd, så de får plats under
-   texten, lite sneda och tätt tillsammans. */
+/* Mobil (upp till 600 px), samma i alla varianter: loggan i mitten med polaroider runt: tre över, en på var sida om loggan
+   och tre under. Sedan devisen, texten och knapparna. Sidan blir ett rutnät med tre kolumner, och hero och listan
+   "försvinner" (display: contents) så att loggan och polaroiderna ligger direkt i rutnätet. */
 @media (max-width: 600px) {
-  .home-polaroids:not(.home-polaroids-scattered),
-  .home-polaroids-scattered {
+  .home-page-polaroids {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.6rem 0.4rem;
-    width: 100%;
+    align-items: center;
+    justify-items: center;
+  }
+
+  .home-page-polaroids .hero,
+  .home-polaroids {
+    display: contents;
+  }
+
+  .home-page-polaroids .logo {
+    grid-row: 2;
+    grid-column: 2;
+    max-width: 100%;
+  }
+
+  /* Allt annat tar hela bredden, under polaroiderna. */
+  .home-page-polaroids > :not(.hero):not(.home-polaroids),
+  .home-page-polaroids .tagline {
+    grid-column: 1 / -1;
+  }
+
+  .home-page-polaroids .tagline {
+    margin-top: 0.6rem;
   }
 
   .home-polaroids > .home-polaroid {
     flex: none;
+    width: 88%;
     margin-left: 0;
+  }
+
+  .home-polaroid:nth-child(-n + 3) {
+    grid-row: 1;
+  }
+
+  .home-polaroid:nth-child(n + 6) {
+    grid-row: 3;
+  }
+
+  .home-polaroid:nth-child(4),
+  .home-polaroid:nth-child(5) {
+    grid-row: 2;
+  }
+
+  .home-polaroid:nth-child(1),
+  .home-polaroid:nth-child(4),
+  .home-polaroid:nth-child(6) {
+    grid-column: 1;
+  }
+
+  .home-polaroid:nth-child(2),
+  .home-polaroid:nth-child(7) {
+    grid-column: 2;
+  }
+
+  .home-polaroid:nth-child(3),
+  .home-polaroid:nth-child(5),
+  .home-polaroid:nth-child(8) {
+    grid-column: 3;
   }
 }
 

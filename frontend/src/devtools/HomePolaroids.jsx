@@ -47,10 +47,11 @@ function HomePolaroids({ scattered = false, collage = false }) {
   // Den som har valt bort rörelse i systemet får bara stillbilderna.
   const still = reducedMotion()
   const wide = useMinWidth(1100)
+  const mobile = !useMinWidth(601)
   // Alla tio i kollaget på en bred skärm, annars de sex första (färre filmer som spelar på en mobil).
   const showAll = collage && wide
-  // Raden (version 1) får fler polaroider på en bred skärm; ringen (version 2) har sex.
-  const count = showAll ? CLIPS.length : wide && !scattered ? ROW_COUNT : BASE_COUNT
+  // Raden (version 1) får fler polaroider på en bred skärm; ringen (version 2) har sex. På en mobil är det åtta runt loggan.
+  const count = showAll ? CLIPS.length : mobile || (wide && !scattered) ? ROW_COUNT : BASE_COUNT
   const clips = CLIPS.slice(0, count)
 
   // Filmerna spelar bara medan de syns: de pausas när sidan är scrollad förbi dem eller fliken är dold, så att de inte
