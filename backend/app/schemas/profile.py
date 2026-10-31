@@ -187,6 +187,13 @@ class PublicProfileResponse(BaseModel):
     image_url: str | None
     profile_text: str | None
     interests: list[ProfileInterest]
+    # Förtroendesignaler (SCRUM-219): om e-posten är bekräftad (aldrig själva adressen), månaden kontot skapades
+    # ("2026-03", inte exakt när), och namnen på era gemensamma kompisar och klubbar (tomma på den egna profilen).
+    # Alla namn, så att profilsidan kan visa hela listan. Det som saknas visas inte alls.
+    email_verified: bool = False
+    member_since: str | None = None
+    mutual_friends: list[str] = []
+    shared_clubs: list[str] = []
 
 
 class AreaCounts(BaseModel):
