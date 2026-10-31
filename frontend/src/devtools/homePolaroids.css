@@ -87,6 +87,23 @@
 }
 
 /* Texten under bilderna: kort, och i samma röst som devisen. */
+.home-pitch-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+/* Raden under huvudraden: mindre och dämpad. */
+.home-pitch-sub {
+  max-width: var(--content-width);
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
 .home-pitch {
   max-width: var(--content-width);
   margin: 0;
