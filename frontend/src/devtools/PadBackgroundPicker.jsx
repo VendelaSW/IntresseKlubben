@@ -122,6 +122,8 @@ const PICKERS = [
     options: [
       { id: 'pre-dev', label: '0. Som nu (pre-dev)' },
       { id: 'polaroider', label: '1. Polaroider' },
+      { id: 'utspridda', label: '2. Polaroider, utspridda' },
+      { id: 'kollage', label: '3. Kollage, tio polaroider' },
     ],
   },
   {
