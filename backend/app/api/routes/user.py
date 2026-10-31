@@ -476,7 +476,7 @@ def _to_public_response(db: Session, profile, viewer: User) -> PublicProfileResp
         profile_text=profile.profile_text,
         interests=profile_interests(db, user),
         email_verified=user.email_verified_at is not None,
-        member_since=user.created_at,
+        member_since=user.created_at.strftime("%Y-%m") if user.created_at else None,
         mutual_friends=mutual_contact_names(db, viewer.id, user.id, hidden) if others else [],
         shared_clubs=shared_group_names(db, viewer.id, user.id) if others else [],
     )

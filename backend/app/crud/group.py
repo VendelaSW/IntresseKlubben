@@ -192,7 +192,8 @@ def list_user_groups(db: Session, user_id: int) -> list[Group]:
 
 def shared_group_names(db: Session, user_id: int, other_id: int) -> list[str]:
     """Namnen på klubbarna både user_id och other_id är med i (förtroendesignal på en profil, SCRUM-219). user_id är
-    med i dem, så också privata klubbar får visas."""
+    med i dem, så också privata klubbar får visas. Bara för en profil i taget: i en lista med personer blir det en
+    fråga per person, och då behövs en samlad fråga i stället."""
     mine = select(GroupMember.group_id).where(GroupMember.user_id == user_id)
     rows = (
         db.query(Group.name)

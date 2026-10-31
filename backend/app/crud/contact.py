@@ -217,9 +217,11 @@ def unblock_user(db: Session, blocker_id: int, blocked_id: int) -> None:
     db.delete(contact)
     db.commit()
 
+
 def mutual_contact_names(db: Session, user_id: int, other_id: int, hidden: set[int]) -> list[str]:
     """Namnen på dem som är kompis med både user_id och other_id (förtroendesignal på en profil, SCRUM-219), utan
-    dem i hidden. Bara user_id:s egna kompisar, så att man aldrig ser främlingar ur other_id:s kontaktlista."""
+    dem i hidden. Bara user_id:s egna kompisar, så att man aldrig ser främlingar ur other_id:s kontaktlista.
+    Bara för en profil i taget: i en lista med personer blir det frågor per person, och då behövs en samlad fråga."""
     ids = (accepted_contact_ids(db, user_id) & accepted_contact_ids(db, other_id)) - hidden - {user_id, other_id}
     if not ids:
         return []

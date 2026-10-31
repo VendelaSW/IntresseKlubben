@@ -31,7 +31,7 @@ def _profile(client, user_id=OTHER):
     return response.json()
 
 
-def test_a_confirmed_email_and_when_the_account_was_made(client, db, people):
+def test_a_confirmed_email_and_the_month_the_account_was_made(client, db, people):
     other = db.get(User, OTHER)
     other.email = "cecilia@example.com"
     other.email_verified_at = utc_now()
@@ -40,7 +40,7 @@ def test_a_confirmed_email_and_when_the_account_was_made(client, db, people):
     body = _profile(client)
 
     assert body["email_verified"] is True
-    assert body["member_since"] is not None
+    assert body["member_since"] == other.created_at.strftime("%Y-%m")  # bara månaden, inte exakt när
     assert "cecilia@example.com" not in str(body)  # bara att den är bekräftad, aldrig adressen
 
 
