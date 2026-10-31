@@ -504,14 +504,14 @@ function ProfileInterview() {
     }
   }
 
-  // Skapar profilen och intressena i ett anrop. Bara omgångar med något kvar skickas, och bara de förslag som inte
-  // är borttagna: det som inte skickas med räknas som bortvalt.
   // Profilen är skapad: resten av appen låses upp (se RequireProfile) och man går till startsidan.
   function finish() {
     updateUser({ ...user, profile_completed: true })
     navigate('/hem')
   }
 
+  // Skapar profilen och intressena i ett anrop. Bara omgångar med något kvar skickas, och bara de förslag som inte
+  // är borttagna: det som inte skickas med räknas som bortvalt.
   async function handleSave() {
     const approved = batches
       .map((batch) => ({
