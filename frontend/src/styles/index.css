@@ -1525,6 +1525,12 @@ span.tag-selected:hover {
   text-align: left;
 }
 
+/* Födelsedatumet (tre listor) är bredare än en spalt i raden, och skulle ligga under könsrutan. Det får hela raden, och
+   Kön kommer under. */
+.interview-page .form-row > :has(.birth-date-picker) {
+  grid-column: 1 / -1;
+}
+
 /* Framstegsstapeln syns bara på mobil (se nedan). */
 .interview-progress-bar {
   display: none;
@@ -1885,6 +1891,27 @@ span.tag-selected:hover {
 
 .stamp-success {
   color: var(--color-success);
+}
+
+/* Stämplar bredvid varandra, t.ex. "E-post bekräftad" och "Medlem sedan mars 2026" på en profil. Radbryts på
+   smal skärm, med luft emellan så att de sneda ramarna inte nuddar varandra. */
+.trust-stamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  padding-block: 0.25rem;
+}
+
+.trust-stamps:empty {
+  display: none;
+}
+
+/* Lite mindre än på eventen, de står under namnet. Får inte stämpeln plats på en rad (smal telefon) bryts
+   texten inne i ramen i stället för att sticka ut ur kortet. */
+.trust-stamps .stamp {
+  max-width: 100%;
+  font-size: 1.1rem;
+  white-space: normal;
 }
 
 .card-avatar-initials {

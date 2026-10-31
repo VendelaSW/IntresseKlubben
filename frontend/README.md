@@ -26,6 +26,7 @@ på nya hex-koder eller pixelvärden.
 | Maskot | `Intressekompis` (pupiller som följer muspekaren). Storleken ges med `width` eller förälderns bredd; `alt=""` när den bara pryder | `<Intressekompis width="200px" />` |
 | Formulär | `.auth-form`, dess `input`/`label`/`button` | Se Formulärfält-exemplet i stilguiden |
 | Plats på kartan | `LocationPicker` (sök adressen och sätt en nål på en liten karta), för events och klubbarnas träffplats | `<LocationPicker id="event-position" queries={[address, placeName]} value={position} onChange={setPosition} saveLabel="Skapa event" kommunCode={kod} />` |
+| Stämplar | `.stamp` (mörk), `.stamp-success` (grön), flera i rad i `.trust-stamps` | `<span className="stamp stamp-success">E-post bekräftad</span>` |
 | Länkar | `.info-link` (fungerar även på en `<button>`, t.ex. något som fälls ut) | `<a className="info-link">` |
 | Brev | `.envelopes` + `ConversationCard` (kuvert), `.lined-paper` (linjerat papper), `.notepad` (konversationen) | Se Brev-exemplet i stilguiden |
 | Rubriker | Vanliga `<h1>`/`<h2>`-taggar, redan stylade automatiskt | `<h2>Min rubrik</h2>` |
