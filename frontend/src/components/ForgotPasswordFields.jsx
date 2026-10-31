@@ -47,7 +47,7 @@ function ForgotPasswordFields({ onSwitchToLogin }) {
           </button>
         </form>
       )}
-      <button type="button" className="text-button" onClick={onSwitchToLogin}>
+      <button type="button" className="quiet-link" onClick={onSwitchToLogin}>
         Tillbaka till inloggningen
       </button>
     </>
