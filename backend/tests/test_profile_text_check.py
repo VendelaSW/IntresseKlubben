@@ -55,7 +55,7 @@ def test_the_word_list_is_checked_without_any_ai_call(client, user, monkeypatch)
     monkeypatch.setattr(settings, "openai_model", "")
     response = client.post(URL, json={"profile_text": "Jag gillar fitta."})
     assert response.status_code == 422
-    assert "otillåtet språk" in str(response.json())
+    assert response.json()["detail"] == NOT_ALLOWED
 
 
 def test_a_text_that_is_too_long_or_empty_is_refused_like_when_saving(client, user):
