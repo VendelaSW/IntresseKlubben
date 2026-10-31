@@ -144,7 +144,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
       setInviteNotice(
         invited.length === 0
           ? 'Alla var redan inbjudna.'
-          : `Bjöd in ${invited.length} ${invited.length === 1 ? 'person' : 'personer'}.`,
+          : `Bjöd in ${invited.length} ${invited.length === 1 ? 'medlem' : 'medlemmar'}.`,
       )
     } catch (err) {
       setInviteError(err.message)
@@ -274,7 +274,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
                   )}
                   {responses !== null && coming > 0 && (
                     <p className="hint-text">
-                      {coming === 1 ? '1 person har' : `${coming} personer har`} svarat Ja eller Kanske och får en notis
+                      {coming === 1 ? '1 medlem har' : `${coming} medlemmar har`} svarat Ja eller Kanske och får en notis
                       från Intresseklubben om att eventet är inställt.
                     </p>
                   )}

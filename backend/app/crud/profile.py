@@ -211,6 +211,16 @@ def count_people_by_municipality(
     return {code: count for code, count in rows if code}
 
 
+def sort_by_shared_interests(profiles: list[Profile], my_interest_ids: set[int]) -> list[Profile]:
+    """Flest intressen gemensamt med mig först. Lika många behåller den ordning de kom i (list_people ger namnordning). Intressena
+    ligger redan inladdade på profilerna (se list_people), så sorteringen kostar inga fler databasfrågor."""
+
+    def shared(profile: Profile) -> int:
+        return len({link.interest_id for link in profile.user.interest_links} & my_interest_ids)
+
+    return sorted(profiles, key=lambda profile: -shared(profile))  # sorted är stabil
+
+
 def count_people_by_node(
     db: Session,
     exclude_user_id: int,

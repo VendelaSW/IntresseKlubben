@@ -27,7 +27,10 @@ ACCOUNTS = [
         "about": "Har det mesta: kontakter, klubbar, events, brev och förfrågningar",
         "municipality": "1480",
         "interests": ["Löpning", "Brädspel", "Fotografering"],
-        "text": "Springer gärna på morgonen och spelar brädspel på kvällarna. Letar efter fler att fotografera med.",
+        "text": (
+            "Springer gärna på morgonen och spelar brädspel på kvällarna. Letar efter fler att fotografera med. "
+            "Jag tar gärna initiativ och vill helst träffa folk i Göteborg som också gillar att göra saker ihop."
+        ),
     },
     {
         "username": "bertil",
@@ -35,7 +38,10 @@ ACCOUNTS = [
         "about": "Annas kontakt, äger Brädspelsklubben och är moderator (Moderering)",
         "municipality": "1480",
         "interests": ["Brädspel", "Schack", "Matlagning"],
-        "text": "Pensionär som älskar strategispel och att laga mat till många.",
+        "text": (
+            "Pensionär som älskar strategispel och att laga mat till många. Jag söker nya spelkompisar till "
+            "torsdagskvällarna och tar gärna med mig en gryta eller en paj."
+        ),
     },
     {
         "username": "cecilia",
@@ -75,6 +81,74 @@ ACCOUNTS = [
         "name": None,
         "about": "Har inte gjort intervjun än",
     },
+]
+
+# Fler personer att matcha mot (Matcha och Sök), utan egna knappar under "Logga in som": utan dem har bara ett konto en
+# profil som räcker för matchningen (minst tre intressen och 100 tecken). Som Anna och Bertil ser dem får de olika
+# nivåer: Tove är Annas tvilling (samma intressen och exakt samma text), Agnes är Bertils, Alva och Bengt har samma text
+# men bara ett gemensamt intresse (en stark match), och resten har mer eller mindre gemensamt. Testläget har fejkade
+# vektorer, och inga vektorer för intressena, så bara exakt samma text räknas som lika text (och närliggande intressen
+# saknas); i övrigt styr antalet gemensamma intressen. De har olika kön (valbart att synas på), födelseår och kommun, så att filtren går att prova.
+# Valfria fält: gender, birth_date och searchable (om de går att hitta på kön).
+_ANNA_TEXT = ACCOUNTS[0]["text"]
+_BERTIL_TEXT = ACCOUNTS[1]["text"]
+FIGURANTS = [
+    {"username": "tove", "name": "Tove Aronsson", "municipality": "1480", "gender": "kvinna", "birth_date": "1991-03-02", "searchable": True,
+     "interests": ["Löpning", "Brädspel", "Fotografering"], "text": _ANNA_TEXT},
+    {"username": "alva", "name": "Alva Östberg", "municipality": "1480", "gender": "kvinna", "birth_date": "1995-08-18", "searchable": True,
+     "interests": ["Löpning", "Yoga", "Cykling"], "text": _ANNA_TEXT},
+    {"username": "bengt", "name": "Bengt Cederlund", "municipality": "1480", "gender": "man", "birth_date": "1955-01-29", "searchable": True,
+     "interests": ["Brädspel", "Yoga", "Bakning"], "text": _BERTIL_TEXT},
+    {"username": "gustav", "name": "Gustav Hall", "municipality": "1480", "gender": "man", "birth_date": "1988-09-21", "searchable": True,
+     "interests": ["Löpning", "Brädspel", "Fotografering", "Kaffe"],
+     "text": "Jag springer, fotograferar och älskar en bra spelkväll. Kaffe är en livsstil. Söker någon som gärna hittar på saker spontant."},
+    {"username": "ida", "name": "Ida Sjöberg", "municipality": "1481", "gender": "kvinna", "birth_date": "1996-12-11", "searchable": True,
+     "interests": ["Löpning", "Brädspel", "Yoga", "Cykling"],
+     "text": "Rörelse är mitt sätt att varva ner. Jag springer, cyklar och gör yoga, och på kvällen vill jag gärna ha ett spel på bordet."},
+    {"username": "oskar", "name": "Oskar Bergman", "municipality": "1480", "gender": "man", "birth_date": "1984-05-30", "searchable": True,
+     "interests": ["Brädspel", "Fotografering", "Schack"],
+     "text": "Jag tar bilder när jag är ute och spelar schack på nätet. Letar efter någon att spela brädspel med på riktigt."},
+    {"username": "maja", "name": "Maja Wallin", "municipality": "0180", "gender": "kvinna", "birth_date": "2000-07-08", "searchable": True,
+     "interests": ["Löpning", "Cykling", "Simning"],
+     "text": "Triathlon är målet, men just nu mest löpning och cykling. Vill gärna ha någon som pushar mig vid morgonpassen."},
+    {"username": "david", "name": "David Ek", "municipality": "0180", "gender": "man", "birth_date": "1979-01-17", "searchable": False,
+     "interests": ["Brädspel", "Pussel", "Tv-spel"],
+     "text": "Spelar allt som går att spela: bräde, pussel eller tv-spel. Helst i grupp och helst med snacks. Jag bjuder gärna hem."},
+    {"username": "lena", "name": "Lena Åkesson", "municipality": "1481", "gender": "kvinna", "birth_date": "1965-10-04", "searchable": True,
+     "interests": ["Fotografering", "Keramik", "Stickning"],
+     "text": "Skapar mycket med händerna: lera, garn och kamera. Letar efter någon att gå på utställningar och fotopromenader med."},
+    {"username": "erik", "name": "Erik Lund", "municipality": "1480", "gender": "man", "birth_date": "1993-04-25", "searchable": True,
+     "interests": ["Löpning", "Padel", "Tennis"],
+     "text": "Racketsport och löpning, mest för att jag gillar att tävla lite. Det vore kul med en fast padelkväll och någon att köra intervaller med."},
+    {"username": "sofia", "name": "Sofia Nilsson", "municipality": "1481", "gender": "ickebinär", "birth_date": "1998-02-14", "searchable": True,
+     "interests": ["Yoga", "Dans", "Bakning"],
+     "text": "Jag dansar, bakar och gör yoga på söndagarna. Söker folk som vill ha mjuka helger med mycket kardemumma och musik."},
+    {"username": "karl", "name": "Karl Dahl", "municipality": "0180", "gender": "man", "birth_date": "1972-08-19", "searchable": True,
+     "interests": ["Fiske", "Segling", "Camping"],
+     "text": "Ute så fort vädret tillåter: fiske, segling och camping. Jag söker sällskap till längre turer i skärgården."},
+    {"username": "hanna", "name": "Hanna Berg", "municipality": "0180", "gender": "kvinna", "birth_date": "1994-06-03", "searchable": True,
+     "interests": ["Programmering", "Tv-spel", "Katter"],
+     "text": "Jobbar med kod, spelar på fritiden och har två katter som styr hemmet. Söker någon att bygga små projekt och spela med."},
+    {"username": "mats", "name": "Mats Holm", "municipality": "1481", "gender": "man", "birth_date": "1969-11-27", "searchable": True,
+     "interests": ["Vin", "Matlagning", "Bakning"],
+     "text": "Matlagning är min stora grej, med ett glas vin till. Jag bjuder gärna på middag och vill lära mig mer om surdeg."},
+    {"username": "nora", "name": "Nora Lindqvist", "municipality": "1480", "gender": "kvinna", "birth_date": "2002-09-09", "searchable": True,
+     "interests": ["Löpning", "Brädspel", "Hundar"],
+     "text": "Ny i Göteborg och söker nya vänner. Jag springer med min hund varje morgon och gillar att spela brädspel på kvällarna."},
+    {"username": "viktor", "name": "Viktor Strand", "municipality": "1481", "gender": "man", "birth_date": "1986-03-31", "searchable": True,
+     "interests": ["Fotografering", "Löpning", "Jazz"],
+     "text": "Fotograferar konserter och springer för att hålla igång. Det vore kul att hitta någon att gå på jazzklubb med."},
+    {"username": "elin", "name": "Elin Forsberg", "municipality": "0180", "gender": "kvinna", "birth_date": "1990-12-22", "searchable": True,
+     "interests": ["Teater", "Jazz", "Dans"],
+     "text": "Kultur är mitt liv: teater, jazz och dans. Jag har säsongskort på två scener och söker någon att dela dem med."},
+    {"username": "pelle", "name": "Pelle Sandberg", "municipality": "0180", "gender": "man", "birth_date": "1981-07-15", "searchable": False,
+     "interests": ["Fotboll", "Skidåkning", "Cykling"],
+     "text": "Fotboll på sommaren, skidor på vintern och cykel däremellan. Jag gillar lagsporter och vill gärna ha ett gäng att träna med."},
+    {"username": "agnes", "name": "Agnes Persson", "municipality": "1480", "gender": "kvinna", "birth_date": "1958-05-12", "searchable": True,
+     "interests": ["Brädspel", "Schack", "Matlagning"], "text": _BERTIL_TEXT},
+    {"username": "lars", "name": "Lars Nyberg", "municipality": "1481", "gender": "man", "birth_date": "1975-02-06", "searchable": True,
+     "interests": ["Bokcirkel", "Trädgård", "Katter"],
+     "text": "Jag läser mycket, odlar grönsaker och har tre katter. Söker en bokcirkel där man hinner prata om annat än boken också."},
 ]
 
 LONG_LETTER = (
@@ -146,8 +220,9 @@ def create_account(api: Api, account: dict) -> int:
             user["id"],
             json={
                 "name": account["name"],
-                "birth_date": "1992-06-15",
-                "gender": "vill inte uppge",
+                "birth_date": account.get("birth_date", "1992-06-15"),
+                "gender": account.get("gender", "vill inte uppge"),
+                "gender_searchable": account.get("searchable", False),
                 "municipality_code": account["municipality"],
                 "profile_text": account["text"],
                 "interest_ids": interest_ids(api, account["interests"]),
@@ -201,6 +276,8 @@ def seed(app, db: Session) -> dict[str, int]:
     api = Api(app)
     ids = {account["username"]: create_account(api, account) for account in ACCOUNTS}
     anna, bertil, cecilia, max_, nils = (ids[n] for n in ("anna", "bertil", "cecilia", "maximiliana", "nils"))
+    for account in FIGURANTS:
+        create_account(api, account)  # ingen kontakt eller något annat; bara någon att matcha mot
 
     # Kontakter: Anna och Bertil är kontakter, Cecilia väntar på Annas svar, Anna väntar på Nils svar.
     make_contacts(api, anna, bertil)

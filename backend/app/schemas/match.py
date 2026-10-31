@@ -30,6 +30,8 @@ class MatchReason(BaseModel):
 class MatchResponse(PersonResponse):
     """En föreslagen person: personkortet plus hur bra matchningen är."""
 
+    # Personens Om mig-text, som kortet visar i sin helhet (samma text som syns på personens profil, GET /users/{id}/profile).
+    profile_text: str | None
     percent: int  # 0-100, aldrig under MIN_SHOWN_PERCENT (services/matching.py)
     # Nivån för poängen (LEVELS i services/matching.py): super, strong, good eller okay. Appen visar den, inte procenten.
     level: Literal["super", "strong", "good", "okay"]

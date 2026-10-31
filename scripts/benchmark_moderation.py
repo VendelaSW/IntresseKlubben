@@ -1,15 +1,20 @@
 """Benchmark the local profanity filter against a small, manually labeled set.
 
-Run from ``backend/`` with:
-    python -m app.scripts.benchmark_moderation
+Run from the repository root with:
+    python scripts/benchmark_moderation.py
 
 This diagnostic measures only the local word filter and makes no network calls.
 """
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 from time import perf_counter
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1] / "backend"
+sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.core.profanity import contains_profanity
 

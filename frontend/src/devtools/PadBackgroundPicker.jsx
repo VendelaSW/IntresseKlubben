@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import './padBackgrounds.css'
 import './uiStyles.css'
+import './matchCards.css'
+import './matchLayout.css'
+import '../components/events/eventCardVariants.css'
 
 // TILLFÄLLIGT, bara i testläget: välj utseenden att jämföra (klubbkorten, sökraden, blockets rubrik
 // och bakgrund, flikarna och Öppen/Privat-taggen). Varje val sparas i webbläsaren och läggs som ett data-attribut på
@@ -21,6 +24,7 @@ const PICKERS = [
       { id: '4', label: '4. Post-it' },
       { id: '5', label: '5. Affisch' },
       { id: '6', label: '6. Modern affisch' },
+      { id: '7', label: '7. Affisch (Nicklas variant)' },
     ],
   },
   {
@@ -98,6 +102,47 @@ const PICKERS = [
       { id: 'stark', label: '6. Stark färg' },
       { id: 'nu', label: '7. Som förut (utan ikon)' },
       { id: 'stampel', label: '8. Stämpel (som på eventen)' },
+    ],
+  },
+  {
+    key: 'testlage-eventkort',
+    attr: 'eventCard',
+    label: 'Eventkort',
+    fallback: 'pre-dev',
+    options: [
+      { id: 'pre-dev', label: '0. Som nu (pre-dev)' },
+      { id: 'biljett', label: '1. Biljett' },
+    ],
+  },
+  {
+    key: 'testlage-forstasidan',
+    attr: 'homePage',
+    label: 'Förstasidan',
+    fallback: 'pre-dev',
+    options: [
+      { id: 'pre-dev', label: '0. Som nu (pre-dev)' },
+      { id: 'polaroider', label: '1. Polaroider' },
+    ],
+  },
+  {
+    key: 'testlage-matchningssidan',
+    attr: 'matchLayout',
+    label: 'Matchningssidan',
+    fallback: 'nicklas-1',
+    options: [
+      { id: 'pre-dev', label: '0. Grund (som i PR:en)' },
+      { id: 'nicklas-1', label: '1. Nicklas förslag 1' },
+    ],
+  },
+  {
+    key: 'testlage-matchningskort',
+    attr: 'matchCard',
+    label: 'Matchningskortets nivå',
+    fallback: 'pre-dev',
+    options: [
+      { id: 'pre-dev', label: '0. Som nu (stämpel)' },
+      { id: 'gnistor', label: '1. Gnistor (stjärnor under namnet)' },
+      { id: 'tejp', label: '2. Tejp över kanten' },
     ],
   },
 ]

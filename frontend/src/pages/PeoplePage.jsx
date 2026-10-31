@@ -5,7 +5,11 @@ import MunicipalityPicker from '../components/MunicipalityPicker'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
 import EmptyState from '../components/EmptyState'
 import FilterTabs from '../components/FilterTabs'
+import InterestFilter from '../components/InterestFilter'
+import MatchPanel from '../components/MatchPanel'
+import OptionPicker from '../components/OptionPicker'
 import PersonCard from '../components/PersonCard'
+import { useDesignChoice } from '../hooks/useDesignChoice'
 import { useTabParam } from '../hooks/useTabParam'
 import {
   CANCEL_REQUEST,
@@ -16,7 +20,7 @@ import {
   removeContactConfirm,
   sendContactRequest,
 } from '../services/contacts'
-import { getAllInterests, getMyInterests } from '../services/interests'
+import { getMyInterests } from '../services/interests'
 import { GENDER_OPTIONS, getMunicipalities } from '../services/profile'
 import {
   dismissSuggestion,
@@ -29,7 +33,8 @@ import { useConfirm } from '../hooks/useConfirm'
 import LoadError from '../components/LoadError'
 
 const TABS = [
-  { id: 'suggested', label: 'Förslag' },
+  { id: 'match', label: 'Matcha' },
+  { id: 'suggested', label: 'Sök' },
   { id: 'incoming', label: 'Kompisförfrågningar', short: 'Förfrågningar' },
   { id: 'contacts', label: 'Kompisar' },
 ]
@@ -50,20 +55,14 @@ const UNDO_MS = 8000
 
 // Vad fliken är till för, när den är tom (se EmptyState).
 const EMPTY_TEXT = {
-  suggested: 'Här föreslår vi personer som gillar samma saker som du. Lägg till fler intressen på din profil för fler träffar.',
+  suggested: 'Här föreslår vi medlemmar som gillar samma saker som du. Lägg till fler intressen på din profil för fler träffar.',
   incoming: 'När någon vill bli din kompis hamnar förfrågan här.',
   outgoing: 'Kompisförfrågningar du har skickat och som väntar på svar hamnar här.',
-  contacts: 'Här samlas dina kompisar. Skicka en kompisförfrågan till någon under Förslag.',
+  contacts: 'Här samlas dina kompisar. Skicka en kompisförfrågan till någon under Sök.',
 }
 
 function sharedCountOf(person, myInterestIds) {
   return (person.interests ?? []).filter((interest) => myInterestIds.has(interest.id)).length
-}
-
-// Hur många av de gemensamma intressena båda själva håller på med (SCRUM-271).
-// `myPractisedIds` är ens egna intressen där practices är sant.
-function sharedPractisedCountOf(person, myPractisedIds) {
-  return (person.interests ?? []).filter((interest) => interest.practices && myPractisedIds.has(interest.id)).length
 }
 
 // "3 gemensamma intressen", med siffran framhävd. Vilka det är syns redan på
@@ -83,43 +82,57 @@ function sharedInterestsText(person, myInterestIds) {
   return count === 0 ? null : <>Ni har {sharedCountText(count)}</>
 }
 
-// Personer-sidan: bläddra och filtrera andra användare (Förslag), svara på
+// Medlemmar-sidan: bläddra och filtrera andra användare (Sök), svara på
 // inkommande kompisförfrågningar och ångra skickade (Förfrågningar) och se
-// sina kompisar (Kompisar). Under Förslag står de man har intressen
-// gemensamt med under "Personer med liknande intressen", i grupper efter hur
+// sina kompisar (Kompisar). Under Sök står de man har intressen
+// gemensamt med under "Medlemmar med liknande intressen", i grupper efter hur
 // många intressen man har gemensamt (rubriken ovanför varje grupp, så att det
-// syns utan att läsa korten), och resten under "Fler i Intresseklubben". Inom
-// en grupp står de först som håller på med flest av samma intressen som en själv.
+// syns utan att läsa korten), och resten under "Fler i Intresseklubben". Ordningen
+// kommer från API:t (flest gemensamma intressen först, därefter namn) och sorteras inte om här.
 // Sidan är ett <section className="app-section"> rakt av, precis som
 // pages/demo/DemoPeople.jsx - INTE inslaget i content-stack (den är byggd
 // för smala centrerade sidor och krymper annars hela sidan efter innehållet,
-// vilket flyttar om allt vid varje fliksbyte). Förslag kan filtreras på
+// vilket flyttar om allt vid varje fliksbyte). Sök kan filtreras på
 // intresse, kommun, kön och ålder.
 const NO_PEOPLE = []
 const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: [] }
 
+// Ett omslag runt filterraderna när `wrap` är sant, annars bara raderna.
+function FilterPanel({ wrap, className, children }) {
+  return wrap ? <div className={className}>{children}</div> : <>{children}</>
+}
+
 function PeoplePage() {
   const confirm = useConfirm()
+  // TILLFÄLLIGT (testläget): matchningssidans layout (väljaren "Matchningssidan"), se MatchPanel.
+  const matchLayout = useDesignChoice('matchLayout')
   // Intressena och kommunerna (för filtren) och ens egna intressen kommer ur minnet.
   const [filterDataFailed, setFilterDataFailed] = useState(false)
   // Fliken står i adressen, så att Tillbaka från en profil kommer hit igen (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
-  const tab = urlTab ?? 'suggested'
+  // Matcha är första fliken och den som öppnas när adressen inte säger något annat.
+  const tab = urlTab ?? 'match'
+  // Filterraderna som papperslappar med egna listor: i Matcha och Sök, i layouten Nicklas förslag 1 (se OptionPicker).
+  const paperRow = (tab === 'match' || tab === 'suggested') && matchLayout === 'nicklas-1'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
-  const [myPractisedIds, setMyPractisedIds] = useState(new Set())
+  // `interestId` är rullistans val (ett av ens egna intressen) och `pickedInterest` intresset man sökte fram bland alla;
+  // bara ett av dem gäller åt gången (se InterestFilter).
   const [filters, setFilters] = useState({
     interestId: '',
+    pickedInterest: null,
     municipalityCode: '',
     gender: '',
     minAge: '',
     maxAge: '',
   })
-  const [interests, setInterests] = useState([])
+  const [myInterests, setMyInterests] = useState([])
   const [municipalities, setMunicipalities] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  // Den man nyss tog bort från Förslag ({ id, name }), med "Ångra" en stund.
+  // Den man nyss tog bort från Sök ({ id, name }), med "Ångra" en stund.
   const [removed, setRemoved] = useState(null)
+  // Filterfälten är utfällda på en smal skärm (bara i layouten Nicklas förslag 1: där är de bakom en Filter-knapp).
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => {
     if (!removed) return undefined
@@ -129,12 +142,11 @@ function PeoplePage() {
 
   const loadFilterData = useCallback(() => {
     setFilterDataFailed(false)
-    Promise.all([getAllInterests(), getMunicipalities(), getMyInterests()])
-      .then(([i, m, mine]) => {
-        setInterests(i)
+    Promise.all([getMunicipalities(), getMyInterests()])
+      .then(([m, mine]) => {
         setMunicipalities(m)
+        setMyInterests(mine)
         setMyInterestIds(new Set(mine.map((interest) => interest.id)))
-        setMyPractisedIds(new Set(mine.filter((interest) => interest.practices).map((interest) => interest.id)))
       })
       .catch(() => setFilterDataFailed(true))
   }, [])
@@ -151,7 +163,8 @@ function PeoplePage() {
       : minAge !== null && maxAge !== null && minAge > maxAge
         ? 'Från-åldern kan inte vara högre än till-åldern.'
         : ''
-  const { interestId, municipalityCode, gender } = filters
+  const { municipalityCode, gender } = filters
+  const interestId = filters.pickedInterest ? String(filters.pickedInterest.id) : filters.interestId
   const query = useMemo(
     () => ({
       interestId,
@@ -163,12 +176,12 @@ function PeoplePage() {
     [interestId, municipalityCode, gender, minAge, maxAge, ageError],
   )
 
-  // Personerna och ens kompisar ur det delade minnet (se services/queryClient.js):
+  // Medlemmarna och ens kompisar ur det delade minnet (se services/queryClient.js):
   // har man varit här nyss visas de direkt och hämtas om i bakgrunden. När
   // filtren ändras ligger den förra listan kvar tills den nya har kommit.
   const peopleResult = useQuery({ ...peopleQuery(query), placeholderData: keepPreviousData })
   const contactsResult = useQuery(contactsQuery)
-  // Hur många man har tagit bort från Förslag. "Visa dem igen" syns bara då.
+  // Hur många man har tagit bort från Sök. "Visa dem igen" syns bara då.
   const dismissedCount = useQuery(dismissedCountQuery).data?.count ?? 0
   const people = peopleResult.data ?? NO_PEOPLE
   const contactsData = contactsResult.data ?? NO_CONTACTS
@@ -193,7 +206,7 @@ function PeoplePage() {
     return (
       <div className="content-stack">
         <LoadError
-          text="Kunde inte hämta personerna."
+          text="Kunde inte hämta medlemmarna."
           onRetry={retryPage}
           retrying={peopleResult.isFetching || contactsResult.isFetching}
         />
@@ -202,7 +215,7 @@ function PeoplePage() {
   }
 
   // Den som redan är ens kompis, eller har skickat en kompisförfrågan till en,
-  // har sin egen flik - visa dem inte i Förslag också. Den som redan fått en
+  // har sin egen flik - visa dem inte i Sök också. Den som redan fått en
   // förfrågan skickad till sig stannar kvar, men med en statuspill i stället
   // för "Skicka kompisförfrågan".
   const outgoingByUserId = new Map(
@@ -214,19 +227,14 @@ function PeoplePage() {
   ])
 
   const sharedCount = (person) => sharedCountOf(person, myInterestIds)
-  const sharedPractisedCount = (person) => sharedPractisedCountOf(person, myPractisedIds)
 
+  // Ordningen kommer från API:t (GET /users/: flest gemensamma intressen först, därefter namn), så den sorteras inte om här.
   const suggested = people
     .filter((person) => !excludedUserIds.has(person.id))
     .map((person) => ({ person, outgoing: outgoingByUserId.get(person.id) }))
-    .sort(
-      (a, b) =>
-        sharedCount(b.person) - sharedCount(a.person) ||
-        sharedPractisedCount(b.person) - sharedPractisedCount(a.person),
-    )
 
-  // Förslag delas i två: de man har minst ett intresse gemensamt med, och alla andra.
-  // De gemensamma grupperas efter antal, flest först (listan är redan sorterad).
+  // Sök delas i två: de man har minst ett intresse gemensamt med, och alla andra.
+  // De gemensamma grupperas efter antal, flest först (listan kommer redan så från API:t).
   const matchGroups = []
   for (const item of suggested) {
     const count = sharedCount(item.person)
@@ -237,7 +245,7 @@ function PeoplePage() {
   const others = suggested.filter(({ person }) => sharedCount(person) === 0)
 
   // Gemensamma intressen markerade och förklarade på korten under
-  // Kompisförfrågningar och Kompisar. Under Förslag står antalet i gruppens rubrik.
+  // Kompisförfrågningar och Kompisar. Under Sök står antalet i gruppens rubrik.
   function sharedProps(person) {
     return { sharedInterestIds: myInterestIds, reason: sharedInterestsText(person, myInterestIds) }
   }
@@ -318,82 +326,125 @@ function PeoplePage() {
     runAction(() => resetDismissedSuggestions())
   }
 
+  // Hur många filter som är på, för Filter-knappen på en smal skärm. Intressefiltret finns bara i Sök.
+  const activeFilters =
+    (tab === 'suggested' && (filters.interestId || filters.pickedInterest) ? 1 : 0) +
+    (filters.municipalityCode ? 1 : 0) +
+    (filters.gender ? 1 : 0) +
+    (filters.minAge !== '' || filters.maxAge !== '' ? 1 : 0)
+
+  // Kommun, kön och ålder: i Matcha en egen rad, i Sök (papperslapparna) på samma rad som intressefiltret.
+  const demographics = (
+    <>
+        <MunicipalityPicker
+          aria-label="Filtrera på kommun"
+          municipalities={municipalities}
+          value={filters.municipalityCode}
+          onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+          emptyLabel="Alla kommuner"
+        />
+        {paperRow ? (
+          // Egen lista i stället för <select>, så att valen kan vara gula (se OptionPicker).
+          <OptionPicker
+            aria-label="Filtrera på kön"
+            value={filters.gender}
+            onChange={(gender) => setFilters({ ...filters, gender })}
+            options={[{ value: '', label: 'Alla kön' }, ...GENDER_FILTER_OPTIONS]}
+          />
+        ) : (
+          <select
+            aria-label="Filtrera på kön"
+            value={filters.gender}
+            onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
+          >
+            <option value="">Alla kön</option>
+            {GENDER_FILTER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        )}
+        <div className="filter-age-range">
+          <span aria-hidden="true">Ålder</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={120}
+            placeholder="från"
+            aria-label="Från ålder"
+            value={filters.minAge}
+            onChange={(e) => setFilters({ ...filters, minAge: e.target.value })}
+          />
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={120}
+            placeholder="till"
+            aria-label="Till ålder"
+            value={filters.maxAge}
+            onChange={(e) => setFilters({ ...filters, maxAge: e.target.value })}
+          />
+        </div>
+    </>
+  )
+
   return (
     <section className="app-section">
-      <h1 className="app-title">Personer</h1>
+      <h1 className="app-title">Medlemmar</h1>
 
-      {/* Antalet bara på Förslag och Kompisförfrågningar, inte på Kompisar. */}
+      {/* Antalet bara på Sök och Kompisförfrågningar, inte på Matcha och Kompisar. */}
       <FilterTabs
-        tabs={TABS.map((t) => ({ ...t, count: t.id === 'contacts' ? undefined : lists[t.id].length }))}
+        tabs={TABS.map((t) => ({ ...t, count: t.id === 'contacts' || t.id === 'match' ? undefined : lists[t.id].length }))}
         active={tab}
         onChange={setTab}
       />
 
-      {tab === 'suggested' && (
+      {(tab === 'suggested' || tab === 'match') && (
         <>
-          <div className="filter-select-row filter-select-row-compact">
-            <select
-              aria-label="Filtrera på intresse"
-              value={filters.interestId}
-              onChange={(e) => setFilters({ ...filters, interestId: e.target.value })}
+          {/* Nicklas förslag 1: på en smal skärm är filterfälten bakom en knapp, som visar hur många filter som är på. */}
+          {paperRow && (
+            <button
+              type="button"
+              className={`filter-toggle${filtersOpen ? ' is-open' : ''}`}
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen((open) => !open)}
             >
-              <option value="">Alla intressen</option>
-              {interests.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.name}
-                </option>
-              ))}
-            </select>
-            <MunicipalityPicker
-              aria-label="Filtrera på kommun"
-              municipalities={municipalities}
-              value={filters.municipalityCode}
-              onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
-              emptyLabel="Alla kommuner"
-            />
-            <select
-              aria-label="Filtrera på kön"
-              value={filters.gender}
-              onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
-            >
-              <option value="">Alla kön</option>
-              {GENDER_FILTER_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <div className="filter-age-range">
-              <span aria-hidden="true">Ålder</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={120}
-                placeholder="från"
-                aria-label="Från ålder"
-                value={filters.minAge}
-                onChange={(e) => setFilters({ ...filters, minAge: e.target.value })}
-              />
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={120}
-                placeholder="till"
-                aria-label="Till ålder"
-                value={filters.maxAge}
-                onChange={(e) => setFilters({ ...filters, maxAge: e.target.value })}
-              />
-            </div>
-          </div>
+              Filter{activeFilters > 0 ? ` · ${activeFilters}` : ''}
+            </button>
+          )}
+          {/* Omslaget (.filter-panel) finns bara i Nicklas förslag 1: i övrigt ligger raderna direkt i listan, så att de behåller sitt vanliga avstånd. */}
+          <FilterPanel className={`filter-panel${filtersOpen ? ' is-open' : ''}`} wrap={paperRow}>
+            {tab === 'suggested' && (
+              <InterestFilter
+                myInterests={myInterests}
+                mineId={filters.interestId}
+                picked={filters.pickedInterest}
+                onPickMine={(id) => setFilters({ ...filters, interestId: id, pickedInterest: null })}
+                onPick={(interest) => setFilters({ ...filters, interestId: '', pickedInterest: interest })}
+                paper={paperRow}
+              >
+                {paperRow ? demographics : null}
+              </InterestFilter>
+            )}
+            {/* I Matcha och Sök, i layouten Nicklas förslag 1, är fälten papperslappar (se .filter-select-row-paper). */}
+            {!(paperRow && tab === 'suggested') && (
+              <div
+                className={`filter-select-row filter-select-row-compact${paperRow ? ' filter-select-row-paper' : ''}`}
+              >
+                {demographics}
+              </div>
+            )}
+          </FilterPanel>
           {ageError && <p className="status-error">{ageError}</p>}
           {filters.gender && (
             <p className="hint-text">Visar bara dem som valt att synas när man filtrerar på kön.</p>
           )}
-          {dismissedCount > 0 && (
+          {tab === 'suggested' && dismissedCount > 0 && (
             <p className="hint-text">
-              {dismissedCount === 1 ? '1 person borttagen' : `${dismissedCount} personer borttagna`} från förslagen.{' '}
+              {dismissedCount === 1 ? '1 medlem borttagen' : `${dismissedCount} medlemmar borttagna`} från förslagen.{' '}
               <button type="button" className="text-button" disabled={busy} onClick={handleResetDismissed}>
                 Visa dem igen
               </button>
@@ -404,7 +455,16 @@ function PeoplePage() {
 
       {error && <p className="status-error">{error}</p>}
 
-      {status === 'loading' ? (
+      {tab === 'match' ? (
+        <MatchPanel
+          municipalityCode={query.municipalityCode}
+          gender={query.gender}
+          minAge={query.minAge}
+          maxAge={query.maxAge}
+          myInterestIds={myInterestIds}
+          onChanged={loadAll}
+        />
+      ) : status === 'loading' ? (
         <p className="hint-text">Laddar...</p>
       ) : tab === 'incoming' ? (
         <>
@@ -464,8 +524,8 @@ function PeoplePage() {
         <>
           {matchGroups.length > 0 && (
             <>
-              <h2>Personer med liknande intressen</h2>
-              <p className="hint-text">Flest gemensamma intressen först.</p>
+              <h2>Medlemmar med liknande intressen</h2>
+              {!paperRow && <p className="hint-text">Flest gemensamma intressen först.</p>}
               {matchGroups.map((group) => (
                 <section key={group.count} className="match-group">
                   <h3 className="match-group-title">{sharedCountText(group.count)}</h3>
