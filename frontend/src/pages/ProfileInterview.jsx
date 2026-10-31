@@ -6,58 +6,75 @@ import InterestTree, { descendantKeys, withoutDuplicates } from '../components/I
 import TextareaWithCount from '../components/TextareaWithCount'
 import BirthDatePicker from '../components/BirthDatePicker'
 import MunicipalityPicker from '../components/MunicipalityPicker'
+import NewProfileImage from '../components/NewProfileImage'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
 import { sealInterest, suggestInterest } from '../services/interests'
-import { ABOUT_AI_NOTE, ABOUT_LABEL_SHORT, ABOUT_PLACEHOLDER, GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
+import { ABOUT_AI_NOTE, ABOUT_LABEL_SHORT, ABOUT_PLACEHOLDER, GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile, uploadResizedImage } from '../services/profile'
 
-// Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions`
-// är undertexterna som visas under videon medan klippet spelas (för den som har ljudet
-// av): `from` och `to` är sekunder i klippet. Filerna ligger i frontend/public/video (och
-// nås som /video/...).
+// Klippen ligger i frontend/public/video/intervju (och nås som /video/intervju/...).
+const VIDEO_DIR = '/video/intervju/'
+const clipFile = (name) => `${VIDEO_DIR}${name}_fix.mp4`
+
+// Väntklippen: när ett klipp har spelat klart loopas ett av dem, tills nästa klipp tar över (direkt, utan att vänta ut
+// en runda). Intressekompisen står då och väntar medan man svarar. Varje klipp (och steg) har sin lista: i en lista med
+// flera turas klippen om, efter ett svar kommer det ena, efter nästa svar det andra, och så vidare.
+const IDLE_EARLY = [clipFile('idle1'), clipFile('idle2')]
+// Från frågan om intressen och därefter, till sista frågan och vidare till avslutningen.
+const IDLE_LATE = [clipFile('idle3')]
+
+// Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions` är undertexterna som visas under
+// videon medan klippet spelas (för den som har ljudet av): `from` och `to` är sekunder i klippet.
 const INTRO = {
-  video: '/video/intervju1_srgb.mp4',
+  video: clipFile('intro'),
+  idle: IDLE_EARLY,
   captions: [
     { from: 3.3, to: 5.6, text: 'Välkommen till Intresseklubben!' },
-    { from: 5.7, to: 7.4, text: 'Jag antecknar.' },
+    { from: 5.7, to: 7.3, text: 'Jag antecknar.' },
   ],
 }
 
 // Stegen i intervjun. Varje steg är en fråga med ett eller flera fält, som visas på
 // högerkanten medan Intressekompisen finns till vänster. `video` är klippet som spelas
-// när steget visas, och därefter tar väntklippet över. Ett steg kan också ha `captions`
-// (samma form som i INTRO).
+// när steget visas, och därefter tar väntklippet (`idle`) över. Ett steg kan också ha `then`, ett andra klipp som
+// spelas direkt efter det första (innan väntklippet), och `captions` (samma form som i INTRO).
 const STEPS = [
   {
     id: 'namn',
     question: 'Vad heter du?',
-    video: '/video/namn_fix.mp4',
-    captions: [{ from: 1.2, to: 2.9, text: 'Vad heter du?' }],
+    video: clipFile('vadheterdu'),
+    idle: IDLE_EARLY,
+    captions: [{ from: 0.95, to: 2.7, text: 'Vad heter du?' }],
   },
   {
     id: 'fodelse',
     question: 'När är du född, och vilket kön identifierar du dig med?',
-    video: '/video/datum_ny_fix.mp4',
-    captions: [{ from: 0.5, to: 3.0, text: 'Hur gammal är du?' }],
+    video: clipFile('hurgammaardu'),
+    idle: IDLE_EARLY,
+    captions: [{ from: 0.3, to: 3.0, text: 'Hur gammal är du?' }],
   },
   {
     id: 'plats',
     question: 'Var bor du?',
-    video: '/video/stad_fix.mp4',
-    captions: [{ from: 2.3, to: 3.8, text: 'Var bor du?' }],
+    video: clipFile('varbordu'),
+    idle: IDLE_EARLY,
+    captions: [{ from: 2.2, to: 3.65, text: 'Var bor du?' }],
   },
   {
     id: 'intressen',
     question: 'Berätta om dina intressen och vad du tycker om att göra!',
-    video: '/video/intressen_ny_fix.mp4',
-    captions: [{ from: 0.2, to: 3.2, text: 'Berätta om dina intressen!' }],
+    video: clipFile('beratta_intressen1'),
+    then: clipFile('beratta_intressen2'),
+    idle: IDLE_LATE,
+    captions: [{ from: 0.3, to: 4.9, text: 'Berätta om dina intressen!' }],
   },
   {
     id: 'person',
-    question: 'Till sist.\nBeskriv dig själv och vilken sorts människor du skulle vilja träffa här!',
-    video: '/video/person_fix.mp4',
-    captions: [{ from: 0.9, to: 3.0, text: 'Berätta om din personlighet!' }],
+    question: 'Till sist.\nBeskriv dig själv och vad du söker här!',
+    video: clipFile('vemardu'),
+    idle: IDLE_LATE,
+    captions: [{ from: 0.5, to: 3.0, text: 'Vem är du och vad söker du?' }],
   },
 ]
 
@@ -65,16 +82,17 @@ const STEPS = [
 // klippet (längden läses ur filen, så att det stämmer även om klippet byts ut). Sedan visas
 // tack-sidan, och Intressekompisen försvinner: klippet stoppas och bilden tas bort, så att
 // tack-rutan hamnar mitt på sidan. FALLBACK_ANALYSIS_MS gäller tills längden är läst.
-const OUTRO = { video: '/video/outro_fix.mp4' }
+const OUTRO = { video: clipFile('outro') }
 const FALLBACK_ANALYSIS_MS = 9400
 
-// Alla klipp med undertexter, för att hitta det som visas just nu.
-const ALL_CLIPS = [INTRO, ...STEPS, OUTRO]
-
-// Väntklippen: när ett klipp har spelat klart loopas ett av dem, tills nästa klipp tar
-// över (direkt, utan att vänta ut en runda). Intressekompisen står då och väntar medan man svarar. De turas om: efter ett
-// svar kommer det ena, efter nästa svar det andra, och så vidare.
-const IDLE_VIDEOS = ['/video/idle_fix.mp4', '/video/idle2_fix.mp4']
+// Alla klipp, för att hitta det som visas just nu. Ett andra klipp i ett steg (`then`) är ett eget klipp, med `from` som
+// pekar på stegets första klipp, och har samma väntklipp som steget.
+const ALL_CLIPS = [
+  INTRO,
+  ...STEPS.flatMap((step) => (step.then ? [step, { video: step.then, from: step.video, idle: step.idle }] : [step])),
+  OUTRO,
+]
+const IDLE_VIDEOS = [...new Set([...IDLE_EARLY, ...IDLE_LATE])]
 
 // Alla klipp ligger inladdade i sidan på en gång, staplade ovanpå varandra, så att ett klipp
 // redan är avkodat när det tar över. Då blir bytet mellan klippen utan hack.
@@ -120,9 +138,8 @@ function ProfileInterview() {
   }, [])
   // Visas väntklippet i stället för stegets klipp?
   const [idle, setIdle] = useState(false)
-  // Vilket väntklipp som är på tur. Börjar på det sista, så att det första klippet som tar slut
-  // ger det första väntklippet.
-  const [idleVariant, setIdleVariant] = useState(IDLE_VIDEOS.length - 1)
+  // Hur många gånger ett väntklipp har börjat spelas, för att turas om mellan väntklippen i klippets lista.
+  const [idleCount, setIdleCount] = useState(0)
   // Undertexten som visas just nu (tom = ingen).
   const [caption, setCaption] = useState('')
   const [started, setStarted] = useState(false)
@@ -153,6 +170,10 @@ function ProfileInterview() {
   // Att spara profilen
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  // Profilbilden man valt på sista sidan (skalad, men uppladdad först när profilen är skapad), och felet om uppladdningen
+  // misslyckades efter att profilen redan sparats.
+  const [pendingImage, setPendingImage] = useState(null)
+  const [imageError, setImageError] = useState('')
   const [saveStatus, setSaveStatus] = useState(null) // HTTP-koden på felet, för att veta vad man kan göra åt det
   // Har sigillen gått ut (400 vid sparande)? Då får man tolka texterna på nytt.
   const [expired, setExpired] = useState(false)
@@ -178,10 +199,13 @@ function ProfileInterview() {
   const clip = analysis !== null || finished ? OUTRO : started ? step : INTRO
   const wantedVideo = clip.video
   const [shownVideo, setShownVideo] = useState(INTRO.video)
-  const pending = wantedVideo !== shownVideo
-  const captions = ALL_CLIPS.find((c) => c.video === shownVideo)?.captions
+  const shownClip = ALL_CLIPS.find((c) => c.video === shownVideo)
+  // Stegets andra klipp (`then`) räknas som att rätt klipp visas, fast det inte är det första.
+  const pending = wantedVideo !== shownVideo && shownClip?.from !== wantedVideo
+  const captions = shownClip?.captions
   // Det som ska spelas just nu: väntklippet när ett klipp har spelat klart, annars klippet.
-  const current = idle ? IDLE_VIDEOS[idleVariant] : shownVideo
+  const idleList = shownClip?.idle ?? IDLE_EARLY
+  const current = idle ? idleList[(idleCount - 1) % idleList.length] : shownVideo
   // Det som syns. Byts först när nästa klipp har börjat spela, så att det gamla ligger kvar
   // (på sin sista bild) tills det nya har en bild att visa.
   const [visible, setVisible] = useState(INTRO.video)
@@ -287,7 +311,12 @@ function ProfileInterview() {
       setShownVideo(wantedVideo)
       return
     }
-    setIdleVariant((variant) => (variant + 1) % IDLE_VIDEOS.length)
+    // Stegets andra klipp spelas direkt efter det första.
+    if (shownClip?.then) {
+      setShownVideo(shownClip.then)
+      return
+    }
+    setIdleCount((count) => count + 1)
     setIdle(true)
   }
 
@@ -477,6 +506,12 @@ function ProfileInterview() {
 
   // Skapar profilen och intressena i ett anrop. Bara omgångar med något kvar skickas, och bara de förslag som inte
   // är borttagna: det som inte skickas med räknas som bortvalt.
+  // Profilen är skapad: resten av appen låses upp (se RequireProfile) och man går till startsidan.
+  function finish() {
+    updateUser({ ...user, profile_completed: true })
+    navigate('/hem')
+  }
+
   async function handleSave() {
     const approved = batches
       .map((batch) => ({
@@ -503,9 +538,18 @@ function ProfileInterview() {
         district: answers.district.trim() || null,
         batches: approved,
       })
+      // Profilen finns nu, så bilden kan laddas upp. Misslyckas det är profilen ändå sparad, och bilden kan läggas till
+      // under Redigera profil: man får veta det och går vidare med "Fortsätt".
+      if (pendingImage) {
+        try {
+          await uploadResizedImage(pendingImage)
+        } catch (error) {
+          setImageError(`Profilen är skapad, men bilden kunde inte laddas upp: ${messageOf(error)}`)
+          return
+        }
+      }
       // Nu är profilen klar, så resten av appen låses upp (se RequireProfile).
-      updateUser({ ...user, profile_completed: true })
-      navigate('/hem')
+      finish()
     } catch (error) {
       setExpired(error instanceof ApiError && error.status === 400)
       setSaveStatus(error instanceof ApiError ? error.status : null)
@@ -563,7 +607,8 @@ function ProfileInterview() {
     setAnalysis(null)
     setStarted(false)
     setIdle(false)
-    setIdleVariant(IDLE_VIDEOS.length - 1)
+    setIdleCount(0)
+    setPendingImage(null)
     setShownVideo(INTRO.video)
   }
 
@@ -668,6 +713,7 @@ function ProfileInterview() {
               <div className="card sheet content-stack interview-summary" style={{ ...FIXED_CARD_SHADOW, margin: '0 auto' }}>
                 <p className="card-title">Det här är din profil{answers.name.trim() && `, ${answers.name.trim()}`}</p>
                 {/* Det man svarade, bara det som är ifyllt. */}
+                <NewProfileImage name={answers.name} image={pendingImage} onChange={setPendingImage} />
                 {profileRows.length > 0 && (
                   <dl className="profile-details">
                     {profileRows.map(([label, value]) => (
@@ -723,6 +769,7 @@ function ProfileInterview() {
                 )}
                 <p className="hint-text">Du kan ändra din profil och dina intressen senare om vi missat något!</p>
                 {saveError && <p className="form-error">{saveError}</p>}
+                {imageError && <p className="form-error">{imageError} Du kan lägga till den under Redigera profil.</p>}
                 {saveStatus === 422 && (
                   <button type="button" className="secondary-button" disabled={saving} onClick={editAnswers}>
                     Ändra mina svar
@@ -731,7 +778,11 @@ function ProfileInterview() {
                 {/* Huvudknappen störst, och "Börja om" liten och tätt under, så att
                     man inte trycker på den av misstag. */}
                 <div className="interview-save-buttons">
-                  {expired ? (
+                  {imageError ? (
+                    <button type="button" className="primary-button button-large" onClick={finish}>
+                      Fortsätt
+                    </button>
+                  ) : expired ? (
                     <button type="button" className="primary-button button-large" disabled={saving} onClick={reanalyze}>
                       {saving ? 'Tolkar...' : 'Tolka om'}
                     </button>
@@ -745,9 +796,11 @@ function ProfileInterview() {
                       {saving ? 'Sparar...' : 'Skapa min profil'}
                     </button>
                   )}
-                  <button type="button" className="secondary-button button-small" disabled={saving} onClick={restart}>
-                    Börja om
-                  </button>
+                  {!imageError && (
+                    <button type="button" className="secondary-button button-small" disabled={saving} onClick={restart}>
+                      Börja om
+                    </button>
+                  )}
                 </div>
               </div>
             </>

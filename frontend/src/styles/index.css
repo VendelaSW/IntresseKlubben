@@ -1460,6 +1460,12 @@ span.tag-selected:hover {
   text-align: left;
 }
 
+/* Födelsedatumet (tre listor) är bredare än en spalt i raden, och skulle ligga under könsrutan. Det får hela raden, och
+   Kön kommer under. */
+.interview-page .form-row > :has(.birth-date-picker) {
+  grid-column: 1 / -1;
+}
+
 /* Framstegsstapeln syns bara på mobil (se nedan). */
 .interview-progress-bar {
   display: none;
