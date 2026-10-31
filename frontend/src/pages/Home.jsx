@@ -5,6 +5,7 @@ import kompisHaDet from '../assets/kompis-ha-det.webp'
 import EmptyState from '../components/EmptyState'
 import ForgotPasswordFields from '../components/ForgotPasswordFields'
 import LoginFields from '../components/LoginFields'
+import Modal from '../components/Modal'
 import ProblemStatement from '../components/ProblemStatement'
 import RegisterFields from '../components/RegisterFields'
 import ServiceDetails from '../components/ServiceDetails'
@@ -19,7 +20,10 @@ const HomePolaroids = DEV_MODE ? lazy(() => import('../devtools/HomePolaroids'))
 
 function Home() {
   const { user, loading } = useAuth()
-  const polaroids = useDesignChoice('homePage') === 'polaroider' && HomePolaroids !== null
+  const homeChoice = useDesignChoice('homePage')
+  const polaroids = ['polaroider', 'utspridda', 'kollage'].includes(homeChoice) && HomePolaroids !== null
+  const collage = polaroids && homeChoice === 'kollage'
+  const scattered = polaroids && (homeChoice === 'utspridda' || collage)
   // Precis utloggad (Logga ut i menyn skickar med det): kompisen säger "Ha det!" överst på startsidan.
   const loggedOut = Boolean(useLocation().state?.loggedOut)
   const [view, setView] = useState(null) // null | 'login' | 'register' | 'forgot'
@@ -40,7 +44,7 @@ function Home() {
 
   return (
     <div
-      className={`page home-page${polaroids && view === null ? ' home-page-polaroids' : ''}`}
+      className={`page home-page${polaroids && view === null ? ' home-page-polaroids' : ''}${scattered && view === null ? ' home-page-scattered' : ''}`}
       style={view === null ? undefined : { gap: '1.25rem' }}
     >
       <section className="hero">
@@ -63,12 +67,15 @@ function Home() {
       )}
       {polaroids && view === null && (
         <Suspense fallback={null}>
-          <HomePolaroids />
+          <HomePolaroids scattered={scattered} collage={collage} />
         </Suspense>
       )}
       {view === null &&
         (polaroids ? (
-          <p className="home-pitch">Vi är inte en dejtingapp. Vi vill bara att människor ska träffas!</p>
+          <div className="home-pitch-group">
+            <p className="home-pitch">Vi är ingen dejtingapp. Vi vill bara hjälpa dig att hitta på saker med andra!</p>
+            <p className="home-pitch-sub">Berätta vad som intresserar dig, så hittar vi fler som dig.</p>
+          </div>
         ) : (
           <ProblemStatement centered />
         ))}
@@ -131,16 +138,26 @@ function Home() {
         </>
       )}
 
+      {/* TILLFÄLLIGT (testläget, förstasidan med polaroider): "Läs mer" öppnas i en ruta ovanpå sidan i stället för att fällas
+          ut nedåt, eftersom sidan fyller hela skärmen. */}
       <button
         type="button"
         className="info-link"
-        aria-expanded={aboutOpen}
-        aria-controls="service-details"
+        {...(polaroids
+          ? { 'aria-haspopup': 'dialog' }
+          : { 'aria-expanded': aboutOpen, 'aria-controls': 'service-details' })}
         onClick={() => setAboutOpen((open) => !open)}
       >
-        {aboutOpen ? 'Visa mindre' : 'Läs mer om tjänsten'}
+        {aboutOpen && !polaroids ? 'Visa mindre' : 'Läs mer om tjänsten'}
       </button>
-      {aboutOpen && <ServiceDetails id="service-details" />}
+      {aboutOpen && !polaroids && <ServiceDetails id="service-details" />}
+      {aboutOpen && polaroids && (
+        <Modal title="Läs mer om tjänsten" onClose={() => setAboutOpen(false)}>
+          <div className="modal-scroll">
+            <ServiceDetails id="service-details" />
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
