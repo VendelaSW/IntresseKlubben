@@ -296,6 +296,18 @@ function StyleGuide() {
         <p className="form-error" style={{ marginTop: '0.75rem' }}>
           Detta intresse godkänns inte, försök med ett annat.
         </p>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Stämplar (.stamp, .stamp-success)
+        </p>
+        <p className="hint-text">
+          Handstil i en ram, lite snett, som om någon stämplat kortet. För vem ett event är till för, och
+          förtroendesignaler på profiler. Flera bredvid varandra i .trust-stamps.
+        </p>
+        <div className="trust-stamps">
+          <span className="stamp stamp-success">E-post bekräftad</span>
+          <span className="stamp">Medlem sedan mars 2026</span>
+        </div>
       </section>
 
       <section className="style-section">
