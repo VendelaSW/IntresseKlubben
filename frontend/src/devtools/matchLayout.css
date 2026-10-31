@@ -1,5 +1,5 @@
 /* TILLFÄLLIGT, bara i testläget: layouten "Nicklas förslag 1" för Medlemmar och Matcha (väljaren "Matchningssidan" i
-   testpanelen, se PadBackgroundPicker, MatchPanel, PeoplePage och InterestFilter). Flyttad hit från index.css så att appens
+   testpanelen, se PadBackgroundPicker, MatchPanel, PeoplePage och InterestPicker). Flyttad hit från index.css så att appens
    vanliga CSS inte berörs. Tas bort när ett utseende är valt; det valda flyttas då in i appen. */
 
 /* Nicklas förslag 1 (matchningssidans layout, se MatchPanel): kortet som klubbkortet Affisch (Nicklas variant): vitt papper
@@ -395,8 +395,8 @@
   text-overflow: ellipsis;
 }
 
-/* Sökrutan för intressen i samma rad. */
-.filter-select-row-paper input[type='search'] {
+/* Intresseväljaren i samma rad, lite bredare än kommunfältet. */
+.filter-select-row-paper .interest-picker input {
   width: 11rem;
 }
 

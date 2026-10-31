@@ -5,7 +5,7 @@ import MunicipalityPicker from '../components/MunicipalityPicker'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
 import EmptyState from '../components/EmptyState'
 import FilterTabs from '../components/FilterTabs'
-import InterestFilter from '../components/InterestFilter'
+import InterestPicker from '../components/InterestPicker'
 import MatchPanel from '../components/MatchPanel'
 import OptionPicker from '../components/OptionPicker'
 import PersonCard from '../components/PersonCard'
@@ -98,8 +98,7 @@ const NO_PEOPLE = []
 const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: [] }
 // Inga filter valda. Filtren nollställs när man byter flik.
 const NO_FILTERS = {
-  interestId: '',
-  pickedInterest: null,
+  interest: null,
   municipalityCode: '',
   gender: '',
   minAge: '',
@@ -124,8 +123,7 @@ function PeoplePage() {
   // Filterraderna som papperslappar med egna listor: i Matcha och Sök, i layouten Nicklas förslag 1 (se OptionPicker).
   const paperRow = (tab === 'match' || tab === 'suggested') && matchLayout === 'nicklas-1'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
-  // `interestId` är rullistans val (ett av ens egna intressen) och `pickedInterest` intresset man sökte fram bland alla;
-  // bara ett av dem gäller åt gången (se InterestFilter).
+  // `interest` är intresset i Sök ({ id, name }, se InterestPicker) eller null.
   const [filters, setFilters] = useState(NO_FILTERS)
   useResetOnTabChange(tab, () => setFilters(NO_FILTERS))
   const [myInterests, setMyInterests] = useState([])
@@ -167,7 +165,7 @@ function PeoplePage() {
         ? 'Från-åldern kan inte vara högre än till-åldern.'
         : ''
   const { municipalityCode, gender } = filters
-  const interestId = filters.pickedInterest ? String(filters.pickedInterest.id) : filters.interestId
+  const interestId = filters.interest ? String(filters.interest.id) : ''
   const query = useMemo(
     () => ({
       interestId,
@@ -331,12 +329,12 @@ function PeoplePage() {
 
   // Hur många filter som är på, för Filter-knappen på en smal skärm. Intressefiltret finns bara i Sök.
   const activeFilters =
-    (tab === 'suggested' && (filters.interestId || filters.pickedInterest) ? 1 : 0) +
+    (tab === 'suggested' && filters.interest ? 1 : 0) +
     (filters.municipalityCode ? 1 : 0) +
     (filters.gender ? 1 : 0) +
     (filters.minAge !== '' || filters.maxAge !== '' ? 1 : 0)
 
-  // Kommun, kön och ålder: i Matcha en egen rad, i Sök (papperslapparna) på samma rad som intressefiltret.
+  // Kommun, kön och ålder. I Sök står intressefiltret först på samma rad.
   const demographics = (
     <>
         <MunicipalityPicker
@@ -420,26 +418,19 @@ function PeoplePage() {
           )}
           {/* Omslaget (.filter-panel) finns bara i Nicklas förslag 1: i övrigt ligger raderna direkt i listan, så att de behåller sitt vanliga avstånd. */}
           <FilterPanel className={`filter-panel${filtersOpen ? ' is-open' : ''}`} wrap={paperRow}>
-            {tab === 'suggested' && (
-              <InterestFilter
-                myInterests={myInterests}
-                mineId={filters.interestId}
-                picked={filters.pickedInterest}
-                onPickMine={(id) => setFilters({ ...filters, interestId: id, pickedInterest: null })}
-                onPick={(interest) => setFilters({ ...filters, interestId: '', pickedInterest: interest })}
-                paper={paperRow}
-              >
-                {paperRow ? demographics : null}
-              </InterestFilter>
-            )}
             {/* I Matcha och Sök, i layouten Nicklas förslag 1, är fälten papperslappar (se .filter-select-row-paper). */}
-            {!(paperRow && tab === 'suggested') && (
-              <div
-                className={`filter-select-row filter-select-row-compact${paperRow ? ' filter-select-row-paper' : ''}`}
-              >
-                {demographics}
-              </div>
-            )}
+            <div className={`filter-select-row filter-select-row-compact${paperRow ? ' filter-select-row-paper' : ''}`}>
+              {tab === 'suggested' && (
+                <InterestPicker
+                  aria-label="Filtrera på intresse"
+                  placeholder="Alla intressen"
+                  myInterests={myInterests}
+                  value={filters.interest}
+                  onChange={(interest) => setFilters({ ...filters, interest })}
+                />
+              )}
+              {demographics}
+            </div>
           </FilterPanel>
           {ageError && <p className="status-error">{ageError}</p>}
           {filters.gender && (

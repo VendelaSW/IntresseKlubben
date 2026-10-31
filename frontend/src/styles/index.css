@@ -4071,6 +4071,66 @@ button.board-note:focus-visible {
   color: var(--color-muted);
 }
 
+/* Intresseväljaren (InterestPicker) har kommunfältets klasser och utseende. Det
+   här är det den har utöver: krysset i fältet, rubriken över ens egna intressen
+   och var en träff hör hemma, under namnet. */
+.interest-picker input {
+  padding-right: 1.8rem;
+}
+
+/* Krysset ligger där filtren annars har en pil (Klubbar, papperslapparna i
+   testläget), så pilen tas bort när ett intresse är valt. */
+.municipality-picker.interest-picker:has(.interest-picker-clear) input {
+  background-image: none;
+}
+
+.interest-picker-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.2rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-ink);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.interest-picker-clear:focus-visible {
+  outline: 2px solid var(--color-accent);
+  border-radius: 4px;
+}
+
+/* Listan får plats med intressenas namn och var de hör hemma, fast fältet är smalt (som i filtren). */
+.interest-picker .municipality-picker-list {
+  right: auto;
+  min-width: max(100%, 15rem);
+}
+
+/* Andras egna intressen kan ha långa ord. */
+.interest-picker .municipality-picker-option {
+  overflow-wrap: anywhere;
+}
+
+.interest-picker-heading {
+  padding: 0.3rem 0.75rem 0.1rem;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.interest-picker-path {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
 /* "Ålder" följt av från- och till-ålder, i en av filtrens rutor. */
 .filter-age-range {
   display: grid;
@@ -4146,7 +4206,8 @@ button.board-note:focus-visible {
 }
 
 select.club-filter,
-.club-filter-kommun input {
+.club-filter-kommun input,
+.club-filter-interest input {
   min-height: 2.9rem;
   padding: 0 2.1rem 0 1.1rem;
   border: 1.5px solid var(--color-line);
@@ -4163,18 +4224,21 @@ select.club-filter {
   max-width: 12rem;
 }
 
-.club-filter-kommun input {
+.club-filter-kommun input,
+.club-filter-interest input {
   width: 10.5rem;
 }
 
 select.club-filter:focus-visible,
-.club-filter-kommun input:focus-visible {
+.club-filter-kommun input:focus-visible,
+.club-filter-interest input:focus-visible {
   outline: none;
   border-color: var(--color-ink);
 }
 
-/* Kommunlistan får plats med långa namn, fast fältet är smalt. */
-.club-filter-kommun .municipality-picker-list {
+/* Kommun- och intresselistan får plats med långa namn, fast fältet är smalt. */
+.club-filter-kommun .municipality-picker-list,
+.club-filter-interest .municipality-picker-list {
   right: auto;
   min-width: 14rem;
 }
@@ -4197,7 +4261,8 @@ select.club-filter:focus-visible,
   }
 
   select.club-filter,
-  .club-filter-kommun input {
+  .club-filter-kommun input,
+  .club-filter-interest input {
     width: 100%;
     max-width: none;
     padding: 0 1.6rem 0 0.8rem;

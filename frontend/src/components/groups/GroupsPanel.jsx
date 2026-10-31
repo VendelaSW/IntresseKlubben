@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useResetOnTabChange, useTabParam } from '../../hooks/useTabParam'
@@ -16,6 +16,7 @@ import GroupDetails from './GroupDetails'
 import GroupList from './GroupList'
 import GroupPosts from './GroupPosts'
 import GroupSortMenu from './GroupSortMenu'
+import InterestPicker from '../InterestPicker'
 import MunicipalityPicker from '../MunicipalityPicker'
 import { getContacts } from '../../services/contacts'
 import {
@@ -105,9 +106,10 @@ function GroupsPanel() {
   // Sökning, filter och sortering. Sökning och filter nollställs när man byter
   // flik (se clearFilters). Ofiltrerat från början, så att ingen flik döljer
   // klubbar utan att man valt det. Satt redan från start, så att "Alla" hämtas
-  // samtidigt som resten i stället för efter.
+  // samtidigt som resten i stället för efter. `interest` är intresset man
+  // filtrerar på ({ id, name }, se InterestPicker) eller null.
   const [filters, setFilters] = useState({
-    interestId: '',
+    interest: null,
     municipalityCode: '',
     q: '',
     sort: 'name',
@@ -122,9 +124,13 @@ function GroupsPanel() {
   // Numret på senaste hämtningen av "Alla". Ett svar på en äldre hämtning
   // (t.ex. en sökning man hunnit skriva vidare på) kastas.
   const allRequest = useRef(0)
+  // Hela biblioteket, för att hitta intresset till ett sökord och namnet på intresset i adressen (?intresse=ID), när
+  // formuläret ska fyllas i (se openCreateFromSearch). Det listas inte; intressen väljs med InterestPicker.
   const [interests, setInterests] = useState([])
-  // Ens egna intressen, för att markera klubbarnas intresse om det är ett av dem.
-  const [myInterestIds, setMyInterestIds] = useState(new Set())
+  const createInterest = interests.find((i) => i.id === createInterestId) ?? null
+  // Ens egna intressen, för att markera klubbarnas intresse om det är ett av dem och som snabbval i intressefiltret.
+  const [myInterests, setMyInterests] = useState([])
+  const myInterestIds = useMemo(() => new Set(myInterests.map((interest) => interest.id)), [myInterests])
   const [municipalities, setMunicipalities] = useState([])
   // Vilka områden kommunerna ligger i (se getRegions), så att filtret på kommun i Mina klubbar och
   // Förslag också visar klubbar för länet, landskapet, landsdelen och hela Sverige, som "Alla" (SCRUM-282).
@@ -149,7 +155,7 @@ function GroupsPanel() {
     getAllInterests().then(setInterests, () => {})
     getMunicipalities().then(setMunicipalities, () => {})
     getProfile().then((profile) => setMyMunicipality(profile?.municipality_code ?? ''), () => {})
-    getMyInterests().then((mine) => setMyInterestIds(new Set(mine.map((interest) => interest.id))), () => {})
+    getMyInterests().then(setMyInterests, () => {})
   }, [])
 
   useEffect(() => loadExtras(), [loadExtras])
@@ -197,7 +203,13 @@ function GroupsPanel() {
   const loadAll = useCallback(
     async (offset = 0) => {
       const request = ++allRequest.current
-      const page = await getGroups({ ...filters, excludeMine: true, limit: PAGE_SIZE + 1, offset })
+      const page = await getGroups({
+        ...filters,
+        interestId: filters.interest?.id,
+        excludeMine: true,
+        limit: PAGE_SIZE + 1,
+        offset,
+      })
       if (request !== allRequest.current) return
       const shown = page.slice(0, PAGE_SIZE)
       setLists((current) => {
@@ -237,7 +249,7 @@ function GroupsPanel() {
     const word = q.toLocaleLowerCase('sv')
     const name = (i) => i.name.toLocaleLowerCase('sv')
     const interestId =
-      filters.interestId ||
+      filters.interest?.id ||
       (word &&
         (interests.find((i) => name(i) === word) ?? interests.find((i) => name(i).startsWith(`${word} `)))?.id)
     setSearchParams({
@@ -251,8 +263,8 @@ function GroupsPanel() {
   function clearFilters() {
     setSearch('')
     setFilters((current) =>
-      current.interestId || current.municipalityCode || current.q
-        ? { ...current, interestId: '', municipalityCode: '', q: '' }
+      current.interest || current.municipalityCode || current.q
+        ? { ...current, interest: null, municipalityCode: '', q: '' }
         : current,
     )
   }
@@ -392,7 +404,7 @@ function GroupsPanel() {
       groups.filter(
         (g) =>
           matchesSearch(g, filters.q) &&
-          (!filters.interestId || g.interest_id === Number(filters.interestId)) &&
+          (!filters.interest || g.interest_id === filters.interest.id) &&
           (!filters.municipalityCode || appliesToKommun(g, filters.municipalityCode, regions)),
       ),
       sort,
@@ -405,12 +417,11 @@ function GroupsPanel() {
     // Inbjudningarna visas alla, nyaste först, utan sökning och filter.
     invitations,
   }
-  const filtering = filters && (filters.q || filters.interestId || filters.municipalityCode)
+  const filtering = filters && (filters.q || filters.interest || filters.municipalityCode)
   // Vad man letade efter, för "Det finns inga klubbar för … Vill du skapa en?": intresset man filtrerat på,
   // annars sökordet. Erbjuds bara när ingen klubb alls matchar (varken bland ens egna eller under Alla, som
   // har alla andra), så att den inte säger "inga klubbar" när det finns en på en annan flik.
-  const searchedFor =
-    filters && (interests.find((i) => i.id === Number(filters.interestId))?.name ?? filters.q.trim())
+  const searchedFor = filters && (filters.interest?.name ?? filters.q.trim())
   const offerToCreate = Boolean(searchedFor) && shown.mine.length === 0 && shown.all.length === 0
 
   // Leta upp gruppen i listorna, så att den visar senaste antal medlemmar och roll.
@@ -440,11 +451,14 @@ function GroupsPanel() {
           <BackButton onClick={goBack} />
           <div className="card sheet sheet-form">
             <CreateGroupForm
-              interests={interests}
+              // Ett nytt formulär när intresset från adressen har hittats i biblioteket, om formuläret öppnades innan
+              // biblioteket hade hämtats.
+              key={createInterest?.id ?? 'inget'}
+              myInterests={myInterests}
               municipalities={municipalities}
               defaultMunicipality={myMunicipality}
               initialName={createName}
-              initialInterestId={createInterestId}
+              initialInterest={createInterest}
               onCreated={handleCreated}
               onCancel={goBack}
             />
@@ -544,18 +558,13 @@ function GroupsPanel() {
                     <GroupSortMenu {...sortMenu} />
                   </div>
                   <div className="filter-select-row filter-select-row-compact">
-                    <select
+                    <InterestPicker
                       aria-label="Filtrera på intresse"
-                      value={filters.interestId}
-                      onChange={(e) => setFilters({ ...filters, interestId: e.target.value })}
-                    >
-                      <option value="">Alla intressen</option>
-                      {interests.map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {i.name}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Alla intressen"
+                      myInterests={myInterests}
+                      value={filters.interest}
+                      onChange={(interest) => setFilters({ ...filters, interest })}
+                    />
                     <MunicipalityPicker
                       aria-label="Filtrera på kommun"
                       municipalities={municipalities}
@@ -582,19 +591,15 @@ function GroupsPanel() {
                     />
                   </label>
                   <div className="club-filter-pills">
-                    <select
-                      className="club-filter"
-                      aria-label="Filtrera på intresse"
-                      value={filters.interestId}
-                      onChange={(e) => setFilters({ ...filters, interestId: e.target.value })}
-                    >
-                      <option value="">Alla intressen</option>
-                      {interests.map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {i.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="club-filter club-filter-interest">
+                      <InterestPicker
+                        aria-label="Filtrera på intresse"
+                        placeholder="Alla intressen"
+                        myInterests={myInterests}
+                        value={filters.interest}
+                        onChange={(interest) => setFilters({ ...filters, interest })}
+                      />
+                    </div>
                     <div className="club-filter club-filter-kommun">
                       <MunicipalityPicker
                         aria-label="Filtrera på kommun"

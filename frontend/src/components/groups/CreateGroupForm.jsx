@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import FormField from '../FormField'
+import InterestPicker from '../InterestPicker'
 import LocationPicker from '../LocationPicker'
 import MunicipalityPicker from '../MunicipalityPicker'
 import { SCOPES, SKILL_LEVELS, VISIBILITY, areaOptions, createGroup, getRegions } from '../../services/groups'
@@ -12,19 +13,19 @@ const VISIBILITY_OPTIONS = [
 ]
 
 
-// `initialName` och `initialInterestId` (valfria): det man sökte på när det inte
-// fanns någon klubb (SCRUM-221), ifyllt från början.
+// `initialName` och `initialInterest` ({ id, name }, valfria): det man sökte på när det inte
+// fanns någon klubb (SCRUM-221), ifyllt från början. `myInterests` är snabbvalen i intresseväljaren.
 function CreateGroupForm({
-  interests,
+  myInterests,
   municipalities,
   defaultMunicipality,
   initialName = '',
-  initialInterestId = null,
+  initialInterest = null,
   onCreated,
   onCancel,
 }) {
   const [name, setName] = useState(initialName)
-  const [interestId, setInterestId] = useState(initialInterestId ? String(initialInterestId) : '')
+  const [interest, setInterest] = useState(initialInterest)
   const [municipalityCode, setMunicipalityCode] = useState(defaultMunicipality ?? '')
   // Räckvidden (SCRUM-282): förvalt kommun. För län, landskap och landsdel väljs området i `areaCode`.
   const [scope, setScope] = useState('kommun')
@@ -70,7 +71,7 @@ function CreateGroupForm({
         address,
         latitude: position?.latitude ?? null,
         longitude: position?.longitude ?? null,
-        interest_id: Number(interestId),
+        interest_id: interest.id,
         scope,
         ...(scope === 'kommun' ? { municipality_code: municipalityCode } : { scope_code: areaCode || null }),
         visibility,
@@ -105,14 +106,13 @@ function CreateGroupForm({
           </FormField>
 
           <FormField id="group-interest" label="Intresse">
-            <select id="group-interest" value={interestId} onChange={(e) => setInterestId(e.target.value)} required>
-              <option value="">Välj...</option>
-              {interests.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.name}
-                </option>
-              ))}
-            </select>
+            <InterestPicker
+              id="group-interest"
+              myInterests={myInterests}
+              value={interest}
+              onChange={setInterest}
+              required
+            />
           </FormField>
 
           {/* Var klubben gäller: en kommun (förvalt), ett län, ett landskap, en landsdel eller hela Sverige. */}

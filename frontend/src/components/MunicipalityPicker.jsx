@@ -93,7 +93,9 @@ function MunicipalityPicker({
       event.preventDefault()
       if (items[active]) pick(items[active])
     } else if (event.key === 'Escape' && open) {
+      // Escape stänger bara listan, inte blocket runt den (MapPad lyssnar på Escape på hela sidan).
       event.preventDefault()
+      event.stopPropagation()
       setQuery(null)
       setOpen(false)
     }

@@ -21,6 +21,7 @@ import FilterTabs from '../components/FilterTabs'
 import MatchCard from '../components/MatchCard'
 import MatchThumb from '../components/MatchThumb'
 import FormField from '../components/FormField'
+import InterestPicker from '../components/InterestPicker'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
@@ -121,12 +122,20 @@ const EXAMPLE_MUNICIPALITIES = [
   { code: '0120', name: 'Värmdö' },
 ]
 
+// Snabbvalen i intresseväljarens exempel (de riktiga är ens egna intressen).
+const EXAMPLE_MY_INTERESTS = [
+  { id: -1, name: 'Brädspel' },
+  { id: -2, name: 'Klättring' },
+  { id: -3, name: 'Stickning och virkning' },
+]
+
 function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
   const [exampleTab, setExampleTab] = useState('forsta')
   const [exampleMunicipality, setExampleMunicipality] = useState('')
   const [exampleBirthDate, setExampleBirthDate] = useState('')
   const [filterMunicipality, setFilterMunicipality] = useState('')
+  const [filterInterest, setFilterInterest] = useState(null)
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [examplePosition, setExamplePosition] = useState(null)
@@ -572,7 +581,13 @@ function StyleGuide() {
           Filter (.filter-select-row, .filter-select-row-compact för smalare)
         </p>
         <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
-          <select aria-label="Exempel 1"><option>Alla intressen</option></select>
+          <InterestPicker
+            aria-label="Exempel 1"
+            placeholder="Alla intressen"
+            myInterests={EXAMPLE_MY_INTERESTS}
+            value={filterInterest}
+            onChange={setFilterInterest}
+          />
           <MunicipalityPicker
             aria-label="Exempel 2"
             municipalities={EXAMPLE_MUNICIPALITIES}
@@ -582,49 +597,12 @@ function StyleGuide() {
           />
         </div>
 
-        <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Filter med sökruta (InterestFilter)
-        </p>
         <p className="hint-text">
-          En rullista och en sökruta (input) i samma rad (.filter-select-row). Träffarna står i en ruta under raden
-          (.explorer med .explorer-box, .explorer-rows och .explorer-row), med en liten knapp (.secondary-button) per
-          träff; .filter-select-row-compact håller rutan lika smal som filtren. Det som är valt står som en tagg med ett
-          kryss (.interest-tag med .interest-tag-remove) som tar bort filtret.
+          Intresseväljaren (InterestPicker) är samma sorts fält som kommunfältet och används i alla filter och i Skapa
+          klubb och Skapa event. Med tomt fält visas ens egna intressen som snabbval (.interest-picker-heading). Man
+          skriver och får träffar i hela biblioteket, även på andra namn, med var intresset hör hemma under namnet
+          (.interest-picker-path). Det valda tas bort med krysset (.interest-picker-clear) eller genom att tömma fältet.
         </p>
-        <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
-          <select aria-label="Exempel 3"><option>Alla intressen</option></select>
-          <input type="search" aria-label="Exempel 4" placeholder="Sök andra intressen" />
-        </div>
-        <ul className="interest-tags" style={{ marginTop: '0.75rem' }}>
-          <li>
-            <span className="interest-tag">
-              Klättring
-              <button type="button" className="interest-tag-remove" aria-label="Ta bort filtret Klättring">
-                ×
-              </button>
-            </span>
-          </li>
-        </ul>
-        <div className="explorer filter-select-row-compact" style={{ marginTop: '0.75rem' }}>
-          <div className="explorer-box">
-            <ul className="explorer-rows">
-              <li className="explorer-row">
-                <span className="explorer-name">
-                  Bouldering
-                  <span className="hint-text">Friluftsliv › Klättring</span>
-                </span>
-                <button type="button" className="secondary-button">Välj</button>
-              </li>
-              <li className="explorer-row">
-                <span className="explorer-name">
-                  Sportklättring
-                  <span className="hint-text">Friluftsliv › Klättring</span>
-                </span>
-                <button type="button" className="secondary-button">Välj</button>
-              </li>
-            </ul>
-          </div>
-        </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Matchningskort (MatchCard, .match-card) med nivå (MatchLevel, .match-level)
