@@ -4,7 +4,7 @@ from sqlalchemy import distinct, event, func, or_, select
 from sqlalchemy.orm import Session
 
 # Samma skydd mot jokertecken (% och _) som klubbsökningen.
-from app.crud.group import _escape_like
+from app.crud.text_search import escape_like
 from app.models.interest import Interest, InterestSource, InterestStatus
 from app.models.user import User
 from app.models.user_interest import PRACTISES, UserInterest
@@ -63,7 +63,7 @@ def search_interests(db: Session, query: str, viewer_id: int, limit: int = SEARC
     text = " ".join(query.split()).lower()
     if not text:
         return []
-    pattern = f"%{_escape_like(text)}%"
+    pattern = f"%{escape_like(text)}%"
     candidates = _active(db).filter(
         or_(Interest.name.ilike(pattern, escape="\\"), Interest.aliases.ilike(pattern, escape="\\")),
         _visible_to(viewer_id),
@@ -169,6 +169,36 @@ def interest_places(db: Session, interests: list[Interest]) -> dict[int, Interes
         return InterestPlace(path=tuple(tree[i][0] for i in chain), area=tree[top][0], area_slug=tree[top][1])
 
     return {i.id: place(i.id) for i in interests}
+
+
+# Hur nära ett intresse ligger ens egna (related_interests): samma intresse, ett ovanför eller under i trädet
+# (Sport och träning eller Maraton för Löpning), eller ett annat i samma huvudområde (Tennis för Löpning).
+SAME, ABOVE_OR_BELOW, SAME_AREA = 0, 1, 2
+
+
+def related_interests(db: Session, interest_ids: set[int]) -> dict[int, int]:
+    """Intressena som ligger nära `interest_ids` i trädet, med hur nära (SAME, ABOVE_OR_BELOW eller SAME_AREA, lägst
+    gäller). Används för klubbförslagen (SCRUM-240). Trädet hämtas en gång, som för interest_places."""
+    if not interest_ids:
+        return {}
+    tree = _interest_tree(db, list(interest_ids))
+    parents = {interest_id: parent_id for interest_id, (_, _, parent_id) in tree.items()}
+    chains = {interest_id: _ancestor_ids(parents, interest_id) for interest_id in tree}
+    area_of = {interest_id: (chain[0] if chain else interest_id) for interest_id, chain in chains.items()}
+    mine = {i for i in interest_ids if i in tree}
+    my_areas = {area_of[i] for i in mine}
+    related: dict[int, int] = {}
+    for interest_id, chain in chains.items():
+        if interest_id in mine:
+            rank = SAME
+        elif mine & set(chain) or any(interest_id in chains[i] for i in mine):
+            rank = ABOVE_OR_BELOW  # under ett av mina, eller ovanför ett av mina
+        elif area_of[interest_id] in my_areas:
+            rank = SAME_AREA
+        else:
+            continue
+        related[interest_id] = rank
+    return related
 
 
 def interest_place(db: Session, interest: Interest) -> InterestPlace:

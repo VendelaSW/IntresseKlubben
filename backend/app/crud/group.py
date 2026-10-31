@@ -6,12 +6,22 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core import error_messages as msg
 from app.crud.contact import accepted_contact_ids, blocked_user_ids
+from app.crud.interest import related_interests
 from app.crud.notification import notify
-from app.models.group import Group, GroupInvitation, GroupJoinRequest, GroupMember, GroupRole, GroupVisibility
+from app.crud.text_search import escape_like, swedish_key
+from app.models.group import (
+    Group,
+    GroupInvitation,
+    GroupJoinRequest,
+    GroupMember,
+    GroupRole,
+    GroupScope,
+    GroupVisibility,
+)
 from app.models.notification import NotificationKind
 from app.models.user import User
 from app.schemas.group import GroupCreate
-from app.services.regions import areas_of_kommun
+from app.services.regions import areas_of_kommun, regions
 
 # Klubbar som syns i listor och går att hitta: öppna och de man ansöker till. Privata syns bara för
 # medlemmar och inbjudna.
@@ -111,11 +121,6 @@ def create_group(db: Session, user: User, data: GroupCreate) -> Group:
     return get_group(db, group.id)
 
 
-def _escape_like(text: str) -> str:
-    # % och _ är jokertecken i LIKE. Här ska de betyda sig själva.
-    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-
-
 def list_public_groups(
     db: Session,
     interest_id: int | None = None,
@@ -144,7 +149,7 @@ def list_public_groups(
     if municipality_code is not None:
         query = query.filter(applies_to_kommun(municipality_code))
     if q and q.strip():
-        pattern = f"%{_escape_like(q.strip())}%"
+        pattern = f"%{escape_like(q.strip())}%"
         query = query.filter(
             or_(Group.name.ilike(pattern, escape="\\"), Group.description.ilike(pattern, escape="\\"))
         )
@@ -220,22 +225,46 @@ def list_member_groups_visible_to(db: Session, member_id: int, viewer_id: int) -
     )
 
 
+def _nearness(kommun_code: str | None):
+    """Hur nära en klubb är ens kommun, som en funktion av klubben: 0 i kommunen, 1 i samma län eller för ett
+    större område som kommunen ligger i (länet, landskapet, landsdelen eller hela Sverige), 2 annars. Det som bara
+    beror på ens kommun räknas en gång."""
+    if kommun_code is None:
+        return lambda group: 2
+    larger = set(areas_of_kommun(kommun_code)) - {(GroupScope.kommun.value, kommun_code)}
+    lan = (regions()["kommuner"].get(kommun_code) or {}).get("lan")
+
+    def nearness(group: Group) -> int:
+        if group.scope == GroupScope.kommun.value and group.scope_code == kommun_code:
+            return 0
+        group_lan = (regions()["kommuner"].get(group.municipality_code) or {}).get("lan")
+        if (group.scope, group.scope_code) in larger or (lan is not None and group_lan == lan):
+            return 1
+        return 2
+
+    return nearness
+
+
 def list_suggested_groups(db: Session, user: User) -> list[Group]:
-    """Öppna grupper (och de man ansöker till) för användarens intressen som hen inte redan är med i."""
-    interest_ids = [i.id for i in user.interests]
-    if not interest_ids:
+    """Öppna grupper (och de man ansöker till) som användaren inte redan är med i, för hens intressen och de som
+    ligger nära dem i trädet (SCRUM-240, se related_interests): samma intresse, ett ovanför eller under, eller ett
+    annat i samma huvudområde. Närmast först (ens kommun, sedan länet eller ett större område som omfattar
+    kommunen, sedan resten), och inom det det intresse som ligger närmast ens egna, sedan namnet."""
+    related = related_interests(db, {i.id for i in user.interests})
+    if not related:
         return []
     my_group_ids = db.query(GroupMember.group_id).filter(GroupMember.user_id == user.id)
-    return (
+    groups = (
         _base_query(db)
         .filter(
             Group.visibility.in_(LISTED),
-            Group.interest_id.in_(interest_ids),
+            Group.interest_id.in_(related),
             Group.id.not_in(my_group_ids),
         )
-        .order_by(Group.name)
         .all()
     )
+    nearness = _nearness(user.profile.municipality_code if user.profile else None)
+    return sorted(groups, key=lambda g: (nearness(g), related[g.interest_id], swedish_key(g.name), g.id))
 
 
 def join_group(db: Session, group: Group, user: User) -> Group:
