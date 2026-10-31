@@ -14,6 +14,7 @@ import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
 import CreateButton from '../components/CreateButton'
+import DrawnArrow from '../components/DrawnArrow'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
@@ -151,6 +152,22 @@ function StyleGuide() {
           Länk-stil (info-link)
         </a>
         <p className="swatch-code">Inter Bold, gul understrykning, tonas ner vid hover</p>
+        <div style={{ marginTop: '1rem' }}>
+          <button type="button" className="quiet-link">
+            Lugn länk (quiet-link)
+          </button>
+        </div>
+        <p className="swatch-code">
+          Grå text, normal vikt, gul understrykning, texten mörknar vid hover. För länkar under formulär (inloggning, registrering).
+        </p>
+        <div style={{ marginTop: '1rem' }}>
+          <button type="button" className="back-arrow" aria-label="Tillbaka" style={{ position: 'static' }}>
+            <DrawnArrow className="back-arrow-icon" />
+          </button>
+        </div>
+        <p className="swatch-code">
+          Tillbaka-pil (back-arrow): uppe i vänstra hörnet på inloggnings- och registreringsvyerna, i stället för "← Tillbaka".
+        </p>
       </section>
 
       <section className="style-section">

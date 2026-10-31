@@ -1348,6 +1348,71 @@ span.tag-selected:hover {
   opacity: 0.7;
 }
 
+/* Lugn länk under formulär (inloggning, registrering, glömt lösenord): grå text i normal vikt, med samma gula linje
+   under som de andra länkarna. Texten mörknar vid hover. Se stilguiden. */
+.quiet-link {
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 400;
+  color: var(--color-muted);
+  background: none;
+  border: none;
+  padding: 0 0 1px;
+  border-bottom: 2px solid var(--color-accent);
+  cursor: pointer;
+}
+
+.quiet-link:hover,
+.quiet-link:focus-visible {
+  color: var(--color-text);
+}
+
+/* Första länken en rad under knappen i formuläret. */
+.auth-form + .quiet-link {
+  margin-top: 1.25rem;
+}
+
+/* Tillbaka till startsidan från inloggning/registrering: den skissade pilen (DrawnArrow) åt vänster, uppe i vänstra
+   hörnet, gul med svart kant som pilarna på matchningskortet. */
+.back-arrow {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.back-arrow .back-arrow-icon {
+  width: 2.4rem;
+  height: 2rem;
+  fill: var(--color-accent);
+  stroke: var(--color-ink);
+  stroke-width: 1.1;
+  rotate: 90deg;
+  transition: transform 0.15s ease;
+}
+
+.back-arrow .back-arrow-icon .drawn-arrow-hatch {
+  display: none;
+}
+
+.back-arrow:hover .back-arrow-icon,
+.back-arrow:focus-visible .back-arrow-icon {
+  transform: scale(1.12);
+}
+
+/* Inloggnings-/registreringsvyerna: loggan högt upp och tätt mot rubriken. Pilen ligger i hörnet bredvid loggan. */
+.home-page-form {
+  gap: 0.6rem;
+  padding-top: 1rem;
+}
+
 .secondary-button {
   font-family: var(--font-body);
   font-weight: 400;
