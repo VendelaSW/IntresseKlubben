@@ -246,7 +246,7 @@
     pointer-events: none;
   }
 
-  /* Version 3, kollage: nio, lite mindre så att de får plats, med några ytterst som bleknar ut mot kanten. */
+  /* Version 3, kollage: tio, lite mindre så att de får plats, med några ytterst som bleknar ut mot kanten. */
   .home-polaroids-collage {
     --w: min(clamp(7rem, 10vw, 10rem), 21vh);
   }

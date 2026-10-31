@@ -21,7 +21,7 @@ const HomePolaroids = DEV_MODE ? lazy(() => import('../devtools/HomePolaroids'))
 function Home() {
   const { user, loading } = useAuth()
   const homeChoice = useDesignChoice('homePage')
-  const polaroids = (homeChoice === 'polaroider' || homeChoice === 'utspridda' || homeChoice === 'kollage') && HomePolaroids !== null
+  const polaroids = ['polaroider', 'utspridda', 'kollage'].includes(homeChoice) && HomePolaroids !== null
   const collage = polaroids && homeChoice === 'kollage'
   const scattered = polaroids && (homeChoice === 'utspridda' || collage)
   // Precis utloggad (Logga ut i menyn skickar med det): kompisen säger "Ha det!" överst på startsidan.
