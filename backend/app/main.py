@@ -14,6 +14,7 @@ from app.api.routes.interest_analysis import router as interest_analysis_router
 from app.api.routes.interest_confirm import router as interest_confirm_router
 from app.api.routes.interests import router as interests_router
 from app.api.routes.interview import router as interview_router
+from app.api.routes.matches import router as matches_router
 from app.api.routes.messages import router as messages_router
 from app.api.routes.moderation import router as moderation_router
 from app.api.routes.municipalities import router as municipalities_router
@@ -58,6 +59,7 @@ app.include_router(interests_router)
 app.include_router(interest_analysis_router)
 app.include_router(interest_confirm_router)
 app.include_router(user_router)
+app.include_router(matches_router)
 app.include_router(municipalities_router)
 app.include_router(contacts_router)
 app.include_router(groups_router)

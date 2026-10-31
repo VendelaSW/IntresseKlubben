@@ -6,6 +6,7 @@ import FilterTabs from '../components/FilterTabs'
 import { useTabParam } from '../hooks/useTabParam'
 import { conversationsQuery } from '../services/messages'
 import { shortNames } from '../utils/shortNames'
+import LoadError from '../components/LoadError'
 
 const TABS = [
   { id: 'new', label: 'Nya', empty: 'Inga nya brev just nu.' },
@@ -18,7 +19,7 @@ const TABS = [
 function InboxPage() {
   // Konversationerna ur det delade minnet (se services/queryClient.js): har man
   // varit här nyss visas listan direkt, och hämtas om i bakgrunden.
-  const { data: conversations = [], isSuccess, isError } = useQuery(conversationsQuery)
+  const { data: conversations = [], isSuccess, isError, refetch, isFetching } = useQuery(conversationsQuery)
   const status = isSuccess ? 'ready' : isError ? 'error' : 'loading'
   // Olästa konversationer, räknat på servern (se markConversationRead).
   const unseenIds = useMemo(() => new Set(conversations.filter((c) => c.unread).map((c) => c.id)), [conversations])
@@ -30,7 +31,7 @@ function InboxPage() {
   if (status === 'error') {
     return (
       <div className="content-stack">
-        <p className="status-error">Kunde inte hämta breven. Försök igen senare.</p>
+        <LoadError text="Kunde inte hämta breven." onRetry={() => refetch()} retrying={isFetching} />
       </div>
     )
   }
@@ -53,7 +54,7 @@ function InboxPage() {
       {status === 'loading' ? (
         <p className="hint-text">Laddar brev...</p>
       ) : conversations.length === 0 ? (
-        <EmptyState text="Här hamnar brev mellan dig och dina kompisar. Skriv till någon från deras profil under Personer." />
+        <EmptyState text="Här hamnar brev mellan dig och dina kompisar. Skriv till någon från deras profil under Medlemmar." />
       ) : (
         <>
           {/* Antalet bara på Nya, det som är nytt att läsa. */}

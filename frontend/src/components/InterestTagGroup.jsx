@@ -13,7 +13,7 @@ const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 // stängs med ett nytt tryck, ett tryck utanför eller Esc. Utan underintressen
 // händer inget när man trycker; taggen är bara till för att visa.
 //
-// - `group`: { key, name, area, subs: [{ key, name }], removable } (se utils/interestGroups.js)
+// - `group`: { key, name, areaSlug, subs: [{ key, name }], removable } (se utils/interestGroups.js)
 // - `isShared(key)`: gemensamt med den man tittar på, ger fetstil och en bock (utan den: inga bockar)
 // - `onRemove(key)`: ger ett × på taggen och underintressena (t.ex. när man redigerar sina intressen)
 // - `busyKey`: taggen vars borttagning pågår, så att × inte går att trycka på igen
@@ -22,7 +22,7 @@ function InterestTagGroup({ group, isShared, onRemove, busyKey }) {
   const closePanel = useCallback(() => setOpen(false), [])
   const rootRef = useRef(null)
   const panelId = useId()
-  const { key, name, area, subs } = group
+  const { key, name, areaSlug, subs } = group
   const shared = (k) => isShared?.(k) ?? false
   const hasSubs = subs.length > 0
 
@@ -42,7 +42,7 @@ function InterestTagGroup({ group, isShared, onRemove, busyKey }) {
     )
 
   return (
-    <li ref={rootRef} className={`interest-tag-group${open ? ' is-open' : ''}`} style={areaColors(area)}>
+    <li ref={rootRef} className={`interest-tag-group${open ? ' is-open' : ''}`} style={areaColors(areaSlug)}>
       {/* Ett huvudintresse är markerat som gemensamt också när bara ett underintresse är det. */}
       <span className={`interest-tag${shared(key) || subs.some((s) => shared(s.key)) ? ' is-shared' : ''}`}>
         {hasSubs ? (

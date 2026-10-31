@@ -64,10 +64,15 @@ GET /users/ - andra användare med sparad profil, valfritt filtrerade på
 ?interest_id=, ?municipality_code=, ?gender= och ?min_age=/?max_age= (0-120,
 400 om min_age är större än max_age). ?gender= ger bara dem som själva valt att
 gå att hitta på kön (gender_searchable), så att filtret inte avslöjar könet
-hos alla andra. Utesluter dig själv, dina
+hos alla andra. Listan kommer med de som har flest intressen gemensamt med dig först, därefter i
+namnordning (filtren väljer bara vilka som är med). Utesluter dig själv, dina
 borttagna förslag och alla som har blockerat dig eller som du har blockerat. Samma
 dataminimering som PublicProfileResponse, men med id (länk till
 /anvandare/{id}) och interests (taggar/matchning) - se PersonResponse.
+
+GET /users/area-counts - hur många andra användare som finns per kommun, landskap och del av ett län, för kartan
+(SCRUM-82). Bara antal. 1-4 skickas som null ("färre än 5"), så att ett litet tal aldrig kommer nära att peka ut
+någon, och områden där ingen finns är inte med. Avstängda och de man har en blockering med räknas inte.
 
 GET /users/{user_id}/profile - visar en annan användares profil,
 skrivskyddat. Via id, aldrig användarnamn: användarnamn ska inte synas i
@@ -95,7 +100,7 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.api.people import to_person_response
+from app.api.people import to_person_response, visible_age
 from app.auth.security import (
     create_access_token,
     get_current_user,
@@ -116,8 +121,14 @@ from app.crud.dismissed_suggestion import (
     list_dismissed_user_ids,
     reset_dismissed_suggestions,
 )
-from app.crud.interest import sorted_interests
-from app.crud.profile import calculate_age, get_profile, list_people
+from app.crud.interest import profile_interests
+from app.crud.profile import (
+    calculate_age,
+    count_people_by_municipality,
+    get_profile,
+    list_people,
+    sort_by_shared_interests,
+)
 from app.crud.user import (
     EmailTakenError,
     UsernameTakenError,
@@ -131,8 +142,7 @@ from app.crud.user import (
 from app.db.session import get_db
 from app.models.profile import GenderEnum
 from app.models.user import User
-from app.schemas.interest import ProfileInterest
-from app.schemas.profile import PersonResponse, PublicProfileResponse
+from app.schemas.profile import AreaCounts, PersonResponse, PublicProfileResponse
 from app.schemas.user import (
     AccountDelete,
     CurrentUserOut,
@@ -157,6 +167,7 @@ from app.services.password_emails import (
     send_reset_email,
 )
 
+from app.services.regions import people_per_area
 from app.services.text_moderation import check_fields
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -369,7 +380,24 @@ def read_people(
         db, current_user.id, interest_id, municipality_code, hidden_ids,
         gender=gender, min_age=min_age, max_age=max_age,
     )
-    return [to_person_response(p.user) for p in profiles]
+    my_interest_ids = {link.interest_id for link in current_user.interest_links}
+    profiles = sort_by_shared_interests(profiles, my_interest_ids)
+    return [to_person_response(db, p.user, current_user) for p in profiles]
+
+
+# Under så här många visas inte det exakta antalet på kartan, bara "färre än 5" (SCRUM-82).
+FEW_PEOPLE = 5
+
+
+def _shown(count: int) -> int | None:
+    return None if count < FEW_PEOPLE else count
+
+
+@router.get("/area-counts", response_model=AreaCounts, dependencies=[Depends(require_profile)])
+def read_area_counts(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> AreaCounts:
+    hidden = blocked_user_ids(db, current_user.id) | suspended_user_ids(db)
+    areas = people_per_area(count_people_by_municipality(db, current_user.id, hidden))
+    return AreaCounts(**{level: {code: _shown(n) for code, n in counts.items()} for level, counts in areas.items()})
 
 
 @router.post(
@@ -430,15 +458,17 @@ def reset_suggestions(
     reset_dismissed_suggestions(db, current_user.id)
 
 
-def _to_public_response(profile) -> PublicProfileResponse:
+def _to_public_response(db: Session, profile, viewer: User) -> PublicProfileResponse:
+    age, age_hidden = visible_age(profile, viewer)
     return PublicProfileResponse(
         name=profile.name,
-        age=calculate_age(profile.birth_date) if profile.birth_date else None,
+        age=age,
+        age_hidden=age_hidden,
         municipality_name=profile.municipality.name if profile.municipality else None,
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
         profile_text=profile.profile_text,
-        interests=[ProfileInterest.model_validate(i) for i in sorted_interests(profile.user)],
+        interests=profile_interests(db, profile.user),
     )
 
 
@@ -460,4 +490,4 @@ def read_user_profile(
     profile = get_profile(db, user.id) if user else None
     if profile is None:
         raise HTTPException(status_code=404, detail="Ingen profil hittad")
-    return _to_public_response(profile)
+    return _to_public_response(db, profile, current_user)

@@ -19,18 +19,24 @@ import GroupSortMenu from './GroupSortMenu'
 import MunicipalityPicker from '../MunicipalityPicker'
 import { getContacts } from '../../services/contacts'
 import {
+  appliesToKommun,
+  applyToGroup,
   declineGroupInvitation,
   deleteGroup,
   getGroups,
+  getRegions,
   groupsOverviewQuery,
   joinGroup,
   leaveGroup,
   matchesSearch,
   notifyInvitationsChanged,
+  SUGGESTED_SORTS,
   sortGroups,
+  withdrawApplication,
 } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
 import { getMunicipalities, getProfile } from '../../services/profile'
+import LoadError from '../LoadError'
 
 const TABS = [
   { id: 'mine', label: 'Mina klubbar', short: 'Mina' },
@@ -46,7 +52,9 @@ const COUNTED_TABS = new Set(['suggested', 'invitations'])
 // Vad fliken är till för, när den är tom (se EmptyState).
 const EMPTY_TEXT = {
   mine: 'Här samlas klubbarna du är med i. Hitta en klubb för något du gillar under Alla, eller starta en egen.',
-  suggested: 'Här föreslår vi klubbar för dina intressen. Lägg till fler intressen på din profil för att få fler förslag.',
+  suggested:
+    'Här föreslår vi klubbar för dina intressen och sådant som ligger nära dem. ' +
+    'Lägg till fler intressen på din profil för att få fler förslag.',
   all: 'Här finns alla klubbar, men det finns inga än. Starta den första!',
   invitations: 'När någon bjuder in dig till en klubb hamnar inbjudan här.',
 }
@@ -104,6 +112,8 @@ function GroupsPanel() {
     sort: 'name',
     reverse: false,
   })
+  // Sorteringen i Förslag (se sortMenu).
+  const [suggestedSort, setSuggestedSort] = useState({ sort: 'fit', reverse: false })
   // Ens egen kommun, förvald när man skapar en klubb.
   const [myMunicipality, setMyMunicipality] = useState('')
   // Det som står i sökfältet. Skickas vidare till filters.q efter SEARCH_DELAY_MS.
@@ -115,6 +125,9 @@ function GroupsPanel() {
   // Ens egna intressen, för att markera klubbarnas intresse om det är ett av dem.
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [municipalities, setMunicipalities] = useState([])
+  // Vilka områden kommunerna ligger i (se getRegions), så att filtret på kommun i Mina klubbar och
+  // Förslag också visar klubbar för länet, landskapet, landsdelen och hela Sverige, som "Alla" (SCRUM-282).
+  const [regions, setRegions] = useState(null)
   // Ens kompisar, för "Bjud in" i en klubb. Hämtas först när en klubb öppnas
   // (null = inte hämtade än), eftersom listan inte behövs förrän då.
   const [contacts, setContacts] = useState(null)
@@ -128,15 +141,21 @@ function GroupsPanel() {
 
   const handleError = (err) => setError(err.message)
 
+  // Det som filtren, markeringen av ens intressen och Skapa klubb behöver. Inget av
+  // det är klubbarna själva, så går något inte att hämta visas sidan ändå, bara
+  // utan det (t.ex. utan intressen i filtret). "Försök igen" hämtar om det.
+  const loadExtras = useCallback(() => {
+    getAllInterests().then(setInterests, () => {})
+    getMunicipalities().then(setMunicipalities, () => {})
+    getProfile().then((profile) => setMyMunicipality(profile?.municipality_code ?? ''), () => {})
+    getMyInterests().then((mine) => setMyInterestIds(new Set(mine.map((interest) => interest.id))), () => {})
+  }, [])
+
+  useEffect(() => loadExtras(), [loadExtras])
+
+  // Utan områdena fungerar filtret ändå, då bara på klubbar i själva kommunen.
   useEffect(() => {
-    Promise.all([getAllInterests(), getMunicipalities(), getProfile(), getMyInterests()])
-      .then(([i, m, profile, mine]) => {
-        setInterests(i)
-        setMunicipalities(m)
-        setMyInterestIds(new Set(mine.map((interest) => interest.id)))
-        setMyMunicipality(profile?.municipality_code ?? '')
-      })
-      .catch(() => setStatus('error'))
+    getRegions().then(setRegions, () => {})
   }, [])
 
   useEffect(() => {
@@ -270,6 +289,27 @@ function GroupsPanel() {
     runAction(group, joinGroup)
   }
 
+  // Ansök till en klubb man ansöker till (SCRUM-159), med ett meddelande till ägaren. Ger om det gick,
+  // så att rutan med meddelandet kan stängas (ett fel visas under klubben och rutan ligger kvar).
+  async function handleApply(group, message) {
+    setBusy(true)
+    setError('')
+    try {
+      await applyToGroup(group.id, message)
+      await Promise.all([loadMineAndSuggested(), loadAll()])
+      return true
+    } catch (err) {
+      handleError(err)
+      return false
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleWithdraw(group) {
+    await runAction(group, withdrawApplication)
+  }
+
   async function handleLeave(group) {
     if (!(await confirm({ title: `Gå ur ${group.name}`, text: 'Vill du gå ur klubben?', confirmLabel: 'Gå ur', danger: true })))
       return
@@ -303,27 +343,55 @@ function GroupsPanel() {
     setView(group.id, { replace: true })
   }
 
-  if (status === 'error' || overviewFailed) {
-    return <p className="status-error">Kunde inte hämta klubbarna. Försök igen senare.</p>
+  // Hämtar om allt efter ett fel (SCRUM-286), så att man inte behöver gå ut och in på sidan.
+  function retry() {
+    setStatus('loading')
+    loadExtras()
+    refetchOverview()
+    loadAll()
+      .then(() => setStatus('ready'))
+      .catch(() => setStatus('error'))
   }
+
+  // Medan översikten hämtas om efter ett fel visas "Laddar klubbar..." i stället för felet.
+  if (status === 'error' || (overviewFailed && !overview.isFetching)) {
+    return (
+      <LoadError
+        text="Kunde inte hämta klubbarna."
+        onRetry={retry}
+        retrying={status === 'loading' || overview.isFetching}
+      />
+    )
+  }
+
+  // Förslag har en egen sortering, förvald Passar dig: närmast först, som backend ger dem (SCRUM-240, se
+  // SUGGESTED_SORTS). Mina klubbar och Alla delar på filters.sort.
+  const sortMenu =
+    tab === 'suggested'
+      ? { sorts: SUGGESTED_SORTS, ...suggestedSort, onChange: (sort, reverse) => setSuggestedSort({ sort, reverse }) }
+      : {
+          sort: filters.sort,
+          reverse: filters.reverse,
+          onChange: (sort, reverse) => setFilters({ ...filters, sort, reverse }),
+        }
 
   // Mina klubbar och Förslag söks, filtreras och sorteras här. I Mina klubbar
   // ligger de man äger först (sort är stabil, så den valda ordningen behålls
   // inom varje del).
-  const searchAndSort = (groups) =>
+  const searchAndSort = (groups, { sort, reverse } = filters) =>
     sortGroups(
       groups.filter(
         (g) =>
           matchesSearch(g, filters.q) &&
           (!filters.interestId || g.interest_id === Number(filters.interestId)) &&
-          (!filters.municipalityCode || g.municipality_code === filters.municipalityCode),
+          (!filters.municipalityCode || appliesToKommun(g, filters.municipalityCode, regions)),
       ),
-      filters.sort,
-      filters.reverse,
+      sort,
+      reverse,
     )
   const shown = filters && {
     mine: searchAndSort(mine).sort((a, b) => Number(b.is_owner) - Number(a.is_owner)),
-    suggested: searchAndSort(suggested),
+    suggested: searchAndSort(suggested, suggestedSort),
     all: lists.all,
     // Inbjudningarna visas alla, nyaste först, utan sökning och filter.
     invitations,
@@ -428,6 +496,9 @@ function GroupsPanel() {
                     contacts={contacts ?? []}
                     busy={busy}
                     onJoin={handleJoin}
+                    onApply={handleApply}
+                    onWithdraw={handleWithdraw}
+                    onMembersChanged={loadMineAndSuggested}
                     onLeave={handleLeave}
                     onDelete={handleDelete}
                     onDecline={handleDecline}
@@ -436,7 +507,11 @@ function GroupsPanel() {
                 </div>
                 {selected.is_member && (
                   <div className="group-chat-slot">
-                    <GroupChat key={selected.id} groupId={selected.id} />
+                    <GroupChat
+                      key={selected.id}
+                      groupId={selected.id}
+                      canModerate={selected.is_owner || selected.is_admin}
+                    />
                   </div>
                 )}
               </div>
@@ -457,11 +532,7 @@ function GroupsPanel() {
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
-                    <GroupSortMenu
-                      sort={filters.sort}
-                      reverse={filters.reverse}
-                      onChange={(sort, reverse) => setFilters({ ...filters, sort, reverse })}
-                    />
+                    <GroupSortMenu {...sortMenu} />
                   </div>
                   <div className="filter-select-row filter-select-row-compact">
                     <select
@@ -524,11 +595,7 @@ function GroupsPanel() {
                         emptyLabel="Alla kommuner"
                       />
                     </div>
-                    <GroupSortMenu
-                      sort={filters.sort}
-                      reverse={filters.reverse}
-                      onChange={(sort, reverse) => setFilters({ ...filters, sort, reverse })}
-                    />
+                    <GroupSortMenu {...sortMenu} />
                   </div>
                 </div>
               )}

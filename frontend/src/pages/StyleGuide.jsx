@@ -19,6 +19,8 @@ import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
 import FilterTabs from '../components/FilterTabs'
+import MatchCard from '../components/MatchCard'
+import MatchThumb from '../components/MatchThumb'
 import FormField from '../components/FormField'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
@@ -28,7 +30,7 @@ import { NotificationDetails, NotificationRow } from './NotificationsPage'
 const NAV_ICONS = [
   { icon: hemIcon, label: 'Hem' },
   { icon: brevIcon, label: 'Brev' },
-  { icon: personerIcon, label: 'Personer' },
+  { icon: personerIcon, label: 'Medlemmar' },
   { icon: klubbarIcon, label: 'Klubbar' },
   { icon: eventIcon, label: 'Events' },
 ]
@@ -49,6 +51,35 @@ const COLORS = [
 ]
 
 // Exempel för Brev-avsnittet: ett nytt och ett öppnat kuvert.
+// Förslag som i Matcha-fliken (GET /matches), en per nivå, för matchningskortet.
+const EXAMPLE_INTEREST = (id, name, path, areaSlug) => ({ id, name, path, area_slug: areaSlug, practices: false })
+const EXAMPLE_MATCHES = [
+  {
+    id: 101, username: 'sara', name: 'Sara', age: 29, district: null, municipality_name: 'Mölndal', level: 'super',
+    profile_text: 'Jag älskar att klättra och vandra och söker någon att åka på långhelger med, gärna med tält och termos.',
+    interests: [EXAMPLE_INTEREST(1, 'Bouldering', ['Friluftsliv'], 'friluftsliv'), EXAMPLE_INTEREST(2, 'Vandring', ['Friluftsliv'], 'friluftsliv')],
+    reasons: [{ kind: 'shared', interests: ['Bouldering', 'Vandring'], pairs: [] }, { kind: 'text', interests: [], pairs: [] }],
+  },
+  {
+    id: 102, username: 'jonas', name: 'Jonas', age: 34, district: null, municipality_name: 'Göteborg', level: 'strong',
+    profile_text: 'Jobbar som lärare och bouldrar på kvällarna.',
+    interests: [EXAMPLE_INTEREST(1, 'Bouldering', ['Friluftsliv'], 'friluftsliv'), EXAMPLE_INTEREST(3, 'Klättring', ['Friluftsliv'], 'friluftsliv')],
+    reasons: [{ kind: 'shared', interests: ['Bouldering'], pairs: [] }, { kind: 'near', interests: [], pairs: [{ mine: 'Vandring', theirs: 'Klättring' }] }],
+  },
+  {
+    id: 103, username: 'amira', name: 'Amira', age: 27, district: null, municipality_name: 'Partille', level: 'good',
+    profile_text: 'Ny i stan och letar efter någon att gå ut i skogen med.',
+    interests: [EXAMPLE_INTEREST(2, 'Vandring', ['Friluftsliv'], 'friluftsliv'), EXAMPLE_INTEREST(4, 'Brädspel', ['Spel och pussel'], 'spel-och-pussel')],
+    reasons: [{ kind: 'shared', interests: ['Vandring'], pairs: [] }],
+  },
+  {
+    id: 104, username: 'erik', name: 'Erik', age: 41, district: null, municipality_name: 'Kungsbacka', level: 'okay',
+    profile_text: 'Fiskar och seglar när vädret tillåter.',
+    interests: [EXAMPLE_INTEREST(5, 'Fiske', ['Friluftsliv'], 'friluftsliv')],
+    reasons: [{ kind: 'area', interests: ['Friluftsliv'], pairs: [] }],
+  },
+]
+
 const EXAMPLE_CONVERSATIONS = [
   { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), last_message_from_me: false, isNew: true },
   { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', last_message_from_me: true, isNew: false },
@@ -193,18 +224,18 @@ function StyleGuide() {
         <h2>Knappar</h2>
         <p className="swatch-label">Typsnitt: Inter (versaler, bokstavsavstånd)</p>
         <div className="account-choice-links" style={{ marginTop: '1rem' }}>
-          <a href="#" className="account-choice-link" onClick={(e) => e.preventDefault()}>
+          <button className="secondary-button" type="button">
             Sekundär knapp
-          </a>
+          </button>
           <button className="primary-button" type="button">
             Primär knapp
           </button>
         </div>
         <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Liten variant (.button-small)</p>
         <div className="account-choice-links" style={{ marginTop: '1rem' }}>
-          <a href="#" className="account-choice-link button-small" onClick={(e) => e.preventDefault()}>
+          <button className="secondary-button button-small" type="button">
             Sekundär
-          </a>
+          </button>
           <button className="primary-button button-small" type="button">
             Primär
           </button>
@@ -252,15 +283,15 @@ function StyleGuide() {
         </p>
         <InterestTree
           proposals={profileTree([
-            { id: 1, name: 'Historia', parent_id: null, path: [] },
-            { id: 2, name: 'Mynt', parent_id: 1, path: ['Historia'] },
-            { id: 3, name: 'Vikingatiden', parent_id: 1, path: ['Historia'] },
-            { id: 4, name: 'Medeltiden', parent_id: 1, path: ['Historia'] },
-            { id: 5, name: 'Antiken', parent_id: 1, path: ['Historia'] },
-            { id: 6, name: 'Metal', parent_id: 7, path: ['Musik', 'Rock'] },
-            { id: 8, name: 'Löpning', parent_id: 10, path: ['Sport och träning'] },
-            { id: 9, name: 'Fotografering', parent_id: 11, path: ['Kreativitet'] },
-            { id: 12, name: 'Analog fotografering', parent_id: 9, path: ['Kreativitet', 'Fotografering'] },
+            { id: 1, name: 'Historia', parent_id: null, path: [], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 2, name: 'Mynt', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 3, name: 'Vikingatiden', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 4, name: 'Medeltiden', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 5, name: 'Antiken', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 6, name: 'Metal', parent_id: 7, path: ['Musik', 'Rock'], area_slug: 'musik' },
+            { id: 8, name: 'Löpning', parent_id: 10, path: ['Sport och träning'], area_slug: 'sport-och-traning' },
+            { id: 9, name: 'Fotografering', parent_id: 11, path: ['Kreativitet'], area_slug: 'skapande' },
+            { id: 12, name: 'Analog fotografering', parent_id: 9, path: ['Kreativitet', 'Fotografering'], area_slug: 'skapande' },
           ])}
           align="start"
           highlight={new Set(['id:2', 'id:8'])}
@@ -519,7 +550,7 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           På dator ligger rubrik och flikar till vänster på alla sidor, på mobil centrerade (Brev,
-          Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
+          Medlemmar, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
           .app-section för sidor med kort i rutnät (Klubbar och Events): "+ Skapa"-knappen direkt efter
           rubriken och tätare avstånd. Flikarna är sammanhängande knappar med en ram runt, och den
           valda är gul (FilterTabs). På mobil fyller de bredden i en jämn rad, med korta namn (`short`) och antalet som
@@ -555,6 +586,82 @@ function StyleGuide() {
             emptyLabel="Alla kommuner"
           />
         </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Filter med sökruta (InterestFilter)
+        </p>
+        <p className="hint-text">
+          En rullista och en sökruta (input) i samma rad (.filter-select-row). Träffarna står i en ruta under raden
+          (.explorer med .explorer-box, .explorer-rows och .explorer-row), med en liten knapp (.secondary-button) per
+          träff; .filter-select-row-compact håller rutan lika smal som filtren. Det som är valt står som en tagg med ett
+          kryss (.interest-tag med .interest-tag-remove) som tar bort filtret.
+        </p>
+        <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
+          <select aria-label="Exempel 3"><option>Alla intressen</option></select>
+          <input type="search" aria-label="Exempel 4" placeholder="Sök andra intressen" />
+        </div>
+        <ul className="interest-tags" style={{ marginTop: '0.75rem' }}>
+          <li>
+            <span className="interest-tag">
+              Klättring
+              <button type="button" className="interest-tag-remove" aria-label="Ta bort filtret Klättring">
+                ×
+              </button>
+            </span>
+          </li>
+        </ul>
+        <div className="explorer filter-select-row-compact" style={{ marginTop: '0.75rem' }}>
+          <div className="explorer-box">
+            <ul className="explorer-rows">
+              <li className="explorer-row">
+                <span className="explorer-name">
+                  Bouldering
+                  <span className="hint-text">Friluftsliv › Klättring</span>
+                </span>
+                <button type="button" className="secondary-button">Välj</button>
+              </li>
+              <li className="explorer-row">
+                <span className="explorer-name">
+                  Sportklättring
+                  <span className="hint-text">Friluftsliv › Klättring</span>
+                </span>
+                <button type="button" className="secondary-button">Välj</button>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Matchningskort (MatchCard, .match-card) med nivå (MatchLevel, .match-level)
+        </p>
+        <p className="hint-text">
+          Ett personkort med nivån i övre högra hörnet, personens Om mig-text i sin helhet och "Därför matchar ni" med
+          skälen som punkter (.match-reasons, gula handritade ringar). Bocken på intressetaggarna är bara för gemensamma
+          intressen. Nivån (.match-level-okay, -good, -strong och -super) syns i text och form, inte bara i färg: Okej är
+          streckad, Bra och Stark har skugga, och SUPERmatch är störst och vickar svagt (inte för den som har stängt av
+          animationer). Ingen siffra visas. I Matcha-fliken visas det bästa förslaget som ett stort kort, centrerat, med
+          de närmast på tur som små kort under (.match-thumb, se nedan).
+        </p>
+        <div className="card-grid" style={{ marginTop: '1.75rem', gap: '2rem 1rem' }}>
+          {EXAMPLE_MATCHES.map((match) => (
+            <MatchCard key={match.id} match={match} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onSkip={() => {}} onDismiss={() => {}} />
+          ))}
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Små kort för de närmast på tur (MatchThumb, .match-thumb i .match-thumbs)
+        </p>
+        <p className="hint-text">
+          Under det stora kortet, under rubriken "Näst på tur" (.match-upnext). Avatar, namn, ort och nivån som en liten
+          stämpel (.match-level-inline). De blir successivt mindre och svagare (.match-thumb-1 till -4), så att det syns att
+          det är en kö. De är bara en förhandsvisning av ordningen och inte klickbara. När det stora kortet har
+          besvarats växer nästa fram. Raden scrollar i sidled på en smal skärm.
+        </p>
+        <ul className="match-thumbs" style={{ marginTop: '0.75rem' }}>
+          {EXAMPLE_MATCHES.map((match, i) => (
+            <MatchThumb key={match.id} match={match} place={i + 1} />
+          ))}
+        </ul>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Listkort (.list-card) i ett rutnät (.card-grid .card-grid-compact)
@@ -602,7 +709,7 @@ function StyleGuide() {
           Grupper i en lista (.match-group, .match-group-title) och "Ångra" (.undo-notice)
         </p>
         <p className="hint-text">
-          Förslag på Personer: de man har intressen gemensamt med står under "Personer med liknande
+          Sök på Medlemmar: de man har intressen gemensamt med står under "Medlemmar med liknande
           intressen", i grupper efter antal gemensamma intressen, med antalet som rubrik ovanför
           korten. Har man tagit bort någon står antalet och "Visa dem igen" under filtren. Direkt efter
           att man tagit bort någon visas .undo-notice med "Ångra" en stund, längst ner i blocket även
@@ -778,8 +885,9 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Moderering (ModerationPage, bara för moderatorer) visar anmälningarna som kort (.moderation-card)
-          med anledningen som .status-pill-error och texten som .report-quote. Rutan "Stäng av …" har en
-          gul påminnelse (.moderation-reminder) om personen har varit avstängd förut, och nästa steg är förvalt.
+          med anledningen som .status-pill-error och texten som .report-quote. "Varna …" skickar en notis om
+          vilken regel som bröts. Rutan "Stäng av …" har en gul påminnelse (.moderation-reminder) om personen
+          har fått varningar eller varit avstängd förut, och nästa steg är förvalt.
         </p>
         <button type="button" className="secondary-button button-small" style={{ marginTop: '1rem' }} onClick={() => setModalOpen(true)}>
           Öppna exempel

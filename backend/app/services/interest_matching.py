@@ -32,6 +32,7 @@ import json
 import re
 from dataclasses import dataclass
 
+from app.models.user_interest import PRACTISES
 from app.services.ai_clients import AIFailed, Deadline, get_llm
 
 MAX_LEVEL = 3  # huvudområde, intresse, specifikt intresse
@@ -69,6 +70,8 @@ class LibraryItem:
     # Hur intresset kan utövas, som slugs. None = inget eget val, då gäller det närmaste överliggande.
     activities: tuple[str, ...] | None = None
     allow_children: bool = True  # False = får inte få nya underintressen (en plattform som PlayStation, se Interest.allow_children)
+    # Huvudområdets slug, som taggens färg följer (se crud/interest.py, InterestPlace).
+    area_slug: str | None = None
 
 
 class LibraryIndex:
@@ -158,10 +161,16 @@ class Match:
 
 def tags_from_tree(interests: list[dict]) -> list[Tag]:
     """Taggarna att avgöra ur utläsningens träd: varje intresse, och efter det dess subs. Hela trädet
-    sparas, så intresset är med även när det har subs ("modellbygge" med "fyrmodeller" ger två taggar)."""
+    sparas, så intresset är med även när det har subs ("modellbygge" med "fyrmodeller" ger två taggar).
+    Säger utläsningen att personen själv håller på med taggen (practices) får den aktiviteten PRACTISES."""
     tags: list[Tag] = []
     for interest in interests:
-        top = Tag(f"t{len(tags) + 1}", interest["name"], tuple(interest.get("aliases") or ()))
+        top = Tag(
+            f"t{len(tags) + 1}",
+            interest["name"],
+            tuple(interest.get("aliases") or ()),
+            activity=PRACTISES if interest.get("practices") else "",
+        )
         tags.append(top)
         for sub in interest.get("subtags") or []:
             tags.append(
@@ -171,6 +180,7 @@ def tags_from_tree(interests: list[dict]) -> list[Tag]:
                     tuple(sub.get("aliases") or ()),
                     context=top.name,
                     context_aliases=top.aliases,
+                    activity=PRACTISES if sub.get("practices") else "",
                     parent_key=top.key,
                 )
             )
@@ -396,7 +406,10 @@ def _new_name(tag: Tag, wanted) -> str:
 
 def _valid_activity(tag: Tag, interest_id: int | None, index: LibraryIndex) -> str:
     """Taggens aktivitet om den får användas för intresset (eller, för ett nytt intresse, för dess
-    förälder), annars "". En aktivitet som inte finns i listan kan alltså aldrig följa med."""
+    förälder), annars "". En aktivitet som inte finns i listan kan alltså aldrig följa med. Att man själv
+    håller på med intresset (PRACTISES) går alltid."""
+    if tag.activity == PRACTISES:
+        return PRACTISES
     return tag.activity if tag.activity and tag.activity in index.effective_activities(interest_id) else ""
 
 

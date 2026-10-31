@@ -75,11 +75,17 @@ def rows(db, user_id):
 # ---------- Förslag som finns i biblioteket ----------
 
 
-def test_an_approved_existing_interest_is_saved_with_the_chosen_activity(client, user, profile, library, db):
+def test_an_approved_existing_interest_you_do_yourself_is_saved_as_practising(client, user, profile, library, db):
     response = confirm(client, batch(user, [claim_same("p1", library["metal"])], [{"key": "p1", "activity": "spela"}]))
     assert response.status_code == 200
-    assert response.json() == {"interests": [{"id": library["metal"].id, "name": "Metal", "activity": "spela", "label": None}]}
-    assert rows(db, user.id) == [("Metal", "spela", "free_text")]
+    assert response.json() == {"interests": [{"id": library["metal"].id, "name": "Metal", "activity": "utova", "label": None}]}
+    assert rows(db, user.id) == [("Metal", "utova", "free_text")]
+
+
+@pytest.mark.parametrize("activity, saved", [("utova", "utova"), ("titta", ""), ("", "")])
+def test_the_chosen_activity_becomes_practising_or_interested(client, user, profile, library, db, activity, saved):
+    confirm(client, batch(user, [claim_same("p1", library["metal"], allowed=[activity])], [{"key": "p1", "activity": activity}]))
+    assert rows(db, user.id) == [("Metal", saved, "free_text")]
 
 
 def test_no_activity_gives_one_row_without_activity(client, user, profile, library, db):
@@ -87,17 +93,17 @@ def test_no_activity_gives_one_row_without_activity(client, user, profile, libra
     assert rows(db, user.id) == [("Metal", "", "free_text")]
 
 
-def test_several_activities_give_several_rows(client, user, profile, library, db):
+def test_several_activities_give_one_row_that_practises_if_any_of_them_does(client, user, profile, library, db):
     items = [{"key": "p1", "activities": ["lyssna", "spela"]}]
     response = confirm(client, batch(user, [claim_same("p1", library["metal"])], items))
-    assert [(i["name"], i["activity"]) for i in response.json()["interests"]] == [("Metal", "lyssna"), ("Metal", "spela")]
-    assert rows(db, user.id) == [("Metal", "lyssna", "free_text"), ("Metal", "spela", "free_text")]
+    assert [(i["name"], i["activity"]) for i in response.json()["interests"]] == [("Metal", "utova")]
+    assert rows(db, user.id) == [("Metal", "utova", "free_text")]
 
 
 def test_activity_and_activities_can_be_combined_without_duplicates(client, user, profile, library, db):
     items = [{"key": "p1", "activity": "spela", "activities": ["spela", "lyssna"]}]
     confirm(client, batch(user, [claim_same("p1", library["metal"])], items))
-    assert [r[1] for r in rows(db, user.id)] == ["lyssna", "spela"]
+    assert [r[1] for r in rows(db, user.id)] == ["utova"]
 
 
 def test_proposals_that_are_not_sent_are_dropped(client, user, profile, library, db):
@@ -134,7 +140,18 @@ def test_saving_the_same_thing_twice_does_not_duplicate_it(client, user, profile
     first = batch(user, [claim_same("p1", library["metal"])], [{"key": "p1", "activity": "spela"}])
     confirm(client, first)
     confirm(client, first)
-    assert rows(db, user.id) == [("Metal", "spela", "free_text")]
+    assert rows(db, user.id) == [("Metal", "utova", "free_text")]
+
+
+def test_an_interest_you_already_have_is_upgraded_to_practising_but_never_back(client, user, profile, library, db):
+    interested = batch(user, [claim_same("p1", library["metal"])], [{"key": "p1", "activity": "lyssna"}])
+    practising = batch(user, [claim_same("p1", library["metal"])], [{"key": "p1", "activity": "spela"}])
+    confirm(client, interested)
+    assert rows(db, user.id) == [("Metal", "", "free_text")]
+    confirm(client, practising)
+    assert rows(db, user.id) == [("Metal", "utova", "free_text")]
+    confirm(client, interested)
+    assert rows(db, user.id) == [("Metal", "utova", "free_text")]
 
 
 # ---------- Sigillet ----------
@@ -197,14 +214,14 @@ def test_the_same_interest_from_two_answers_becomes_one(client, user, profile, l
     one = batch(user, [claim_same("p1", library["metal"])], [{"key": "p1", "activity": "spela"}])
     two = batch(user, [claim_same("p1", library["metal"])], [{"key": "p1", "activity": "lyssna"}])
     confirm(client, one, two)
-    assert rows(db, user.id) == [("Metal", "lyssna", "free_text"), ("Metal", "spela", "free_text")]
+    assert rows(db, user.id) == [("Metal", "utova", "free_text")]
 
 
 def test_a_general_row_is_not_kept_next_to_a_specific_one_from_another_answer(client, user, profile, library, db):
     general = batch(user, [claim_same("p1", library["metal"])], [{"key": "p1"}])
     specific = batch(user, [claim_same("p1", library["metal"])], [{"key": "p1", "activity": "spela"}])
     confirm(client, general, specific)
-    assert [r[1] for r in rows(db, user.id)] == ["spela"]
+    assert [r[1] for r in rows(db, user.id)] == ["utova"]
 
 
 def test_different_interests_from_different_answers_are_all_saved(client, user, profile, library, db):
@@ -226,7 +243,7 @@ def test_an_answer_to_the_area_question_replaces_the_area_with_the_chosen_intere
 def test_several_chosen_interests_all_replace_the_area_and_share_the_activities(client, user, profile, library, db):
     items = [{"key": "p1", "narrow_to": [library["techno"].id, library["jazz"].id], "activities": ["spela"]}]
     confirm(client, batch(user, [claim_same("p1", library["musik"])], items))
-    assert rows(db, user.id) == [("Jazz", "spela", "free_text"), ("Techno", "spela", "free_text")]
+    assert rows(db, user.id) == [("Jazz", "utova", "free_text"), ("Techno", "utova", "free_text")]
 
 
 def test_answering_generally_keeps_the_area_itself(client, user, profile, library, db):
@@ -356,7 +373,7 @@ def test_two_answers_with_the_same_new_interest_create_it_once(client, user, pro
     two = batch(user, [claim_new("p1", "fyrmodeller", library["skapande"])], [{"key": "p1", "activity": "bygga"}])
     confirm(client, one, two)
     assert len(new_interests(db)) == 1
-    assert rows(db, user.id) == [("Fyrmodeller", "bygga", "free_text"), ("Fyrmodeller", "skapa", "free_text")]
+    assert rows(db, user.id) == [("Fyrmodeller", "utova", "free_text")]
 
 
 def test_the_same_new_sub_from_two_answers_under_the_same_new_parent_is_created_once(client, user, profile, library, db):
@@ -527,9 +544,9 @@ def test_a_new_profile_and_its_interests_are_created_together(client, user, muni
     assert response.status_code == 201
     body = response.json()
     assert body["profile"]["name"] == "Nicklas" and body["profile"]["municipality_name"] == "Göteborg"
-    assert [(i["name"], i["activity"]) for i in body["interests"]] == [("Fyrmodeller", ""), ("Metal", "spela")]
+    assert [(i["name"], i["activity"]) for i in body["interests"]] == [("Fyrmodeller", ""), ("Metal", "utova")]
     assert db.query(Profile).filter_by(user_id=user.id).one().name == "Nicklas"
-    assert rows(db, user.id) == [("Fyrmodeller", "", "onboarding"), ("Metal", "spela", "onboarding")]
+    assert rows(db, user.id) == [("Fyrmodeller", "", "onboarding"), ("Metal", "utova", "onboarding")]
 
 
 def test_completing_the_interview_marks_the_user_as_done(client, user, municipalities, library, db):
@@ -634,12 +651,27 @@ def test_the_whole_chain_from_analysis_to_a_saved_profile(client, user, municipa
     assert response.status_code == 201, response.text
     assert rows(db, user.id) == [
         ("Fyrmodeller", "", "onboarding"),
-        ("Metal", "spela", "onboarding"),
+        ("Metal", "utova", "onboarding"),
         ("Modellbygge", "", "onboarding"),
     ]
     modellbygge = db.query(Interest).filter_by(name="Modellbygge").one()
     assert db.query(Interest).filter_by(name="Fyrmodeller").one().parent_id == modellbygge.id
     assert modellbygge.parent_id == library["skapande"].id and modellbygge.created_by_user_id == user.id
+
+
+def test_the_proposals_carry_the_area_slug_for_the_tag_color(client, user, profile, library, db, monkeypatch):
+    # SCRUM-281: taggarna i intervjun färgas efter huvudområdets slug, som överallt annars. Ett befintligt intresse
+    # har sitt områdes, ett nytt sin förälders, och ett nytt under ett annat nytt (Fyrmodeller) det överliggandes.
+    monkeypatch.setattr(settings, "openai_api_key", "test-nyckel")
+    monkeypatch.setattr(settings, "openai_model", "test-modell")
+    library["metal"].aliases = "hårdrock"
+    db.commit()
+    body = analyze_with_fakes(client, library).json()
+    assert [(p["interest"]["name"], p["interest"]["area_slug"]) for p in body["proposals"]] == [
+        ("Metal", "musik"),
+        ("Modellbygge", "skapande"),
+        ("Fyrmodeller", "skapande"),
+    ]
 
 
 def test_the_whole_chain_with_only_the_sub_approved_by_the_user(client, user, profile, library, db, monkeypatch):

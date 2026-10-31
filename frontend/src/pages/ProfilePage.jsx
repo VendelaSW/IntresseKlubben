@@ -16,8 +16,18 @@ import { useGoBack } from '../hooks/useCanGoBack'
 import { checkAvailability, getCurrentUser, updateAccount } from '../services/api'
 import { clearProfileDraft, loadProfileDraft, saveProfileDraft } from '../services/profileDraft'
 import { resizeProfileImage } from '../services/resizeProfileImage'
-import { addInterest, confirmInterests, getMyInterests, getTopInterests, removeInterest } from '../services/interests'
 import {
+  addInterest,
+  confirmInterests,
+  getMyInterests,
+  getTopInterests,
+  removeInterest,
+  setPractices,
+} from '../services/interests'
+import {
+  ABOUT_AI_NOTE,
+  ABOUT_LABEL,
+  ABOUT_PLACEHOLDER,
   GENDER_OPTIONS,
   createProfile,
   genderLabel,
@@ -28,6 +38,7 @@ import {
   uploadResizedImage,
 } from '../services/profile'
 import { useConfirm } from '../hooks/useConfirm'
+import LoadError, { useRetry } from '../components/LoadError'
 
 // Så länge kontrollen av användarnamn/e-post väntar efter senaste
 // tangenttrycket, så att inte varje bokstav blir ett anrop.
@@ -160,6 +171,8 @@ function ProfilePage() {
   const [birthDate, setBirthDate] = useState('')
   const [gender, setGender] = useState('')
   const [genderSearchable, setGenderSearchable] = useState(false)
+  // Dölj åldern för andra (SCRUM-134). Moderatorerna ser den ändå.
+  const [ageHidden, setAgeHidden] = useState(false)
   const [municipalityCode, setMunicipalityCode] = useState('')
   const [district, setDistrict] = useState('')
   const [aboutText, setAboutText] = useState('')
@@ -178,6 +191,8 @@ function ProfilePage() {
   // "Upptaget"-meddelanden medan man skriver (null = ledigt eller oförändrat).
   const [availability, setAvailability] = useState({ username: null, email: null })
   const availabilityRequest = useRef(0)
+  // "Försök igen" när profilen inte gick att hämta (SCRUM-286): effekten nedan körs om.
+  const [loadAttempt, retryLoad] = useRetry()
 
   useEffect(() => {
     // Själva inloggningskollen sköts redan av ProtectedRoute, så vi kan
@@ -222,7 +237,7 @@ function ProfilePage() {
         // inte visa felsidan i onödan.
         if (err.status !== 401) setStatus('error')
       })
-  }, [])
+  }, [loadAttempt])
 
   // "Skapa din profil": spara utkastet medan man fyller i, så att inget går
   // förlorat om man råkar lämna sidan eller laddar om den. Bilden kan inte
@@ -250,6 +265,7 @@ function ProfilePage() {
     setBirthDate(fromProfile?.birth_date ?? '')
     setGender(fromProfile?.gender ?? '')
     setGenderSearchable(fromProfile?.gender_searchable ?? false)
+    setAgeHidden(fromProfile?.age_hidden ?? false)
     setMunicipalityCode(fromProfile?.municipality_code ?? '')
     setDistrict(fromProfile?.district ?? '')
     setAboutText(fromProfile?.profile_text ?? '')
@@ -317,6 +333,11 @@ function ProfilePage() {
     setMyInterests(await removeInterest(interest.id))
   }
 
+  // Utövar eller intresserad (SCRUM-271), under "Redigera".
+  async function setSavedPractices(interest, practices) {
+    setMyInterests(await setPractices(interest.id, practices))
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
     setFormError('')
@@ -336,6 +357,7 @@ function ProfilePage() {
       birth_date: birthDate,
       gender,
       gender_searchable: genderSearchable,
+      age_hidden: ageHidden,
       municipality_code: municipalityCode,
       profile_text: aboutText,
     }
@@ -409,7 +431,14 @@ function ProfilePage() {
     return (
       <div className="content-stack">
         <h1>Min profil</h1>
-        <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>
+        <LoadError
+          text="Kunde inte hämta profilen."
+          className="form-error"
+          onRetry={() => {
+            setStatus('loading')
+            retryLoad()
+          }}
+        />
       </div>
     )
   }
@@ -498,6 +527,13 @@ function ProfilePage() {
 
               <label htmlFor="profile-birth-date">Födelsedatum</label>
               <BirthDatePicker id="profile-birth-date" value={birthDate} onChange={setBirthDate} required />
+              <label>
+                <input type="checkbox" checked={ageHidden} onChange={(e) => setAgeHidden(e.target.checked)} /> Dölj
+                min ålder för andra
+              </label>
+              <p className="hint-text">
+                Du syns då inte när andra filtrerar på ålder. Intresseklubbens moderatorer ser alltid åldern.
+              </p>
 
               <label htmlFor="profile-gender">Kön</label>
               <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)} required>
@@ -537,14 +573,16 @@ function ProfilePage() {
               />
             </div>
             <div className="form-column">
-              <label htmlFor="profile-about">Om mig</label>
+              <label htmlFor="profile-about">{ABOUT_LABEL}</label>
               <TextareaWithCount
                 id="profile-about"
                 value={aboutText}
                 onChange={(e) => setAboutText(e.target.value)}
                 maxLength={800}
+                placeholder={ABOUT_PLACEHOLDER}
                 required
               />
+              <p className="hint-text">{ABOUT_AI_NOTE}</p>
 
               {/* Kontouppgifterna. En ny profil har redan valt dem när kontot skapades. */}
               {!isNew && (
@@ -675,6 +713,8 @@ function ProfilePage() {
           )}
           <dt>Sökbar på kön</dt>
           <dd>{profile.gender_searchable ? 'Ja' : 'Nej'}</dd>
+          <dt>Ålder synlig för andra</dt>
+          <dd>{profile.age_hidden ? 'Nej' : 'Ja'}</dd>
         </dl>
         {account?.email && <p className="hint-text">E-posten syns bara för dig.</p>}
         {account?.email_verified && <EmailVerification account={account} />}
@@ -688,6 +728,7 @@ function ProfilePage() {
       onAdd={addSavedInterest}
       onRemove={removeSavedInterest}
       onAddNew={addNewInterest}
+      onSetPractices={setSavedPractices}
       onOpenLibrary={() => setSearchParams({ bibliotek: '1' })}
     />
     </div>

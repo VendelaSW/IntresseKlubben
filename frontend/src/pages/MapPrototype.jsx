@@ -19,10 +19,12 @@ import { useBadgeCounts } from '../hooks/useBadgeCounts'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
 import { getEvents } from '../services/events'
 import { searchPlaces } from '../services/geocode'
-import { getGroups, getMyGroups } from '../services/groups'
+import { getAllGroups, getMyGroups } from '../services/groups'
+import { getAreaCounts } from '../services/people'
 import { getProfile } from '../services/profile'
 import { HOUR, cachedInBrowser } from '../services/queryClient'
 import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
+import { areasFrom, attachAreaSymbols } from './mapPrototypeAreaSymbols'
 import {
   ZOOM_LEVELS,
   allKommuner,
@@ -216,6 +218,41 @@ function landskapNameWidth(name, size) {
   return nameWidths.get(key)
 }
 
+// Antalet användare i ett område (SCRUM-82): en liten gul bricka efter namnet, i
+// vanlig text så att siffran är lätt att läsa. `count` är antalet, null för
+// färre än 5 (backend skickar aldrig 1-4), och undefined där ingen finns: då
+// ingen bricka. Bara antal, aldrig vilka.
+const PERSON_ICON =
+  '<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="3.6" r="2.2"/><path d="M1.8 11c.4-2.3 2.1-3.6 4.2-3.6s3.8 1.3 4.2 3.6"/></svg>'
+const FEW_TEXT = 'färre än 5'
+const countText = (count) => (count === null ? FEW_TEXT : count.toLocaleString('sv-SE'))
+
+function countBadge(count) {
+  if (count === undefined) return null
+  const el = document.createElement('span')
+  el.className = 'map-count-badge'
+  el.innerHTML = PERSON_ICON
+  el.append(countText(count))
+  return el
+}
+
+// Brickans bredd i pixlar efter ett namn i storleken `size` (ungefär, för att
+// namnen inte ska krocka), 0 utan bricka. Brickan följer namnets storlek (se
+// .map-count-badge): texten är 0,85 av namnets, och ikonen lika stor som texten.
+function countBadgeWidth(count, size) {
+  if (count === undefined) return 0
+  const font = Math.max(9, size * 0.85)
+  return font * (countText(count).length * 0.6 + 1.3) + 12 + size * 0.4
+}
+
+// Namnet med brickan efter: knappen får ett namn för skärmläsare som säger vad siffran är.
+function withCount(el, name, count) {
+  const badge = countBadge(count)
+  if (!badge) return
+  el.append(badge)
+  el.setAttribute('aria-label', `${name}, ${countText(count)} medlemmar`)
+}
+
 // Var ett landskapsnamn ska stå, utan att krocka med de namn och knappar som
 // redan står där (`taken`). I ordning:
 //   1. i det egna landskapet: mitt i, eller lite upp, ner och åt sidorna,
@@ -406,7 +443,7 @@ function listFontSize(screenWidth) {
 }
 function listColumnWidth(screenWidth) {
   const size = listFontSize(screenWidth)
-  return Math.max(...LANDSKAP_LABELS.map(({ name }) => landskapNameWidth(name, size))) + LIST_GAP + 8
+  return Math.max(...LANDSKAP_LABELS.map(({ name }) => landskapNameWidth(name, size))) + countBadgeWidth(null, size) + LIST_GAP + 8
 }
 
 // Lägger ortnamnen som HTML-text i Caveat. Kartan räknar ut var namnen får
@@ -429,10 +466,13 @@ function listColumnWidth(screenWidth) {
 //
 // I länsvyn visas kommunernas namn (getKommuner) utzoomat, klickbara
 // (onPickKommun), och ortnamnen inom länet när man zoomar in.
+//
+// Landskapen i listan, länen och kommunerna får antalet användare där efter
+// namnet (getCounts, se countBadge).
 function syncPlaceLabels(
   map,
   layer,
-  { getMode, getLandskap, getLan, getKommuner, onPick, onHover, onPickLan, onHoverLan, onPickKommun },
+  { getMode, getLandskap, getLan, getKommuner, getCounts, onPick, onHover, onPickLan, onHoverLan, onPickKommun },
 ) {
   let placed = []
   // Största landskapen först, så att de vinner när namnen krockar.
@@ -558,9 +598,11 @@ function syncPlaceLabels(
     const ui = levels?.getBoundingClientRect()
     const uiBox = ui && [ui.left - origin.left - 6, 0, width, ui.bottom - origin.top + 6]
 
+    const counts = getCounts()?.landskap
     const items = LANDSKAP_LABELS.map((label) => {
       const [u, v] = LANDSKAP_LIST_LAYOUT[label.name] ?? [0.5, 0.5]
-      const nameWidth = landskapNameWidth(label.name, size)
+      const count = counts?.[String(label.id)]
+      const nameWidth = landskapNameWidth(label.name, size) + countBadgeWidth(count, size)
       const anchor = map.project(label.lngLat)
       let cx = minX + u * (maxX - minX)
       let cy = minY + v * (maxY - minY)
@@ -568,7 +610,7 @@ function syncPlaceLabels(
       cx = Math.min(width - nameWidth / 2 - 4, Math.max(nameWidth / 2 + 4, cx))
       cy = Math.min(height - LIST_BOTTOM, Math.max(rowHeight / 2 + 4, cy))
       if (uiBox && cx + nameWidth / 2 > uiBox[0] && cy - rowHeight / 2 < uiBox[3]) cy = uiBox[3] + rowHeight / 2
-      return { ...label, anchor, nameWidth, cx, cy }
+      return { ...label, count, anchor, nameWidth, cx, cy }
     })
 
     // Knuffa isär namn som överlappar (uppifrån och ner, några varv).
@@ -594,12 +636,13 @@ function syncPlaceLabels(
 
     const els = []
     let lines = ''
-    for (const { id, name, anchor, nameWidth, cx, cy } of items) {
+    for (const { id, name, count, anchor, nameWidth, cx, cy } of items) {
       // Knappar, så att namnen går att nå med tangentbordet.
       const el = document.createElement('button')
       el.type = 'button'
       el.className = 'map-sketch-landskap is-listed'
       el.textContent = name
+      withCount(el, name, count)
       el.dataset.name = name
       el.dataset.id = id
       el.style.fontSize = `${size}px`
@@ -623,14 +666,18 @@ function syncPlaceLabels(
   // och alla hålls på skärmen.
   function lanEls(zoom) {
     const landskap = getLandskap()
-    const labels = LAN_LABELS.filter((l) => l.landskap === landskap)
+    const code = LANDSKAP_LABELS.find((l) => l.name === landskap)?.id
+    const counts = getCounts()?.lan
+    const labels = LAN_LABELS.filter((l) => l.landskap === landskap).map((l) => ({ ...l, count: counts?.[`${code}:${l.id}`] }))
     return areaNameEls(labels, (label) => landskapFontSize(label.km2, zoom + 1), 'is-lan')
   }
 
   // Kommunernas namn i länsvyn, i samma stil (mindre text).
   function kommunEls(opacity) {
     if (opacity <= 0) return []
-    const els = areaNameEls(getKommuner(), () => KOMMUN_NAME_SIZE, 'is-kommun')
+    const counts = getCounts()?.kommun
+    const kommuner = getKommuner().map((k) => ({ ...k, count: counts?.[k.id] }))
+    const els = areaNameEls(kommuner, () => KOMMUN_NAME_SIZE, 'is-kommun')
     if (opacity < 1) els.forEach((el) => (el.style.opacity = opacity))
     return els
   }
@@ -643,7 +690,7 @@ function syncPlaceLabels(
     const height = layer.clientHeight
     const items = labels.map((label) => {
       const size = sizeOf(label)
-      const nameWidth = landskapNameWidth(label.name, size)
+      const nameWidth = landskapNameWidth(label.name, size) + countBadgeWidth(label.count, size)
       const { x, y } = map.project(label.lngLat)
       return { ...label, size, nameWidth, cx: x, cy: y }
     })
@@ -665,13 +712,14 @@ function syncPlaceLabels(
       }
       if (!changed) break
     }
-    return items.map(({ id, name, size, nameWidth, cx, cy, lngLat }) => {
+    return items.map(({ id, name, count, size, nameWidth, cx, cy, lngLat }) => {
       const x = Math.min(width - nameWidth / 2 - 4, Math.max(nameWidth / 2 + 4, cx))
       const y = Math.min(height - size, Math.max(size, cy))
       const el = document.createElement('button')
       el.type = 'button'
       el.className = `map-sketch-landskap ${className}`
       el.textContent = name
+      withCount(el, name, count)
       el.dataset.id = id
       el.dataset.lng = lngLat[0]
       el.dataset.lat = lngLat[1]
@@ -682,13 +730,14 @@ function syncPlaceLabels(
   }
 
   // Namnen ritas om när kartan rör sig eller blir klar, så ett namn som har
-  // tangentbordsfokus får tillbaka det efter omritningen.
+  // tangentbordsfokus får tillbaka det efter omritningen. Det känns igen på
+  // namnet (första texten), så att fokus blir kvar när antalet ändras.
   function render() {
     const focused = layer.contains(document.activeElement) ? document.activeElement : null
-    const key = focused && `${focused.className}|${focused.textContent}`
+    const key = focused && `${focused.className}|${focused.firstChild?.textContent}`
     draw()
     if (!key) return
-    const again = [...layer.children].find((el) => `${el.className}|${el.textContent}` === key)
+    const again = [...layer.children].find((el) => `${el.className}|${el.firstChild?.textContent}` === key)
     again?.focus({ preventScroll: true })
   }
 
@@ -844,17 +893,30 @@ function MapPrototype() {
   const flyTokenRef = useRef(0)
   const activitiesRef = useRef(null) // klubbarnas och eventens lappar på kartan
   const activitiesLayerRef = useRef(null)
+  const areaClubsRef = useRef(null) // symbolerna för klubbar och events utan nål (se mapPrototypeAreaSymbols.js)
+  const areaClubsLayerRef = useRef(null)
 
   // Hämtar klubbar och events som syns för användaren (samma som listorna i
   // appen) och lägger dem på kartan.
   // Kommunerna (se allKommuner), när de har laddats: för att kunna placera en
   // klubb eller ett event som inte finns bland lapparna än (se findActivity).
   const kommunerRef = useRef(null)
+  // Antalet användare per område (se getAreaCounts), när de har hämtats.
+  const areaCountsRef = useRef(null)
+
+  async function loadAreaCounts() {
+    try {
+      areaCountsRef.current = await getAreaCounts()
+      labelsApiRef.current?.render()
+    } catch {
+      // Kartan fungerar utan antalen.
+    }
+  }
 
   async function loadActivities() {
     try {
       const [publicGroups, myGroups, events, kommuner] = await Promise.all([
-        getGroups(),
+        getAllGroups(),
         getMyGroups(),
         getEvents(),
         allKommuner(),
@@ -862,6 +924,8 @@ function MapPrototype() {
       const groups = [...new Map([...publicGroups, ...myGroups].map((g) => [g.id, g])).values()]
       kommunerRef.current = kommuner
       const items = activitiesFrom({ groups, events, kommuner })
+      // Symbolerna först, så att lapparna kan flytta sig undan för dem.
+      areaClubsRef.current?.setAreas(areasFrom({ groups, events, eventItems: items, kommuner }))
       activitiesRef.current?.setItems(items)
       // Samma klubbar och events går att söka fram i sökrutan (se MapPlaceSearch).
       setActivityItems(items)
@@ -932,7 +996,10 @@ function MapPrototype() {
   // När ett block stängs kan en klubb eller ett event ha skapats eller
   // ändrats, så hämta lapparna igen.
   useEffect(() => {
-    if (openPage === null && activitiesRef.current) loadActivities()
+    if (openPage === null && activitiesRef.current) {
+      loadActivities()
+      loadAreaCounts()
+    }
   }, [openPage])
   const fitRef = useRef(null) // mitt och zoom för hela Sverige (se fitSweden)
   // Namnet på området man senast zoomade till med nivåknapparna.
@@ -975,6 +1042,7 @@ function MapPrototype() {
     // täcker allt utom det valda landskapet på landskapsnivån, så rita om.
     labelsApiRef.current?.render()
     outsideApiRef.current?.render()
+    areaClubsRef.current?.render()
     activitiesRef.current?.render()
     const hidden = next === 'sverige' ? HIDDEN_ON_SWEDEN : next === 'landskap' ? HIDDEN_ON_LANDSKAP : []
     const shown = next === 'landskap' ? SHOWN_ON_LANDSKAP : []
@@ -1069,6 +1137,7 @@ function MapPrototype() {
           const found = await findDistrict(district, kommun)
           if (stale()) return
           if (found) {
+            areaClubsRef.current?.setKommunCenter(kommun.kod, found)
             map.easeTo({ center: found, zoom: DISTRICT_ZOOM, duration: 1600 })
             setLevelName(district.trim())
             return
@@ -1086,6 +1155,8 @@ function MapPrototype() {
       }
       const center = match?.geometry.coordinates ?? kommun.label
       if (!center) return
+      // Klubbarna utan nål i kommunen (symbolen) står där kartan stannar, så att de syns direkt.
+      areaClubsRef.current?.setKommunCenter(kommun.kod, center)
       map.easeTo({ center, zoom: DISTRICT_ZOOM, duration: 1600 })
       if (match) setLevelName(match.properties['name:sv'] ?? match.properties.name)
     })
@@ -1342,16 +1413,29 @@ function MapPrototype() {
       onHover: (id) => setHovered(id),
       onPickLan: (lngLat) => zoomToLevelRef.current('lan', lngLat),
       getKommuner: () => lanFocusRef.current?.kommuner ?? [],
+      getCounts: () => areaCountsRef.current,
       onPickKommun: (lngLat) => zoomToLevelRef.current('kommun', lngLat),
       onHoverLan: (id) => setHoveredLan(id),
     })
     startAtHome(map)
+    // Symbolerna före lapparna, så att de ritas först när kartan rör sig och lapparna kan flytta sig undan.
+    areaClubsRef.current = attachAreaSymbols(map, areaClubsLayerRef.current, {
+      getView: () => ({
+        mode: modeRef.current,
+        landskap: selectedLandskapRef.current,
+        lan: selectedLanRef.current,
+        kommun: selectedKommunRef.current,
+      }),
+      onOpen: (item) => openActivityRef.current(item),
+    })
     activitiesRef.current = attachActivityMarkers(map, activitiesLayerRef.current, {
       getKommun: () => selectedKommunRef.current,
       onPick: (item, compact) => pickActivityRef.current(item, compact),
+      getFixed: () => areaClubsRef.current?.boxes() ?? [],
     })
     loadActivities()
     labelsApiRef.current = labelsApi
+    loadAreaCounts()
     // Mätt innan Caveat hann laddas blir listans bredd fel: räkna om då.
     document.fonts?.ready.then(() => mapRef.current === map && fitSweden())
     placeNotesRef.current = attachPlaceNotes(map, 'places', notesRef.current)
@@ -1419,6 +1503,7 @@ function MapPrototype() {
       <div ref={signsRef} className="map-sketch-signs" aria-hidden="true" />
       <div ref={labelsRef} className="map-sketch-labels" aria-hidden="true" />
       <div ref={activitiesLayerRef} className="map-sketch-activities" />
+      <div ref={areaClubsLayerRef} className="map-sketch-activities map-sketch-area-clubs" />
       <div ref={notesRef} className="map-sketch-notes" />
       <div ref={threadRef} className="map-sketch-thread" hidden={!pinsShown} />
       <svg className="map-sketch-compass" viewBox="0 0 80 80" aria-hidden="true">

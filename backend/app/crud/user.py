@@ -20,8 +20,8 @@ from app.crud.report import anonymize_user_reports
 from app.models.contact import Contact
 from app.models.conversation_read import ConversationRead
 from app.models.dismissed_suggestion import DismissedSuggestion
-from app.models.event import Event, EventInvitation, EventResponse
-from app.models.group import GroupInvitation
+from app.models.event import Event, EventHost, EventInvitation, EventJoinRequest, EventResponse
+from app.models.group import GroupInvitation, GroupJoinRequest
 from app.models.group_message import GroupMessage
 from app.models.group_post import GroupPost
 from app.models.interest import Interest
@@ -207,10 +207,13 @@ def delete_user(db: Session, user: User) -> str | None:
     db.flush()
     db.query(EventInvitation).filter(EventInvitation.user_id == user_id).delete(synchronize_session=False)
     db.query(GroupInvitation).filter(GroupInvitation.user_id == user_id).delete(synchronize_session=False)
+    db.query(GroupJoinRequest).filter(GroupJoinRequest.user_id == user_id).delete(synchronize_session=False)
     db.query(GroupInvitation).filter(GroupInvitation.invited_by == user_id).update(
         {GroupInvitation.invited_by: None}, synchronize_session=False
     )
     db.query(EventResponse).filter(EventResponse.user_id == user_id).delete(synchronize_session=False)
+    db.query(EventJoinRequest).filter(EventJoinRequest.user_id == user_id).delete(synchronize_session=False)
+    db.query(EventHost).filter(EventHost.user_id == user_id).delete(synchronize_session=False)
 
     db.query(Message).filter(
         or_(Message.sender_id == user_id, Message.recipient_id == user_id)

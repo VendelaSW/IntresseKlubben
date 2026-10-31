@@ -14,6 +14,7 @@ import { getProfile } from '../services/profile'
 import { REPORT_TARGET } from '../services/reports'
 import { formatSentAt } from '../utils/formatSentAt'
 import { startsGroup } from '../utils/messageGroups'
+import LoadError from '../components/LoadError'
 
 // Hur ofta konversationen hämtas igen medan den är öppen, så att nya brev
 // syns utan att man laddar om sidan.
@@ -37,7 +38,7 @@ function ConversationPage() {
   // syns, eller ingen har rört appen på ett tag (se services/activity.js),
   // frågar den inte servern. Misslyckas en senare hämtning ligger breven kvar
   // och nästa försök kommer snart; bara den första visar fel.
-  const { data, isSuccess, isError, refetch } = useQuery({
+  const { data, isSuccess, isError, isFetching, refetch } = useQuery({
     ...conversationQuery(userId),
     refetchInterval: () => (isIdle() ? false : POLL_MS),
   })
@@ -134,7 +135,7 @@ function ConversationPage() {
 
         {status === 'loading' && <p className="hint-text">Laddar...</p>}
         {status === 'error' && (
-          <p className="status-error">Kunde inte hämta konversationen. Försök igen senare.</p>
+          <LoadError text="Kunde inte hämta konversationen." onRetry={() => refetch()} retrying={isFetching} />
         )}
         {status === 'ready' && messages.length === 0 && <p className="hint-text">Inga brev än.</p>}
         {status === 'ready' && messages.length > 0 && (

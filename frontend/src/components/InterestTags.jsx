@@ -2,8 +2,8 @@ import { groupInterests } from '../utils/interestGroups'
 import InterestTagGroup from './InterestTagGroup'
 
 // Någons intressen som taggar, bara för visning (personkort, events och klubbar).
-// `interests` är [{ id, name, parent_id, area }]; ett intresse vars förälder också
-// finns med visas som ett underintresse till den (▼, se InterestTagGroup).
+// `interests` är [{ id, name, path, area_slug }]; de grupperas per kategori
+// (se utils/interestGroups.js och InterestTagGroup).
 // `highlight` (en Set av intresse-id:n) markerar de som är gemensamma med en
 // själv; utan den markeras inga. `children` läggs sist i raden, t.ex. en knapp
 // som visar fler, och `listRef` pekar på listan (för att mäta den, se PersonCard).

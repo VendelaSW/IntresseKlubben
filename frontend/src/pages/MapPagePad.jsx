@@ -19,6 +19,7 @@ import NotificationsPage from './NotificationsPage'
 import PeoplePage from './PeoplePage'
 import ProfilePage from './ProfilePage'
 import UserProfilePage from './UserProfilePage'
+import LoadError from '../components/LoadError'
 
 // Appens övriga sidor som anteckningsblock på kartan, som profilen (se
 // MapPad). Inuti ligger de vanliga sidorna, så allt fungerar som i appen.
@@ -44,8 +45,8 @@ export const MAP_PAGES = {
 const PAD_ROUTES = [
   { path: '/meddelanden', title: 'Brev', Page: InboxPage },
   { path: '/meddelanden/:userId', title: 'Brev', Page: ConversationPage },
-  { path: '/personer', title: 'Personer', Page: PeoplePage },
-  { path: '/anvandare/:userId', title: 'Personer', Page: UserProfilePage },
+  { path: '/personer', title: 'Medlemmar', Page: PeoplePage },
+  { path: '/anvandare/:userId', title: 'Medlemmar', Page: UserProfilePage },
   { path: '/klubbar', title: 'Klubbar', Page: GroupsPage },
   { path: '/events', title: 'Events', Page: EventsPage },
   { path: '/notiser', title: 'Notiser', Page: NotificationsPage },
@@ -89,7 +90,12 @@ class PageErrorBoundary extends Component {
   }
 
   render() {
-    if (this.state.failed) return <p className="form-error">Kunde inte visa sidan. Försök igen senare.</p>
+    if (this.state.failed) {
+      // "Försök igen" visar sidan på nytt (SCRUM-286).
+      return (
+        <LoadError text="Kunde inte visa sidan." className="form-error" onRetry={() => this.setState({ failed: false })} />
+      )
+    }
     return this.props.children
   }
 }

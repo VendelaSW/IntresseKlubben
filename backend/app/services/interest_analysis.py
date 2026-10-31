@@ -18,9 +18,17 @@ Inget sparas. Förslagen sparas i ett senare steg, och bara de som har ett gilti
 
 from dataclasses import dataclass, field
 
+from app.models.user_interest import PRACTISES
 from app.services.ai_clients import Deadline
 from app.services.interest_confirm import MIN_NAME_LENGTH
-from app.services.interest_extractor import clean_tag, drop_tags, extract_interests, judge_tags, remove_flagged
+from app.services.interest_extractor import (
+    check_safety_net,
+    clean_tag,
+    drop_tags,
+    extract_interests,
+    judge_tags,
+    remove_flagged,
+)
 from app.services.interest_followups import FollowUp, plan
 from app.services.interest_matching import LibraryIndex, Match, Tag, exact_match, match_tags, tags_from_tree
 from app.services.interest_spelling import folded_match
@@ -41,16 +49,26 @@ def display_name(name: str) -> str:
 
 
 def _interest_ref(match: Match, index: LibraryIndex, keys: dict[str, str], built: dict[str, dict]) -> dict:
-    """Intresset förslaget pekar på: id, namn, plats i trädet och om det är nytt."""
+    """Intresset förslaget pekar på: id, namn, plats i trädet, huvudområdets slug (taggens färg) och om det är
+    nytt. Ett nytt intresse får sin förälders område."""
     if match.kind == "same":
         item = index.by_id[match.interest_id]
-        return {"id": item.id, "name": item.name, "path": list(item.path), "is_new": False, "parent_key": None}
+        return {
+            "id": item.id, "name": item.name, "path": list(item.path), "area_slug": item.area_slug,
+            "is_new": False, "parent_key": None,
+        }
     name = display_name(match.name or match.tag.name)
     if match.parent_key is not None:  # en sub under ett annat nytt förslag i samma analys
         parent = built[keys[match.parent_key]]["interest"]
-        return {"id": None, "name": name, "path": [*parent["path"], parent["name"]], "is_new": True, "parent_key": keys[match.parent_key]}
+        return {
+            "id": None, "name": name, "path": [*parent["path"], parent["name"]], "area_slug": parent["area_slug"],
+            "is_new": True, "parent_key": keys[match.parent_key],
+        }
     parent_item = index.by_id[match.parent_id]
-    return {"id": None, "name": name, "path": [*parent_item.path, parent_item.name], "is_new": True, "parent_key": None}
+    return {
+        "id": None, "name": name, "path": [*parent_item.path, parent_item.name], "area_slug": parent_item.area_slug,
+        "is_new": True, "parent_key": None,
+    }
 
 
 def _sealed(proposal: dict, match: Match, allowed: list[str], keys: dict[str, str]) -> dict:
@@ -89,9 +107,9 @@ def analyze(
     deadline = Deadline()
     tree = shortcut_tree(text, index)  # hela texten är kända intressen: inga anrop alls
     if tree is None:
-        # Skyddsnät: hittar modellen ingen tagg alls letar vi namn och alias i texten (och modererar träffarna).
+        # Skyddsnät: hittar modellen ingen tagg alls letar vi namn och alias i texten (se _safety_net).
         # Har granskningen eller moderationen tagit bort något gäller deras beslut, då används inget skyddsnät.
-        tree = extract_interests(text, deadline, on_nothing=lambda: remove_flagged(local_tree(text, index), deadline))
+        tree = extract_interests(text, deadline, on_nothing=lambda: _safety_net(text, index, deadline))
     tags = tags_from_tree(tree)
     if not tags:
         return Analysis()
@@ -100,6 +118,18 @@ def analyze(
     candidates = None if finder is None else lambda unresolved: finder(unresolved, text, index, deadline)
     result = plan(match_tags(tags, index, deadline, candidates), index, catalog, deadline, text=text, use_model=followups_enabled)
     return _assemble(result, index, followups_enabled)
+
+
+def _safety_net(text: str, index: LibraryIndex, deadline: Deadline) -> list[dict]:
+    """Skyddsnätet: namn och alias ur biblioteket som står i texten (local_tree). En modell kontrollerar att
+    personen faktiskt har dem i dag (check_safety_net, SCRUM-261), så att "Jag spelade fotboll förr" eller
+    "Jag kör bil" (alias till Sjunga i kör) inte blir förslag, och träffarna modereras som modellens taggar.
+    Kontrollen körs bara när skyddsnätet har hittat något, vilket är sällan."""
+    tree = local_tree(text, index)
+    if not tree:
+        return []
+    keep = check_safety_net(text, [node["name"] for node in tree], deadline)
+    return remove_flagged([node for node in tree if node["name"] in keep], deadline)
 
 
 def _assemble(result, index: LibraryIndex, followups_enabled: bool) -> Analysis:
@@ -116,7 +146,9 @@ def _assemble(result, index: LibraryIndex, followups_enabled: bool) -> Analysis:
             "interest": _interest_ref(match, index, keys, built),
             "activity": match.activity,
         }
-        sealed.append(_sealed(built[key], match, result.allowed.get(match.tag.key, []), keys))
+        # Att man själv håller på med intresset (PRACTISES) går alltid att spara (SCRUM-271).
+        allowed = list(dict.fromkeys([*result.allowed.get(match.tag.key, []), PRACTISES]))
+        sealed.append(_sealed(built[key], match, allowed, keys))
 
     followups = []
     if followups_enabled:
