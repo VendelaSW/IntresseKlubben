@@ -10,7 +10,7 @@ import MatchPanel from '../components/MatchPanel'
 import OptionPicker from '../components/OptionPicker'
 import PersonCard from '../components/PersonCard'
 import { useDesignChoice } from '../hooks/useDesignChoice'
-import { useTabParam } from '../hooks/useTabParam'
+import { useResetOnTabChange, useTabParam } from '../hooks/useTabParam'
 import {
   CANCEL_REQUEST,
   answerContactRequest,
@@ -96,6 +96,15 @@ function sharedInterestsText(person, myInterestIds) {
 // intresse, kommun, kön och ålder.
 const NO_PEOPLE = []
 const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: [] }
+// Inga filter valda. Filtren nollställs när man byter flik.
+const NO_FILTERS = {
+  interestId: '',
+  pickedInterest: null,
+  municipalityCode: '',
+  gender: '',
+  minAge: '',
+  maxAge: '',
+}
 
 // Ett omslag runt filterraderna när `wrap` är sant, annars bara raderna.
 function FilterPanel({ wrap, className, children }) {
@@ -117,14 +126,8 @@ function PeoplePage() {
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   // `interestId` är rullistans val (ett av ens egna intressen) och `pickedInterest` intresset man sökte fram bland alla;
   // bara ett av dem gäller åt gången (se InterestFilter).
-  const [filters, setFilters] = useState({
-    interestId: '',
-    pickedInterest: null,
-    municipalityCode: '',
-    gender: '',
-    minAge: '',
-    maxAge: '',
-  })
+  const [filters, setFilters] = useState(NO_FILTERS)
+  useResetOnTabChange(tab, () => setFilters(NO_FILTERS))
   const [myInterests, setMyInterests] = useState([])
   const [municipalities, setMunicipalities] = useState([])
   const [busy, setBusy] = useState(false)

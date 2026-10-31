@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 // Vald flik på sidor med flikar (Personer, Brev, Klubbar och Events). Fliken
@@ -28,4 +29,17 @@ export function useTabParam(tabs) {
   }
 
   return [current?.id ?? null, setTab]
+}
+
+// Nollställer sök och filter när man byter flik (SCRUM-325), så att en flik aldrig är filtrerad på något man valt
+// på en annan. Gäller alla sätt att byta flik, också knappar som "Se alla klubbar". `reset` körs bara vid ett byte,
+// inte när sidan öppnas. Sorteringen är inget filter och får ligga kvar.
+// `tab` är null medan listan inte visas (t.ex. när en klubb eller ett event är öppet och fliken inte står i
+// adressen): då räknas det inte som ett byte, så filtret finns kvar när man går tillbaka till samma flik.
+export function useResetOnTabChange(tab, reset) {
+  const [seenTab, setSeenTab] = useState(tab)
+  if (tab !== null && tab !== seenTab) {
+    setSeenTab(tab)
+    if (seenTab !== null) reset()
+  }
 }

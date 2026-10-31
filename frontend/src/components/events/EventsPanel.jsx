@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
-import { useTabParam } from '../../hooks/useTabParam'
+import { useResetOnTabChange, useTabParam } from '../../hooks/useTabParam'
 import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
@@ -130,7 +130,7 @@ function EventsPanel() {
     if (view !== 'list') setNotice('')
   }, [view])
   const [myInterestIds, setMyInterestIds] = useState(new Set())
-  // Filtren ('' = alla): tid (se utils/eventTime.js) och intresse. Gäller alla flikar.
+  // Filtren ('' = alla): tid (se utils/eventTime.js) och intresse. Nollställs när man byter flik.
   const [timeFilter, setTimeFilter] = useState('')
   const [interestFilter, setInterestFilter] = useState('')
   const filtering = Boolean(timeFilter || interestFilter)
@@ -138,6 +138,7 @@ function EventsPanel() {
     setTimeFilter('')
     setInterestFilter('')
   }
+  useResetOnTabChange(view === 'list' ? tab : null, clearFilters)
   // Formuläret, med intresset förvalt om det finns ett.
   function openCreate(interestId = null) {
     setInviteProblem('')

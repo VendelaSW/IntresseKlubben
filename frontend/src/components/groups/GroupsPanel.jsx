@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
-import { useTabParam } from '../../hooks/useTabParam'
+import { useResetOnTabChange, useTabParam } from '../../hooks/useTabParam'
 import { useConfirm } from '../../hooks/useConfirm'
 import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
 import CreateGroupForm from './CreateGroupForm'
@@ -67,9 +67,9 @@ const SEARCH_DELAY_MS = 300
 
 // Allt innehåll för klubbar (intressegrupper): flikar, filter och klubbarna
 // som kort i samma rutnät som Personer-sidan. Klick på ett kort visar mer
-// information. Sökning, filter och sortering gäller alla flikar. "Alla"
-// filtreras av backend och hämtas PAGE_SIZE åt gången, de andra två finns
-// redan här.
+// information. Sökning och filter nollställs när man byter flik, sorteringen
+// ligger kvar. "Alla" filtreras av backend och hämtas PAGE_SIZE åt gången, de
+// andra två finns redan här.
 // Utgången inloggning hanteras globalt i services/api.js.
 const NONE = []
 
@@ -102,9 +102,10 @@ function GroupsPanel() {
   // Finns det fler i "Alla" än de som hämtats?
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
-  // Sökning, filter och sortering, gemensamma för alla flikar. Ofiltrerat från
-  // början, så att ingen flik döljer klubbar utan att man valt det. Satt redan
-  // från start, så att "Alla" hämtas samtidigt som resten i stället för efter.
+  // Sökning, filter och sortering. Sökning och filter nollställs när man byter
+  // flik (se clearFilters). Ofiltrerat från början, så att ingen flik döljer
+  // klubbar utan att man valt det. Satt redan från start, så att "Alla" hämtas
+  // samtidigt som resten i stället för efter.
   const [filters, setFilters] = useState({
     interestId: '',
     municipalityCode: '',
@@ -183,6 +184,9 @@ function GroupsPanel() {
   // Utan vald flik: Mina klubbar, eller Förslag för den som inte är med i någon
   // klubb än (en tom flik är ingen bra början).
   const tab = urlTab ?? (overview.data && mine.length === 0 ? 'suggested' : 'mine')
+  // Först när klubbarna har kommit: innan dess kan fliken ändras från Mina klubbar
+  // till Förslag av sig själv, och det är inget byte man har gjort.
+  useResetOnTabChange(view === 'list' && overview.data ? tab : null, clearFilters)
   const overviewFailed = overview.isError && overview.data === undefined
   const { refetch: refetchOverview } = overview
   const loadMineAndSuggested = useCallback(() => refetchOverview(), [refetchOverview])
@@ -243,9 +247,14 @@ function GroupsPanel() {
     })
   }
 
+  // Samma filter tillbaka om inget var valt, så att "Alla" inte hämtas om i onödan (t.ex. när fliken byts).
   function clearFilters() {
     setSearch('')
-    setFilters({ ...filters, interestId: '', municipalityCode: '', q: '' })
+    setFilters((current) =>
+      current.interestId || current.municipalityCode || current.q
+        ? { ...current, interestId: '', municipalityCode: '', q: '' }
+        : current,
+    )
   }
 
   // Efter gå med, gå ur eller radera. Gick man med försvinner klubben ur
