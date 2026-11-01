@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useTabParam } from '../../hooks/useTabParam'
@@ -20,7 +20,12 @@ import { getAllInterests, getMyInterests } from '../../services/interests'
 import { useAuth } from '../../hooks/useAuth'
 import { markEventsSeen } from '../../services/eventsSeen'
 import { TIME_FILTERS, inTimeFilter } from '../../utils/eventTime'
+import { DEV_MODE } from '../../devtools/devMode'
 import LoadError from '../LoadError'
+
+// TILLFÄLLIGT: kalendern över ens events finns bara i testläget (väljaren "Events: kalender"), och kommer inte ens med i
+// en vanlig build.
+const EventCalendar = DEV_MODE ? lazy(() => import('../../devtools/EventCalendar')) : null
 
 const TABS = [
   { id: 'mine', label: 'Mina events', short: 'Mina' },
@@ -67,6 +72,11 @@ function EventsPanel() {
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
   const tab = urlTab ?? 'mine'
+  // Testläget: lista eller kalender på Mina events.
+  const calendarChoice = useDesignChoice('eventCalendar')
+  const [mineMode, setMineMode] = useState('list') // 'list' | 'calendar'
+  const calendarOn = EventCalendar !== null && calendarChoice === 'kalender' && tab === 'mine'
+  const showCalendar = calendarOn && mineMode === 'calendar'
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   // 'list', 'create' eller id för det event som visas. Vyn står i adressen
@@ -312,60 +322,76 @@ function EventsPanel() {
             </>
           ) : (
             <>
-              <div className="filter-select-row filter-select-row-compact">
-                <select aria-label="Filtrera på tid" value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
-                  {TIME_FILTERS.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  aria-label="Filtrera på intresse"
-                  value={interestFilter}
-                  onChange={(e) => setInterestFilter(e.target.value)}
-                >
-                  <option value="">Alla intressen</option>
-                  {interests.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {shown[tab].length === 0 && interestName ? (
-                <CreateOffer
-                  text={`Det finns inga events för ${interestName}. Vill du skapa ett?`}
-                  createLabel="Skapa event"
-                  onCreate={() => openCreate(Number(interestFilter))}
-                  onClear={clearFilters}
-                />
-              ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
-                <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
-              ) : shown[tab].length === 0 && tab === 'suggested' ? (
-                // Inga förslag alls: Intressekompisen erbjuder att skapa ett (SCRUM-221), som de andra tomma flikarna.
-                <EmptyState text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}>
-                  <button type="button" className="primary-button" onClick={() => openCreate()}>
-                    Skapa event
-                  </button>
-                </EmptyState>
-              ) : (
-                <EventList
-                  events={shown[tab]}
-                  emptyText={EMPTY_TEXT[tab]}
-                  myInterestIds={myInterestIds}
-                  onSelect={(e) => setView(e.id)}
-                />
-              )}
-              {tab === 'invitations' && lists.declined.length > 0 && (
-                <>
-                  <h2>Nekade ({lists.declined.length})</h2>
-                  <EventList
-                    events={lists.declined}
-                    emptyText=""
+              {/* TILLFÄLLIGT (testläget): valet Lista/Kalender, och kalendern om den är vald. */}
+              {calendarOn && (
+                <Suspense fallback={null}>
+                  <EventCalendar
+                    mode={mineMode}
+                    onModeChange={setMineMode}
+                    events={unfiltered.mine}
                     myInterestIds={myInterestIds}
                     onSelect={(e) => setView(e.id)}
                   />
+                </Suspense>
+              )}
+              {!showCalendar && (
+                <>
+                <div className="filter-select-row filter-select-row-compact">
+                  <select aria-label="Filtrera på tid" value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
+                    {TIME_FILTERS.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Filtrera på intresse"
+                    value={interestFilter}
+                    onChange={(e) => setInterestFilter(e.target.value)}
+                  >
+                    <option value="">Alla intressen</option>
+                    {interests.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {shown[tab].length === 0 && interestName ? (
+                  <CreateOffer
+                    text={`Det finns inga events för ${interestName}. Vill du skapa ett?`}
+                    createLabel="Skapa event"
+                    onCreate={() => openCreate(Number(interestFilter))}
+                    onClear={clearFilters}
+                  />
+                ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
+                  <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
+                ) : shown[tab].length === 0 && tab === 'suggested' ? (
+                  // Inga förslag alls: Intressekompisen erbjuder att skapa ett (SCRUM-221), som de andra tomma flikarna.
+                  <EmptyState text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}>
+                    <button type="button" className="primary-button" onClick={() => openCreate()}>
+                      Skapa event
+                    </button>
+                  </EmptyState>
+                ) : (
+                  <EventList
+                    events={shown[tab]}
+                    emptyText={EMPTY_TEXT[tab]}
+                    myInterestIds={myInterestIds}
+                    onSelect={(e) => setView(e.id)}
+                  />
+                )}
+                {tab === 'invitations' && lists.declined.length > 0 && (
+                  <>
+                    <h2>Nekade ({lists.declined.length})</h2>
+                    <EventList
+                      events={lists.declined}
+                      emptyText=""
+                      myInterestIds={myInterestIds}
+                      onSelect={(e) => setView(e.id)}
+                    />
+                  </>
+                )}
                 </>
               )}
             </>

@@ -1,0 +1,171 @@
+/* TILLFÄLLIGT, bara i testläget: kalendern över ens egna events (se EventCalendar). Tas bort om den inte väljs; väljs den
+   flyttas den in i appen. */
+
+/* Valet Lista/Kalender. */
+.event-view-toggle {
+  display: inline-flex;
+  align-self: flex-start;
+  border: 2px solid var(--color-line);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--color-white);
+}
+
+.event-view-toggle button {
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.event-view-toggle button[aria-pressed='true'] {
+  background: var(--color-accent);
+}
+
+/* Smal skärm: månaden, och under den dagens events. */
+.event-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 34rem;
+}
+
+.event-calendar-month {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.event-calendar-day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/* Bred skärm: månaden till vänster och dagens events bredvid, så att man slipper scrolla ned till dem. */
+@media (min-width: 900px) {
+  .event-calendar {
+    display: grid;
+    grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+    max-width: none;
+  }
+}
+
+.event-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.event-calendar-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-h2, 1.5rem);
+  text-transform: capitalize;
+}
+
+.event-calendar-nav {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 2px solid var(--color-line);
+  border-radius: 4px;
+  background: var(--color-white);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.event-calendar-nav:hover,
+.event-calendar-nav:focus-visible {
+  background: var(--color-accent);
+}
+
+/* Veckorna som papperslappar: en vit ruta per dag, med blå kant som resten av appen. */
+.event-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+
+.event-calendar-weekday {
+  padding-bottom: 0.15rem;
+  text-align: center;
+  font-size: var(--text-small);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.event-calendar-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.2rem;
+  min-height: 3.4rem;
+  padding: 0.3rem 0 0.25rem;
+  border: 2px solid var(--color-line);
+  border-radius: 4px;
+  background: var(--color-white);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.event-calendar-day.is-outside {
+  background: transparent;
+  color: var(--color-muted);
+  border-style: dashed;
+}
+
+/* I dag: mörk ram. Vald dag: gul. */
+.event-calendar-day.is-today {
+  border-color: var(--color-ink);
+}
+
+.event-calendar-day.is-selected {
+  background: var(--color-accent);
+}
+
+.event-calendar-day:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.event-calendar-number {
+  font-weight: 700;
+}
+
+/* "YAY!" på dagar med event, handskrivet och lite snett, i svart. Den valda dagen blir bara gul (se .is-selected). */
+.event-calendar-yay {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text);
+  transform: rotate(-6deg);
+}
+
+.event-calendar-selected {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  text-transform: capitalize;
+}
+
+@media (max-width: 480px) {
+  .event-calendar-day {
+    min-height: 2.75rem;
+  }
+}
