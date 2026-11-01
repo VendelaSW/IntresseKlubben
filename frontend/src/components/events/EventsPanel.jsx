@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useTabParam } from '../../hooks/useTabParam'
@@ -20,7 +20,12 @@ import { getAllInterests, getMyInterests } from '../../services/interests'
 import { useAuth } from '../../hooks/useAuth'
 import { markEventsSeen } from '../../services/eventsSeen'
 import { TIME_FILTERS, inTimeFilter } from '../../utils/eventTime'
+import { DEV_MODE } from '../../devtools/devMode'
 import LoadError from '../LoadError'
+
+// TILLFÄLLIGT: kalendern över ens events finns bara i testläget (väljaren "Events: kalender"), och kommer inte ens med i
+// en vanlig build.
+const EventCalendar = DEV_MODE ? lazy(() => import('../../devtools/EventCalendar')) : null
 
 const TABS = [
   { id: 'mine', label: 'Mina events', short: 'Mina' },
@@ -65,8 +70,13 @@ function EventsPanel() {
   // Intressena (för formuläret och för att markera ens egna) hämtas ur minnet.
   const [interestsStatus, setInterestsStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
-  const [urlTab, setTab] = useTabParam(TABS)
+  // TILLFÄLLIGT (testläget): en flik Kalender efter Mina events, om väljaren "Events: kalender" står på det.
+  const calendarChoice = useDesignChoice('eventCalendar')
+  const calendarOn = EventCalendar !== null && calendarChoice === 'kalender'
+  const tabs = calendarOn ? [TABS[0], { id: 'calendar', label: 'Kalender' }, ...TABS.slice(1)] : TABS
+  const [urlTab, setTab] = useTabParam(tabs)
   const tab = urlTab ?? 'mine'
+  const showCalendar = calendarOn && tab === 'calendar'
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   // 'list', 'create' eller id för det event som visas. Vyn står i adressen
@@ -259,7 +269,7 @@ function EventsPanel() {
           {!selected && !missing && (
             // Antalet bara där det är något nytt att se (Inbjudningar och Förslag), inte på Mina events.
             <FilterTabs
-              tabs={TABS.map((t) => ({ ...t, count: t.id === 'mine' ? undefined : lists[t.id].length }))}
+              tabs={tabs.map((t) => ({ ...t, count: t.id === 'mine' || t.id === 'calendar' ? undefined : lists[t.id].length }))}
               active={tab}
               onChange={setTab}
             />
@@ -312,60 +322,70 @@ function EventsPanel() {
             </>
           ) : (
             <>
-              <div className="filter-select-row filter-select-row-compact">
-                <select aria-label="Filtrera på tid" value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
-                  {TIME_FILTERS.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  aria-label="Filtrera på intresse"
-                  value={interestFilter}
-                  onChange={(e) => setInterestFilter(e.target.value)}
-                >
-                  <option value="">Alla intressen</option>
-                  {interests.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {shown[tab].length === 0 && interestName ? (
-                <CreateOffer
-                  text={`Det finns inga events för ${interestName}. Vill du skapa ett?`}
-                  createLabel="Skapa event"
-                  onCreate={() => openCreate(Number(interestFilter))}
-                  onClear={clearFilters}
-                />
-              ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
-                <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
-              ) : shown[tab].length === 0 && tab === 'suggested' ? (
-                // Inga förslag alls: Intressekompisen erbjuder att skapa ett (SCRUM-221), som de andra tomma flikarna.
-                <EmptyState text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}>
-                  <button type="button" className="primary-button" onClick={() => openCreate()}>
-                    Skapa event
-                  </button>
-                </EmptyState>
-              ) : (
-                <EventList
-                  events={shown[tab]}
-                  emptyText={EMPTY_TEXT[tab]}
-                  myInterestIds={myInterestIds}
-                  onSelect={(e) => setView(e.id)}
-                />
+              {/* TILLFÄLLIGT (testläget): kalendern, på fliken Kalender. */}
+              {showCalendar && (
+                <Suspense fallback={null}>
+                  <EventCalendar events={unfiltered.mine} myInterestIds={myInterestIds} onSelect={(e) => setView(e.id)} />
+                </Suspense>
               )}
-              {tab === 'invitations' && lists.declined.length > 0 && (
+              {!showCalendar && (
                 <>
-                  <h2>Nekade ({lists.declined.length})</h2>
+                <div className="filter-select-row filter-select-row-compact">
+                  <select aria-label="Filtrera på tid" value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
+                    {TIME_FILTERS.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Filtrera på intresse"
+                    value={interestFilter}
+                    onChange={(e) => setInterestFilter(e.target.value)}
+                  >
+                    <option value="">Alla intressen</option>
+                    {interests.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {shown[tab].length === 0 && interestName ? (
+                  <CreateOffer
+                    text={`Det finns inga events för ${interestName}. Vill du skapa ett?`}
+                    createLabel="Skapa event"
+                    onCreate={() => openCreate(Number(interestFilter))}
+                    onClear={clearFilters}
+                  />
+                ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
+                  <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
+                ) : shown[tab].length === 0 && tab === 'suggested' ? (
+                  // Inga förslag alls: Intressekompisen erbjuder att skapa ett (SCRUM-221), som de andra tomma flikarna.
+                  <EmptyState text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}>
+                    <button type="button" className="primary-button" onClick={() => openCreate()}>
+                      Skapa event
+                    </button>
+                  </EmptyState>
+                ) : (
                   <EventList
-                    events={lists.declined}
-                    emptyText=""
+                    events={shown[tab]}
+                    emptyText={EMPTY_TEXT[tab]}
                     myInterestIds={myInterestIds}
                     onSelect={(e) => setView(e.id)}
                   />
+                )}
+                {tab === 'invitations' && lists.declined.length > 0 && (
+                  <>
+                    <h2>Nekade ({lists.declined.length})</h2>
+                    <EventList
+                      events={lists.declined}
+                      emptyText=""
+                      myInterestIds={myInterestIds}
+                      onSelect={(e) => setView(e.id)}
+                    />
+                  </>
+                )}
                 </>
               )}
             </>
