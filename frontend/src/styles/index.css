@@ -1606,14 +1606,18 @@ span.tag-selected:hover {
     font-size: 1.05rem;
   }
 
-  /* Kompisen med det den säger i en pratbubbla bredvid, på startskärmen och medan frågorna ställs. */
+  /* Kompisen med det den säger i en pratbubbla bredvid, på startskärmen och medan frågorna ställs. "Spela upp", om den
+     visas, ligger under raden. */
   .interview-kompis {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
     width: 100%;
     max-width: none;
     margin: 0;
+  }
+
+  .interview-kompis-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   /* Kompisen syns hel och så stor att man ser vad den gör. Klippen har tom bakgrund runt honom (cirka 22 % överst, 9 %

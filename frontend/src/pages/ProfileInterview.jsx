@@ -147,13 +147,17 @@ function useKeepFieldAboveKeyboard() {
     }
     // Tangentbordet hinner fälla ut sig efter fokus: mät igen när det är på plats (resize) och efter en kort stund.
     const onFocus = () => setTimeout(update, 300)
+    // Går fokus till ett annat fält (Dag, Månad, År) står tangentbordet kvar: då behålls utrymmet, så att sidan inte hoppar.
+    const onBlur = (event) => {
+      if (!isField(event.relatedTarget)) update()
+    }
     viewport.addEventListener('resize', update)
     document.addEventListener('focusin', onFocus)
-    document.addEventListener('focusout', update)
+    document.addEventListener('focusout', onBlur)
     return () => {
       viewport.removeEventListener('resize', update)
       document.removeEventListener('focusin', onFocus)
-      document.removeEventListener('focusout', update)
+      document.removeEventListener('focusout', onBlur)
       root.style.removeProperty('--keyboard-height')
     }
   }, [])
@@ -752,39 +756,42 @@ function ProfileInterview() {
           className="interview-kompis"
           style={finished ? { display: 'none' } : undefined}
         >
-          {/* Alla klipp ligger i sidan, staplade ovanpå varandra (alla är 720x720). Bara det som
-              syns har full opacitet, så att byten sker utan att något laddas om eller blinkar. */}
-          <div className="interview-video">
-            {CLIP_SOURCES.map((src) => (
-              <video
-                key={src}
-                ref={(element) => {
-                  videoEls.current[src] = element
-                }}
-                src={src}
-                aria-label="Intressekompisen"
-                aria-hidden={src !== visible}
-                playsInline
-                preload="auto"
-                // Väntklippen loopas tills nästa klipp tar över.
-                loop={IDLE_VIDEOS.includes(src)}
-                onTimeUpdate={(event) => handleTimeUpdate(event, src)}
-                onEnded={() => handleEnded(src)}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  opacity: src === visible ? 1 : 0,
-                  pointerEvents: 'none',
-                }}
-              />
-            ))}
+          {/* Kompisen och pratbubblan i en rad på mobil (se .interview-kompis-row). "Spela upp" hamnar under raden. */}
+          <div className="interview-kompis-row">
+            {/* Alla klipp ligger i sidan, staplade ovanpå varandra (alla är 720x720). Bara det som
+                syns har full opacitet, så att byten sker utan att något laddas om eller blinkar. */}
+            <div className="interview-video">
+              {CLIP_SOURCES.map((src) => (
+                <video
+                  key={src}
+                  ref={(element) => {
+                    videoEls.current[src] = element
+                  }}
+                  src={src}
+                  aria-label="Intressekompisen"
+                  aria-hidden={src !== visible}
+                  playsInline
+                  preload="auto"
+                  // Väntklippen loopas tills nästa klipp tar över.
+                  loop={IDLE_VIDEOS.includes(src)}
+                  onTimeUpdate={(event) => handleTimeUpdate(event, src)}
+                  onEnded={() => handleEnded(src)}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: src === visible ? 1 : 0,
+                    pointerEvents: 'none',
+                  }}
+                />
+              ))}
+            </div>
+            {/* Undertexter. Platsen är reserverad, så att inget under hoppar när texten byts. */}
+            <p ref={captionRef} className={`card-text interview-caption${caption ? '' : ' is-empty'}`} aria-live="polite">
+              {caption}
+            </p>
           </div>
-          {/* Undertexter. Platsen är reserverad, så att inget under hoppar när texten byts. */}
-          <p ref={captionRef} className={`card-text interview-caption${caption ? '' : ' is-empty'}`} aria-live="polite">
-            {caption}
-          </p>
           {/* Ljudet kan slås på och av under hela intervjun. */}
           <button
             type="button"
