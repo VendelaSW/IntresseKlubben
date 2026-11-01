@@ -111,17 +111,59 @@ function ageFrom(birthDate) {
   return today.getFullYear() - year - (hadBirthday ? 0 : 1)
 }
 
+// Fältet i en fråga får fokus direkt på dator. På en telefon gör det att tangentbordet (eller listan, på en rullista)
+// öppnas av sig själv och täcker frågan och kompisen, så där väljer man själv när man trycker på fältet.
+const AUTO_FOCUS = !window.matchMedia('(pointer: coarse)').matches
+
+// På en telefon täcker tangentbordet nedre delen av skärmen, och sidan flyttar sig inte själv. Medan man skriver i ett fält
+// mäts därför hur mycket av skärmen som är dold (visualViewport). Sidan får så mycket extra plats nedtill
+// (--keyboard-height, se .interview-page i index.css), och scrollas upp tills fältet ligger ovanför tangentbordet.
+// Det följer tangentbordets verkliga höjd, och görs om när den ändras.
+function useKeepFieldAboveKeyboard() {
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (AUTO_FOCUS || !viewport) return undefined
+    const isField = (el) => ['INPUT', 'TEXTAREA', 'SELECT'].includes(el?.tagName)
+    const root = document.documentElement
+    const update = () => {
+      const field = document.activeElement
+      if (!isField(field)) {
+        root.style.removeProperty('--keyboard-height')
+        return
+      }
+      const hidden = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+      root.style.setProperty('--keyboard-height', `${hidden}px`)
+      const overlap = field.getBoundingClientRect().bottom + 24 - (viewport.offsetTop + viewport.height)
+      if (overlap > 0) window.scrollBy({ top: overlap, behavior: 'smooth' })
+    }
+    // Tangentbordet hinner fälla ut sig efter fokus: mät igen när det är på plats (resize) och efter en kort stund.
+    const onFocus = () => setTimeout(update, 300)
+    viewport.addEventListener('resize', update)
+    document.addEventListener('focusin', onFocus)
+    document.addEventListener('focusout', update)
+    return () => {
+      viewport.removeEventListener('resize', update)
+      document.removeEventListener('focusin', onFocus)
+      document.removeEventListener('focusout', update)
+      root.style.removeProperty('--keyboard-height')
+    }
+  }, [])
+}
+
 const EMPTY_ANSWERS = { name: '', birthDate: '', gender: '', municipality: '', district: '', likes: '', about: '' }
 
 // Intervjun som sätt att skapa en profil: en fråga i taget på samma sida, i stället
-// för ett långt formulär. Enter eller "Nästa" går vidare. Videon (Intressekompisens hälsning)
-// spelas direkt, medan rubriken och knappen "Starta intervjun" visas. Knappen visar första
-// frågan. Webbläsare kan stoppa uppspelning med ljud innan man har klickat någonstans (t.ex.
-// när sidan öppnas direkt från adressen). Då visas en knapp "Spela upp" under videon.
+// för ett långt formulär. Enter eller "Nästa" går vidare. Videon (Intressekompisens hälsning) spelas direkt, med
+// ljud om webbläsaren tillåter det (annars utan, och då är rutan "Med ljud" urbockad), medan rubriken, knappen
+// "Starta intervjun" visas, och rutan "Med ljud" under klippet, hela intervjun. Rutan gäller direkt. Knappen visar första frågan.
+// Ljudet sätts på för alla klipp i klicket, och varje klipp "låses upp" för uppspelning där (se applySound). Annars
+// skulle en telefon stoppa varje nytt klipp med ljud och visa en knapp "Spela upp" inför det. Den knappen finns kvar
+// som reserv om webbläsaren ändå stoppar ett klipp.
 //
 // När intervjun är klar skapas profilen och intressena i ett anrop (POST /profile/interview/complete): bara de
 // intressen man behållit sparas, och inget skickas förrän man trycker på "Skapa min profil".
 function ProfileInterview() {
+  useKeepFieldAboveKeyboard()
   // Videoelementen, med filen som nyckel.
   const videoEls = useRef({})
   const analysisStart = useRef(0)
@@ -143,6 +185,9 @@ function ProfileInterview() {
   // Undertexten som visas just nu (tom = ingen).
   const [caption, setCaption] = useState('')
   const [started, setStarted] = useState(false)
+  // Ljudet på? Börjar på. Får webbläsaren inte spela klippet på startsidan med ljud (en telefon vill ha ett klick först)
+  // spelas det utan, och rutan "Med ljud" bockas ur. Bockar man i den slås ljudet på direkt (se toggleSound).
+  const [sound, setSound] = useState(true)
   // Förhandskontrollen av Om mig-texten när man går vidare från sista frågan: pågår den, och vad den sa om texten nekades.
   const [checkingAbout, setCheckingAbout] = useState(false)
   const [aboutError, setAboutError] = useState('')
@@ -240,17 +285,26 @@ function ProfileInterview() {
       setVisible(current)
     }
     next.currentTime = 0
-    next
-      .play()
-      .then(() => {
+    const play = () =>
+      next.play().then(() => {
         setBlocked(false)
         if (next.requestVideoFrameCallback) next.requestVideoFrameCallback(reveal)
         else reveal()
       })
-      .catch(() => {
-        setBlocked(true)
-        reveal()
-      })
+    play().catch(() => {
+      // Före första klicket får en telefon inte spela med ljud: spela utan ljud i stället, och bocka ur "Med ljud".
+      if (!started && !next.muted) {
+        next.muted = true
+        setSound(false)
+        play().catch(() => {
+          setBlocked(true)
+          reveal()
+        })
+        return
+      }
+      setBlocked(true)
+      reveal()
+    })
     // Om bildrutan aldrig meddelas (t.ex. i en bakgrundsflik) visas klippet ändå.
     const fallback = setTimeout(reveal, 400)
     return () => clearTimeout(fallback)
@@ -320,8 +374,42 @@ function ProfileInterview() {
     setIdle(true)
   }
 
-  // Videon spelas redan. Har webbläsaren stoppat den startar den med klicket.
+  // Ljudet på klippen styrs bara här (inte med `muted` på <video>): React skulle annars sätta det på alla klipp samtidigt
+  // vid nästa rendering, mitt i att de låses upp.
+  // Sätter ljudet på eller av för alla klipp. Körs i ett klick. Med ljud startas och pausas de klipp som inte spelar just
+  // nu direkt, vilket låter en telefon spela dem med ljud senare utan nytt klick. Det görs utan ljud: en telefon låter
+  // bara ett klipp med ljud spela åt gången, så annars skulle det som spelar avbrytas.
+  function applySound(on) {
+    Object.entries(videoEls.current).forEach(([src, el]) => {
+      if (!el) return
+      if (src === current || !el.paused) {
+        el.muted = !on
+        return
+      }
+      el.muted = true
+      if (!on) return
+      el.play()
+        .then(() => {
+          el.pause()
+          el.muted = false
+        })
+        .catch(() => {
+          el.muted = false
+        })
+    })
+  }
+
+  // Rutan "Med ljud": gäller direkt, också för klippet som spelas på startsidan. Slår en webbläsare av klippet när det
+  // får ljud startas det igen här, i samma klick.
+  function toggleSound(on) {
+    setSound(on)
+    applySound(on)
+    if (on && !videoEls.current[current]?.ended) play()
+  }
+
+  // Videon spelas redan. Ljudet är som rutan "Med ljud" säger. Har webbläsaren stoppat klippet startar det med klicket.
   function start() {
+    applySound(sound)
     setStarted(true)
     if (blocked) play()
   }
@@ -668,6 +756,10 @@ function ProfileInterview() {
           <p className={`card-text interview-caption${caption ? '' : ' is-empty'}`} aria-live="polite">
             {caption}
           </p>
+          {/* Ljudet kan slås på och av under hela intervjun. */}
+          <label className="interview-sound">
+            <input type="checkbox" checked={sound} onChange={(e) => toggleSound(e.target.checked)} /> Med ljud
+          </label>
           {blocked && (
             <button type="button" className="secondary-button" style={{ marginTop: '1rem' }} onClick={play}>
               Spela upp
@@ -818,7 +910,12 @@ function ProfileInterview() {
                 </div>
               </div>
               <div className="card sheet interview-card" style={FIXED_CARD_SHADOW}>
-                <form ref={formRef} className="auth-form form-wide form-compact" onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+                <form
+                  ref={formRef}
+                  className="auth-form form-wide form-compact"
+                  onSubmit={handleSubmit}
+                  onKeyDown={handleKeyDown}
+                >
                   {step.id === 'namn' && (
                     <FormField id="interview-name" label="Namn">
                       <input
@@ -832,7 +929,7 @@ function ProfileInterview() {
                         autoCapitalize="words"
                         enterKeyHint="next"
                         required
-                        autoFocus
+                        autoFocus={AUTO_FOCUS}
                       />
                     </FormField>
                   )}
@@ -845,7 +942,7 @@ function ProfileInterview() {
                           value={answers.birthDate}
                           onChange={(birthDate) => setAnswers((current) => ({ ...current, birthDate }))}
                           required
-                          autoFocus
+                          autoFocus={AUTO_FOCUS}
                         />
                       </FormField>
                       <FormField id="interview-gender" label="Kön">
@@ -870,7 +967,7 @@ function ProfileInterview() {
                           value={answers.municipality}
                           onChange={(code) => setAnswers((current) => ({ ...current, municipality: code }))}
                           required
-                          autoFocus
+                          autoFocus={AUTO_FOCUS}
                         />
                         <p className="hint-text">Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke.</p>
                       </FormField>
