@@ -1518,7 +1518,7 @@ span.tag-selected:hover {
 
 .interview-sound {
   position: absolute;
-  top: 0;
+  top: -0.5rem;
   right: 0;
   z-index: 1;
   display: grid;
@@ -1577,8 +1577,8 @@ span.tag-selected:hover {
    - knappar och fält minst 48 px höga (Material 48 dp, Apple 44 pt, WCAG 2.5.8)
    - huvudknappen ("Nästa") störst och längst till höger, där tummen når
    - framsteget ("Fråga 2 av 5" och en stapel) ovanför frågan
-   Intressekompisen står högst upp, med det den säger bredvid som en pratbubbla.
-   Innan intervjun startar är den större och centrerad. */
+   Intressekompisen står högst upp, med det den säger bredvid som en pratbubbla,
+   också på startskärmen. */
 @media (max-width: 767px) {
   /* Under sidan finns lika mycket plats som tangentbordet tar (--keyboard-height, mäts i useKeepFieldAboveKeyboard i
      ProfileInterview), så att fältet man skriver i kan scrollas upp ovanför det. */
@@ -1600,26 +1600,14 @@ span.tag-selected:hover {
     flex: none;
   }
 
-  /* Startskärmen. */
-  .interview-kompis {
-    width: 200px;
-    max-width: 60vw;
-    margin: 0 auto;
-  }
-
-  .interview-kompis:not(.is-asking) .interview-caption {
-    min-height: 1.5rem;
-    font-size: 1.05rem;
-  }
-
   .interview-start {
     width: 100%;
     min-height: 44px;
     font-size: 1.05rem;
   }
 
-  /* Medan frågorna ställs. */
-  .interview-kompis.is-asking {
+  /* Kompisen med det den säger i en pratbubbla bredvid, på startskärmen och medan frågorna ställs. */
+  .interview-kompis {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -1628,20 +1616,22 @@ span.tag-selected:hover {
     margin: 0;
   }
 
-  /* Kompisen syns hel och så stor att man ser vad den gör. Tangentbordet täcker en del av skärmen när man skriver, och då
+  /* Kompisen syns hel och så stor att man ser vad den gör. Klippen har tom bakgrund runt honom (cirka 22 % överst, 9 %
+     nederst, 16 % till vänster och 20 % till höger). Den tomma ytan dras bort med negativ marginal, så att han blir större
+     utan att raden blir högre eller bubblan smalare. Tangentbordet täcker en del av skärmen när man skriver, och då
      scrollar webbläsaren fram fältet, så det behövs ingen plats åt det här. */
-  .interview-kompis.is-asking .interview-video {
+  .interview-kompis .interview-video {
+    --kompis: 200px;
     flex: none;
-    width: 160px;
-    /* Klippen har tom bakgrund överst (cirka en fjärdedel av höjden), som annars blir luft ovanför kompisen. */
-    margin-top: -1.25rem;
+    width: var(--kompis);
+    margin: calc(var(--kompis) * -0.2) calc(var(--kompis) * -0.2) calc(var(--kompis) * -0.1) calc(var(--kompis) * -0.16);
   }
 
-  /* Pratbubblan, med en liten spets mot kompisen. Tom bubbla syns inte, men
-     raden behåller sin höjd (kompisen), så inget hoppar. */
-  .interview-kompis.is-asking .interview-caption {
+  /* Pratbubblan, med en liten spets mot kompisen. Den är lika bred som texten (högst så bred som platsen bredvid kompisen),
+     inte hela raden. Tom bubbla syns inte, men raden behåller sin höjd (kompisen), så inget hoppar. */
+  .interview-kompis .interview-caption {
     position: relative;
-    flex: 1;
+    flex: 0 1 auto;
     min-height: 0;
     margin: 0;
     padding: 0.5rem 0.75rem;
@@ -1651,9 +1641,10 @@ span.tag-selected:hover {
     font-size: 1rem;
     line-height: 1.35;
     text-align: left;
+    text-wrap: balance;
   }
 
-  .interview-kompis.is-asking .interview-caption::before {
+  .interview-kompis .interview-caption::before {
     content: '';
     position: absolute;
     left: -8px;
@@ -1666,7 +1657,7 @@ span.tag-selected:hover {
     transform: translateY(-50%) rotate(45deg);
   }
 
-  .interview-kompis.is-asking .interview-caption.is-empty {
+  .interview-kompis .interview-caption.is-empty {
     visibility: hidden;
   }
 

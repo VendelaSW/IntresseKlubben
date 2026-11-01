@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import noSoundIcon from '../assets/nosound.png'
 import soundIcon from '../assets/sound.png'
@@ -194,6 +194,27 @@ function ProfileInterview() {
   const [idleCount, setIdleCount] = useState(0)
   // Undertexten som visas just nu (tom = ingen).
   const [caption, setCaption] = useState('')
+  const captionRef = useRef(null)
+  // På mobil är pratbubblan lika bred som den bredaste raden i texten. En ruta blir annars så bred som platsen medger även om
+  // texten bryts till två rader och den andra är kort, och det ser för stort ut. Raderna jämnas ut (text-wrap: balance i
+  // CSS), och rutan mäts efter det.
+  useLayoutEffect(() => {
+    const bubble = captionRef.current
+    if (!bubble) return
+    bubble.style.width = ''
+    if (!caption || !window.matchMedia('(max-width: 767px)').matches) return
+    const range = document.createRange()
+    range.selectNodeContents(bubble)
+    const rects = [...range.getClientRects()]
+    if (rects.length === 0) return
+    const textWidth = Math.max(...rects.map((r) => r.right)) - Math.min(...rects.map((r) => r.left))
+    const style = getComputedStyle(bubble)
+    const frame = ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth'].reduce(
+      (sum, side) => sum + parseFloat(style[side]),
+      0,
+    )
+    bubble.style.width = `${Math.ceil(textWidth + frame) + 1}px`
+  }, [caption])
   const [started, setStarted] = useState(false)
   // Ljudet på? Börjar på. Får webbläsaren inte spela klippet på startsidan med ljud (en telefon vill ha ett klick först)
   // spelas det utan, och ljudknappen visar att ljudet är av. Trycker man på den slås ljudet på direkt (se toggleSound).
@@ -261,6 +282,8 @@ function ProfileInterview() {
   // Det som ska spelas just nu: väntklippet när ett klipp har spelat klart, annars klippet.
   const idleList = shownClip?.idle ?? IDLE_EARLY
   const current = idle ? idleList[(idleCount - 1) % idleList.length] : shownVideo
+  // Klippen som redan är upplåsta för uppspelning med ljud (se applySound).
+  const unlocked = useRef(new Set())
   // Det som syns. Byts först när nästa klipp har börjat spela, så att det gamla ligger kvar
   // (på sin sista bild) tills det nya har en bild att visa.
   const [visible, setVisible] = useState(INTRO.video)
@@ -385,27 +408,23 @@ function ProfileInterview() {
   }
 
   // Ljudet på klippen styrs bara här (inte med `muted` på <video>): React skulle annars sätta det på alla klipp samtidigt
-  // vid nästa rendering, mitt i att de låses upp.
-  // Sätter ljudet på eller av för alla klipp. Körs i ett klick. Med ljud startas och pausas de klipp som inte spelar just
-  // nu direkt, vilket låter en telefon spela dem med ljud senare utan nytt klick. Det görs utan ljud: en telefon låter
-  // bara ett klipp med ljud spela åt gången, så annars skulle det som spelar avbrytas.
+  // vid nästa rendering.
+  // Sätter ljudet på eller av för alla klipp. Körs i ett klick. Med ljud "låses" de klipp som inte spelar upp en gång, så att
+  // en telefon spelar dem med ljud senare utan nytt klick: play() och direkt pause(), utan att vänta. De hinner då inte
+  // börja spela eller avkodas (det gjorde att nästa klipp hackade sig i början när alla startade på en gång). Det görs
+  // utan ljud: en telefon låter bara ett klipp med ljud spela åt gången, så annars skulle det som spelar avbrytas.
   function applySound(on) {
     Object.entries(videoEls.current).forEach(([src, el]) => {
       if (!el) return
-      if (src === current || !el.paused) {
+      if (src === current || !el.paused || !on || unlocked.current.has(src)) {
         el.muted = !on
         return
       }
       el.muted = true
-      if (!on) return
-      el.play()
-        .then(() => {
-          el.pause()
-          el.muted = false
-        })
-        .catch(() => {
-          el.muted = false
-        })
+      el.play().catch(() => {}) // avbryts av pause() här under, vilket är meningen
+      el.pause()
+      el.muted = false
+      unlocked.current.add(src)
     })
   }
 
@@ -730,7 +749,7 @@ function ProfileInterview() {
             formuläret syns utan att man scrollar. */}
       <div className="interview-layout">
         <div
-          className={`interview-kompis${started ? ' is-asking' : ''}`}
+          className="interview-kompis"
           style={finished ? { display: 'none' } : undefined}
         >
           {/* Alla klipp ligger i sidan, staplade ovanpå varandra (alla är 720x720). Bara det som
@@ -763,7 +782,7 @@ function ProfileInterview() {
             ))}
           </div>
           {/* Undertexter. Platsen är reserverad, så att inget under hoppar när texten byts. */}
-          <p className={`card-text interview-caption${caption ? '' : ' is-empty'}`} aria-live="polite">
+          <p ref={captionRef} className={`card-text interview-caption${caption ? '' : ' is-empty'}`} aria-live="polite">
             {caption}
           </p>
           {/* Ljudet kan slås på och av under hela intervjun. */}
