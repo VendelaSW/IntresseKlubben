@@ -14,6 +14,7 @@ import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
 import CreateButton from '../components/CreateButton'
+import DateField from '../components/DateField'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
@@ -136,6 +137,9 @@ function StyleGuide() {
   const [exampleBirthDate, setExampleBirthDate] = useState('')
   const [filterMunicipality, setFilterMunicipality] = useState('')
   const [filterInterest, setFilterInterest] = useState(null)
+  const [filterDay, setFilterDay] = useState('')
+  const [compactStart, setCompactStart] = useState('')
+  const [compactEnd, setCompactEnd] = useState('')
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [examplePosition, setExamplePosition] = useState(null)
@@ -601,8 +605,20 @@ function StyleGuide() {
           Intresseväljaren (InterestPicker) är samma sorts fält som kommunfältet och används i alla filter och i Skapa
           klubb och Skapa event. Med tomt fält visas ens egna intressen som snabbval (.interest-picker-heading). Man
           skriver och får träffar i hela biblioteket, även på andra namn, med var intresset hör hemma under namnet
-          (.interest-picker-path). Det valda tas bort med krysset (.interest-picker-clear) eller genom att tömma fältet.
+          (.interest-picker-path). Det valda tas bort med krysset (.field-clear) eller genom att tömma fältet.
         </p>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Datumfält för events (DateField, .date-field)
+        </p>
+        <p className="hint-text">
+          Kalendern går bara att välja i från i dag till ett år framåt, samma gräns som backend. I filtret under Events
+          bara datum, med "Alla datum" (.date-field-empty) när inget är valt och ett kryss (.field-clear) som tar bort
+          det. I Skapa event med tid (withTime), se formuläret nedan.
+        </p>
+        <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
+          <DateField aria-label="Exempel 3" value={filterDay} onChange={setFilterDay} emptyLabel="Alla datum" />
+        </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Matchningskort (MatchCard, .match-card) med nivå (MatchLevel, .match-level)
@@ -991,10 +1007,16 @@ function StyleGuide() {
             </FormField>
             <div className="form-row">
               <FormField id="compact-start" label="Start">
-                <input id="compact-start" type="datetime-local" />
+                <DateField id="compact-start" withTime value={compactStart} onChange={setCompactStart} />
               </FormField>
               <FormField id="compact-end" label="Slut (valfritt)">
-                <input id="compact-end" type="datetime-local" />
+                <DateField
+                  id="compact-end"
+                  withTime
+                  value={compactEnd}
+                  onChange={setCompactEnd}
+                  min={compactStart || undefined}
+                />
               </FormField>
             </div>
             <FormField id="compact-place" label="Plats">

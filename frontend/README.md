@@ -27,6 +27,7 @@ på nya hex-koder eller pixelvärden.
 | Formulär | `.auth-form`, dess `input`/`label`/`button` | Se Formulärfält-exemplet i stilguiden |
 | Plats på kartan | `LocationPicker` (sök adressen och sätt en nål på en liten karta), för events och klubbarnas träffplats | `<LocationPicker id="event-position" queries={[address, placeName]} value={position} onChange={setPosition} saveLabel="Skapa event" kommunCode={kod} />` |
 | Välja intresse | `InterestPicker` (sök i hela biblioteket, även på andra namn, med ens egna intressen som snabbval), i filtren och i Skapa klubb och Skapa event | `<InterestPicker id="event-interest" myInterests={myInterests} value={interest} onChange={setInterest} required />` |
+| Datum för events | `DateField` (från i dag till ett år framåt, som backend), med tid i Skapa event och bara datum i filtret | `<DateField id="event-starts-at" withTime value={startsAt} onChange={setStartsAt} required />` |
 | Stämplar | `.stamp` (mörk), `.stamp-success` (grön), flera i rad i `.trust-stamps` | `<span className="stamp stamp-success">E-post bekräftad</span>` |
 | Länkar | `.info-link` (fungerar även på en `<button>`, t.ex. något som fälls ut) | `<a className="info-link">` |
 | Brev | `.envelopes` + `ConversationCard` (kuvert), `.lined-paper` (linjerat papper), `.notepad` (konversationen) | Se Brev-exemplet i stilguiden |

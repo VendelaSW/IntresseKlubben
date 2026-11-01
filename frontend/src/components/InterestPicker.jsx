@@ -162,7 +162,7 @@ function InterestPicker({
       {value && query === null && (
         <button
           type="button"
-          className="interest-picker-clear"
+          className="field-clear"
           aria-label={`Ta bort ${value.name}`}
           onClick={clear}
         >

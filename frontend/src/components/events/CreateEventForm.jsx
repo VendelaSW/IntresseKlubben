@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
+import DateField from '../DateField'
 import FormField from '../FormField'
 import InterestPicker from '../InterestPicker'
 import LocationPicker from '../LocationPicker'
@@ -8,6 +9,8 @@ import TextareaWithCount from '../TextareaWithCount'
 import InvitePicker from './InvitePicker'
 import { EVENT_VISIBILITY, createEvent, inviteToEvent, updateEvent } from '../../services/events'
 import { SCOPES, SKILL_LEVELS, areaOptions, getRegions } from '../../services/groups'
+import { profileQuery } from '../../services/profile'
+import { localInputValue } from '../../utils/eventTime'
 
 // Hur man kommer med (SCRUM-296). Öppet och Ansökan går inte i en privat klubb.
 const VISIBILITY_OPTIONS = [
@@ -19,13 +22,6 @@ const VISIBILITY_OPTIONS = [
 // Ett event kan valfritt gälla ett större område (SCRUM-295); kommun finns inte, eftersom eventet redan hör till
 // sin plats.
 const EVENT_SCOPES = SCOPES.filter((s) => s.value !== 'kommun')
-import { profileQuery } from '../../services/profile'
-
-// Värdet ett <input type="datetime-local"> vill ha: lokal tid utan tidszon.
-function localInputValue(date) {
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
 
 // "2 personer och 1 klubb", eller en kort uppmaning om inget är valt än.
 function inviteSummary({ userIds, groupIds }) {
@@ -268,24 +264,24 @@ function CreateEventForm({
 
           <div className="form-row">
             <FormField id="event-starts-at" label="Start">
-              <input
+              <DateField
                 id="event-starts-at"
-                type="datetime-local"
+                withTime
                 value={startsAt}
+                onChange={setStartsAt}
                 // En ny tid måste vara framåt. En oförändrad tid på ett event som
                 // redan har börjat ska inte stoppa att resten sparas.
-                min={!editing || startsAt !== initial.startsAt ? localInputValue(new Date()) : undefined}
-                onChange={(e) => setStartsAt(e.target.value)}
+                min={!editing || startsAt !== initial.startsAt ? undefined : null}
                 required
               />
             </FormField>
             <FormField id="event-ends-at" label="Slut (valfritt)">
-              <input
+              <DateField
                 id="event-ends-at"
-                type="datetime-local"
+                withTime
                 value={endsAt}
-                min={startsAt || localInputValue(new Date())}
-                onChange={(e) => setEndsAt(e.target.value)}
+                onChange={setEndsAt}
+                min={startsAt || undefined}
               />
             </FormField>
           </div>

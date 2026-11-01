@@ -4071,20 +4071,9 @@ button.board-note:focus-visible {
   color: var(--color-muted);
 }
 
-/* Intresseväljaren (InterestPicker) har kommunfältets klasser och utseende. Det
-   här är det den har utöver: krysset i fältet, rubriken över ens egna intressen
-   och var en träff hör hemma, under namnet. */
-.interest-picker input {
-  padding-right: 1.8rem;
-}
-
-/* Krysset ligger där filtren annars har en pil (Klubbar, papperslapparna i
-   testläget), så pilen tas bort när ett intresse är valt. */
-.municipality-picker.interest-picker:has(.interest-picker-clear) input {
-  background-image: none;
-}
-
-.interest-picker-clear {
+/* Kryss längst till höger i ett fält, som tar bort det valda (InterestPicker och
+   DateField). Fältet behöver position: relative och plats till höger. */
+.field-clear {
   position: absolute;
   top: 50%;
   right: 0.2rem;
@@ -4103,9 +4092,22 @@ button.board-note:focus-visible {
   cursor: pointer;
 }
 
-.interest-picker-clear:focus-visible {
+.field-clear:focus-visible {
   outline: 2px solid var(--color-accent);
   border-radius: 4px;
+}
+
+/* Intresseväljaren (InterestPicker) har kommunfältets klasser och utseende. Det
+   här är det den har utöver: plats för krysset, rubriken över ens egna intressen
+   och var en träff hör hemma, under namnet. */
+.interest-picker input {
+  padding-right: 1.8rem;
+}
+
+/* Krysset ligger där filtren annars har en pil (Klubbar, papperslapparna i
+   testläget), så pilen tas bort när ett intresse är valt. */
+.municipality-picker.interest-picker:has(.field-clear) input {
+  background-image: none;
 }
 
 /* Listan får plats med intressenas namn och var de hör hemma, fast fältet är smalt (som i filtren). */
@@ -4129,6 +4131,45 @@ button.board-note:focus-visible {
   display: block;
   color: var(--color-muted);
   font-size: 0.75rem;
+}
+
+/* Datumfältet för events (DateField). I ett filter står "Alla datum" i fältet
+   när inget är valt, i stället för webbläsarens "åååå-mm-dd" (som görs
+   osynlig), och krysset ligger till höger om kalenderknappen. */
+.date-field {
+  position: relative;
+  min-width: 0;
+}
+
+.date-field input {
+  width: 100%;
+}
+
+.date-field.is-set input {
+  padding-right: 1.8rem;
+}
+
+.date-field.is-empty input:not(:focus) {
+  color: transparent;
+}
+
+.date-field-empty {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(0.5rem + 2px);
+  right: 2.2rem;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: var(--text-small);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.date-field:focus-within .date-field-empty {
+  display: none;
 }
 
 /* "Ålder" följt av från- och till-ålder, i en av filtrens rutor. */

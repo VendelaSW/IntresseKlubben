@@ -6,6 +6,7 @@ from app.auth.security import get_current_user
 from app.main import app
 from app.models import Event, EventInvitation, EventResponse, Group, Interest, User
 from app.models.event import EventAnswer, EventVisibility
+from app.schemas.event import EVENT_MAX_DAYS_AHEAD
 from tests.event_helpers import add_event, add_group, future
 
 
@@ -123,6 +124,17 @@ def test_times_must_make_sense_together(client, db, user, event):
     # Flyttar man både start och slut går det bra.
     both = patch(client, event, starts_at=future(days=9).isoformat(), ends_at=future(days=9, hours=1).isoformat())
     assert both.status_code == 200
+
+
+def test_new_times_can_be_at_most_a_year_ahead(client, db, user, event):
+    too_far = future(days=EVENT_MAX_DAYS_AHEAD + 1).isoformat()
+    response = patch(client, event, starts_at=too_far, ends_at=future(days=EVENT_MAX_DAYS_AHEAD + 2).isoformat())
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Value error, Starttiden kan vara högst ett år fram i tiden"
+    response = patch(client, event, ends_at=too_far)
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Value error, Sluttiden kan vara högst ett år fram i tiden"
+    assert db.get(Event, event.id).starts_at.date() == future(days=5).date()
 
 
 def test_unknown_interest_is_rejected(client, db, user, event):
