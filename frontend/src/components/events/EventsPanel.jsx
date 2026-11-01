@@ -70,13 +70,13 @@ function EventsPanel() {
   // Intressena (för formuläret och för att markera ens egna) hämtas ur minnet.
   const [interestsStatus, setInterestsStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
-  const [urlTab, setTab] = useTabParam(TABS)
-  const tab = urlTab ?? 'mine'
-  // Testläget: lista eller kalender på Mina events.
+  // TILLFÄLLIGT (testläget): en flik Kalender efter Mina events, om väljaren "Events: kalender" står på det.
   const calendarChoice = useDesignChoice('eventCalendar')
-  const [mineMode, setMineMode] = useState('list') // 'list' | 'calendar'
-  const calendarOn = EventCalendar !== null && calendarChoice === 'kalender' && tab === 'mine'
-  const showCalendar = calendarOn && mineMode === 'calendar'
+  const calendarOn = EventCalendar !== null && calendarChoice === 'kalender'
+  const tabs = calendarOn ? [TABS[0], { id: 'calendar', label: 'Kalender' }, ...TABS.slice(1)] : TABS
+  const [urlTab, setTab] = useTabParam(tabs)
+  const tab = urlTab ?? 'mine'
+  const showCalendar = calendarOn && tab === 'calendar'
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   // 'list', 'create' eller id för det event som visas. Vyn står i adressen
@@ -269,7 +269,7 @@ function EventsPanel() {
           {!selected && !missing && (
             // Antalet bara där det är något nytt att se (Inbjudningar och Förslag), inte på Mina events.
             <FilterTabs
-              tabs={TABS.map((t) => ({ ...t, count: t.id === 'mine' ? undefined : lists[t.id].length }))}
+              tabs={tabs.map((t) => ({ ...t, count: t.id === 'mine' || t.id === 'calendar' ? undefined : lists[t.id].length }))}
               active={tab}
               onChange={setTab}
             />
@@ -322,16 +322,10 @@ function EventsPanel() {
             </>
           ) : (
             <>
-              {/* TILLFÄLLIGT (testläget): valet Lista/Kalender, och kalendern om den är vald. */}
-              {calendarOn && (
+              {/* TILLFÄLLIGT (testläget): kalendern, på fliken Kalender. */}
+              {showCalendar && (
                 <Suspense fallback={null}>
-                  <EventCalendar
-                    mode={mineMode}
-                    onModeChange={setMineMode}
-                    events={unfiltered.mine}
-                    myInterestIds={myInterestIds}
-                    onSelect={(e) => setView(e.id)}
-                  />
+                  <EventCalendar events={unfiltered.mine} myInterestIds={myInterestIds} onSelect={(e) => setView(e.id)} />
                 </Suspense>
               )}
               {!showCalendar && (
