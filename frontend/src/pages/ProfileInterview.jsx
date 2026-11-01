@@ -117,7 +117,8 @@ const AUTO_FOCUS = !window.matchMedia('(pointer: coarse)').matches
 
 // På en telefon täcker tangentbordet nedre delen av skärmen, och sidan flyttar sig inte själv. Medan man skriver i ett fält
 // mäts därför hur mycket av skärmen som är dold (visualViewport). Sidan får så mycket extra plats nedtill
-// (--keyboard-height, se .interview-page i index.css), och scrollas upp tills fältet ligger ovanför tangentbordet.
+// (--keyboard-height, se .interview-page i index.css), och scrollas upp tills fältet och knappen under det ligger ovanför
+// tangentbordet.
 // Det följer tangentbordets verkliga höjd, och görs om när den ändras.
 function useKeepFieldAboveKeyboard() {
   useEffect(() => {
@@ -133,8 +134,14 @@ function useKeepFieldAboveKeyboard() {
       }
       const hidden = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
       root.style.setProperty('--keyboard-height', `${hidden}px`)
-      const overlap = field.getBoundingClientRect().bottom + 24 - (viewport.offsetTop + viewport.height)
-      if (overlap > 0) window.scrollBy({ top: overlap, behavior: 'smooth' })
+      // Både fältet och knappen under det (Nästa) ska ligga ovanför tangentbordet. Ryms inte båda går fältet före: sidan
+      // scrollas aldrig så långt att fältet försvinner uppåt.
+      const target = field.closest('.interview-card')?.querySelector('.interview-actions') ?? field
+      const visibleTop = viewport.offsetTop
+      const needed = target.getBoundingClientRect().bottom + 16 - (visibleTop + viewport.height)
+      const available = field.getBoundingClientRect().top - (visibleTop + 8)
+      const scroll = Math.min(needed, available)
+      if (scroll > 0) window.scrollBy({ top: scroll, behavior: 'smooth' })
     }
     // Tangentbordet hinner fälla ut sig efter fokus: mät igen när det är på plats (resize) och efter en kort stund.
     const onFocus = () => setTimeout(update, 300)

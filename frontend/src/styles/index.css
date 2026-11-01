@@ -1607,7 +1607,9 @@ span.tag-selected:hover {
      scrollar webbläsaren fram fältet, så det behövs ingen plats åt det här. */
   .interview-kompis.is-asking .interview-video {
     flex: none;
-    width: 140px;
+    width: 160px;
+    /* Klippen har tom bakgrund överst (cirka en fjärdedel av höjden), som annars blir luft ovanför kompisen. */
+    margin-top: -1.25rem;
   }
 
   /* Pratbubblan, med en liten spets mot kompisen. Tom bubbla syns inte, men
