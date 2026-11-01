@@ -1510,12 +1510,38 @@ span.tag-selected:hover {
   font-size: 1.2rem;
 }
 
-/* Rutan "Med ljud", under klippet. */
+/* Ljudknappen (ikonen för ljud på eller av) i övre högra hörnet av kompisens yta, så att den inte tar en egen rad. Rutan är
+   lika stor för båda ikonerna, som har lite olika höjd. */
+.interview-kompis {
+  position: relative;
+}
+
 .interview-sound {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.interview-sound img {
   display: block;
-  margin-top: 0.5rem;
-  text-align: center;
-  font-size: var(--text-small);
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+  transition: transform 0.15s ease;
+}
+
+.interview-sound:hover img,
+.interview-sound:focus-visible img {
+  transform: scale(1.1);
 }
 
 .interview-main {
@@ -1595,7 +1621,6 @@ span.tag-selected:hover {
   /* Medan frågorna ställs. */
   .interview-kompis.is-asking {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem;
     width: 100%;
@@ -1643,13 +1668,6 @@ span.tag-selected:hover {
 
   .interview-kompis.is-asking .interview-caption.is-empty {
     visibility: hidden;
-  }
-
-  /* Rutan "Med ljud" får en egen rad under kompisen och bubblan. */
-  .interview-kompis.is-asking .interview-sound {
-    flex-basis: 100%;
-    margin: 0;
-    text-align: left;
   }
 
   /* Frågan: framsteget först, sedan frågan i en storlek som ryms på några rader. */

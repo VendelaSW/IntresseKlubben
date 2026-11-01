@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import noSoundIcon from '../assets/nosound.png'
+import soundIcon from '../assets/sound.png'
 import AddInterest, { AddInterestError } from '../components/AddInterest'
 import FormField from '../components/FormField'
 import InterestTree, { descendantKeys, withoutDuplicates } from '../components/InterestTree'
@@ -161,8 +163,9 @@ const EMPTY_ANSWERS = { name: '', birthDate: '', gender: '', municipality: '', d
 
 // Intervjun som sätt att skapa en profil: en fråga i taget på samma sida, i stället
 // för ett långt formulär. Enter eller "Nästa" går vidare. Videon (Intressekompisens hälsning) spelas direkt, med
-// ljud om webbläsaren tillåter det (annars utan, och då är rutan "Med ljud" urbockad), medan rubriken, knappen
-// "Starta intervjun" visas, och rutan "Med ljud" under klippet, hela intervjun. Rutan gäller direkt. Knappen visar första frågan.
+// ljud om webbläsaren tillåter det (annars utan, och då visar ljudknappen att ljudet är av), medan rubriken, knappen
+// "Starta intervjun" visas, och ljudknappen (ikon för ljud på eller av) under klippet, hela intervjun. Knappen gäller direkt.
+// "Starta intervjun" visar första frågan.
 // Ljudet sätts på för alla klipp i klicket, och varje klipp "låses upp" för uppspelning där (se applySound). Annars
 // skulle en telefon stoppa varje nytt klipp med ljud och visa en knapp "Spela upp" inför det. Den knappen finns kvar
 // som reserv om webbläsaren ändå stoppar ett klipp.
@@ -193,7 +196,7 @@ function ProfileInterview() {
   const [caption, setCaption] = useState('')
   const [started, setStarted] = useState(false)
   // Ljudet på? Börjar på. Får webbläsaren inte spela klippet på startsidan med ljud (en telefon vill ha ett klick först)
-  // spelas det utan, och rutan "Med ljud" bockas ur. Bockar man i den slås ljudet på direkt (se toggleSound).
+  // spelas det utan, och ljudknappen visar att ljudet är av. Trycker man på den slås ljudet på direkt (se toggleSound).
   const [sound, setSound] = useState(true)
   // Förhandskontrollen av Om mig-texten när man går vidare från sista frågan: pågår den, och vad den sa om texten nekades.
   const [checkingAbout, setCheckingAbout] = useState(false)
@@ -299,7 +302,7 @@ function ProfileInterview() {
         else reveal()
       })
     play().catch(() => {
-      // Före första klicket får en telefon inte spela med ljud: spela utan ljud i stället, och bocka ur "Med ljud".
+      // Före första klicket får en telefon inte spela med ljud: spela utan ljud i stället, och visa att ljudet är av.
       if (!started && !next.muted) {
         next.muted = true
         setSound(false)
@@ -406,7 +409,7 @@ function ProfileInterview() {
     })
   }
 
-  // Rutan "Med ljud": gäller direkt, också för klippet som spelas på startsidan. Slår en webbläsare av klippet när det
+  // Ljudknappen: gäller direkt, också för klippet som spelas på startsidan. Slår en webbläsare av klippet när det
   // får ljud startas det igen här, i samma klick.
   function toggleSound(on) {
     setSound(on)
@@ -414,7 +417,7 @@ function ProfileInterview() {
     if (on && !videoEls.current[current]?.ended) play()
   }
 
-  // Videon spelas redan. Ljudet är som rutan "Med ljud" säger. Har webbläsaren stoppat klippet startar det med klicket.
+  // Videon spelas redan. Ljudet är som ljudknappen säger. Har webbläsaren stoppat klippet startar det med klicket.
   function start() {
     applySound(sound)
     setStarted(true)
@@ -764,9 +767,15 @@ function ProfileInterview() {
             {caption}
           </p>
           {/* Ljudet kan slås på och av under hela intervjun. */}
-          <label className="interview-sound">
-            <input type="checkbox" checked={sound} onChange={(e) => toggleSound(e.target.checked)} /> Med ljud
-          </label>
+          <button
+            type="button"
+            className="interview-sound"
+            aria-label="Ljud"
+            aria-pressed={sound}
+            onClick={() => toggleSound(!sound)}
+          >
+            <img src={sound ? soundIcon : noSoundIcon} alt="" />
+          </button>
           {blocked && (
             <button type="button" className="secondary-button" style={{ marginTop: '1rem' }} onClick={play}>
               Spela upp
