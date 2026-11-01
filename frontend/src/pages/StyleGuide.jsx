@@ -14,6 +14,7 @@ import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
 import CreateButton from '../components/CreateButton'
+import DrawnArrow from '../components/DrawnArrow'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
@@ -182,6 +183,22 @@ function StyleGuide() {
           Länk-stil (info-link)
         </a>
         <p className="swatch-code">Inter Bold, gul understrykning, tonas ner vid hover</p>
+        <div style={{ marginTop: '1rem' }}>
+          <button type="button" className="quiet-link">
+            Lugn länk (quiet-link)
+          </button>
+        </div>
+        <p className="swatch-code">
+          Grå text, normal vikt, gul understrykning, texten mörknar vid hover. För länkar under formulär (inloggning, registrering).
+        </p>
+        <div style={{ marginTop: '1rem' }}>
+          <button type="button" className="back-arrow" aria-label="Tillbaka" style={{ position: 'static' }}>
+            <DrawnArrow className="back-arrow-icon" />
+          </button>
+        </div>
+        <p className="swatch-code">
+          Tillbaka-pil (back-arrow): uppe i vänstra hörnet på inloggnings- och registreringsvyerna, i stället för "← Tillbaka".
+        </p>
       </section>
 
       <section className="style-section">
@@ -296,6 +313,18 @@ function StyleGuide() {
         <p className="form-error" style={{ marginTop: '0.75rem' }}>
           Detta intresse godkänns inte, försök med ett annat.
         </p>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Stämplar (.stamp, .stamp-success)
+        </p>
+        <p className="hint-text">
+          Handstil i en ram, lite snett, som om någon stämplat kortet. För vem ett event är till för, och
+          förtroendesignaler på profiler. Flera bredvid varandra i .trust-stamps.
+        </p>
+        <div className="trust-stamps">
+          <span className="stamp stamp-success">E-post bekräftad</span>
+          <span className="stamp">Medlem sedan mars 2026</span>
+        </div>
       </section>
 
       <section className="style-section">

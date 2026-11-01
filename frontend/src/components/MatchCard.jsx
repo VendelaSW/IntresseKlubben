@@ -1,17 +1,8 @@
 import { useDesignChoice } from '../hooks/useDesignChoice'
+import { joinNames } from '../utils/joinNames'
 import { posterStrip } from '../utils/matchPoster'
 import MatchLevel from './MatchLevel'
 import PersonCard from './PersonCard'
-
-// "A, B och C", med namnen i fetstil.
-function joinNames(names) {
-  const parts = []
-  names.forEach((name, i) => {
-    if (i > 0) parts.push(i === names.length - 1 ? ' och ' : ', ')
-    parts.push(<strong key={name}>{name}</strong>)
-  })
-  return parts
-}
 
 // Skälen till förslaget (`reasons` från GET /matches) som meningar. Backend skickar vad, den här skriver meningen. Bara det
 // som kortet visar redan: inga siffror. "practices" (intressen ni båda utövar) visas inte, utövar är inte avgjort.

@@ -112,7 +112,7 @@ from app.core import error_messages as msg
 from app.core import storage
 from app.core.config import settings
 from app.crud.email_token import TooManyEmails
-from app.crud.contact import blocked_user_ids, is_blocked
+from app.crud.contact import blocked_user_ids, is_blocked, mutual_contact_names
 from app.crud.moderation import suspended_user_ids
 from app.crud.dismissed_suggestion import (
     count_dismissed_suggestions,
@@ -121,6 +121,7 @@ from app.crud.dismissed_suggestion import (
     list_dismissed_user_ids,
     reset_dismissed_suggestions,
 )
+from app.crud.group import shared_group_names
 from app.crud.interest import profile_interests
 from app.crud.profile import (
     calculate_age,
@@ -460,6 +461,11 @@ def reset_suggestions(
 
 def _to_public_response(db: Session, profile, viewer: User) -> PublicProfileResponse:
     age, age_hidden = visible_age(profile, viewer)
+    user = profile.user
+    # Gemensamma kompisar och klubbar visas bara på någon annans profil. De man har en blockering med, och
+    # avstängda, räknas inte.
+    others = viewer.id != user.id
+    hidden = blocked_user_ids(db, viewer.id) | suspended_user_ids(db) if others else set()
     return PublicProfileResponse(
         name=profile.name,
         age=age,
@@ -468,7 +474,11 @@ def _to_public_response(db: Session, profile, viewer: User) -> PublicProfileResp
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
         profile_text=profile.profile_text,
-        interests=profile_interests(db, profile.user),
+        interests=profile_interests(db, user),
+        email_verified=user.email_verified_at is not None,
+        member_since=user.created_at.strftime("%Y-%m") if user.created_at else None,
+        mutual_friends=mutual_contact_names(db, viewer.id, user.id, hidden) if others else [],
+        shared_clubs=shared_group_names(db, viewer.id, user.id) if others else [],
     )
 
 

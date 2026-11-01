@@ -8,6 +8,7 @@ import DeleteAccount from '../components/DeleteAccount'
 import EmailVerification from '../components/EmailVerification'
 import InterestExplorer from '../components/InterestExplorer'
 import MunicipalityPicker from '../components/MunicipalityPicker'
+import NewProfileImage from '../components/NewProfileImage'
 import ProfileAbout from '../components/ProfileAbout'
 import ProfileHeader, { profileFacts } from '../components/ProfileHeader'
 import TextareaWithCount from '../components/TextareaWithCount'
@@ -15,7 +16,6 @@ import { useAuth } from '../hooks/useAuth'
 import { useGoBack } from '../hooks/useCanGoBack'
 import { checkAvailability, getCurrentUser, updateAccount } from '../services/api'
 import { clearProfileDraft, loadProfileDraft, saveProfileDraft } from '../services/profileDraft'
-import { resizeProfileImage } from '../services/resizeProfileImage'
 import {
   addInterest,
   confirmInterests,
@@ -94,51 +94,6 @@ function ProfileImage({ profile, onUploaded, editable = false }) {
           />
         </label>
       )}
-      {error && <p className="form-error">{error}</p>}
-    </div>
-  )
-}
-
-// Bildväljare för "Skapa din profil". Profilen finns inte än, så bilden skalas
-// om direkt men laddas upp först när formuläret sparas.
-function NewProfileImage({ name, image, onChange }) {
-  const [preview, setPreview] = useState(null)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (!image) return undefined
-    const url = URL.createObjectURL(image)
-    setPreview(url)
-    return () => URL.revokeObjectURL(url)
-  }, [image])
-
-  async function handleFile(event) {
-    const file = event.target.files[0]
-    event.target.value = ''
-    if (!file) return
-    setError('')
-    try {
-      onChange(await resizeProfileImage(file))
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  const initial = name.trim()[0]?.toUpperCase() ?? '?'
-  return (
-    <div className="profile-image">
-      {image && preview ? (
-        <img src={preview} alt="Förhandsvisning av din profilbild" className="profile-avatar" />
-      ) : (
-        <div className="profile-avatar profile-avatar-empty" aria-hidden="true">
-          {initial}
-        </div>
-      )}
-      <label className="secondary-button button-small">
-        {image ? 'Byt bild' : 'Lägg till bild'}
-        <input type="file" accept="image/*" className="visually-hidden" onChange={handleFile} />
-      </label>
-      {image && <p className="hint-text">Bilden laddas upp när du sparar profilen.</p>}
       {error && <p className="form-error">{error}</p>}
     </div>
   )
