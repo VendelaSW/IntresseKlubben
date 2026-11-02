@@ -1,63 +1,82 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import noSoundIcon from '../assets/nosound.png'
+import soundIcon from '../assets/sound.png'
 import AddInterest, { AddInterestError } from '../components/AddInterest'
 import FormField from '../components/FormField'
 import InterestTree, { descendantKeys, withoutDuplicates } from '../components/InterestTree'
 import TextareaWithCount from '../components/TextareaWithCount'
 import BirthDatePicker from '../components/BirthDatePicker'
 import MunicipalityPicker from '../components/MunicipalityPicker'
+import NewProfileImage from '../components/NewProfileImage'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
 import { sealInterest, suggestInterest } from '../services/interests'
-import { ABOUT_AI_NOTE, ABOUT_LABEL_SHORT, ABOUT_PLACEHOLDER, GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile } from '../services/profile'
+import { ABOUT_AI_NOTE, ABOUT_LABEL_SHORT, ABOUT_PLACEHOLDER, GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile, uploadResizedImage } from '../services/profile'
 
-// Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions`
-// är undertexterna som visas under videon medan klippet spelas (för den som har ljudet
-// av): `from` och `to` är sekunder i klippet. Filerna ligger i frontend/public/video (och
-// nås som /video/...).
+// Klippen ligger i frontend/public/video/intervju (och nås som /video/intervju/...).
+const VIDEO_DIR = '/video/intervju/'
+const clipFile = (name) => `${VIDEO_DIR}${name}_fix.mp4`
+
+// Väntklippen: när ett klipp har spelat klart loopas ett av dem, tills nästa klipp tar över (direkt, utan att vänta ut
+// en runda). Intressekompisen står då och väntar medan man svarar. Varje klipp (och steg) har sin lista: i en lista med
+// flera turas klippen om, efter ett svar kommer det ena, efter nästa svar det andra, och så vidare.
+const IDLE_EARLY = [clipFile('idle1'), clipFile('idle2')]
+// Från frågan om intressen och därefter, till sista frågan och vidare till avslutningen.
+const IDLE_LATE = [clipFile('idle3')]
+
+// Hälsningen: spelas på startsidan innan man har tryckt på "Starta intervjun". `captions` är undertexterna som visas under
+// videon medan klippet spelas (för den som har ljudet av): `from` och `to` är sekunder i klippet.
 const INTRO = {
-  video: '/video/intervju1_srgb.mp4',
+  video: clipFile('intro'),
+  idle: IDLE_EARLY,
   captions: [
     { from: 3.3, to: 5.6, text: 'Välkommen till Intresseklubben!' },
-    { from: 5.7, to: 7.4, text: 'Jag antecknar.' },
+    { from: 5.7, to: 7.3, text: 'Jag antecknar.' },
   ],
 }
 
 // Stegen i intervjun. Varje steg är en fråga med ett eller flera fält, som visas på
 // högerkanten medan Intressekompisen finns till vänster. `video` är klippet som spelas
-// när steget visas, och därefter tar väntklippet över. Ett steg kan också ha `captions`
-// (samma form som i INTRO).
+// när steget visas, och därefter tar väntklippet (`idle`) över. Ett steg kan också ha `then`, ett andra klipp som
+// spelas direkt efter det första (innan väntklippet), och `captions` (samma form som i INTRO).
 const STEPS = [
   {
     id: 'namn',
     question: 'Vad heter du?',
-    video: '/video/namn_fix.mp4',
-    captions: [{ from: 1.2, to: 2.9, text: 'Vad heter du?' }],
+    video: clipFile('vadheterdu'),
+    idle: IDLE_EARLY,
+    captions: [{ from: 0.95, to: 2.7, text: 'Vad heter du?' }],
   },
   {
     id: 'fodelse',
     question: 'När är du född, och vilket kön identifierar du dig med?',
-    video: '/video/datum_ny_fix.mp4',
-    captions: [{ from: 0.5, to: 3.0, text: 'Hur gammal är du?' }],
+    video: clipFile('hurgammaardu'),
+    idle: IDLE_EARLY,
+    captions: [{ from: 0.3, to: 3.0, text: 'Hur gammal är du?' }],
   },
   {
     id: 'plats',
     question: 'Var bor du?',
-    video: '/video/stad_fix.mp4',
-    captions: [{ from: 2.3, to: 3.8, text: 'Var bor du?' }],
+    video: clipFile('varbordu'),
+    idle: IDLE_EARLY,
+    captions: [{ from: 2.2, to: 3.65, text: 'Var bor du?' }],
   },
   {
     id: 'intressen',
     question: 'Berätta om dina intressen och vad du tycker om att göra!',
-    video: '/video/intressen_ny_fix.mp4',
-    captions: [{ from: 0.2, to: 3.2, text: 'Berätta om dina intressen!' }],
+    video: clipFile('beratta_intressen1'),
+    then: clipFile('beratta_intressen2'),
+    idle: IDLE_LATE,
+    captions: [{ from: 0.3, to: 4.9, text: 'Berätta om dina intressen!' }],
   },
   {
     id: 'person',
-    question: 'Till sist.\nBeskriv dig själv och vilken sorts människor du skulle vilja träffa här!',
-    video: '/video/person_fix.mp4',
-    captions: [{ from: 0.9, to: 3.0, text: 'Berätta om din personlighet!' }],
+    question: 'Till sist.\nBeskriv dig själv och vad du söker här!',
+    video: clipFile('vemardu'),
+    idle: IDLE_LATE,
+    captions: [{ from: 0.5, to: 3.0, text: 'Vem är du och vad söker du?' }],
   },
 ]
 
@@ -65,16 +84,17 @@ const STEPS = [
 // klippet (längden läses ur filen, så att det stämmer även om klippet byts ut). Sedan visas
 // tack-sidan, och Intressekompisen försvinner: klippet stoppas och bilden tas bort, så att
 // tack-rutan hamnar mitt på sidan. FALLBACK_ANALYSIS_MS gäller tills längden är läst.
-const OUTRO = { video: '/video/outro_fix.mp4' }
+const OUTRO = { video: clipFile('outro') }
 const FALLBACK_ANALYSIS_MS = 9400
 
-// Alla klipp med undertexter, för att hitta det som visas just nu.
-const ALL_CLIPS = [INTRO, ...STEPS, OUTRO]
-
-// Väntklippen: när ett klipp har spelat klart loopas ett av dem, tills nästa klipp tar
-// över (direkt, utan att vänta ut en runda). Intressekompisen står då och väntar medan man svarar. De turas om: efter ett
-// svar kommer det ena, efter nästa svar det andra, och så vidare.
-const IDLE_VIDEOS = ['/video/idle_fix.mp4', '/video/idle2_fix.mp4']
+// Alla klipp, för att hitta det som visas just nu. Ett andra klipp i ett steg (`then`) är ett eget klipp, med `from` som
+// pekar på stegets första klipp, och har samma väntklipp som steget.
+const ALL_CLIPS = [
+  INTRO,
+  ...STEPS.flatMap((step) => (step.then ? [step, { video: step.then, from: step.video, idle: step.idle }] : [step])),
+  OUTRO,
+]
+const IDLE_VIDEOS = [...new Set([...IDLE_EARLY, ...IDLE_LATE])]
 
 // Alla klipp ligger inladdade i sidan på en gång, staplade ovanpå varandra, så att ett klipp
 // redan är avkodat när det tar över. Då blir bytet mellan klippen utan hack.
@@ -93,17 +113,71 @@ function ageFrom(birthDate) {
   return today.getFullYear() - year - (hadBirthday ? 0 : 1)
 }
 
+// Fältet i en fråga får fokus direkt på dator. På en telefon gör det att tangentbordet (eller listan, på en rullista)
+// öppnas av sig själv och täcker frågan och kompisen, så där väljer man själv när man trycker på fältet.
+const AUTO_FOCUS = !window.matchMedia('(pointer: coarse)').matches
+
+// På en telefon täcker tangentbordet nedre delen av skärmen, och sidan flyttar sig inte själv. Medan man skriver i ett fält
+// mäts därför hur mycket av skärmen som är dold (visualViewport). Sidan får så mycket extra plats nedtill
+// (--keyboard-height, se .interview-page i index.css), och scrollas upp tills fältet och knappen under det ligger ovanför
+// tangentbordet.
+// Det följer tangentbordets verkliga höjd, och görs om när den ändras.
+function useKeepFieldAboveKeyboard() {
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (AUTO_FOCUS || !viewport) return undefined
+    const isField = (el) => ['INPUT', 'TEXTAREA', 'SELECT'].includes(el?.tagName)
+    const root = document.documentElement
+    const update = () => {
+      const field = document.activeElement
+      if (!isField(field)) {
+        root.style.removeProperty('--keyboard-height')
+        return
+      }
+      const hidden = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+      root.style.setProperty('--keyboard-height', `${hidden}px`)
+      // Både fältet och knappen under det (Nästa) ska ligga ovanför tangentbordet. Ryms inte båda går fältet före: sidan
+      // scrollas aldrig så långt att fältet försvinner uppåt.
+      const target = field.closest('.interview-card')?.querySelector('.interview-actions') ?? field
+      const visibleTop = viewport.offsetTop
+      const needed = target.getBoundingClientRect().bottom + 16 - (visibleTop + viewport.height)
+      const available = field.getBoundingClientRect().top - (visibleTop + 8)
+      const scroll = Math.min(needed, available)
+      if (scroll > 0) window.scrollBy({ top: scroll, behavior: 'smooth' })
+    }
+    // Tangentbordet hinner fälla ut sig efter fokus: mät igen när det är på plats (resize) och efter en kort stund.
+    const onFocus = () => setTimeout(update, 300)
+    // Går fokus till ett annat fält (Dag, Månad, År) står tangentbordet kvar: då behålls utrymmet, så att sidan inte hoppar.
+    const onBlur = (event) => {
+      if (!isField(event.relatedTarget)) update()
+    }
+    viewport.addEventListener('resize', update)
+    document.addEventListener('focusin', onFocus)
+    document.addEventListener('focusout', onBlur)
+    return () => {
+      viewport.removeEventListener('resize', update)
+      document.removeEventListener('focusin', onFocus)
+      document.removeEventListener('focusout', onBlur)
+      root.style.removeProperty('--keyboard-height')
+    }
+  }, [])
+}
+
 const EMPTY_ANSWERS = { name: '', birthDate: '', gender: '', municipality: '', district: '', likes: '', about: '' }
 
 // Intervjun som sätt att skapa en profil: en fråga i taget på samma sida, i stället
-// för ett långt formulär. Enter eller "Nästa" går vidare. Videon (Intressekompisens hälsning)
-// spelas direkt, medan rubriken och knappen "Starta intervjun" visas. Knappen visar första
-// frågan. Webbläsare kan stoppa uppspelning med ljud innan man har klickat någonstans (t.ex.
-// när sidan öppnas direkt från adressen). Då visas en knapp "Spela upp" under videon.
+// för ett långt formulär. Enter eller "Nästa" går vidare. Videon (Intressekompisens hälsning) spelas direkt, med
+// ljud om webbläsaren tillåter det (annars utan, och då visar ljudknappen att ljudet är av), medan rubriken, knappen
+// "Starta intervjun" visas, och ljudknappen (ikon för ljud på eller av) under klippet, hela intervjun. Knappen gäller direkt.
+// "Starta intervjun" visar första frågan.
+// Ljudet sätts på för alla klipp i klicket, och varje klipp "låses upp" för uppspelning där (se applySound). Annars
+// skulle en telefon stoppa varje nytt klipp med ljud och visa en knapp "Spela upp" inför det. Den knappen finns kvar
+// som reserv om webbläsaren ändå stoppar ett klipp.
 //
 // När intervjun är klar skapas profilen och intressena i ett anrop (POST /profile/interview/complete): bara de
 // intressen man behållit sparas, och inget skickas förrän man trycker på "Skapa min profil".
 function ProfileInterview() {
+  useKeepFieldAboveKeyboard()
   // Videoelementen, med filen som nyckel.
   const videoEls = useRef({})
   const analysisStart = useRef(0)
@@ -120,12 +194,35 @@ function ProfileInterview() {
   }, [])
   // Visas väntklippet i stället för stegets klipp?
   const [idle, setIdle] = useState(false)
-  // Vilket väntklipp som är på tur. Börjar på det sista, så att det första klippet som tar slut
-  // ger det första väntklippet.
-  const [idleVariant, setIdleVariant] = useState(IDLE_VIDEOS.length - 1)
+  // Hur många gånger ett väntklipp har börjat spelas, för att turas om mellan väntklippen i klippets lista.
+  const [idleCount, setIdleCount] = useState(0)
   // Undertexten som visas just nu (tom = ingen).
   const [caption, setCaption] = useState('')
+  const captionRef = useRef(null)
+  // På mobil är pratbubblan lika bred som den bredaste raden i texten. En ruta blir annars så bred som platsen medger även om
+  // texten bryts till två rader och den andra är kort, och det ser för stort ut. Raderna jämnas ut (text-wrap: balance i
+  // CSS), och rutan mäts efter det.
+  useLayoutEffect(() => {
+    const bubble = captionRef.current
+    if (!bubble) return
+    bubble.style.width = ''
+    if (!caption || !window.matchMedia('(max-width: 767px)').matches) return
+    const range = document.createRange()
+    range.selectNodeContents(bubble)
+    const rects = [...range.getClientRects()]
+    if (rects.length === 0) return
+    const textWidth = Math.max(...rects.map((r) => r.right)) - Math.min(...rects.map((r) => r.left))
+    const style = getComputedStyle(bubble)
+    const frame = ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth'].reduce(
+      (sum, side) => sum + parseFloat(style[side]),
+      0,
+    )
+    bubble.style.width = `${Math.ceil(textWidth + frame) + 1}px`
+  }, [caption])
   const [started, setStarted] = useState(false)
+  // Ljudet på? Börjar på. Får webbläsaren inte spela klippet på startsidan med ljud (en telefon vill ha ett klick först)
+  // spelas det utan, och ljudknappen visar att ljudet är av. Trycker man på den slås ljudet på direkt (se toggleSound).
+  const [sound, setSound] = useState(true)
   // Förhandskontrollen av Om mig-texten när man går vidare från sista frågan: pågår den, och vad den sa om texten nekades.
   const [checkingAbout, setCheckingAbout] = useState(false)
   const [aboutError, setAboutError] = useState('')
@@ -153,6 +250,10 @@ function ProfileInterview() {
   // Att spara profilen
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  // Profilbilden man valt på sista sidan (skalad, men uppladdad först när profilen är skapad), och felet om uppladdningen
+  // misslyckades efter att profilen redan sparats.
+  const [pendingImage, setPendingImage] = useState(null)
+  const [imageError, setImageError] = useState('')
   const [saveStatus, setSaveStatus] = useState(null) // HTTP-koden på felet, för att veta vad man kan göra åt det
   // Har sigillen gått ut (400 vid sparande)? Då får man tolka texterna på nytt.
   const [expired, setExpired] = useState(false)
@@ -178,10 +279,15 @@ function ProfileInterview() {
   const clip = analysis !== null || finished ? OUTRO : started ? step : INTRO
   const wantedVideo = clip.video
   const [shownVideo, setShownVideo] = useState(INTRO.video)
-  const pending = wantedVideo !== shownVideo
-  const captions = ALL_CLIPS.find((c) => c.video === shownVideo)?.captions
+  const shownClip = ALL_CLIPS.find((c) => c.video === shownVideo)
+  // Stegets andra klipp (`then`) räknas som att rätt klipp visas, fast det inte är det första.
+  const pending = wantedVideo !== shownVideo && shownClip?.from !== wantedVideo
+  const captions = shownClip?.captions
   // Det som ska spelas just nu: väntklippet när ett klipp har spelat klart, annars klippet.
-  const current = idle ? IDLE_VIDEOS[idleVariant] : shownVideo
+  const idleList = shownClip?.idle ?? IDLE_EARLY
+  const current = idle ? idleList[(idleCount - 1) % idleList.length] : shownVideo
+  // Klippen som redan är upplåsta för uppspelning med ljud (se applySound).
+  const unlocked = useRef(new Set())
   // Det som syns. Byts först när nästa klipp har börjat spela, så att det gamla ligger kvar
   // (på sin sista bild) tills det nya har en bild att visa.
   const [visible, setVisible] = useState(INTRO.video)
@@ -216,17 +322,26 @@ function ProfileInterview() {
       setVisible(current)
     }
     next.currentTime = 0
-    next
-      .play()
-      .then(() => {
+    const play = () =>
+      next.play().then(() => {
         setBlocked(false)
         if (next.requestVideoFrameCallback) next.requestVideoFrameCallback(reveal)
         else reveal()
       })
-      .catch(() => {
-        setBlocked(true)
-        reveal()
-      })
+    play().catch(() => {
+      // Före första klicket får en telefon inte spela med ljud: spela utan ljud i stället, och visa att ljudet är av.
+      if (!started && !next.muted) {
+        next.muted = true
+        setSound(false)
+        play().catch(() => {
+          setBlocked(true)
+          reveal()
+        })
+        return
+      }
+      setBlocked(true)
+      reveal()
+    })
     // Om bildrutan aldrig meddelas (t.ex. i en bakgrundsflik) visas klippet ändå.
     const fallback = setTimeout(reveal, 400)
     return () => clearTimeout(fallback)
@@ -287,12 +402,47 @@ function ProfileInterview() {
       setShownVideo(wantedVideo)
       return
     }
-    setIdleVariant((variant) => (variant + 1) % IDLE_VIDEOS.length)
+    // Stegets andra klipp spelas direkt efter det första.
+    if (shownClip?.then) {
+      setShownVideo(shownClip.then)
+      return
+    }
+    setIdleCount((count) => count + 1)
     setIdle(true)
   }
 
-  // Videon spelas redan. Har webbläsaren stoppat den startar den med klicket.
+  // Ljudet på klippen styrs bara här (inte med `muted` på <video>): React skulle annars sätta det på alla klipp samtidigt
+  // vid nästa rendering.
+  // Sätter ljudet på eller av för alla klipp. Körs i ett klick. Med ljud "låses" de klipp som inte spelar upp en gång, så att
+  // en telefon spelar dem med ljud senare utan nytt klick: play() och direkt pause(), utan att vänta. De hinner då inte
+  // börja spela eller avkodas (det gjorde att nästa klipp hackade sig i början när alla startade på en gång). Det görs
+  // utan ljud: en telefon låter bara ett klipp med ljud spela åt gången, så annars skulle det som spelar avbrytas.
+  function applySound(on) {
+    Object.entries(videoEls.current).forEach(([src, el]) => {
+      if (!el) return
+      if (src === current || !el.paused || !on || unlocked.current.has(src)) {
+        el.muted = !on
+        return
+      }
+      el.muted = true
+      el.play().catch(() => {}) // avbryts av pause() här under, vilket är meningen
+      el.pause()
+      el.muted = false
+      unlocked.current.add(src)
+    })
+  }
+
+  // Ljudknappen: gäller direkt, också för klippet som spelas på startsidan. Slår en webbläsare av klippet när det
+  // får ljud startas det igen här, i samma klick.
+  function toggleSound(on) {
+    setSound(on)
+    applySound(on)
+    if (on && !videoEls.current[current]?.ended) play()
+  }
+
+  // Videon spelas redan. Ljudet är som ljudknappen säger. Har webbläsaren stoppat klippet startar det med klicket.
   function start() {
+    applySound(sound)
     setStarted(true)
     if (blocked) play()
   }
@@ -475,6 +625,12 @@ function ProfileInterview() {
     }
   }
 
+  // Profilen är skapad: resten av appen låses upp (se RequireProfile) och man går till startsidan.
+  function finish() {
+    updateUser({ ...user, profile_completed: true })
+    navigate('/hem')
+  }
+
   // Skapar profilen och intressena i ett anrop. Bara omgångar med något kvar skickas, och bara de förslag som inte
   // är borttagna: det som inte skickas med räknas som bortvalt.
   async function handleSave() {
@@ -503,9 +659,18 @@ function ProfileInterview() {
         district: answers.district.trim() || null,
         batches: approved,
       })
+      // Profilen finns nu, så bilden kan laddas upp. Misslyckas det är profilen ändå sparad, och bilden kan läggas till
+      // under Redigera profil: man får veta det och går vidare med "Fortsätt".
+      if (pendingImage) {
+        try {
+          await uploadResizedImage(pendingImage)
+        } catch (error) {
+          setImageError(`Profilen är skapad, men bilden kunde inte laddas upp: ${messageOf(error)}`)
+          return
+        }
+      }
       // Nu är profilen klar, så resten av appen låses upp (se RequireProfile).
-      updateUser({ ...user, profile_completed: true })
-      navigate('/hem')
+      finish()
     } catch (error) {
       setExpired(error instanceof ApiError && error.status === 400)
       setSaveStatus(error instanceof ApiError ? error.status : null)
@@ -563,7 +728,8 @@ function ProfileInterview() {
     setAnalysis(null)
     setStarted(false)
     setIdle(false)
-    setIdleVariant(IDLE_VIDEOS.length - 1)
+    setIdleCount(0)
+    setPendingImage(null)
     setShownVideo(INTRO.video)
   }
 
@@ -587,42 +753,55 @@ function ProfileInterview() {
             formuläret syns utan att man scrollar. */}
       <div className="interview-layout">
         <div
-          className={`interview-kompis${started ? ' is-asking' : ''}`}
+          className="interview-kompis"
           style={finished ? { display: 'none' } : undefined}
         >
-          {/* Alla klipp ligger i sidan, staplade ovanpå varandra (alla är 720x720). Bara det som
-              syns har full opacitet, så att byten sker utan att något laddas om eller blinkar. */}
-          <div className="interview-video">
-            {CLIP_SOURCES.map((src) => (
-              <video
-                key={src}
-                ref={(element) => {
-                  videoEls.current[src] = element
-                }}
-                src={src}
-                aria-label="Intressekompisen"
-                aria-hidden={src !== visible}
-                playsInline
-                preload="auto"
-                // Väntklippen loopas tills nästa klipp tar över.
-                loop={IDLE_VIDEOS.includes(src)}
-                onTimeUpdate={(event) => handleTimeUpdate(event, src)}
-                onEnded={() => handleEnded(src)}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  opacity: src === visible ? 1 : 0,
-                  pointerEvents: 'none',
-                }}
-              />
-            ))}
+          {/* Kompisen och pratbubblan i en rad på mobil (se .interview-kompis-row). "Spela upp" hamnar under raden. */}
+          <div className="interview-kompis-row">
+            {/* Alla klipp ligger i sidan, staplade ovanpå varandra (alla är 720x720). Bara det som
+                syns har full opacitet, så att byten sker utan att något laddas om eller blinkar. */}
+            <div className="interview-video">
+              {CLIP_SOURCES.map((src) => (
+                <video
+                  key={src}
+                  ref={(element) => {
+                    videoEls.current[src] = element
+                  }}
+                  src={src}
+                  aria-label="Intressekompisen"
+                  aria-hidden={src !== visible}
+                  playsInline
+                  preload="auto"
+                  // Väntklippen loopas tills nästa klipp tar över.
+                  loop={IDLE_VIDEOS.includes(src)}
+                  onTimeUpdate={(event) => handleTimeUpdate(event, src)}
+                  onEnded={() => handleEnded(src)}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: src === visible ? 1 : 0,
+                    pointerEvents: 'none',
+                  }}
+                />
+              ))}
+            </div>
+            {/* Undertexter. Platsen är reserverad, så att inget under hoppar när texten byts. */}
+            <p ref={captionRef} className={`card-text interview-caption${caption ? '' : ' is-empty'}`} aria-live="polite">
+              {caption}
+            </p>
           </div>
-          {/* Undertexter. Platsen är reserverad, så att inget under hoppar när texten byts. */}
-          <p className={`card-text interview-caption${caption ? '' : ' is-empty'}`} aria-live="polite">
-            {caption}
-          </p>
+          {/* Ljudet kan slås på och av under hela intervjun. */}
+          <button
+            type="button"
+            className="interview-sound"
+            aria-label="Ljud"
+            aria-pressed={sound}
+            onClick={() => toggleSound(!sound)}
+          >
+            <img src={sound ? soundIcon : noSoundIcon} alt="" />
+          </button>
           {blocked && (
             <button type="button" className="secondary-button" style={{ marginTop: '1rem' }} onClick={play}>
               Spela upp
@@ -668,6 +847,7 @@ function ProfileInterview() {
               <div className="card sheet content-stack interview-summary" style={{ ...FIXED_CARD_SHADOW, margin: '0 auto' }}>
                 <p className="card-title">Det här är din profil{answers.name.trim() && `, ${answers.name.trim()}`}</p>
                 {/* Det man svarade, bara det som är ifyllt. */}
+                <NewProfileImage name={answers.name} image={pendingImage} onChange={setPendingImage} />
                 {profileRows.length > 0 && (
                   <dl className="profile-details">
                     {profileRows.map(([label, value]) => (
@@ -723,6 +903,7 @@ function ProfileInterview() {
                 )}
                 <p className="hint-text">Du kan ändra din profil och dina intressen senare om vi missat något!</p>
                 {saveError && <p className="form-error">{saveError}</p>}
+                {imageError && <p className="form-error">{imageError} Du kan lägga till den under Redigera profil.</p>}
                 {saveStatus === 422 && (
                   <button type="button" className="secondary-button" disabled={saving} onClick={editAnswers}>
                     Ändra mina svar
@@ -731,7 +912,11 @@ function ProfileInterview() {
                 {/* Huvudknappen störst, och "Börja om" liten och tätt under, så att
                     man inte trycker på den av misstag. */}
                 <div className="interview-save-buttons">
-                  {expired ? (
+                  {imageError ? (
+                    <button type="button" className="primary-button button-large" onClick={finish}>
+                      Fortsätt
+                    </button>
+                  ) : expired ? (
                     <button type="button" className="primary-button button-large" disabled={saving} onClick={reanalyze}>
                       {saving ? 'Tolkar...' : 'Tolka om'}
                     </button>
@@ -745,9 +930,11 @@ function ProfileInterview() {
                       {saving ? 'Sparar...' : 'Skapa min profil'}
                     </button>
                   )}
-                  <button type="button" className="secondary-button button-small" disabled={saving} onClick={restart}>
-                    Börja om
-                  </button>
+                  {!imageError && (
+                    <button type="button" className="secondary-button button-small" disabled={saving} onClick={restart}>
+                      Börja om
+                    </button>
+                  )}
                 </div>
               </div>
             </>
@@ -765,7 +952,12 @@ function ProfileInterview() {
                 </div>
               </div>
               <div className="card sheet interview-card" style={FIXED_CARD_SHADOW}>
-                <form ref={formRef} className="auth-form form-wide form-compact" onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+                <form
+                  ref={formRef}
+                  className="auth-form form-wide form-compact"
+                  onSubmit={handleSubmit}
+                  onKeyDown={handleKeyDown}
+                >
                   {step.id === 'namn' && (
                     <FormField id="interview-name" label="Namn">
                       <input
@@ -779,7 +971,7 @@ function ProfileInterview() {
                         autoCapitalize="words"
                         enterKeyHint="next"
                         required
-                        autoFocus
+                        autoFocus={AUTO_FOCUS}
                       />
                     </FormField>
                   )}
@@ -792,7 +984,7 @@ function ProfileInterview() {
                           value={answers.birthDate}
                           onChange={(birthDate) => setAnswers((current) => ({ ...current, birthDate }))}
                           required
-                          autoFocus
+                          autoFocus={AUTO_FOCUS}
                         />
                       </FormField>
                       <FormField id="interview-gender" label="Kön">
@@ -817,7 +1009,7 @@ function ProfileInterview() {
                           value={answers.municipality}
                           onChange={(code) => setAnswers((current) => ({ ...current, municipality: code }))}
                           required
-                          autoFocus
+                          autoFocus={AUTO_FOCUS}
                         />
                         <p className="hint-text">Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke.</p>
                       </FormField>

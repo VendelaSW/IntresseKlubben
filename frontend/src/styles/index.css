@@ -1377,6 +1377,71 @@ span.tag-selected:hover {
   opacity: 0.7;
 }
 
+/* Lugn länk under formulär (inloggning, registrering, glömt lösenord): grå text i normal vikt, med samma gula linje
+   under som de andra länkarna. Texten mörknar vid hover. Se stilguiden. */
+.quiet-link {
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 400;
+  color: var(--color-muted);
+  background: none;
+  border: none;
+  padding: 0 0 1px;
+  border-bottom: 2px solid var(--color-accent);
+  cursor: pointer;
+}
+
+.quiet-link:hover,
+.quiet-link:focus-visible {
+  color: var(--color-text);
+}
+
+/* Första länken en rad under knappen i formuläret. */
+.auth-form + .quiet-link {
+  margin-top: 1.25rem;
+}
+
+/* Tillbaka till startsidan från inloggning/registrering: den skissade pilen (DrawnArrow) åt vänster, uppe i vänstra
+   hörnet, gul med svart kant som pilarna på matchningskortet. */
+.back-arrow {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.back-arrow .back-arrow-icon {
+  width: 2.4rem;
+  height: 2rem;
+  fill: var(--color-accent);
+  stroke: var(--color-ink);
+  stroke-width: 1.1;
+  rotate: 90deg;
+  transition: transform 0.15s ease;
+}
+
+.back-arrow .back-arrow-icon .drawn-arrow-hatch {
+  display: none;
+}
+
+.back-arrow:hover .back-arrow-icon,
+.back-arrow:focus-visible .back-arrow-icon {
+  transform: scale(1.12);
+}
+
+/* Inloggnings-/registreringsvyerna: loggan högt upp och tätt mot rubriken. Pilen ligger i hörnet bredvid loggan. */
+.home-page-form {
+  gap: 0.6rem;
+  padding-top: 1rem;
+}
+
 .secondary-button {
   font-family: var(--font-body);
   font-weight: 400;
@@ -1445,6 +1510,40 @@ span.tag-selected:hover {
   font-size: 1.2rem;
 }
 
+/* Ljudknappen (ikonen för ljud på eller av) i övre högra hörnet av kompisens yta, så att den inte tar en egen rad. Rutan är
+   lika stor för båda ikonerna, som har lite olika höjd. */
+.interview-kompis {
+  position: relative;
+}
+
+.interview-sound {
+  position: absolute;
+  top: -0.5rem;
+  right: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.interview-sound img {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+  transition: transform 0.15s ease;
+}
+
+.interview-sound:hover img,
+.interview-sound:focus-visible img {
+  transform: scale(1.1);
+}
+
 .interview-main {
   flex: 1 1 320px;
   min-width: 0;
@@ -1460,6 +1559,12 @@ span.tag-selected:hover {
   text-align: left;
 }
 
+/* Födelsedatumet (tre listor) är bredare än en spalt i raden, och skulle ligga under könsrutan. Det får hela raden, och
+   Kön kommer under. */
+.interview-page .form-row > :has(.birth-date-picker) {
+  grid-column: 1 / -1;
+}
+
 /* Framstegsstapeln syns bara på mobil (se nedan). */
 .interview-progress-bar {
   display: none;
@@ -1472,11 +1577,13 @@ span.tag-selected:hover {
    - knappar och fält minst 48 px höga (Material 48 dp, Apple 44 pt, WCAG 2.5.8)
    - huvudknappen ("Nästa") störst och längst till höger, där tummen når
    - framsteget ("Fråga 2 av 5" och en stapel) ovanför frågan
-   Intressekompisen är liten och rund högst upp, med det den säger bredvid som
-   en pratbubbla. Innan intervjun startar är den större och centrerad. */
+   Intressekompisen står högst upp, med det den säger bredvid som en pratbubbla,
+   också på startskärmen. */
 @media (max-width: 767px) {
+  /* Under sidan finns lika mycket plats som tangentbordet tar (--keyboard-height, mäts i useKeepFieldAboveKeyboard i
+     ProfileInterview), så att fältet man skriver i kan scrollas upp ovanför det. */
   .interview-page {
-    padding: 1rem 1rem 2rem;
+    padding: 1rem 1rem calc(2rem + var(--keyboard-height, 0px));
     gap: 1rem;
   }
 
@@ -1493,48 +1600,42 @@ span.tag-selected:hover {
     flex: none;
   }
 
-  /* Startskärmen. */
-  .interview-kompis {
-    width: 200px;
-    max-width: 60vw;
-    margin: 0 auto;
-  }
-
-  .interview-kompis:not(.is-asking) .interview-caption {
-    min-height: 1.5rem;
-    font-size: 1.05rem;
-  }
-
   .interview-start {
     width: 100%;
-    min-height: 48px;
+    min-height: 44px;
     font-size: 1.05rem;
   }
 
-  /* Medan frågorna ställs. */
-  .interview-kompis.is-asking {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+  /* Kompisen med det den säger i en pratbubbla bredvid, på startskärmen och medan frågorna ställs. "Spela upp", om den
+     visas, ligger under raden. */
+  .interview-kompis {
     width: 100%;
     max-width: none;
     margin: 0;
   }
 
-  .interview-kompis.is-asking .interview-video {
-    flex: none;
-    width: 64px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 2px solid var(--color-line);
-    background: var(--color-white);
+  .interview-kompis-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
 
-  /* Pratbubblan, med en liten spets mot kompisen. Tom bubbla syns inte, men
-     raden behåller sin höjd (kompisen), så inget hoppar. */
-  .interview-kompis.is-asking .interview-caption {
+  /* Kompisen syns hel och så stor att man ser vad den gör. Klippen har tom bakgrund runt honom (cirka 22 % överst, 9 %
+     nederst, 16 % till vänster och 20 % till höger). Den tomma ytan dras bort med negativ marginal, så att han blir större
+     utan att raden blir högre eller bubblan smalare. Tangentbordet täcker en del av skärmen när man skriver, och då
+     scrollar webbläsaren fram fältet, så det behövs ingen plats åt det här. */
+  .interview-kompis .interview-video {
+    --kompis: 200px;
+    flex: none;
+    width: var(--kompis);
+    margin: calc(var(--kompis) * -0.2) calc(var(--kompis) * -0.2) calc(var(--kompis) * -0.1) calc(var(--kompis) * -0.16);
+  }
+
+  /* Pratbubblan, med en liten spets mot kompisen. Den är lika bred som texten (högst så bred som platsen bredvid kompisen),
+     inte hela raden. Tom bubbla syns inte, men raden behåller sin höjd (kompisen), så inget hoppar. */
+  .interview-kompis .interview-caption {
     position: relative;
-    flex: 1;
+    flex: 0 1 auto;
     min-height: 0;
     margin: 0;
     padding: 0.5rem 0.75rem;
@@ -1544,9 +1645,10 @@ span.tag-selected:hover {
     font-size: 1rem;
     line-height: 1.35;
     text-align: left;
+    text-wrap: balance;
   }
 
-  .interview-kompis.is-asking .interview-caption::before {
+  .interview-kompis .interview-caption::before {
     content: '';
     position: absolute;
     left: -8px;
@@ -1559,7 +1661,7 @@ span.tag-selected:hover {
     transform: translateY(-50%) rotate(45deg);
   }
 
-  .interview-kompis.is-asking .interview-caption.is-empty {
+  .interview-kompis .interview-caption.is-empty {
     visibility: hidden;
   }
 
@@ -1612,7 +1714,7 @@ span.tag-selected:hover {
   }
 
   .interview-page .interview-card .auth-form {
-    gap: 1rem;
+    gap: 0.85rem;
   }
 
   .interview-page .interview-card label {
@@ -1621,7 +1723,7 @@ span.tag-selected:hover {
 
   .interview-page .interview-card input,
   .interview-page .interview-card select {
-    min-height: 48px;
+    min-height: 44px;
   }
 
   .interview-page .interview-card .form-row {
@@ -1638,7 +1740,7 @@ span.tag-selected:hover {
   }
 
   .interview-page .interview-actions button {
-    min-height: 48px;
+    min-height: 44px;
     margin: 0;
     font-size: 1rem;
   }
@@ -1820,6 +1922,27 @@ span.tag-selected:hover {
 
 .stamp-success {
   color: var(--color-success);
+}
+
+/* Stämplar bredvid varandra, t.ex. "E-post bekräftad" och "Medlem sedan mars 2026" på en profil. Radbryts på
+   smal skärm, med luft emellan så att de sneda ramarna inte nuddar varandra. */
+.trust-stamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  padding-block: 0.25rem;
+}
+
+.trust-stamps:empty {
+  display: none;
+}
+
+/* Lite mindre än på eventen, de står under namnet. Får inte stämpeln plats på en rad (smal telefon) bryts
+   texten inne i ramen i stället för att sticka ut ur kortet. */
+.trust-stamps .stamp {
+  max-width: 100%;
+  font-size: 1.1rem;
+  white-space: normal;
 }
 
 .card-avatar-initials {

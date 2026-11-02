@@ -14,8 +14,9 @@ const MONTHS = [
   'november',
   'december',
 ]
-// Så långt bakåt som årslistan går.
-const OLDEST = 110
+// Åldersgränser: man ska ha fyllt 13 och högst vara 100 år.
+const MIN_AGE = 13
+const MAX_AGE = 100
 
 const pad = (n) => String(n).padStart(2, '0')
 const daysIn = (year, month) => new Date(year || 2000, month, 0).getDate() // 2000 är skottår, så 29 feb går att välja innan året
@@ -28,9 +29,9 @@ function split(value) {
 
 // Födelsedatum med tre listor: dag, månad och år, i stället för en kalender.
 // Fungerar som ett datumfält: `value` är 'ÅÅÅÅ-MM-DD' ('' tills alla tre är
-// valda) och `onChange` får det nya värdet. Datum i framtiden går inte att
-// välja, och dagarna följer månaden (och skottår). `id` hamnar på dagslistan,
-// så att etiketten pekar dit.
+// valda) och `onChange` får det nya värdet. Man kan bara välja ett datum som ger
+// en ålder mellan 13 och 100 år, och dagarna följer månaden (och skottår). `id`
+// hamnar på dagslistan, så att etiketten pekar dit.
 function BirthDatePicker({ id, value, onChange, required = false, autoFocus = false }) {
   const [parts, setParts] = useState(() => split(value))
 
@@ -42,22 +43,23 @@ function BirthDatePicker({ id, value, onChange, required = false, autoFocus = fa
   }, [value])
 
   const today = new Date()
-  const thisYear = today.getFullYear()
-  const years = Array.from({ length: OLDEST + 1 }, (_, i) => thisYear - i)
-  // I år går det bara fram till i dag.
-  const lastMonth = Number(parts.year) === thisYear ? today.getMonth() + 1 : 12
-  const isThisMonth = Number(parts.year) === thisYear && Number(parts.month) === today.getMonth() + 1
-  const lastDay = isThisMonth ? today.getDate() : daysIn(Number(parts.year), Number(parts.month) || 1)
+  // Det senaste datum man kan välja: i dag för 13 år sedan. Det året går det bara fram till det datumet.
+  const latest = new Date(today.getFullYear() - MIN_AGE, today.getMonth(), today.getDate())
+  const lastYear = latest.getFullYear()
+  const years = Array.from({ length: MAX_AGE - MIN_AGE + 1 }, (_, i) => lastYear - i)
+  const lastMonth = Number(parts.year) === lastYear ? latest.getMonth() + 1 : 12
+  const isThisMonth = Number(parts.year) === lastYear && Number(parts.month) === latest.getMonth() + 1
+  const lastDay = isThisMonth ? latest.getDate() : daysIn(Number(parts.year), Number(parts.month) || 1)
 
   function change(field, text) {
     const next = { ...parts, [field]: text }
     // En dag eller månad som inte finns längre (31 när man byter till april,
-    // eller ett datum i framtiden) töms, så att man väljer om.
-    const monthLimit = Number(next.year) === thisYear ? today.getMonth() + 1 : 12
+    // eller ett datum för nära i tiden) töms, så att man väljer om.
+    const monthLimit = Number(next.year) === lastYear ? latest.getMonth() + 1 : 12
     if (next.month && Number(next.month) > monthLimit) next.month = ''
     if (next.day && next.month) {
-      const sameMonth = Number(next.year) === thisYear && Number(next.month) === today.getMonth() + 1
-      const dayLimit = sameMonth ? today.getDate() : daysIn(Number(next.year), Number(next.month))
+      const sameMonth = Number(next.year) === lastYear && Number(next.month) === latest.getMonth() + 1
+      const dayLimit = sameMonth ? latest.getDate() : daysIn(Number(next.year), Number(next.month))
       if (Number(next.day) > dayLimit) next.day = ''
     }
     setParts(next)
