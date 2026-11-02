@@ -62,18 +62,22 @@ function jitter(lng, lat, salt) {
 
 // Är kanten en klippkant från kartrutorna (husen delas där rutorna möts), och
 // inte en riktig vägg? Sådana kanter går exakt längs en rutgräns på zoom 14,
-// eller längs rutans buffertzon strax utanför. a och b är hörn från
-// prepare(), med platt Mercator (wx, wy) redan uträknat.
-const TILES_Z14 = 2 ** 14
+// eller längs rutans buffertzon strax utanför.
 function isTileSeam(a, b) {
+  const tiles = 2 ** 14
+  const tx = (lng) => ((lng + 180) / 360) * tiles
+  const ty = (lat) => {
+    const r = (lat * Math.PI) / 180
+    return ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * tiles
+  }
   const nearGrid = (t) => {
     const f = t - Math.floor(t)
     return Math.min(f, 1 - f) < 0.02
   }
-  const ax = a.wx * TILES_Z14
-  const bx = b.wx * TILES_Z14
-  const ay = a.wy * TILES_Z14
-  const by = b.wy * TILES_Z14
+  const ax = tx(a[0])
+  const bx = tx(b[0])
+  const ay = ty(a[1])
+  const by = ty(b[1])
   return (Math.abs(ax - bx) < 1e-7 && nearGrid(ax)) || (Math.abs(ay - by) < 1e-7 && nearGrid(ay))
 }
 
@@ -145,7 +149,7 @@ function prepare(feature) {
       for (let k = 0; k < pts.length - 1; k++) {
         const a = pts[k]
         const b = pts[k + 1]
-        seam.push(isTileSeam(a, b))
+        seam.push(isTileSeam([a.lng, a.lat], [b.lng, b.lat]))
         len.push(Math.hypot(b.mx - a.mx, b.my - a.my))
       }
       return { pts, seam, len }
@@ -236,9 +240,6 @@ function keepInSweden(polygons) {
 // Så många förberedda grupper sparas (en vy på zoom 15 har ett par hundra).
 // Fler än så: cachen töms och fylls på nytt med det som syns.
 const CACHE_SIZE = 3000
-// Hur länge efter att nya kartrutor har kommit husen hämtas, så att rutor
-// som kommer tätt efter varandra blir en hämtning.
-const TILES_SETTLE_MS = 80
 
 // Kopplar de skissade husen till kartan. `canvas` är ritytan ovanpå kartan.
 export function attachSketchedBuildings(map, canvas) {
@@ -264,24 +265,11 @@ export function attachSketchedBuildings(map, canvas) {
   // objekt ur cachen) ritas inte om: kartan har redan ritat dem vid move.
   // Medan kartan rör sig ritas de av move strax efter.
   function refresh() {
-    clearTimeout(tilesTimer)
     if (!map.getLayer(LAYER_ID)) return
     const next = map.queryRenderedFeatures({ layers: [LAYER_ID] }).map(prepareCached)
     if (next.length === buildings.length && next.every((building, i) => building === buildings[i])) return
     buildings = next
     if (!map.isMoving()) render()
-  }
-
-  // Husen hämtas så fort kartrutorna har kommit, i stället för att vänta på
-  // idle (som också väntar på att namnen har tonat in, några tiondelar till).
-  // Medan kartan rör sig sköts det av refreshWhileMoving.
-  let tilesTimer = null
-  function onTile(event) {
-    if (event.sourceId !== 'openmaptiles' || !event.tile || map.getZoom() < 14) return
-    clearTimeout(tilesTimer)
-    tilesTimer = setTimeout(() => {
-      if (!map.isMoving()) refresh()
-    }, TILES_SETTLE_MS)
   }
 
   function resize() {
@@ -665,11 +653,10 @@ export function attachSketchedBuildings(map, canvas) {
   refreshWhileMoving(map, () => map.getZoom() >= 14 && refresh())
   map.on('move', render)
   map.on('resize', render)
-  map.on('sourcedata', onTile)
   // När kartan har stannat: husen hämtas i första bildrutan där rutorna i bild
-  // är klara. Inte vid själva moveend, för vid jumpTo kommer det innan kartan
-  // har bytt rutor. Rutor ur kartans minne ger inget sourcedata och är klara
-  // först en eller två bildrutor senare, så det kollas i varje bildruta.
+  // är klara, i stället för att vänta på idle (som också väntar på att namnen
+  // har tonat in, några tiondelar till). Inte vid själva moveend, för vid
+  // jumpTo kommer det innan kartan har bytt rutor.
   function refreshWhenLoaded() {
     if (!map.isMoving() && !map.areTilesLoaded()) return
     map.off('render', refreshWhenLoaded)
