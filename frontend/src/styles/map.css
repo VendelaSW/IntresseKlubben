@@ -1188,6 +1188,88 @@
   text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
 }
 
+/* Var man är, efter Hitta mig: en liten ritad figur, som inte tar några klick från kartan. */
+.map-you {
+  width: 30px;
+  height: 30px;
+  z-index: 2;
+  pointer-events: none;
+  filter: drop-shadow(2px 2px 0 #3a2f25);
+}
+
+.map-you svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.map-you svg,
+.map-find-me-icon {
+  fill: #f4c430;
+  stroke: #3a2f25;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+/* Pilarna vid skärmens kant till det som är nära men utanför skärmen (se
+   mapPrototypeNearby.js), på samma papper som lapparna: vitt för klubbar, rosa för events. */
+.map-nearby {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.4rem 0.15rem 0.25rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #3a2f25;
+  color: #3a2f25;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.map-nearby.is-event {
+  background: #ffd6e7;
+}
+
+.map-nearby:hover,
+.map-nearby:focus-visible {
+  box-shadow: none;
+  translate: 2px 2px;
+}
+
+.map-nearby img {
+  width: 18px;
+  height: 18px;
+}
+
+.map-nearby-arrow {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  fill: none;
+  stroke: #3a2f25;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Hitta mig: text på större skärmar, bara figuren på mobil (se nedan), så att sökrutan får plats. */
+.map-find-me-icon {
+  display: none;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.map-find-me:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .map-tool {
   display: inline-flex;
   align-items: center;
@@ -2047,6 +2129,14 @@
   .map-tool {
     padding: 0.2rem 0.5rem;
     font-size: 0.72rem;
+  }
+
+  .map-find-me-icon {
+    display: block;
+  }
+
+  .map-find-me-text {
+    display: none;
   }
 
   /* Smalare bordskant, annars tar den halva skärmen. */
