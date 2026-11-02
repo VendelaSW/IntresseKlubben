@@ -4274,6 +4274,20 @@ button.board-note:focus-visible {
   display: none;
 }
 
+/* Datumfiltret under Events (EventDayFilter): en lista, och under den en
+   osynlig kalender som "Välj datum…" öppnar. */
+.event-day-filter {
+  position: relative;
+  min-width: 0;
+}
+
+.event-day-filter-calendar {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* "Ålder" följt av från- och till-ålder, i en av filtrens rutor. */
 .filter-age-range {
   display: grid;

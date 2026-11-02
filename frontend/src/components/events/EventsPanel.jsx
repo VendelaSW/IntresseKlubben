@@ -8,11 +8,11 @@ import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
 import CreateOffer from '../CreateOffer'
-import DateField from '../DateField'
 import { PadHeadAction } from '../PadHead'
 import EmptyState from '../EmptyState'
 import FilterTabs from '../FilterTabs'
 import InterestPicker from '../InterestPicker'
+import EventDayFilter from './EventDayFilter'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
 import { contactsQuery } from '../../services/contacts'
@@ -21,7 +21,7 @@ import { myGroupsQuery } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
 import { useAuth } from '../../hooks/useAuth'
 import { markEventsSeen } from '../../services/eventsSeen'
-import { onDay } from '../../utils/eventTime'
+import { inDayFilter } from '../../utils/eventTime'
 import LoadError from '../LoadError'
 
 const TABS = [
@@ -138,8 +138,8 @@ function EventsPanel() {
   // Ens egna intressen: deras events först i Förslag, och snabbvalen i intresseväljaren.
   const [myInterests, setMyInterests] = useState([])
   const myInterestIds = useMemo(() => new Set(myInterests.map((i) => i.id)), [myInterests])
-  // Filtren: en dag ('2026-11-07', '' = alla, se onDay i utils/eventTime.js) och intresse ({ id, name } eller null).
-  // Nollställs när man byter flik.
+  // Filtren: datum (ett snabbval eller en dag, '' = alla, se dayRange i utils/eventTime.js) och intresse ({ id, name }
+  // eller null). Nollställs när man byter flik.
   const [dayFilter, setDayFilter] = useState('')
   const [interestFilter, setInterestFilter] = useState(null)
   const filtering = Boolean(dayFilter || interestFilter)
@@ -206,7 +206,7 @@ function EventsPanel() {
     ? splitEvents(
         events.filter(
           (event) =>
-            onDay(event, dayFilter) && (!interestFilter || event.interest_id === interestFilter.id),
+            inDayFilter(event, dayFilter) && (!interestFilter || event.interest_id === interestFilter.id),
         ),
       )
     : unfiltered
@@ -322,12 +322,7 @@ function EventsPanel() {
           ) : (
             <>
               <div className="filter-select-row filter-select-row-compact">
-                <DateField
-                  aria-label="Filtrera på datum"
-                  emptyLabel="Alla datum"
-                  value={dayFilter}
-                  onChange={setDayFilter}
-                />
+                <EventDayFilter value={dayFilter} onChange={setDayFilter} />
                 <InterestPicker
                   aria-label="Filtrera på intresse"
                   placeholder="Alla intressen"

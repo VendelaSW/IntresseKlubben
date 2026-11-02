@@ -15,6 +15,7 @@ import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
 import CreateButton from '../components/CreateButton'
 import DateField from '../components/DateField'
+import EventDayFilter from '../components/events/EventDayFilter'
 import DrawnArrow from '../components/DrawnArrow'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
@@ -139,6 +140,7 @@ function StyleGuide() {
   const [filterMunicipality, setFilterMunicipality] = useState('')
   const [filterInterest, setFilterInterest] = useState(null)
   const [filterDay, setFilterDay] = useState('')
+  const [exampleDay, setExampleDay] = useState('')
   const [compactStart, setCompactStart] = useState('')
   const [compactEnd, setCompactEnd] = useState('')
   const [compactText, setCompactText] = useState('')
@@ -629,12 +631,17 @@ function StyleGuide() {
           Datumfält för events (DateField, .date-field)
         </p>
         <p className="hint-text">
-          Kalendern går bara att välja i från i dag till ett år framåt, samma gräns som backend. I filtret under Events
-          bara datum, med "Alla datum" (.date-field-empty) när inget är valt och ett kryss (.field-clear) som tar bort
-          det. I Skapa event med tid (withTime), se formuläret nedan.
+          Kalendern går bara att välja i från i dag till ett år framåt, samma gräns som backend. I Skapa event med tid
+          (withTime), se formuläret nedan. Med emptyLabel står t.ex. "Alla datum" (.date-field-empty) i fältet när
+          inget är valt, och ett kryss (.field-clear) tar bort det.
+        </p>
+        <p className="hint-text">
+          I filtret under Events (EventDayFilter, .event-day-filter) en lista med Alla datum, Idag, I helgen och Denna
+          vecka, och sist Välj datum…, som öppnar kalendern. En vald dag står sedan i listan.
         </p>
         <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
-          <DateField aria-label="Exempel 3" value={filterDay} onChange={setFilterDay} emptyLabel="Alla datum" />
+          <EventDayFilter value={filterDay} onChange={setFilterDay} />
+          <DateField aria-label="Exempel 3" value={exampleDay} onChange={setExampleDay} emptyLabel="Alla datum" />
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
