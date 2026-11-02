@@ -1076,6 +1076,15 @@ function MapPrototype() {
   const leftFreeAtRef = useRef(null)
   const pinsShown = PINS_ENABLED && mode === 'free'
 
+  // Figuren för var man är (se goToMe) syns bara från kommunnivån och inåt, inte över landskap och län.
+  function updateYouMarker() {
+    const inKommun =
+      selectedKommunRef.current || (modeRef.current === 'free' && (mapRef.current?.getZoom() ?? 0) >= KOMMUN_FADE[1])
+    youMarkerRef.current?.getElement().classList.toggle('is-hidden', !inKommun)
+  }
+  const updateYouMarkerRef = useRef(updateYouMarker)
+  updateYouMarkerRef.current = updateYouMarker
+
   async function rememberKommunOverview(kod) {
     const kommun = await kommunByCode(kod)
     const map = mapRef.current
@@ -1095,6 +1104,7 @@ function MapPrototype() {
     selectedLanRef.current = next === 'free' ? lan : null
     selectedKommunRef.current = next === 'free' ? kommun : null
     kommunOverviewZoomRef.current = null
+    updateYouMarker()
     if (selectedKommunRef.current) rememberKommunOverview(selectedKommunRef.current)
     showLanFocus(selectedLanRef.current)
     // En väntande flygning till en ort gäller inte längre.
@@ -1533,6 +1543,7 @@ function MapPrototype() {
     })
     map.on('mouseleave', 'lan-fill', () => setHoveredLan(null))
     map.on('zoomstart', () => setHoveredLan(null))
+    map.on('zoom', () => updateYouMarkerRef.current())
     // Namnet gäller tills man drar kartan själv.
     map.on('dragstart', () => setLevelName(''))
     // Drar eller zoomar man själv innan flygningen till en ort har börjat
