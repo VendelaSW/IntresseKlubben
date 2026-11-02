@@ -231,6 +231,21 @@ def test_a_gender_filter_only_finds_those_who_chose_to_be_found_on_gender(client
     assert _names(client, gender="kvinna") == {"Findable"}  # Private syns inte, annars avslöjar filtret könet
 
 
+def test_several_municipalities_or_genders_find_anyone_with_one_of_them(client, db, user, climbing):
+    _fill_profile(db, user, climbing)
+    people = {name: _person(db, name.lower(), climbing, name=name) for name in ("Kim", "Max", "Sam")}
+    settings = (("Kim", GenderEnum.kvinna, "1480"), ("Max", GenderEnum.man, "0180"), ("Sam", GenderEnum.annat, "1480"))
+    for name, gender, code in settings:
+        people[name].profile.gender = gender
+        people[name].profile.gender_searchable = True
+        people[name].profile.municipality_code = code
+    db.commit()
+
+    assert _names(client, gender=["kvinna", "man"]) == {"Kim", "Max"}
+    assert _names(client, municipality_code=["1480", "0180"]) == {"Kim", "Max", "Sam"}
+    assert _names(client, gender=["kvinna", "man"], municipality_code="1480") == {"Kim"}
+
+
 def test_an_age_filter_leaves_out_hidden_ages_and_both_ends_count(client, db, user, climbing):
     _fill_profile(db, user, climbing)
     ages = {"Young": 22, "Middle": 30, "Old": 45, "Hidden": 30}
@@ -253,6 +268,9 @@ def test_a_minimum_age_above_the_maximum_is_refused(client, db, user, climbing):
 
     assert response.status_code == 400
     assert client.get("/matches", params={"min_age": 130}).status_code == 422
+    # Åldersgränsen 13–100 år (SCRUM-312).
+    assert client.get("/matches", params={"min_age": 12}).status_code == 422
+    assert client.get("/matches", params={"max_age": 101}).status_code == 422
 
 
 def test_a_persons_score_is_the_same_with_and_without_a_filter(client, db, user, climbing, music):

@@ -201,8 +201,8 @@ def read_interest_people(
         return {"country": country, "municipality": in_municipality}
 
     people = list_people(
-        db, current_user.id, municipality_code=municipality_code, exclude_user_ids=hidden,
-        interest_ids=tree.subtree(interest.id), limit=limit, offset=offset,
+        db, current_user.id, municipality_codes=[municipality_code] if municipality_code else None,
+        exclude_user_ids=hidden, interest_ids=tree.subtree(interest.id), limit=limit, offset=offset,
     )
     return InterestPeopleResponse(
         interest=InterestCountSelf(id=interest.id, name=interest.name, path=list(interest_place(db, interest).path), **counts(interest.id)),

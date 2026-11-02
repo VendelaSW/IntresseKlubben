@@ -312,7 +312,7 @@
 
 .filter-select-row-paper select,
 .filter-select-row-paper input,
-.filter-select-row-paper .option-picker-button {
+.filter-select-row-paper .multi-option-picker-button {
   box-sizing: border-box;
   width: auto;
   height: 2.25rem;
@@ -329,7 +329,7 @@
 /* Rullistorna och kommunfältet har en liten pil till höger, som filtren i Klubbar. */
 .filter-select-row-paper select,
 .filter-select-row-paper .municipality-picker input,
-.filter-select-row-paper .option-picker-button {
+.filter-select-row-paper .multi-option-picker-button {
   padding-right: 1.8rem;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M3.5 2 L6.5 5 L3.5 8' fill='none' stroke='%233a2f25' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -339,6 +339,7 @@
   cursor: pointer;
 }
 
+/* Kommunfältet och intresseväljaren (som har kommunfältets klasser) lika breda. */
 .filter-select-row-paper .municipality-picker input {
   width: 9.5rem;
 }
@@ -353,7 +354,7 @@
    syns mot det ljusa papperet. */
 .filter-select-row-paper select:focus,
 .filter-select-row-paper input:focus,
-.filter-select-row-paper .option-picker-button:focus-visible {
+.filter-select-row-paper .multi-option-picker-button:focus-visible {
   border-color: rgba(58, 47, 37, 0.65);
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
@@ -369,139 +370,60 @@
   background: var(--color-accent);
 }
 
-/* Den egna rullistan (components/OptionPicker.jsx): knappen ser ut som de andra fälten, texten till vänster. */
-.option-picker {
-  position: relative;
-  min-width: 0;
-}
-
-.filter-select-row-paper .option-picker-button {
-  display: inline-flex;
-  align-items: center;
+/* Könslistan (components/MultiOptionPicker.jsx) som en lapp: knappen som de andra fälten, och listan i varmt papper med
+   ljusgul rad för den man pekar på. Grundutseendet finns i index.css. */
+.filter-select-row-paper .multi-option-picker-button {
   min-width: 6.5rem;
   max-width: 13rem;
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: var(--text-small);
-  text-align: left;
-  white-space: nowrap;
 }
 
-/* Listan som kommunlistan, men med ljusgul rad för den man pekar på och gul för den valda. */
-/* Långa namn kortas med "…" i knappen. */
-.option-picker-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Intresseväljaren i samma rad, lite bredare än kommunfältet. */
-.filter-select-row-paper .interest-picker input {
-  width: 11rem;
-}
-
-.option-picker-list {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 4px);
-  left: 0;
-  min-width: 100%;
-  margin: 0;
+.filter-select-row-paper .multi-option-picker-list {
   padding: 0.25rem;
-  list-style: none;
   background: #fffdf8;
   border: 1.25px solid rgba(58, 47, 37, 0.3);
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-  font-family: var(--font-body);
-  font-size: var(--text-small);
-  text-align: left;
 }
 
-.option-picker-option {
-  padding: 0.4rem 0.75rem;
+.filter-select-row-paper .multi-option-picker-option {
   border-radius: 5px;
-  white-space: nowrap;
-  cursor: pointer;
 }
 
-.option-picker-option.is-active {
-  background: var(--color-accent-soft);
+/* Filter-knappen (PeoplePage) som en lapp, som de andra fälten. */
+.filter-toggle.filter-toggle-paper {
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1.25px solid rgba(58, 47, 37, 0.3);
+  background: #fffdf8;
+  box-shadow: 0 2px 0 rgba(58, 47, 37, 0.08);
 }
 
-.option-picker-option[aria-selected='true'] {
-  background: var(--color-accent);
-  font-weight: 700;
+.filter-toggle.filter-toggle-paper:hover,
+.filter-toggle.filter-toggle-paper:focus-visible {
+  border-color: rgba(58, 47, 37, 0.65);
 }
 
-/* Filter-knappen (bara layouten Nicklas förslag 1): på en smal skärm är fälten bakom den, på en bred skärm syns fälten och inte
-   knappen. Taggen med det man har sökt fram syns ändå. */
-.filter-toggle {
-  display: none;
+/* Åldersreglaget (AgeRangeSlider) som en lapp bland de andra. Reglagen själva ska inte se ut som fält. */
+.filter-select-row-paper .age-range {
+  height: 2.25rem;
+  border: 1.25px solid rgba(58, 47, 37, 0.3);
+  background-color: #fffdf8;
+  box-shadow: 0 2px 0 rgba(58, 47, 37, 0.08);
 }
 
-.filter-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+/* På egen rad i Medlemmars filter: lika lång som raden i Matcha, kommunfältet (9.5rem), mellanrummet (0.4rem) och
+   könslistan (6.5rem), i både Matcha och Sök. */
+.filter-age-row.filter-select-row-paper {
+  --age-row-width: 16.4rem;
 }
 
-@media (max-width: 767px) {
-  .filter-toggle {
-    display: inline-flex;
-    align-items: center;
-    align-self: flex-start;
-    gap: 0.5rem;
-    height: 2.25rem;
-    padding: 0 0.75rem;
-    border: 1.25px solid rgba(58, 47, 37, 0.3);
-    border-radius: 8px;
-    background: #fffdf8;
-    box-shadow: 0 2px 0 rgba(58, 47, 37, 0.08);
-    color: var(--color-text);
-    font-family: var(--font-body);
-    font-size: var(--text-small);
-    font-weight: 700;
-    cursor: pointer;
-  }
-
-  .filter-toggle::after {
-    content: '';
-    width: 0.6rem;
-    height: 0.6rem;
-    border-right: 1.6px solid var(--color-ink);
-    border-bottom: 1.6px solid var(--color-ink);
-    transform: translateY(-2px) rotate(45deg);
-    transition: transform 0.15s ease;
-  }
-
-  .filter-toggle.is-open::after {
-    transform: translateY(1px) rotate(-135deg);
-  }
-
-  .filter-toggle:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 1px;
-    border-color: rgba(58, 47, 37, 0.65);
-  }
-
-  /* Stängd: raderna med fälten göms (taggen och träffarna under dem ligger kvar). */
-  .filter-toggle + .filter-panel:not(.is-open) .filter-select-row {
-    display: none;
-  }
-}
-
-/* Åldern: "Ålder" och två små fält, på samma rad som de andra. */
-.filter-select-row-paper .filter-age-range {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.filter-select-row-paper .filter-age-range input {
-  width: 4.2rem;
-  padding: 0 0.5rem;
-  text-align: center;
+.filter-select-row-paper .age-range .age-range-slider input,
+.filter-select-row-paper .age-range .age-range-slider input:focus {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  outline: none;
 }
 
 

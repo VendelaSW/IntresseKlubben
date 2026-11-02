@@ -26,10 +26,10 @@ const PREFETCH_AT = 5
 //
 // Förslagen hämtas tio åt gången, och nästa sida hämtas i förväg när det bara finns några kvar. Skickar eller tar man bort
 // någon försvinner hen ur listan, medan de man gått vidare förbi blir kvar överst. Nästa sida hämtas därför med offset =
-// så många man har gått vidare förbi plus de som ännu inte har visats (inte hur många man har sett), annars hoppas någon över. Kommun, kön och ålder är samma filter som i Sök, och när ett
+// så många man har gått vidare förbi plus de som ännu inte har visats (inte hur många man har sett), annars hoppas någon över. Kommuner, kön och ålder är samma filter som i Sök, och när ett
 // av dem ändras börjar listan om från första kortet. `onChanged` anropas när något har ändrats som andra flikar visar
 // (en skickad förfrågan). `myInterestIds` (en Set) markerar gemensamma intressen på kortet.
-function MatchPanel({ municipalityCode, gender, minAge, maxAge, myInterestIds, onChanged }) {
+function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds, onChanged }) {
   // phase: loading, ready (items[0] är kortet som visas), done (inga fler), not_ready (för lite i min profil) eller error.
   const [state, setState] = useState({ phase: 'loading', items: [], hasMore: false, missing: null })
   const [busy, setBusy] = useState(false)
@@ -51,7 +51,7 @@ function MatchPanel({ municipalityCode, gender, minAge, maxAge, myInterestIds, o
       const mine = ++request.current
       setState((s) => ({ ...s, phase: 'loading' }))
       try {
-        const page = await getMatches({ offset, municipalityCode, gender, minAge, maxAge })
+        const page = await getMatches({ offset, municipalityCodes, genders, minAge, maxAge })
         if (mine !== request.current) return
         if (page.status === 'not_ready') {
           setState({
@@ -67,7 +67,7 @@ function MatchPanel({ municipalityCode, gender, minAge, maxAge, myInterestIds, o
         if (mine === request.current) setState((s) => ({ ...s, phase: 'error' }))
       }
     },
-    [municipalityCode, gender, minAge, maxAge],
+    [municipalityCodes, genders, minAge, maxAge],
   )
 
   // Första sidan, och om från början när ett filter ändras.
@@ -91,7 +91,7 @@ function MatchPanel({ municipalityCode, gender, minAge, maxAge, myInterestIds, o
     if (appending.current) return
     appending.current = true
     const mine = request.current
-    getMatches({ offset: skipped.current + state.items.length, municipalityCode, gender, minAge, maxAge })
+    getMatches({ offset: skipped.current + state.items.length, municipalityCodes, genders, minAge, maxAge })
       .then((page) => {
         if (mine !== request.current || page.status !== 'ok') return
         setState((s) => {
@@ -103,7 +103,7 @@ function MatchPanel({ municipalityCode, gender, minAge, maxAge, myInterestIds, o
       .finally(() => {
         appending.current = false
       })
-  }, [state, municipalityCode, gender, minAge, maxAge])
+  }, [state, municipalityCodes, genders, minAge, maxAge])
 
   // Rutan stängs av sig själv när det inte finns något mer att visa i den.
   useEffect(() => {
