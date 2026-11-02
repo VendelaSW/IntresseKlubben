@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDismiss } from '../hooks/useDismiss'
 import { getChildInterests, getTopInterests } from '../services/interests'
 import { areaColors } from '../utils/interestColors'
+import CheckMark from './CheckMark'
 import DrawnArrow from './DrawnArrow'
 import LoadError, { useRetry } from './LoadError'
 
@@ -22,7 +23,7 @@ export function PickTag({ interest, areaSlug, label = interest.name, title, on, 
         onClick={() => onToggle(interest)}
       >
         <span className="interest-pick-mark" aria-hidden="true">
-          {on ? '✓' : '+'}
+          {on ? <CheckMark /> : '+'}
         </span>
         {label}
       </button>
@@ -70,7 +71,7 @@ function PickGroup({ interest, areaSlug, picked }) {
           onClick={() => picked.onToggle(interest)}
         >
           <span className="interest-pick-mark" aria-hidden="true">
-            {on ? '✓' : '+'}
+            {on ? <CheckMark /> : '+'}
           </span>
           {interest.name}
         </button>
@@ -147,7 +148,7 @@ function InterestLibrary({ selectedIds, busyId, onToggle, onError }) {
           const isOpen = area?.id === item.id
           return (
             <li key={item.id}>
-              {/* Huvudområdena som intressetaggar, i sin egen färg. Pilen vänds uppåt när området är öppet. */}
+              {/* Huvudområdena som intressetaggar, i sin egen färg. Pilen pekar nedåt när området är öppet. */}
               <button
                 type="button"
                 className={`interest-tag explorer-area${isOpen ? ' explorer-area-open' : ''}`}
