@@ -12,7 +12,7 @@ import { allKommuner } from './mapPrototypeZoomLevels'
 //
 // `onPick(förslag)` flyttar kartan; förslaget har `kind` ('kommun', 'lan',
 // 'landskap', 'klubb', 'event' eller 'place') och det som behövs för att hitta
-// dit. `findMeMessage` är beskedet från Hitta mig (se findMe i MapPrototype).
+// dit. `findMeMessage` är beskedet från Hitta mig (se findMe i MapPrototype), och `onCloseFindMeMessage` stänger det.
 const MAX_REGIONS = 5
 const MAX_ACTIVITIES = 4
 const MAX_PLACES = 4
@@ -46,7 +46,7 @@ function matching(items, wanted, max) {
     .slice(0, max)
 }
 
-function MapPlaceSearch({ activities = [], onPick, findMeMessage = '' }) {
+function MapPlaceSearch({ activities = [], onPick, findMeMessage = '', onCloseFindMeMessage }) {
   const listId = useId()
   const [kommuner, setKommuner] = useState([])
   const [query, setQuery] = useState('')
@@ -206,6 +206,14 @@ function MapPlaceSearch({ activities = [], onPick, findMeMessage = '' }) {
       {findMeMessage && (
         <p className="map-place-search-message" role="status">
           {findMeMessage}
+          <button
+            type="button"
+            className="map-place-search-message-close touch-target"
+            aria-label="Stäng"
+            onClick={onCloseFindMeMessage}
+          >
+            ×
+          </button>
         </p>
       )}
     </div>

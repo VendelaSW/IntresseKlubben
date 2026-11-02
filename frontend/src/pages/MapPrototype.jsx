@@ -1764,7 +1764,12 @@ function MapPrototype() {
               </button>
             </div>
           </div>
-          <MapPlaceSearch activities={activityItems} onPick={goToSearchResult} findMeMessage={findMeMessage} />
+          <MapPlaceSearch
+            activities={activityItems}
+            onPick={goToSearchResult}
+            findMeMessage={findMeMessage}
+            onCloseFindMeMessage={() => setFindMeMessage('')}
+          />
           <div className="map-sketch-tools" role="toolbar" aria-label="Nålar och väg" hidden={!pinsShown}>
             <button
               type="button"
