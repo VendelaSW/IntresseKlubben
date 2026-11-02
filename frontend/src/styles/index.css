@@ -4181,6 +4181,96 @@ button.board-note:focus-visible {
   color: var(--color-muted);
 }
 
+/* Rullista med kryssrutor (MultiOptionPicker), t.ex. kön i Medlemmars filter.
+   Knappen ser ut som filtrens fält, med en liten pil, och listan som
+   kommunlistan, med en ruta som får en bock för det som är valt. */
+.multi-option-picker {
+  position: relative;
+  min-width: 0;
+}
+
+.multi-option-picker-button {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.4rem 1.8rem 0.4rem 0.5rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5 L5 6.5 L8 3.5' fill='none' stroke='%233a2f25' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.6rem center / 0.65rem;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+  cursor: pointer;
+}
+
+.multi-option-picker-button:hover,
+.multi-option-picker-button:focus-visible {
+  border-color: var(--color-ink);
+}
+
+.multi-option-picker-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* Flera valda kortas med "…" i knappen; alla syns som lappar under Filter. */
+.multi-option-picker-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multi-option-picker-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: max(100%, 10rem);
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: var(--color-white);
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+}
+
+.multi-option-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.multi-option-picker-option.is-active {
+  background: var(--color-accent-soft);
+}
+
+.multi-option-picker-box {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 3px;
+  background: var(--color-white);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.multi-option-picker-option[aria-selected='true'] .multi-option-picker-box {
+  background: var(--color-accent);
+}
+
 /* Kryss längst till höger i ett fält, som tar bort det valda (InterestPicker och
    DateField). Fältet behöver position: relative och plats till höger. */
 .field-clear {
@@ -4375,12 +4465,48 @@ button.board-note:focus-visible {
 }
 
 .filter-age-row .age-range {
-  width: 27rem;
+  width: var(--age-row-width, 27rem);
   max-width: 100%;
 }
 
 .filter-age-row .age-range-slider {
   flex: 1 1 auto;
+}
+
+/* Filtren som är på, som lappar med kryss, och "Rensa alla" sist. */
+.filter-chips {
+  align-items: center;
+}
+
+/* På mobil: intresse, kommun och kön på en rad, lika breda (med korta namn,
+   se PeoplePage), och åldern på hela raden under. */
+@media (max-width: 767px) {
+  .filter-panel {
+    width: auto;
+  }
+
+  .filter-panel .filter-select-row:not(.filter-select-row-paper) {
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    width: auto;
+  }
+
+  .filter-panel .filter-select-row.filter-select-row-paper {
+    flex-wrap: nowrap;
+  }
+
+  .filter-panel .filter-select-row-paper > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .filter-panel .filter-select-row-paper .municipality-picker input,
+  .filter-panel .filter-select-row-paper .multi-option-picker-button {
+    width: 100%;
+  }
+
+  .filter-age-row .age-range {
+    width: 100%;
+  }
 }
 
 /* Lika bred hela tiden ("Upp till 99 år" är längst), så att reglaget inte

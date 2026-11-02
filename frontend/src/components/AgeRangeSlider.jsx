@@ -6,8 +6,9 @@ const MIDDLE_AGE = (MIN_AGE + MAX_AGE) / 2
 // Var på reglaget en ålder ligger, 0–100.
 const percent = (age) => ((age - MIN_AGE) / (MAX_AGE - MIN_AGE)) * 100
 
-// "Alla åldrar", "Från 30 år", "Upp till 40 år", "25–40 år" eller "40 år".
-function ageText(low, high) {
+// "Alla åldrar", "Från 30 år", "Upp till 40 år", "25–40 år" eller "40 år". Används också för det valda filtret
+// på Medlemmar (se PeoplePage).
+export function ageText(low, high) {
   if (low === MIN_AGE && high === MAX_AGE) return 'Alla åldrar'
   if (low === high) return `${low} år`
   if (low === MIN_AGE) return `Upp till ${high} år`

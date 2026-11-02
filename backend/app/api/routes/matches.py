@@ -4,8 +4,8 @@ GET /matches - förslag på personer som matchar dig, bäst först, en sida i ta
 Appen visar dem ett i taget; kontaktförfrågan (POST /contacts/request) och "inte det här förslaget" (POST /users/{id}/dismiss)
 finns redan. Hur poängen räknas står i services/matching.py och services/match_suggestions.py. Låst tills din egen profil är klar
 (require_profile), som Personer. Valfria filter: ?municipality_code=, ?gender= och ?min_age=/?max_age= (13–100, se
-app/core/age.py). Som i GET /users/ kommer bara de med som valt att gå att hitta på kön, och på ålder bara de som inte
-dolt den.
+app/core/age.py). Kommun och kön kan upprepas för flera (?gender=kvinna&gender=man), och då räcker ett av dem. Som i
+GET /users/ kommer bara de med som valt att gå att hitta på kön, och på ålder bara de som inte dolt den.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -28,8 +28,8 @@ router = APIRouter(prefix="/matches", tags=["matches"], dependencies=[Depends(re
 def read_matches(
     limit: int = Query(10, ge=1, le=50),
     offset: int = Query(0, ge=0),
-    municipality_code: str | None = None,
-    gender: GenderEnum | None = None,
+    municipality_code: list[str] = Query([]),
+    gender: list[GenderEnum] = Query([]),
     min_age: int | None = Query(None, ge=MIN_AGE, le=MAX_AGE),
     max_age: int | None = Query(None, ge=MIN_AGE, le=MAX_AGE),
     current_user: User = Depends(get_current_user),
@@ -41,7 +41,8 @@ def read_matches(
             detail="Lägsta åldern kan inte vara högre än den högsta.",
         )
     page = suggestions_for(
-        db, current_user.id, limit, offset, municipality_code=municipality_code, gender=gender, min_age=min_age, max_age=max_age
+        db, current_user.id, limit, offset,
+        municipality_codes=municipality_code, genders=gender, min_age=min_age, max_age=max_age,
     )
     users = {
         user.id: user

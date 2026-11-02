@@ -312,7 +312,7 @@
 
 .filter-select-row-paper select,
 .filter-select-row-paper input,
-.filter-select-row-paper .option-picker-button {
+.filter-select-row-paper .multi-option-picker-button {
   box-sizing: border-box;
   width: auto;
   height: 2.25rem;
@@ -329,7 +329,7 @@
 /* Rullistorna och kommunfältet har en liten pil till höger, som filtren i Klubbar. */
 .filter-select-row-paper select,
 .filter-select-row-paper .municipality-picker input,
-.filter-select-row-paper .option-picker-button {
+.filter-select-row-paper .multi-option-picker-button {
   padding-right: 1.8rem;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M3.5 2 L6.5 5 L3.5 8' fill='none' stroke='%233a2f25' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -354,7 +354,7 @@
    syns mot det ljusa papperet. */
 .filter-select-row-paper select:focus,
 .filter-select-row-paper input:focus,
-.filter-select-row-paper .option-picker-button:focus-visible {
+.filter-select-row-paper .multi-option-picker-button:focus-visible {
   border-color: rgba(58, 47, 37, 0.65);
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
@@ -370,64 +370,21 @@
   background: var(--color-accent);
 }
 
-/* Den egna rullistan (components/OptionPicker.jsx): knappen ser ut som de andra fälten, texten till vänster. */
-.option-picker {
-  position: relative;
-  min-width: 0;
-}
-
-.filter-select-row-paper .option-picker-button {
-  display: inline-flex;
-  align-items: center;
+/* Könslistan (components/MultiOptionPicker.jsx) som en lapp: knappen som de andra fälten, och listan i varmt papper med
+   ljusgul rad för den man pekar på. Grundutseendet finns i index.css. */
+.filter-select-row-paper .multi-option-picker-button {
   min-width: 6.5rem;
   max-width: 13rem;
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: var(--text-small);
-  text-align: left;
-  white-space: nowrap;
 }
 
-/* Listan som kommunlistan, men med ljusgul rad för den man pekar på och gul för den valda. */
-/* Långa namn kortas med "…" i knappen. */
-.option-picker-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.option-picker-list {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 4px);
-  left: 0;
-  min-width: 100%;
-  margin: 0;
+.filter-select-row-paper .multi-option-picker-list {
   padding: 0.25rem;
-  list-style: none;
   background: #fffdf8;
   border: 1.25px solid rgba(58, 47, 37, 0.3);
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-  font-family: var(--font-body);
-  font-size: var(--text-small);
-  text-align: left;
 }
 
-.option-picker-option {
-  padding: 0.4rem 0.75rem;
+.filter-select-row-paper .multi-option-picker-option {
   border-radius: 5px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.option-picker-option.is-active {
-  background: var(--color-accent-soft);
-}
-
-.option-picker-option[aria-selected='true'] {
-  background: var(--color-accent);
-  font-weight: 700;
 }
 
 /* Filter-knappen (PeoplePage) som en lapp, som de andra fälten. */
@@ -454,8 +411,8 @@
 
 /* På egen rad i Medlemmars filter: lika lång som raden i Matcha, kommunfältet (9.5rem), mellanrummet (0.4rem) och
    könslistan (6.5rem), i både Matcha och Sök. */
-.filter-age-row.filter-select-row-paper .age-range {
-  width: 16.4rem;
+.filter-age-row.filter-select-row-paper {
+  --age-row-width: 16.4rem;
 }
 
 .filter-select-row-paper .age-range .age-range-slider input,

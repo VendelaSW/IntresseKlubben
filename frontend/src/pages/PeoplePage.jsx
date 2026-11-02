@@ -3,12 +3,12 @@ import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
-import AgeRangeSlider from '../components/AgeRangeSlider'
+import AgeRangeSlider, { ageText } from '../components/AgeRangeSlider'
 import EmptyState from '../components/EmptyState'
 import FilterTabs from '../components/FilterTabs'
 import InterestPicker from '../components/InterestPicker'
 import MatchPanel from '../components/MatchPanel'
-import OptionPicker from '../components/OptionPicker'
+import MultiOptionPicker from '../components/MultiOptionPicker'
 import PersonCard from '../components/PersonCard'
 import { useDesignChoice } from '../hooks/useDesignChoice'
 import { useResetOnTabChange, useTabParam } from '../hooks/useTabParam'
@@ -22,7 +22,7 @@ import {
   sendContactRequest,
 } from '../services/contacts'
 import { getMyInterests } from '../services/interests'
-import { GENDER_OPTIONS, getMunicipalities } from '../services/profile'
+import { GENDER_OPTIONS, genderLabel, getMunicipalities } from '../services/profile'
 import {
   dismissSuggestion,
   dismissedCountQuery,
@@ -32,7 +32,9 @@ import {
   undoDismissSuggestion,
 } from '../services/people'
 import { useConfirm } from '../hooks/useConfirm'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import LoadError from '../components/LoadError'
+import { MAX_AGE, MIN_AGE } from '../utils/age'
 
 const TABS = [
   { id: 'match', label: 'Matcha' },
@@ -90,10 +92,11 @@ function sharedInterestsText(person, myInterestIds) {
 // intresse, kommun, kön och ålder.
 const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: [] }
 // Inga filter valda. Filtren nollställs när man byter flik.
+// Intressen ({ id, name }), kommunkoder och kön är listor: flera val i samma filter räcker med ett av dem.
 const NO_FILTERS = {
-  interest: null,
-  municipalityCode: '',
-  gender: '',
+  interests: [],
+  municipalityCodes: [],
+  genders: [],
   // Åldersreglaget: null = ingen gräns åt det hållet (se AgeRangeSlider).
   minAge: null,
   maxAge: null,
@@ -109,7 +112,7 @@ function PeoplePage() {
   const [urlTab, setTab] = useTabParam(TABS)
   // Matcha är första fliken och den som öppnas när adressen inte säger något annat.
   const tab = urlTab ?? 'match'
-  // Filterraderna som papperslappar med egna listor: i Matcha och Sök, i layouten Nicklas förslag 1 (se OptionPicker).
+  // Filterraderna som papperslappar: i Matcha och Sök, i layouten Nicklas förslag 1 (se .filter-select-row-paper).
   const paperRow = (tab === 'match' || tab === 'suggested') && matchLayout === 'nicklas-1'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   // `interest` är intresset i Sök ({ id, name }, se InterestPicker) eller null.
@@ -124,6 +127,8 @@ function PeoplePage() {
   // Filterfälten ligger bakom en Filter-knapp och är ihopfällda från början.
   const [filtersOpen, setFiltersOpen] = useState(false)
   const filterPanelId = useId()
+  // På en smal skärm står bara "Intresse", "Kommun" och "Kön" i tomma fält, så att alla tre får plats på en rad.
+  const narrow = useMediaQuery('(max-width: 767px)')
 
   useEffect(() => {
     if (!removed) return undefined
@@ -144,11 +149,10 @@ function PeoplePage() {
 
   useEffect(() => loadFilterData(), [loadFilterData])
 
-  const { municipalityCode, gender, minAge, maxAge } = filters
-  const interestId = filters.interest ? String(filters.interest.id) : ''
+  const { interests, municipalityCodes, genders, minAge, maxAge } = filters
   const query = useMemo(
-    () => ({ interestId, municipalityCode, gender, minAge, maxAge }),
-    [interestId, municipalityCode, gender, minAge, maxAge],
+    () => ({ interestIds: interests.map((i) => i.id), municipalityCodes, genders, minAge, maxAge }),
+    [interests, municipalityCodes, genders, minAge, maxAge],
   )
 
   // Medlemmarna och ens kompisar ur det delade minnet (se services/queryClient.js):
@@ -306,45 +310,52 @@ function PeoplePage() {
     runAction(() => resetDismissedSuggestions())
   }
 
-  // Hur många filter som är på, för Filter-knappen. Intressefiltret finns bara i Sök.
-  const activeFilters =
-    (tab === 'suggested' && filters.interest ? 1 : 0) +
-    (filters.municipalityCode ? 1 : 0) +
-    (filters.gender ? 1 : 0) +
-    (filters.minAge !== null || filters.maxAge !== null ? 1 : 0)
+  // Filtren som är på, som lappar under Filter-knappen, var och en med ett kryss som tar bort den. Antalet står på
+  // knappen. Intressefiltret finns bara i Sök.
+  const without = (list, item) => list.filter((other) => other !== item)
+  const activeFilters = [
+    ...(tab === 'suggested' ? interests : []).map((interest) => ({
+      key: `interest:${interest.id}`,
+      label: interest.name,
+      clear: { interests: without(interests, interest) },
+    })),
+    ...municipalityCodes.map((code) => ({
+      key: `municipality:${code}`,
+      label: municipalities.find((m) => m.code === code)?.name ?? code,
+      clear: { municipalityCodes: without(municipalityCodes, code) },
+    })),
+    ...genders.map((gender) => ({
+      key: `gender:${gender}`,
+      label: genderLabel(gender),
+      clear: { genders: without(genders, gender) },
+    })),
+    ...(minAge !== null || maxAge !== null
+      ? [{ key: 'age', label: ageText(minAge ?? MIN_AGE, maxAge ?? MAX_AGE), clear: { minAge: null, maxAge: null } }]
+      : []),
+  ]
 
-  // Kommun och kön. I Sök står intressefiltret först på samma rad.
+  // Kommun och kön. I Sök står intressefiltret först på samma rad. Intresse och kommun fylls på: varje val blir en
+  // lapp under Filter-knappen, och fältet står kvar tomt för nästa. Kön kryssas i, flera på en gång.
   const demographics = (
     <>
-        <MunicipalityPicker
-          aria-label="Filtrera på kommun"
-          municipalities={municipalities}
-          value={filters.municipalityCode}
-          onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
-          emptyLabel="Alla kommuner"
-        />
-        {paperRow ? (
-          // Egen lista i stället för <select>, så att valen kan vara gula (se OptionPicker).
-          <OptionPicker
-            aria-label="Filtrera på kön"
-            value={filters.gender}
-            onChange={(gender) => setFilters({ ...filters, gender })}
-            options={[{ value: '', label: 'Alla kön' }, ...GENDER_FILTER_OPTIONS]}
-          />
-        ) : (
-          <select
-            aria-label="Filtrera på kön"
-            value={filters.gender}
-            onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
-          >
-            <option value="">Alla kön</option>
-            {GENDER_FILTER_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        )}
+      <MunicipalityPicker
+        aria-label="Lägg till en kommun"
+        municipalities={municipalities}
+        value=""
+        onChange={(code) =>
+          code &&
+          !municipalityCodes.includes(code) &&
+          setFilters({ ...filters, municipalityCodes: [...municipalityCodes, code] })
+        }
+        emptyLabel={narrow ? 'Kommun' : municipalityCodes.length > 0 ? 'Lägg till kommun' : 'Alla kommuner'}
+      />
+      <MultiOptionPicker
+        aria-label="Filtrera på kön"
+        values={genders}
+        onChange={(next) => setFilters({ ...filters, genders: next })}
+        options={GENDER_FILTER_OPTIONS}
+        emptyLabel={narrow ? 'Kön' : 'Alla kön'}
+      />
     </>
   )
 
@@ -371,18 +382,46 @@ function PeoplePage() {
             aria-controls={filterPanelId}
             onClick={() => setFiltersOpen((open) => !open)}
           >
-            Filter{activeFilters > 0 ? ` · ${activeFilters}` : ''}
+            Filter{activeFilters.length > 0 ? ` · ${activeFilters.length}` : ''}
           </button>
+          {activeFilters.length > 0 && (
+            <ul className="interest-tags filter-chips" aria-label="Valda filter">
+              {activeFilters.map((chip) => (
+                <li key={chip.key}>
+                  <span className="interest-tag">
+                    {chip.label}
+                    <button
+                      type="button"
+                      className="interest-tag-remove"
+                      aria-label={`Ta bort filtret ${chip.label}`}
+                      onClick={() => setFilters({ ...filters, ...chip.clear })}
+                    >
+                      ×
+                    </button>
+                  </span>
+                </li>
+              ))}
+              <li>
+                <button type="button" className="text-button" onClick={() => setFilters(NO_FILTERS)}>
+                  Rensa alla
+                </button>
+              </li>
+            </ul>
+          )}
           {filtersOpen && (
             <div id={filterPanelId} className="filter-panel">
               <div className={`filter-select-row${paperRow ? ' filter-select-row-paper' : ''}`}>
                 {tab === 'suggested' && (
                   <InterestPicker
-                    aria-label="Filtrera på intresse"
-                    placeholder="Alla intressen"
+                    aria-label="Lägg till ett intresse"
+                    placeholder={narrow ? 'Intresse' : interests.length > 0 ? 'Lägg till intresse' : 'Alla intressen'}
                     myInterests={myInterests}
-                    value={filters.interest}
-                    onChange={(interest) => setFilters({ ...filters, interest })}
+                    value={null}
+                    onChange={(interest) =>
+                      interest &&
+                      !interests.some((i) => i.id === interest.id) &&
+                      setFilters({ ...filters, interests: [...interests, interest] })
+                    }
                   />
                 )}
                 {demographics}
@@ -395,7 +434,7 @@ function PeoplePage() {
               </div>
             </div>
           )}
-          {filters.gender && (
+          {genders.length > 0 && (
             <p className="hint-text">Visar bara dem som valt att synas när man filtrerar på kön.</p>
           )}
           {tab === 'suggested' && dismissedCount > 0 && (
@@ -413,8 +452,8 @@ function PeoplePage() {
 
       {tab === 'match' ? (
         <MatchPanel
-          municipalityCode={query.municipalityCode}
-          gender={query.gender}
+          municipalityCodes={query.municipalityCodes}
+          genders={query.genders}
           minAge={query.minAge}
           maxAge={query.maxAge}
           myInterestIds={myInterestIds}

@@ -62,7 +62,8 @@ bara ge ett felmeddelande.
 
 GET /users/ - andra användare med sparad profil, valfritt filtrerade på
 ?interest_id=, ?municipality_code=, ?gender= och ?min_age=/?max_age= (13–100,
-se app/core/age.py; 400 om min_age är större än max_age). ?gender= ger bara dem som själva valt att
+se app/core/age.py; 400 om min_age är större än max_age). Intresse, kommun och kön
+kan upprepas för flera (?gender=kvinna&gender=man), och då räcker ett av dem. ?gender= ger bara dem som själva valt att
 gå att hitta på kön (gender_searchable), så att filtret inte avslöjar könet
 hos alla andra. Listan kommer med de som har flest intressen gemensamt med dig först, därefter i
 namnordning (filtren väljer bara vilka som är med). Utesluter dig själv, dina
@@ -372,9 +373,9 @@ MAX_PEOPLE_PAGE = 100
     dependencies=[Depends(require_profile)],
 )
 def read_people(
-    interest_id: int | None = None,
-    municipality_code: str | None = None,
-    gender: GenderEnum | None = None,
+    interest_id: list[int] = Query([]),
+    municipality_code: list[str] = Query([]),
+    gender: list[GenderEnum] = Query([]),
     min_age: int | None = Query(None, ge=MIN_AGE, le=MAX_AGE),
     max_age: int | None = Query(None, ge=MIN_AGE, le=MAX_AGE),
     limit: int | None = Query(None, ge=1, le=MAX_PEOPLE_PAGE),
@@ -395,8 +396,8 @@ def read_people(
         | incoming_request_ids(db, current_user.id)
     )
     profiles = list_people(
-        db, current_user.id, interest_id, municipality_code, hidden_ids,
-        gender=gender, min_age=min_age, max_age=max_age,
+        db, current_user.id, interest_ids=set(interest_id), municipality_codes=municipality_code,
+        exclude_user_ids=hidden_ids, genders=gender, min_age=min_age, max_age=max_age,
     )
     my_interest_ids = {link.interest_id for link in current_user.interest_links}
     profiles = sort_by_shared_interests(profiles, my_interest_ids)

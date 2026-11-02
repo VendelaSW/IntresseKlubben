@@ -71,6 +71,25 @@ def test_filters_by_municipality(client, db, user, municipalities):
     assert names == ["Bob"]
 
 
+def test_several_interests_municipalities_or_genders_find_anyone_with_one_of_them(client, db, user, municipalities):
+    # Flera val i samma filter räcker med ett av dem, och filtren gäller tillsammans.
+    climbing, chess, yoga = Interest(name="Klättring"), Interest(name="Schack"), Interest(name="Yoga")
+    db.add_all([climbing, chess, yoga])
+    db.commit()
+    _create_person(db, "bob", "Bob", interests=[climbing], gender=GenderEnum.man, gender_searchable=True)
+    _create_person(db, "sara", "Sara", interests=[chess], municipality_code="1481",
+                   gender=GenderEnum.kvinna, gender_searchable=True)
+    _create_person(db, "ylva", "Ylva", interests=[yoga], gender=GenderEnum.ickebinar, gender_searchable=True)
+
+    def names(params):
+        return sorted(p["name"] for p in client.get("/users/", params=params).json())
+
+    assert names({"interest_id": [climbing.id, chess.id]}) == ["Bob", "Sara"]
+    assert names({"municipality_code": ["1480", "1481"]}) == ["Bob", "Sara", "Ylva"]
+    assert names({"gender": ["kvinna", "man"]}) == ["Bob", "Sara"]
+    assert names({"gender": ["kvinna", "man"], "municipality_code": "1480"}) == ["Bob"]
+
+
 def test_includes_username_and_interests(client, db, user):
     climbing = Interest(name="Klättring")
     db.add(climbing)
