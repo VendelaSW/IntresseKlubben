@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useDismiss } from '../hooks/useDismiss'
 
 // En egen rullista där man kryssar i flera alternativ, t.ex. kön i Medlemmars filter (en <select> kan inte visa
-// kryssrutor). Ett val stänger inte listan. Samma uppbyggnad som MunicipalityPicker. `values` är de valda
+// kryssrutor). Ett val stänger inte listan. En knapp med en lista under, utan att man skriver. `values` är de valda
 // alternativens värden (en lista, tom = inget valt), och `onChange` får den nya listan. `options` är
 // [{ value, label }]. På knappen står de valda, eller `emptyLabel` när inget är valt.
 //

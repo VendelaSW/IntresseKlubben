@@ -91,8 +91,8 @@ function sharedInterestsText(person, myInterestIds) {
 // vilket flyttar om allt vid varje fliksbyte). Sök kan filtreras på
 // intresse, kommun, kön och ålder.
 const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: [] }
-// Inga filter valda. Filtren nollställs när man byter flik.
-// Intressen ({ id, name }), kommunkoder och kön är listor: flera val i samma filter räcker med ett av dem.
+// Inga filter valda. Filtren nollställs när man byter flik. Intressen ({ id, name }), kommunkoder och kön är listor:
+// flera val i samma filter räcker med ett av dem.
 const NO_FILTERS = {
   interests: [],
   municipalityCodes: [],
@@ -115,7 +115,6 @@ function PeoplePage() {
   // Filterraderna som papperslappar: i Matcha och Sök, i layouten Nicklas förslag 1 (se .filter-select-row-paper).
   const paperRow = (tab === 'match' || tab === 'suggested') && matchLayout === 'nicklas-1'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
-  // `interest` är intresset i Sök ({ id, name }, se InterestPicker) eller null.
   const [filters, setFilters] = useState(NO_FILTERS)
   useResetOnTabChange(tab, () => setFilters(NO_FILTERS))
   const [myInterests, setMyInterests] = useState([])

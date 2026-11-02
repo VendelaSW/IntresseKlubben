@@ -62,10 +62,10 @@ bara ge ett felmeddelande.
 
 GET /users/ - andra användare med sparad profil, valfritt filtrerade på
 ?interest_id=, ?municipality_code=, ?gender= och ?min_age=/?max_age= (13–100,
-se app/core/age.py; 400 om min_age är större än max_age). Intresse, kommun och kön
-kan upprepas för flera (?gender=kvinna&gender=man), och då räcker ett av dem. ?gender= ger bara dem som själva valt att
-gå att hitta på kön (gender_searchable), så att filtret inte avslöjar könet
-hos alla andra. Listan kommer med de som har flest intressen gemensamt med dig först, därefter i
+se app/core/age.py; 400 om min_age är större än max_age). Intresse, kommun och
+kön kan upprepas för flera (?gender=kvinna&gender=man), och då räcker ett av
+dem. ?gender= ger bara dem som själva valt att gå att hitta på kön
+(gender_searchable), så att filtret inte avslöjar könet hos alla andra. Listan kommer med de som har flest intressen gemensamt med dig först, därefter i
 namnordning (filtren väljer bara vilka som är med). Utesluter dig själv, dina
 borttagna förslag, dina kompisar, de som har skickat dig en förfrågan (de står under
 Kompisförfrågningar) och alla som har blockerat dig eller som du har blockerat. ?limit= och
