@@ -2,12 +2,14 @@
 // och bor i Majorna i Göteborg"). Uppgifter som saknas hoppas över, i stället för en rad med "–". `children`
 // hamnar under meningen, t.ex. "Redigera profil". `heading` är rubriknivån för namnet ('h1' på andras profiler,
 // där namnet är sidans rubrik).
+// En dold ålder (SCRUM-134) syns bara för en själv och för moderatorer, och då med "(dold för andra)".
 export function profileFacts(profile) {
   const { age, district, municipality_name: municipality } = profile
   const place = district && municipality ? `${district} i ${municipality}` : (municipality ?? district)
-  if (age != null && place) return `${age} år och bor i ${place}`
+  const ageText = age != null ? `${age} år${profile.age_hidden ? ' (dold för andra)' : ''}` : null
+  if (ageText && place) return `${ageText} och bor i ${place}`
   if (place) return `Bor i ${place}`
-  return age != null ? `${age} år` : ''
+  return ageText ?? ''
 }
 
 function ProfileHeader({ name, imageUrl, facts, heading: Heading = 'h2', children }) {

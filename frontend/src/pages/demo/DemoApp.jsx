@@ -4,7 +4,7 @@ import { hasProfile, matchPeople, personById, useDemo } from '../../hooks/useDem
 
 const NAV = [
   { to: '/demo/app', label: 'Hem', end: true },
-  { to: '/demo/app/personer', label: 'Personer' },
+  { to: '/demo/app/personer', label: 'Medlemmar' },
   { to: '/demo/app/klubbar', label: 'Klubbar' },
   { to: '/demo/app/karta', label: 'Karta' },
   { to: '/demo/app/evenemang', label: 'Evenemang' },
@@ -35,7 +35,7 @@ function DemoApp() {
           {NAV.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} className="app-nav-link">
               {item.label}
-              {item.label === 'Personer' && incoming > 0 && (
+              {item.label === 'Medlemmar' && incoming > 0 && (
                 <span className="nav-badge" aria-label={`${incoming} nya kompisförfrågningar`}>
                   {incoming}
                 </span>
@@ -93,7 +93,7 @@ export function DemoOverview() {
 
       <section className="app-section">
         <div className="section-header">
-          <h2>Personer nära dig med samma intressen</h2>
+          <h2>Medlemmar nära dig med samma intressen</h2>
           <Link to="/demo/app/personer" className="info-link">
             Visa alla
           </Link>
@@ -132,7 +132,7 @@ export function DemoOverview() {
 const COMING_SOON = {
   map: {
     title: 'Karta',
-    text: 'Här ska du se personer, klubbar och mötesplatser nära dig på en karta, till exempel caféer och lokaler där klubbarna träffas.',
+    text: 'Här ska du se medlemmar, klubbar och mötesplatser nära dig på en karta, till exempel caféer och lokaler där klubbarna träffas.',
   },
   events: {
     title: 'Evenemang',

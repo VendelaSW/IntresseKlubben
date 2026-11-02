@@ -67,9 +67,12 @@ def item(name, *subs, aliases=()):
     }
 
 
-def cleaned(name, *subs, aliases=()):
-    """Ett intresse som det ser ut efter städningen (item() ger samma form)."""
-    return item(name, *subs, aliases=aliases)
+def cleaned(name, *subs, aliases=(), practices=False):
+    """Ett intresse som det ser ut efter städningen: som item(), och varje tagg säger om personen själv håller på
+    med den (practices, SCRUM-271). Subs får practices False om de inte anger något annat."""
+    tree = item(name, *subs, aliases=aliases)
+    tree["subtags"] = [{**s, "practices": s.get("practices", False)} for s in tree["subtags"]]
+    return {**tree, "practices": practices}
 
 
 def got(name, *subs, aliases=()):
@@ -472,14 +475,16 @@ def test_the_text_is_sent_as_data_and_the_prompt_describes_the_task(client, user
     assert "följ aldrig" in EXTRACT_PROMPT.lower()
     for word in ("alias", "sub", "obscent", "sexuellt", "hatiskt", "olagligt", "drömmer", "överkategori", "nazist", "våldsamma tv-spel", "samlarsaker"):
         assert word in EXTRACT_PROMPT
-    # Svaret tvingas till intressen med alias och subs (med alias), inga andra fält.
+    # Svaret tvingas till intressen med alias och subs (med alias), och om personen själv håller på med
+    # varje tagg (practices, SCRUM-271), inga andra fält.
     assert call.schema is EXTRACT_SCHEMA
     entry = EXTRACT_SCHEMA["properties"]["interests"]["items"]
-    assert entry["required"] == ["name", "aliases", "subtags"]
+    assert entry["required"] == ["name", "aliases", "subtags", "practices"]
+    assert entry["properties"]["practices"] == {"type": "boolean"}
     assert entry["additionalProperties"] is False
     assert entry["properties"]["aliases"] == {"type": "array", "items": {"type": "string"}}
     sub_schema = entry["properties"]["subtags"]["items"]
-    assert sub_schema["required"] == ["name", "aliases"]
+    assert sub_schema["required"] == ["name", "aliases", "practices"]
     assert sub_schema["additionalProperties"] is False
     assert sub_schema["properties"]["aliases"] == {"type": "array", "items": {"type": "string"}}
 
@@ -514,6 +519,24 @@ def test_too_many_calls_are_stopped(client, user, enabled, monkeypatch):
 
 
 def test_the_cleaned_tree_has_no_activity_key_even_if_the_model_sends_one():
-    # Utläsningen frågar inte efter aktivitet (den avgörs i följdfrågorna), så ett fält som ändå kommer följer inte med.
+    # Utläsningen säger bara om personen själv håller på med taggen (practices), så ett aktivitetsfält som ändå
+    # kommer följer inte med.
     raw = [{"name": "musik", "aliases": [], "activity": "lyssna", "subtags": [{"name": "jazz", "aliases": [], "activity": "spela"}]}]
-    assert clean_interests(raw) == [{"name": "musik", "aliases": [], "subtags": [{"name": "jazz", "aliases": []}]}]
+    assert clean_interests(raw) == [cleaned("musik", "jazz")]
+
+
+def test_practices_follows_each_tag_and_only_true_counts():
+    # SCRUM-271: "jag spelar piano och lyssnar på jazz" ger piano som utövar och jazz som intresserad.
+    raw = [
+        {**item("piano"), "practices": True},
+        {**item("musik", {**sub("jazz"), "practices": False}, {**sub("hiphop"), "practices": "ja"}), "practices": None},
+    ]
+    assert clean_interests(raw) == [
+        cleaned("piano", practices=True),
+        cleaned("musik", {**sub("jazz"), "practices": False}, sub("hiphop")),  # bara ett riktigt true räknas
+    ]
+
+
+def test_the_same_interest_twice_practices_if_either_says_so():
+    raw = [{**item("bakning"), "practices": False}, {**item("Bakning"), "practices": True}]
+    assert clean_interests(raw) == [cleaned("bakning", practices=True)]

@@ -1,11 +1,42 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from app.core import error_messages as msg
 from app.models.event import EventAnswer, EventVisibility
+from app.models.group import GroupScope, SkillLevel
 from app.schemas.contact import ContactUser
 from app.schemas.position import check_position
+from app.services.regions import COUNTRY_CODE
+
+# Max antal deltagare går att sätta mellan de här (SCRUM-293).
+MIN_MAX_ATTENDEES = 2
+MAX_MAX_ATTENDEES = 1000
+
+# Hur långt fram ett event kan ligga (SCRUM-313): ett år. Annars går det att välja t.ex. år 2188, och då visar listorna
+# och Att göra idag events som inte är riktiga träffar. Gäller både start och slut. Samma gräns finns i frontend
+# (utils/eventTime.js).
+EVENT_MAX_DAYS_AHEAD = 365
+
+
+def _max_attendees(value: int | None) -> int | None:
+    if value is not None and not MIN_MAX_ATTENDEES <= value <= MAX_MAX_ATTENDEES:
+        raise ValueError(msg.EVENT_MAX_ATTENDEES_RANGE)
+    return value
+
+
+def _area(scope: GroupScope | None, scope_code: str | None) -> tuple[GroupScope | None, str | None]:
+    """Eventets område (SCRUM-295): inget (platsen räcker), eller ett län, landskap, en landsdel eller hela
+    Sverige. Kommun går inte: då hör eventet till sin plats, som förut. Att området finns kollas i routen."""
+    if scope is None:
+        return None, None
+    if scope == GroupScope.kommun:
+        raise ValueError(msg.EVENT_AREA_KOMMUN)
+    if scope == GroupScope.country:
+        return scope, COUNTRY_CODE
+    if not scope_code:
+        raise ValueError(msg.EVENT_AREA_REQUIRED)
+    return scope, scope_code
 
 
 def _required_text(value: str, max_length: int, empty_message: str, too_long_message: str) -> str:
@@ -41,6 +72,13 @@ def _to_utc(value: datetime) -> datetime:
     return value.astimezone(timezone.utc)
 
 
+def _within_limit(value: datetime, too_far_message: str) -> datetime:
+    # Högst EVENT_MAX_DAYS_AHEAD fram i tiden. `value` är redan i UTC (se _to_utc).
+    if value > datetime.now(timezone.utc) + timedelta(days=EVENT_MAX_DAYS_AHEAD):
+        raise ValueError(too_far_message)
+    return value
+
+
 class EventCreate(BaseModel):
     title: str
     description: str
@@ -58,6 +96,21 @@ class EventCreate(BaseModel):
     group_id: int | None = None
     # Av som standard: bara skaparen bjuder in.
     guests_can_invite: bool = False
+    # Valfritt område (SCRUM-295), nivå och max antal som kommer (SCRUM-293).
+    scope: GroupScope | None = None
+    scope_code: str | None = None
+    skill_level: SkillLevel | None = None
+    max_attendees: int | None = None
+
+    @field_validator("max_attendees")
+    @classmethod
+    def max_attendees_valid(cls, v: int | None) -> int | None:
+        return _max_attendees(v)
+
+    @model_validator(mode="after")
+    def area_valid(self):
+        self.scope, self.scope_code = _area(self.scope, self.scope_code)
+        return self
 
     @field_validator("title")
     @classmethod
@@ -79,10 +132,15 @@ class EventCreate(BaseModel):
     def address_valid(cls, v: str) -> str:
         return _address(v)
 
-    @field_validator("starts_at", "ends_at")
+    @field_validator("starts_at")
     @classmethod
-    def time_has_timezone(cls, v: datetime | None) -> datetime | None:
-        return None if v is None else _to_utc(v)
+    def starts_at_valid(cls, v: datetime) -> datetime:
+        return _within_limit(_to_utc(v), msg.EVENT_START_TOO_FAR)
+
+    @field_validator("ends_at")
+    @classmethod
+    def ends_at_valid(cls, v: datetime | None) -> datetime | None:
+        return None if v is None else _within_limit(_to_utc(v), msg.EVENT_END_TOO_FAR)
 
     @model_validator(mode="after")
     def times_make_sense(self):
@@ -117,6 +175,26 @@ class EventUpdate(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
     guests_can_invite: bool | None = None
+    # Område, nivå och max antal (SCRUM-293, SCRUM-295). null tar bort dem. Området skickas med båda fälten,
+    # utom hela Sverige och inget område, som räcker med scope.
+    scope: GroupScope | None = None
+    scope_code: str | None = None
+    skill_level: SkillLevel | None = None
+    max_attendees: int | None = None
+
+    @field_validator("max_attendees")
+    @classmethod
+    def max_attendees_valid(cls, v: int | None) -> int | None:
+        return _max_attendees(v)
+
+    @model_validator(mode="after")
+    def area_valid(self):
+        if "scope" in self.model_fields_set:
+            self.scope, self.scope_code = _area(self.scope, self.scope_code)
+            self.model_fields_set.add("scope_code")
+        elif "scope_code" in self.model_fields_set:
+            raise ValueError(msg.EVENT_AREA_REQUIRED)
+        return self
 
     @model_validator(mode="after")
     def position_valid(self):
@@ -169,12 +247,12 @@ class EventUpdate(BaseModel):
         v = _to_utc(v)
         if v <= datetime.now(timezone.utc):
             raise ValueError(msg.EVENT_START_IN_PAST)
-        return v
+        return _within_limit(v, msg.EVENT_START_TOO_FAR)
 
     @field_validator("ends_at")
     @classmethod
-    def ends_at_has_timezone(cls, v: datetime | None) -> datetime | None:
-        return None if v is None else _to_utc(v)
+    def ends_at_valid(cls, v: datetime | None) -> datetime | None:
+        return None if v is None else _within_limit(_to_utc(v), msg.EVENT_END_TOO_FAR)
 
 
 class EventInvite(BaseModel):
@@ -208,7 +286,9 @@ class EventOut(BaseModel):
     description: str
     interest_id: int
     interest_name: str
-    interest_area: str  # huvudområdet, som taggens färg följer (se Interest.area)
+    # Huvudområdet och dess slug, som taggens färg följer (se crud/interest.py, InterestPlace).
+    interest_area: str
+    interest_area_slug: str | None
     starts_at: datetime
     ends_at: datetime | None
     place_name: str
@@ -216,6 +296,15 @@ class EventOut(BaseModel):
     latitude: float | None
     longitude: float | None
     visibility: EventVisibility
+    # Område (SCRUM-295): inget (None), eller ett län, landskap, en landsdel eller hela Sverige, med namn.
+    scope: GroupScope | None
+    scope_code: str | None
+    scope_name: str | None
+    # Nivå och max antal som kommer (SCRUM-293). yes_count är hur många som har svarat Ja.
+    skill_level: SkillLevel | None
+    max_attendees: int | None
+    yes_count: int
+    is_full: bool
     group_id: int | None
     group_name: str | None
     # Går klubben att öppna för den inloggade? Då är namnet en länk till klubben.
@@ -227,6 +316,16 @@ class EventOut(BaseModel):
     creator_name: str | None
     # Gäller den inloggade användaren, så att frontend vet vilka knappar som ska visas.
     is_owner: bool
+    # Skaparen eller en medarrangör (SCRUM-296): får ändra eventet, bjuda in och svara på ansökningar.
+    is_host: bool
+    # Medarrangörernas id (inte skaparen), för att visa dem bland deltagarna.
+    host_ids: list[int]
+    # Får den inloggade svara? Nej på ett event man ansöker till, tills ansökan är godkänd.
+    can_answer: bool
+    # Har den inloggade ansökt (och väntar på svar)? Och hur många ansökningar väntar (bara för skaparen och
+    # medarrangörerna, annars 0)?
+    has_applied: bool
+    request_count: int
     # Får den inloggade bjuda in till eventet (skaparen, eller alla om
     # guests_can_invite är på). Frontend visar knappen "Bjud in" utifrån den här.
     can_invite: bool

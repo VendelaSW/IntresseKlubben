@@ -53,6 +53,8 @@
   --color-pastel-rose: #f7e1e1;
   --color-success: #3b6d11;
   --color-error: #a32d2d;
+  /* En flik som inte är vald (Registerflikarna i testläget), och strecket i åldersreglaget. */
+  --color-tab: #f3ead8;
   /* Brev: pappret (aningen mörkare än bakgrunden, som ett gammalt papper), dess
      något mörkare kanter, den röda marginallinjen och kuvertets insida. */
   --color-paper: #f5eddc;
@@ -341,26 +343,6 @@ button.info-link {
   gap: 1rem;
   flex-wrap: wrap;
   justify-content: center;
-}
-
-.account-choice-link {
-  font-family: var(--font-body);
-  font-weight: 400;
-  font-size: var(--text-body);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--color-text);
-  text-decoration: none;
-  padding: 0.4rem 0.8rem;
-  border: 2px solid var(--color-line);
-  border-radius: 4px;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.account-choice-link:hover,
-.account-choice-link:focus-visible {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
 }
 
 .auth-form {
@@ -1043,6 +1025,55 @@ span.tag-selected:hover {
   font-size: var(--text-small);
 }
 
+/* Ett val bland några alternativ i ett formulär, t.ex. hur man kommer med i en klubb. */
+.form-choice {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.form-choice legend {
+  margin-bottom: 0.2rem;
+  padding: 0;
+  font-weight: 700;
+}
+
+/* En medlem som ägaren eller en administratör kan hantera (GroupMembers, SCRUM-160): knapparna under namnet. */
+.group-member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.8rem;
+  padding-left: 2.6rem;
+  font-size: var(--text-small);
+}
+
+/* En ansökan till en klubb (GroupJoinRequests): namnet, meddelandet och knapparna. */
+.group-request {
+  display: grid;
+  gap: 0.3rem;
+  padding-block: 0.4rem;
+}
+
+.group-request + .group-request {
+  border-top: 1px dashed var(--color-line);
+}
+
+.group-request-message {
+  margin: 0;
+  font-size: var(--text-small);
+  overflow-wrap: anywhere;
+}
+
+/* Ett fel som går att försöka igen: texten och "Försök igen" under den (t.ex. Klubbar). */
+.load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;
@@ -1348,6 +1379,71 @@ span.tag-selected:hover {
   opacity: 0.7;
 }
 
+/* Lugn länk under formulär (inloggning, registrering, glömt lösenord): grå text i normal vikt, med samma gula linje
+   under som de andra länkarna. Texten mörknar vid hover. Se stilguiden. */
+.quiet-link {
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 400;
+  color: var(--color-muted);
+  background: none;
+  border: none;
+  padding: 0 0 1px;
+  border-bottom: 2px solid var(--color-accent);
+  cursor: pointer;
+}
+
+.quiet-link:hover,
+.quiet-link:focus-visible {
+  color: var(--color-text);
+}
+
+/* Första länken en rad under knappen i formuläret. */
+.auth-form + .quiet-link {
+  margin-top: 1.25rem;
+}
+
+/* Tillbaka till startsidan från inloggning/registrering: den skissade pilen (DrawnArrow) åt vänster, uppe i vänstra
+   hörnet, gul med svart kant som pilarna på matchningskortet. */
+.back-arrow {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.back-arrow .back-arrow-icon {
+  width: 2.4rem;
+  height: 2rem;
+  fill: var(--color-accent);
+  stroke: var(--color-ink);
+  stroke-width: 1.1;
+  rotate: 90deg;
+  transition: transform 0.15s ease;
+}
+
+.back-arrow .back-arrow-icon .drawn-arrow-hatch {
+  display: none;
+}
+
+.back-arrow:hover .back-arrow-icon,
+.back-arrow:focus-visible .back-arrow-icon {
+  transform: scale(1.12);
+}
+
+/* Inloggnings-/registreringsvyerna: loggan högt upp och tätt mot rubriken. Pilen ligger i hörnet bredvid loggan. */
+.home-page-form {
+  gap: 0.6rem;
+  padding-top: 1rem;
+}
+
 .secondary-button {
   font-family: var(--font-body);
   font-weight: 400;
@@ -1366,6 +1462,12 @@ span.tag-selected:hover {
 .secondary-button:focus-visible {
   border-color: var(--color-accent);
   background: var(--color-accent);
+}
+
+/* "Visa fler" under en lista (Medlemmar > Sök, Klubbar > Alla): lagom bred och
+   mitt under listan, inte över hela sidan. */
+.show-more-button {
+  align-self: center;
 }
 
 /* Liten variant. Måste ligga efter .primary-button och .secondary-button,
@@ -1416,6 +1518,40 @@ span.tag-selected:hover {
   font-size: 1.2rem;
 }
 
+/* Ljudknappen (ikonen för ljud på eller av) i övre högra hörnet av kompisens yta, så att den inte tar en egen rad. Rutan är
+   lika stor för båda ikonerna, som har lite olika höjd. */
+.interview-kompis {
+  position: relative;
+}
+
+.interview-sound {
+  position: absolute;
+  top: -0.5rem;
+  right: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.interview-sound img {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+  transition: transform 0.15s ease;
+}
+
+.interview-sound:hover img,
+.interview-sound:focus-visible img {
+  transform: scale(1.1);
+}
+
 .interview-main {
   flex: 1 1 320px;
   min-width: 0;
@@ -1431,6 +1567,12 @@ span.tag-selected:hover {
   text-align: left;
 }
 
+/* Födelsedatumet (tre listor) är bredare än en spalt i raden, och skulle ligga under könsrutan. Det får hela raden, och
+   Kön kommer under. */
+.interview-page .form-row > :has(.birth-date-picker) {
+  grid-column: 1 / -1;
+}
+
 /* Framstegsstapeln syns bara på mobil (se nedan). */
 .interview-progress-bar {
   display: none;
@@ -1443,11 +1585,13 @@ span.tag-selected:hover {
    - knappar och fält minst 48 px höga (Material 48 dp, Apple 44 pt, WCAG 2.5.8)
    - huvudknappen ("Nästa") störst och längst till höger, där tummen når
    - framsteget ("Fråga 2 av 5" och en stapel) ovanför frågan
-   Intressekompisen är liten och rund högst upp, med det den säger bredvid som
-   en pratbubbla. Innan intervjun startar är den större och centrerad. */
+   Intressekompisen står högst upp, med det den säger bredvid som en pratbubbla,
+   också på startskärmen. */
 @media (max-width: 767px) {
+  /* Under sidan finns lika mycket plats som tangentbordet tar (--keyboard-height, mäts i useKeepFieldAboveKeyboard i
+     ProfileInterview), så att fältet man skriver i kan scrollas upp ovanför det. */
   .interview-page {
-    padding: 1rem 1rem 2rem;
+    padding: 1rem 1rem calc(2rem + var(--keyboard-height, 0px));
     gap: 1rem;
   }
 
@@ -1464,48 +1608,42 @@ span.tag-selected:hover {
     flex: none;
   }
 
-  /* Startskärmen. */
-  .interview-kompis {
-    width: 200px;
-    max-width: 60vw;
-    margin: 0 auto;
-  }
-
-  .interview-kompis:not(.is-asking) .interview-caption {
-    min-height: 1.5rem;
-    font-size: 1.05rem;
-  }
-
   .interview-start {
     width: 100%;
-    min-height: 48px;
+    min-height: 44px;
     font-size: 1.05rem;
   }
 
-  /* Medan frågorna ställs. */
-  .interview-kompis.is-asking {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+  /* Kompisen med det den säger i en pratbubbla bredvid, på startskärmen och medan frågorna ställs. "Spela upp", om den
+     visas, ligger under raden. */
+  .interview-kompis {
     width: 100%;
     max-width: none;
     margin: 0;
   }
 
-  .interview-kompis.is-asking .interview-video {
-    flex: none;
-    width: 64px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 2px solid var(--color-line);
-    background: var(--color-white);
+  .interview-kompis-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
 
-  /* Pratbubblan, med en liten spets mot kompisen. Tom bubbla syns inte, men
-     raden behåller sin höjd (kompisen), så inget hoppar. */
-  .interview-kompis.is-asking .interview-caption {
+  /* Kompisen syns hel och så stor att man ser vad den gör. Klippen har tom bakgrund runt honom (cirka 22 % överst, 9 %
+     nederst, 16 % till vänster och 20 % till höger). Den tomma ytan dras bort med negativ marginal, så att han blir större
+     utan att raden blir högre eller bubblan smalare. Tangentbordet täcker en del av skärmen när man skriver, och då
+     scrollar webbläsaren fram fältet, så det behövs ingen plats åt det här. */
+  .interview-kompis .interview-video {
+    --kompis: 200px;
+    flex: none;
+    width: var(--kompis);
+    margin: calc(var(--kompis) * -0.2) calc(var(--kompis) * -0.2) calc(var(--kompis) * -0.1) calc(var(--kompis) * -0.16);
+  }
+
+  /* Pratbubblan, med en liten spets mot kompisen. Den är lika bred som texten (högst så bred som platsen bredvid kompisen),
+     inte hela raden. Tom bubbla syns inte, men raden behåller sin höjd (kompisen), så inget hoppar. */
+  .interview-kompis .interview-caption {
     position: relative;
-    flex: 1;
+    flex: 0 1 auto;
     min-height: 0;
     margin: 0;
     padding: 0.5rem 0.75rem;
@@ -1515,9 +1653,10 @@ span.tag-selected:hover {
     font-size: 1rem;
     line-height: 1.35;
     text-align: left;
+    text-wrap: balance;
   }
 
-  .interview-kompis.is-asking .interview-caption::before {
+  .interview-kompis .interview-caption::before {
     content: '';
     position: absolute;
     left: -8px;
@@ -1530,7 +1669,7 @@ span.tag-selected:hover {
     transform: translateY(-50%) rotate(45deg);
   }
 
-  .interview-kompis.is-asking .interview-caption.is-empty {
+  .interview-kompis .interview-caption.is-empty {
     visibility: hidden;
   }
 
@@ -1583,7 +1722,7 @@ span.tag-selected:hover {
   }
 
   .interview-page .interview-card .auth-form {
-    gap: 1rem;
+    gap: 0.85rem;
   }
 
   .interview-page .interview-card label {
@@ -1592,7 +1731,7 @@ span.tag-selected:hover {
 
   .interview-page .interview-card input,
   .interview-page .interview-card select {
-    min-height: 48px;
+    min-height: 44px;
   }
 
   .interview-page .interview-card .form-row {
@@ -1609,7 +1748,7 @@ span.tag-selected:hover {
   }
 
   .interview-page .interview-actions button {
-    min-height: 48px;
+    min-height: 44px;
     margin: 0;
     font-size: 1rem;
   }
@@ -1793,6 +1932,27 @@ span.tag-selected:hover {
   color: var(--color-success);
 }
 
+/* Stämplar bredvid varandra, t.ex. "E-post bekräftad" och "Medlem sedan mars 2026" på en profil. Radbryts på
+   smal skärm, med luft emellan så att de sneda ramarna inte nuddar varandra. */
+.trust-stamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  padding-block: 0.25rem;
+}
+
+.trust-stamps:empty {
+  display: none;
+}
+
+/* Lite mindre än på eventen, de står under namnet. Får inte stämpeln plats på en rad (smal telefon) bryts
+   texten inne i ramen i stället för att sticka ut ur kortet. */
+.trust-stamps .stamp {
+  max-width: 100%;
+  font-size: 1.1rem;
+  white-space: normal;
+}
+
 .card-avatar-initials {
   display: flex;
   align-items: center;
@@ -1941,6 +2101,267 @@ span.tag-selected:hover {
 .person-card:has(.person-card-interests.is-open) {
   position: relative;
   z-index: 3;
+}
+
+/* ---------- Matchningskortet (components/MatchCard.jsx) ----------
+   Ett personkort med nivån i övre hörnet, personens Om mig-text och "Därför matchar ni" med skälen som punkter (gula,
+   handritade ringar: bocken är bara för gemensamma intressen). Kortet visas ett i taget i Matcha-fliken. */
+.match-panel {
+  padding-top: 1rem;
+}
+
+.match-card {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+}
+
+.match-about {
+  margin: 0;
+  padding-left: 0.7rem;
+  border-left: 3px solid var(--color-accent);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.match-why-title {
+  margin: 0.25rem 0 0;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 700;
+}
+
+.match-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.match-reasons li {
+  position: relative;
+  padding-left: 1.2rem;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.match-reasons li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.3rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f4c430' stroke-width='3.4' stroke-linecap='round'%3E%3Cpath d='M12.2 3.4C17.7 3 21.3 7.3 20.8 12.6 20.3 18 15.7 21.1 10.9 20.6 6.1 20.1 3 15.9 3.4 11.2 3.8 6.8 7.4 3.7 12.4 3.2 14.5 3 16 3.7 17 4.6'/%3E%3C/svg%3E") center / contain no-repeat;
+  rotate: -6deg;
+}
+
+.match-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.match-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+/* Nivån (components/MatchLevel.jsx): en handritad stämpel i kortets övre högra hörn, med samma form och skugga som
+   intressetaggarna. Nivån syns också i formen, inte bara i färgen: Okej är streckad och platt, Bra och Stark har skugga
+   och SUPERmatch är störst och vickar svagt (bara för den som inte har stängt av animationer). */
+.match-level {
+  --level-fill: var(--color-white);
+  position: absolute;
+  top: -0.8rem;
+  right: -0.4rem;
+  z-index: 2;
+  padding: 0.1rem 0.6rem 0.15rem;
+  rotate: 4deg;
+  background: var(--level-fill);
+  border: 2px solid var(--color-ink);
+  border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.match-level-okay {
+  rotate: 2deg;
+  border-style: dashed;
+  border-color: #8a7d6c;
+  color: #5b4f41;
+}
+
+.match-level-good {
+  --level-fill: var(--color-accent-soft);
+  box-shadow: 1px 1px 0 var(--color-ink);
+}
+
+.match-level-strong {
+  --level-fill: #f9dc7a;
+  box-shadow: 2px 2px 0 var(--color-ink);
+}
+
+.match-level-super {
+  --level-fill: var(--color-accent);
+  top: -0.95rem;
+  right: -0.5rem;
+  padding: 0.15rem 0.8rem 0.2rem;
+  rotate: -3deg;
+  box-shadow: 3px 3px 0 var(--color-ink);
+  font-size: 1.5rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .match-level-super {
+    animation: match-level-wiggle 2.8s ease-in-out infinite;
+  }
+
+  @keyframes match-level-wiggle {
+    0%,
+    100% {
+      rotate: -3deg;
+    }
+    50% {
+      rotate: -1deg;
+    }
+  }
+}
+
+/* Det stora kortet med de närmast på tur som små kort under (components/MatchPanel.jsx och MatchThumb.jsx). Kortet är
+   centrerat, och när nästa kort blir stort växer det fram (inte för den som har stängt av animationer). Korten under blir
+   successivt mindre och svagare, så att det syns att det är en kö. */
+.match-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .match-stack .match-card {
+    animation: match-card-grow 0.4s ease;
+    transform-origin: top center;
+  }
+
+  @keyframes match-card-grow {
+    from {
+      transform: scale(0.9);
+      opacity: 0.55;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+}
+
+.match-upnext {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.match-upnext-title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.match-thumbs {
+  display: flex;
+  align-items: flex-start;
+  justify-content: safe center;
+  gap: 0.75rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.4rem 0.5rem 0.6rem;
+  overflow-x: auto;
+  list-style: none;
+}
+
+.match-thumb {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: var(--w);
+  padding: 0.6rem 0.4rem 0.5rem;
+  background: var(--color-white);
+  border: 2px solid var(--color-line);
+  border-radius: 4px;
+  opacity: var(--o);
+  text-align: center;
+}
+
+.match-thumb-1 {
+  --w: 118px;
+  --o: 1;
+}
+
+.match-thumb-2 {
+  --w: 104px;
+  --o: 0.92;
+}
+
+.match-thumb-3 {
+  --w: 92px;
+  --o: 0.82;
+}
+
+.match-thumb-4 {
+  --w: 82px;
+  --o: 0.72;
+}
+
+.match-thumb .match-thumb-avatar {
+  width: calc(var(--w) * 0.42);
+  height: calc(var(--w) * 0.42);
+  border-radius: 50%;
+  background: var(--color-line);
+  object-fit: cover;
+  font-family: var(--font-heading);
+  font-size: calc(var(--w) * 0.24);
+}
+
+.match-thumb-name {
+  font-family: var(--font-heading);
+  font-size: calc(var(--w) * 0.2);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.match-thumb-place {
+  font-size: 0.7rem;
+  line-height: 1.1;
+  color: var(--color-muted);
+}
+
+/* Nivån som en liten stämpel i flödet (på de små korten), utan lutning, skugga eller vickning. */
+.match-level.match-level-inline {
+  position: static;
+  padding: 0 0.4rem 0.05rem;
+  rotate: 0deg;
+  animation: none;
+  box-shadow: none;
+  font-size: 0.95rem;
 }
 
 /* Intressena och knapparna ligger i botten av kortet. Korten i en rad är lika
@@ -2618,6 +3039,18 @@ span.tag-selected:hover {
   padding-right: 3.2rem;
 }
 
+.notepad-message-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+}
+
+/* I raden med Ta bort och Anmäl (se .notepad-message-actions) står knapparna bredvid varandra. */
+.notepad-message-actions .report-link {
+  position: static;
+}
+
 .report-link {
   position: absolute;
   top: 0;
@@ -2930,6 +3363,44 @@ span.tag-selected:hover {
 
   .filter-tab-count {
     margin: 0;
+  }
+}
+
+.filter-tabs-small > .tag {
+  font-size: var(--text-small);
+  padding: 0.3rem 0.7rem;
+}
+
+/* Utövar eller intresserad under "Redigera" i Dina intressen (SCRUM-271): en rad per intresse. */
+.practices-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.practices-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+}
+
+/* Mobil: den lilla varianten (Utövar/Intresserad) ska inte fylla bredden som flikarna ovan, men
+   knapparna är fortfarande minst 48 px höga (se CONTRIBUTING). */
+@media (max-width: 767px) {
+  .filter-tabs.filter-tabs-small {
+    display: flex;
+    width: fit-content;
+  }
+
+  .filter-tabs-small > .tag {
+    flex-direction: row;
+    padding: 0.3rem 0.8rem;
+    font-size: var(--text-small);
   }
 }
 
@@ -3710,25 +4181,432 @@ button.board-note:focus-visible {
   color: var(--color-muted);
 }
 
-/* "Ålder" följt av från- och till-ålder, i en av filtrens rutor. */
-.filter-age-range {
-  display: grid;
-  grid-template-columns: auto 1fr 1fr;
+/* Rullista med kryssrutor (MultiOptionPicker), t.ex. kön i Medlemmars filter.
+   Knappen ser ut som filtrens fält, med en liten pil, och listan som
+   kommunlistan, med en ruta som får en bock för det som är valt. */
+.multi-option-picker {
+  position: relative;
+  min-width: 0;
+}
+
+.multi-option-picker-button {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.4rem 1.8rem 0.4rem 0.5rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5 L5 6.5 L8 3.5' fill='none' stroke='%233a2f25' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.6rem center / 0.65rem;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+  cursor: pointer;
+}
+
+.multi-option-picker-button:hover,
+.multi-option-picker-button:focus-visible {
+  border-color: var(--color-ink);
+}
+
+.multi-option-picker-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* Flera valda kortas med "…" i knappen; alla syns som lappar under Filter. */
+.multi-option-picker-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multi-option-picker-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: max(100%, 10rem);
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: var(--color-white);
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+}
+
+.multi-option-picker-option {
+  display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.multi-option-picker-option.is-active {
+  background: var(--color-accent-soft);
+}
+
+.multi-option-picker-box {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 3px;
+  background: var(--color-white);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.multi-option-picker-option[aria-selected='true'] .multi-option-picker-box {
+  background: var(--color-accent);
+}
+
+/* Kryss längst till höger i ett fält, som tar bort det valda (InterestPicker och
+   DateField). Fältet behöver position: relative och plats till höger. */
+.field-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.2rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-ink);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.field-clear:focus-visible {
+  outline: 2px solid var(--color-accent);
+  border-radius: 4px;
+}
+
+/* Intresseväljaren (InterestPicker) har kommunfältets klasser och utseende. Det
+   här är det den har utöver: plats för krysset, rubriken över ens egna intressen
+   och var en träff hör hemma, under namnet. */
+.interest-picker input {
+  padding-right: 1.8rem;
+}
+
+/* Krysset ligger där filtren annars har en pil (Klubbar, papperslapparna i
+   testläget), så pilen tas bort när ett intresse är valt. */
+.municipality-picker.interest-picker:has(.field-clear) input {
+  background-image: none;
+}
+
+/* Listan får plats med intressenas namn och var de hör hemma, fast fältet är smalt (som i filtren). */
+.interest-picker .municipality-picker-list {
+  right: auto;
+  min-width: max(100%, 15rem);
+}
+
+/* Andras egna intressen kan ha långa ord. */
+.interest-picker .municipality-picker-option {
+  overflow-wrap: anywhere;
+}
+
+.interest-picker-heading {
+  padding: 0.3rem 0.75rem 0.1rem;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.interest-picker-path {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+/* Datumfältet för events (DateField). I ett filter står "Alla datum" i fältet
+   när inget är valt, i stället för webbläsarens "åååå-mm-dd" (som görs
+   osynlig), och krysset ligger till höger om kalenderknappen. */
+.date-field {
+  position: relative;
+  min-width: 0;
+}
+
+.date-field input {
+  width: 100%;
+}
+
+.date-field.is-set input {
+  padding-right: 1.8rem;
+}
+
+.date-field.is-empty input:not(:focus) {
+  color: transparent;
+}
+
+.date-field-empty {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(0.5rem + 2px);
+  right: 2.2rem;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: var(--text-small);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.date-field:focus-within .date-field-empty {
+  display: none;
+}
+
+/* Datumfiltret under Events (EventDayFilter): en lista, och under den en
+   osynlig kalender som "Välj datum…" öppnar. */
+.event-day-filter {
+  position: relative;
+  min-width: 0;
+}
+
+.event-day-filter-calendar {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Åldersfiltret (AgeRangeSlider): åldern till vänster, i samma storlek som de
+   andra filtren, och ett reglage med två handtag till höger, på en rad i en
+   ruta som ser ut som de andra filtren och inte är bredare än innehållet (på
+   en egen rad längre, se .filter-age-row). */
+.age-range {
+  --thumb: 1rem;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+  min-width: 0;
+  padding: 0.3rem 0.6rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  font-family: var(--font-body);
   font-size: var(--text-small);
 }
 
-/* Utan upp/ner-pilarna, så att platshållartexten får plats. */
-.filter-age-range input {
-  -moz-appearance: textfield;
-  appearance: textfield;
+/* Medlemmars filter (PeoplePage): en Filter-knapp med en pil, som fäller ut
+   fälten. Utfällda står intresse, kommun och kön på en rad och åldern ensam på
+   raden under, så att reglaget får plats att vara längre. Åldern är lika lång i
+   Matcha och Sök: som raden i Matcha (kommun och kön). */
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 700;
+  cursor: pointer;
 }
 
-.filter-age-range input::-webkit-outer-spin-button,
-.filter-age-range input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
+.filter-toggle::after {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 1.6px solid var(--color-ink);
+  border-bottom: 1.6px solid var(--color-ink);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.filter-toggle.is-open::after {
+  transform: translateY(1px) rotate(-135deg);
+}
+
+.filter-toggle:hover,
+.filter-toggle:focus-visible {
+  border-color: var(--color-ink);
+}
+
+.filter-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.filter-panel .filter-select-row:not(.filter-select-row-paper) {
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  width: 27rem;
+  max-width: 100%;
+}
+
+.filter-age-row .age-range {
+  width: var(--age-row-width, 27rem);
+  max-width: 100%;
+}
+
+.filter-age-row .age-range-slider {
+  flex: 1 1 auto;
+}
+
+/* Filtren som är på, som lappar med kryss, och "Rensa alla" sist. */
+.filter-chips {
+  align-items: center;
+}
+
+/* På mobil: intresse, kommun och kön på en rad, lika breda (med korta namn,
+   se PeoplePage), och åldern på hela raden under. */
+@media (max-width: 767px) {
+  .filter-panel {
+    width: auto;
+  }
+
+  .filter-panel .filter-select-row:not(.filter-select-row-paper) {
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    width: auto;
+  }
+
+  .filter-panel .filter-select-row.filter-select-row-paper {
+    flex-wrap: nowrap;
+  }
+
+  .filter-panel .filter-select-row-paper > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .filter-panel .filter-select-row-paper .municipality-picker input,
+  .filter-panel .filter-select-row-paper .multi-option-picker-button {
+    width: 100%;
+  }
+
+  .filter-age-row .age-range {
+    width: 100%;
+  }
+}
+
+/* Lika bred hela tiden ("Upp till 99 år" är längst), så att reglaget inte
+   flyttar sig medan man drar. */
+.age-range-value {
+  flex: 0 0 5.9em;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+/* Två reglage på samma ställe. Bara handtagen tar emot musen, så att man
+   alltid tar tag i det handtag man pekar på. Strecket har samma beige som en
+   flik som inte är vald (--color-tab), och den gula biten visar spannet, från
+   --low till --high (0–100), räknat så att den slutar mitt i handtagen. */
+.age-range-slider {
+  position: relative;
+  flex: 0 0 5.75rem;
+  height: calc(var(--thumb) + 0.3rem);
+  background: linear-gradient(var(--color-tab), var(--color-tab)) center / 100% 4px no-repeat;
+}
+
+.age-range-fill {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--low) / 100);
+  right: calc(var(--thumb) / 2 + (100% - var(--thumb)) * (100 - var(--high)) / 100);
+  height: 4px;
+  translate: 0 -50%;
+  border: 1px solid var(--color-ink);
+  border-radius: 2px;
+  background: var(--color-accent);
+}
+
+.age-range .age-range-slider input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: none;
+}
+
+.age-range .age-range-slider input.is-on-top {
+  z-index: 1;
+}
+
+.age-range-slider input::-webkit-slider-runnable-track {
+  background: none;
+}
+
+.age-range-slider input::-moz-range-track {
+  background: none;
+}
+
+.age-range-slider input::-webkit-slider-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+  border: 1.5px solid var(--color-ink);
+  border-radius: 50% 46% 54% 48% / 52% 48% 52% 48%;
+  background: var(--color-white);
+  box-shadow: 1.5px 1.5px 0 var(--color-ink);
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.age-range-slider input::-moz-range-thumb {
+  box-sizing: border-box;
+  width: var(--thumb);
+  height: var(--thumb);
+  border: 1.5px solid var(--color-ink);
+  border-radius: 50% 46% 54% 48% / 52% 48% 52% 48%;
+  background: var(--color-white);
+  box-shadow: 1.5px 1.5px 0 var(--color-ink);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.age-range-slider input:active::-webkit-slider-thumb {
+  cursor: grabbing;
+}
+
+.age-range-slider input:focus {
+  outline: none;
+}
+
+.age-range-slider input:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.age-range-slider input:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /* Filtren kompakta, tillsammans inte bredare än ett personkort (300px), i
@@ -3785,7 +4663,8 @@ button.board-note:focus-visible {
 }
 
 select.club-filter,
-.club-filter-kommun input {
+.club-filter-kommun input,
+.club-filter-interest input {
   min-height: 2.9rem;
   padding: 0 2.1rem 0 1.1rem;
   border: 1.5px solid var(--color-line);
@@ -3802,18 +4681,21 @@ select.club-filter {
   max-width: 12rem;
 }
 
-.club-filter-kommun input {
+.club-filter-kommun input,
+.club-filter-interest input {
   width: 10.5rem;
 }
 
 select.club-filter:focus-visible,
-.club-filter-kommun input:focus-visible {
+.club-filter-kommun input:focus-visible,
+.club-filter-interest input:focus-visible {
   outline: none;
   border-color: var(--color-ink);
 }
 
-/* Kommunlistan får plats med långa namn, fast fältet är smalt. */
-.club-filter-kommun .municipality-picker-list {
+/* Kommun- och intresselistan får plats med långa namn, fast fältet är smalt. */
+.club-filter-kommun .municipality-picker-list,
+.club-filter-interest .municipality-picker-list {
   right: auto;
   min-width: 14rem;
 }
@@ -3836,7 +4718,8 @@ select.club-filter:focus-visible,
   }
 
   select.club-filter,
-  .club-filter-kommun input {
+  .club-filter-kommun input,
+  .club-filter-interest input {
     width: 100%;
     max-width: none;
     padding: 0 1.6rem 0 0.8rem;

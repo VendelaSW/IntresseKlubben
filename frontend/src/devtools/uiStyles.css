@@ -130,7 +130,7 @@
   border: 1.25px solid rgba(58, 47, 37, 0.45);
   border-bottom: 0;
   border-radius: 12px 12px 0 0;
-  background: #f3ead8;
+  background: var(--color-tab);
   font-family: var(--font-heading);
   font-size: 1.3rem;
 }

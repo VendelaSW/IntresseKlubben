@@ -7,6 +7,7 @@ import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import notiserIcon from '../assets/notiser.svg'
 import personerIcon from '../assets/personer.png'
+import AgeRangeSlider from '../components/AgeRangeSlider'
 import Avatar from '../components/Avatar'
 import Intressekompis from '../components/Intressekompis'
 import LocationPicker from '../components/LocationPicker'
@@ -14,11 +15,17 @@ import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
 import CreateButton from '../components/CreateButton'
+import DateField from '../components/DateField'
+import EventDayFilter from '../components/events/EventDayFilter'
+import DrawnArrow from '../components/DrawnArrow'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
 import FilterTabs from '../components/FilterTabs'
+import MatchCard from '../components/MatchCard'
+import MatchThumb from '../components/MatchThumb'
 import FormField from '../components/FormField'
+import InterestPicker from '../components/InterestPicker'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
@@ -27,7 +34,7 @@ import { NotificationDetails, NotificationRow } from './NotificationsPage'
 const NAV_ICONS = [
   { icon: hemIcon, label: 'Hem' },
   { icon: brevIcon, label: 'Brev' },
-  { icon: personerIcon, label: 'Personer' },
+  { icon: personerIcon, label: 'Medlemmar' },
   { icon: klubbarIcon, label: 'Klubbar' },
   { icon: eventIcon, label: 'Events' },
 ]
@@ -48,6 +55,35 @@ const COLORS = [
 ]
 
 // Exempel för Brev-avsnittet: ett nytt och ett öppnat kuvert.
+// Förslag som i Matcha-fliken (GET /matches), en per nivå, för matchningskortet.
+const EXAMPLE_INTEREST = (id, name, path, areaSlug) => ({ id, name, path, area_slug: areaSlug, practices: false })
+const EXAMPLE_MATCHES = [
+  {
+    id: 101, username: 'sara', name: 'Sara', age: 29, district: null, municipality_name: 'Mölndal', level: 'super',
+    profile_text: 'Jag älskar att klättra och vandra och söker någon att åka på långhelger med, gärna med tält och termos.',
+    interests: [EXAMPLE_INTEREST(1, 'Bouldering', ['Friluftsliv'], 'friluftsliv'), EXAMPLE_INTEREST(2, 'Vandring', ['Friluftsliv'], 'friluftsliv')],
+    reasons: [{ kind: 'shared', interests: ['Bouldering', 'Vandring'], pairs: [] }, { kind: 'text', interests: [], pairs: [] }],
+  },
+  {
+    id: 102, username: 'jonas', name: 'Jonas', age: 34, district: null, municipality_name: 'Göteborg', level: 'strong',
+    profile_text: 'Jobbar som lärare och bouldrar på kvällarna.',
+    interests: [EXAMPLE_INTEREST(1, 'Bouldering', ['Friluftsliv'], 'friluftsliv'), EXAMPLE_INTEREST(3, 'Klättring', ['Friluftsliv'], 'friluftsliv')],
+    reasons: [{ kind: 'shared', interests: ['Bouldering'], pairs: [] }, { kind: 'near', interests: [], pairs: [{ mine: 'Vandring', theirs: 'Klättring' }] }],
+  },
+  {
+    id: 103, username: 'amira', name: 'Amira', age: 27, district: null, municipality_name: 'Partille', level: 'good',
+    profile_text: 'Ny i stan och letar efter någon att gå ut i skogen med.',
+    interests: [EXAMPLE_INTEREST(2, 'Vandring', ['Friluftsliv'], 'friluftsliv'), EXAMPLE_INTEREST(4, 'Brädspel', ['Spel och pussel'], 'spel-och-pussel')],
+    reasons: [{ kind: 'shared', interests: ['Vandring'], pairs: [] }],
+  },
+  {
+    id: 104, username: 'erik', name: 'Erik', age: 41, district: null, municipality_name: 'Kungsbacka', level: 'okay',
+    profile_text: 'Fiskar och seglar när vädret tillåter.',
+    interests: [EXAMPLE_INTEREST(5, 'Fiske', ['Friluftsliv'], 'friluftsliv')],
+    reasons: [{ kind: 'area', interests: ['Friluftsliv'], pairs: [] }],
+  },
+]
+
 const EXAMPLE_CONVERSATIONS = [
   { id: 1, name: 'Bob', username: 'bob', last_message_at: new Date().toISOString(), last_message_from_me: false, isNew: true },
   { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', last_message_from_me: true, isNew: false },
@@ -90,12 +126,25 @@ const EXAMPLE_MUNICIPALITIES = [
   { code: '0120', name: 'Värmdö' },
 ]
 
+// Snabbvalen i intresseväljarens exempel (de riktiga är ens egna intressen).
+const EXAMPLE_MY_INTERESTS = [
+  { id: -1, name: 'Brädspel' },
+  { id: -2, name: 'Klättring' },
+  { id: -3, name: 'Stickning och virkning' },
+]
+
 function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
   const [exampleTab, setExampleTab] = useState('forsta')
   const [exampleMunicipality, setExampleMunicipality] = useState('')
   const [exampleBirthDate, setExampleBirthDate] = useState('')
   const [filterMunicipality, setFilterMunicipality] = useState('')
+  const [filterInterest, setFilterInterest] = useState(null)
+  const [filterDay, setFilterDay] = useState('')
+  const [filterAges, setFilterAges] = useState({ min: null, max: null })
+  const [exampleDay, setExampleDay] = useState('')
+  const [compactStart, setCompactStart] = useState('')
+  const [compactEnd, setCompactEnd] = useState('')
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [examplePosition, setExamplePosition] = useState(null)
@@ -151,6 +200,22 @@ function StyleGuide() {
           Länk-stil (info-link)
         </a>
         <p className="swatch-code">Inter Bold, gul understrykning, tonas ner vid hover</p>
+        <div style={{ marginTop: '1rem' }}>
+          <button type="button" className="quiet-link">
+            Lugn länk (quiet-link)
+          </button>
+        </div>
+        <p className="swatch-code">
+          Grå text, normal vikt, gul understrykning, texten mörknar vid hover. För länkar under formulär (inloggning, registrering).
+        </p>
+        <div style={{ marginTop: '1rem' }}>
+          <button type="button" className="back-arrow" aria-label="Tillbaka" style={{ position: 'static' }}>
+            <DrawnArrow className="back-arrow-icon" />
+          </button>
+        </div>
+        <p className="swatch-code">
+          Tillbaka-pil (back-arrow): uppe i vänstra hörnet på inloggnings- och registreringsvyerna, i stället för "← Tillbaka".
+        </p>
       </section>
 
       <section className="style-section">
@@ -176,18 +241,18 @@ function StyleGuide() {
         <h2>Knappar</h2>
         <p className="swatch-label">Typsnitt: Inter (versaler, bokstavsavstånd)</p>
         <div className="account-choice-links" style={{ marginTop: '1rem' }}>
-          <a href="#" className="account-choice-link" onClick={(e) => e.preventDefault()}>
+          <button className="secondary-button" type="button">
             Sekundär knapp
-          </a>
+          </button>
           <button className="primary-button" type="button">
             Primär knapp
           </button>
         </div>
         <p className="swatch-label" style={{ marginTop: '1.5rem' }}>Liten variant (.button-small)</p>
         <div className="account-choice-links" style={{ marginTop: '1rem' }}>
-          <a href="#" className="account-choice-link button-small" onClick={(e) => e.preventDefault()}>
+          <button className="secondary-button button-small" type="button">
             Sekundär
-          </a>
+          </button>
           <button className="primary-button button-small" type="button">
             Primär
           </button>
@@ -235,15 +300,15 @@ function StyleGuide() {
         </p>
         <InterestTree
           proposals={profileTree([
-            { id: 1, name: 'Historia', parent_id: null, path: [] },
-            { id: 2, name: 'Mynt', parent_id: 1, path: ['Historia'] },
-            { id: 3, name: 'Vikingatiden', parent_id: 1, path: ['Historia'] },
-            { id: 4, name: 'Medeltiden', parent_id: 1, path: ['Historia'] },
-            { id: 5, name: 'Antiken', parent_id: 1, path: ['Historia'] },
-            { id: 6, name: 'Metal', parent_id: 7, path: ['Musik', 'Rock'] },
-            { id: 8, name: 'Löpning', parent_id: 10, path: ['Sport och träning'] },
-            { id: 9, name: 'Fotografering', parent_id: 11, path: ['Kreativitet'] },
-            { id: 12, name: 'Analog fotografering', parent_id: 9, path: ['Kreativitet', 'Fotografering'] },
+            { id: 1, name: 'Historia', parent_id: null, path: [], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 2, name: 'Mynt', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 3, name: 'Vikingatiden', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 4, name: 'Medeltiden', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 5, name: 'Antiken', parent_id: 1, path: ['Historia'], area_slug: 'kultur-och-samhalle-historia' },
+            { id: 6, name: 'Metal', parent_id: 7, path: ['Musik', 'Rock'], area_slug: 'musik' },
+            { id: 8, name: 'Löpning', parent_id: 10, path: ['Sport och träning'], area_slug: 'sport-och-traning' },
+            { id: 9, name: 'Fotografering', parent_id: 11, path: ['Kreativitet'], area_slug: 'skapande' },
+            { id: 12, name: 'Analog fotografering', parent_id: 9, path: ['Kreativitet', 'Fotografering'], area_slug: 'skapande' },
           ])}
           align="start"
           highlight={new Set(['id:2', 'id:8'])}
@@ -265,6 +330,18 @@ function StyleGuide() {
         <p className="form-error" style={{ marginTop: '0.75rem' }}>
           Detta intresse godkänns inte, försök med ett annat.
         </p>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Stämplar (.stamp, .stamp-success)
+        </p>
+        <p className="hint-text">
+          Handstil i en ram, lite snett, som om någon stämplat kortet. För vem ett event är till för, och
+          förtroendesignaler på profiler. Flera bredvid varandra i .trust-stamps.
+        </p>
+        <div className="trust-stamps">
+          <span className="stamp stamp-success">E-post bekräftad</span>
+          <span className="stamp">Medlem sedan mars 2026</span>
+        </div>
       </section>
 
       <section className="style-section">
@@ -502,7 +579,7 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           På dator ligger rubrik och flikar till vänster på alla sidor, på mobil centrerade (Brev,
-          Personer, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
+          Medlemmar, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
           .app-section för sidor med kort i rutnät (Klubbar och Events): "+ Skapa"-knappen direkt efter
           rubriken och tätare avstånd. Flikarna är sammanhängande knappar med en ram runt, och den
           valda är gul (FilterTabs). På mobil fyller de bredden i en jämn rad, med korta namn (`short`) och antalet som
@@ -529,7 +606,13 @@ function StyleGuide() {
           Filter (.filter-select-row, .filter-select-row-compact för smalare)
         </p>
         <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
-          <select aria-label="Exempel 1"><option>Alla intressen</option></select>
+          <InterestPicker
+            aria-label="Exempel 1"
+            placeholder="Alla intressen"
+            myInterests={EXAMPLE_MY_INTERESTS}
+            value={filterInterest}
+            onChange={setFilterInterest}
+          />
           <MunicipalityPicker
             aria-label="Exempel 2"
             municipalities={EXAMPLE_MUNICIPALITIES}
@@ -538,6 +621,73 @@ function StyleGuide() {
             emptyLabel="Alla kommuner"
           />
         </div>
+
+        <p className="hint-text">
+          Intresseväljaren (InterestPicker) är samma sorts fält som kommunfältet och används i alla filter och i Skapa
+          klubb och Skapa event. Med tomt fält visas ens egna intressen som snabbval (.interest-picker-heading). Man
+          skriver och får träffar i hela biblioteket, även på andra namn, med var intresset hör hemma under namnet
+          (.interest-picker-path). Det valda tas bort med krysset (.field-clear) eller genom att tömma fältet.
+        </p>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Åldersreglage (AgeRangeSlider, .age-range)
+        </p>
+        <p className="hint-text">
+          Två handtag mellan 13 och 100 år (utils/age.js), med åldern till vänster (.age-range-value) och spannet i gult
+          (.age-range-fill). Handtagen i ändarna betyder ingen gräns. Värdet skickas först när man släpper handtaget.
+        </p>
+        <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
+          <AgeRangeSlider value={filterAges} onChange={setFilterAges} />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Datumfält för events (DateField, .date-field)
+        </p>
+        <p className="hint-text">
+          Kalendern går bara att välja i från i dag till ett år framåt, samma gräns som backend. I Skapa event med tid
+          (withTime), se formuläret nedan. Med emptyLabel står t.ex. "Alla datum" (.date-field-empty) i fältet när
+          inget är valt, och ett kryss (.field-clear) tar bort det.
+        </p>
+        <p className="hint-text">
+          I filtret under Events (EventDayFilter, .event-day-filter) en lista med Alla datum, Idag, I helgen och Denna
+          vecka, och sist Välj datum…, som öppnar kalendern. En vald dag står sedan i listan.
+        </p>
+        <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
+          <EventDayFilter value={filterDay} onChange={setFilterDay} />
+          <DateField aria-label="Exempel 3" value={exampleDay} onChange={setExampleDay} emptyLabel="Alla datum" />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Matchningskort (MatchCard, .match-card) med nivå (MatchLevel, .match-level)
+        </p>
+        <p className="hint-text">
+          Ett personkort med nivån i övre högra hörnet, personens Om mig-text i sin helhet och "Därför matchar ni" med
+          skälen som punkter (.match-reasons, gula handritade ringar). Bocken på intressetaggarna är bara för gemensamma
+          intressen. Nivån (.match-level-okay, -good, -strong och -super) syns i text och form, inte bara i färg: Okej är
+          streckad, Bra och Stark har skugga, och SUPERmatch är störst och vickar svagt (inte för den som har stängt av
+          animationer). Ingen siffra visas. I Matcha-fliken visas det bästa förslaget som ett stort kort, centrerat, med
+          de närmast på tur som små kort under (.match-thumb, se nedan).
+        </p>
+        <div className="card-grid" style={{ marginTop: '1.75rem', gap: '2rem 1rem' }}>
+          {EXAMPLE_MATCHES.map((match) => (
+            <MatchCard key={match.id} match={match} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onSkip={() => {}} onDismiss={() => {}} />
+          ))}
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Små kort för de närmast på tur (MatchThumb, .match-thumb i .match-thumbs)
+        </p>
+        <p className="hint-text">
+          Under det stora kortet, under rubriken "Näst på tur" (.match-upnext). Avatar, namn, ort och nivån som en liten
+          stämpel (.match-level-inline). De blir successivt mindre och svagare (.match-thumb-1 till -4), så att det syns att
+          det är en kö. De är bara en förhandsvisning av ordningen och inte klickbara. När det stora kortet har
+          besvarats växer nästa fram. Raden scrollar i sidled på en smal skärm.
+        </p>
+        <ul className="match-thumbs" style={{ marginTop: '0.75rem' }}>
+          {EXAMPLE_MATCHES.map((match, i) => (
+            <MatchThumb key={match.id} match={match} place={i + 1} />
+          ))}
+        </ul>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Listkort (.list-card) i ett rutnät (.card-grid .card-grid-compact)
@@ -585,7 +735,7 @@ function StyleGuide() {
           Grupper i en lista (.match-group, .match-group-title) och "Ångra" (.undo-notice)
         </p>
         <p className="hint-text">
-          Förslag på Personer: de man har intressen gemensamt med står under "Personer med liknande
+          Sök på Medlemmar: de man har intressen gemensamt med står under "Medlemmar med liknande
           intressen", i grupper efter antal gemensamma intressen, med antalet som rubrik ovanför
           korten. Har man tagit bort någon står antalet och "Visa dem igen" under filtren. Direkt efter
           att man tagit bort någon visas .undo-notice med "Ångra" en stund, längst ner i blocket även
@@ -761,8 +911,9 @@ function StyleGuide() {
         </p>
         <p className="hint-text">
           Moderering (ModerationPage, bara för moderatorer) visar anmälningarna som kort (.moderation-card)
-          med anledningen som .status-pill-error och texten som .report-quote. Rutan "Stäng av …" har en
-          gul påminnelse (.moderation-reminder) om personen har varit avstängd förut, och nästa steg är förvalt.
+          med anledningen som .status-pill-error och texten som .report-quote. "Varna …" skickar en notis om
+          vilken regel som bröts. Rutan "Stäng av …" har en gul påminnelse (.moderation-reminder) om personen
+          har fått varningar eller varit avstängd förut, och nästa steg är förvalt.
         </p>
         <button type="button" className="secondary-button button-small" style={{ marginTop: '1rem' }} onClick={() => setModalOpen(true)}>
           Öppna exempel
@@ -893,10 +1044,16 @@ function StyleGuide() {
             </FormField>
             <div className="form-row">
               <FormField id="compact-start" label="Start">
-                <input id="compact-start" type="datetime-local" />
+                <DateField id="compact-start" withTime value={compactStart} onChange={setCompactStart} />
               </FormField>
               <FormField id="compact-end" label="Slut (valfritt)">
-                <input id="compact-end" type="datetime-local" />
+                <DateField
+                  id="compact-end"
+                  withTime
+                  value={compactEnd}
+                  onChange={setCompactEnd}
+                  min={compactStart || undefined}
+                />
               </FormField>
             </div>
             <FormField id="compact-place" label="Plats">

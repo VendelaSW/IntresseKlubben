@@ -2,6 +2,8 @@
 eller på Vercel, och att testdatan och scenarierna fortfarande går igenom appens API (så att de inte tyst går
 sönder när appen ändras)."""
 
+import sqlite3
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -40,16 +42,37 @@ def test_allows_sqlite_locally(monkeypatch):
     assert_safe()
 
 
+@pytest.fixture(scope="module")
+def seeded_copy():
+    """Testdatan tar flera sekunder att bygga, så den byggs en gång och sparas här (se `seeded`)."""
+    saved = {}
+    yield saved
+    if saved:
+        saved["database"].close()
+
+
 @pytest.fixture
-def seeded(db, client, profile_lock):
+def seeded(db, client, profile_lock, seeded_copy):
     """Databasen som testläget bygger: biblioteket, kommunerna, fejkad AI och testdatan. Låset för profil är på,
-    som i den riktiga appen."""
-    sync_library(db, load_library())
-    db.add_all([Municipality(code=code, name=name) for code, name in [("1480", "Göteborg"), ("1481", "Mölndal"),
-                                                                      ("0180", "Stockholm")]])
-    db.commit()
-    fake_ai.install([name for (name,) in db.query(Interest.name).all()])
-    return seed(app, db)
+    som i den riktiga appen. Varje test får en egen kopia, så att det får ändra i den."""
+    live = db.get_bind().raw_connection().driver_connection
+    if not seeded_copy:
+        sync_library(db, load_library())
+        db.add_all([Municipality(code=code, name=name) for code, name in [("1480", "Göteborg"), ("1481", "Mölndal"),
+                                                                          ("0180", "Stockholm")]])
+        db.commit()
+        names = [name for (name,) in db.query(Interest.name).all()]
+        fake_ai.install(names)
+        ids = seed(app, db)
+        db.commit()
+        copy = sqlite3.connect(":memory:", check_same_thread=False)
+        live.backup(copy)
+        seeded_copy.update(database=copy, ids=ids, names=names)
+    else:
+        db.commit()
+        seeded_copy["database"].backup(live)
+        fake_ai.install(seeded_copy["names"])
+    return seeded_copy["ids"]
 
 
 @pytest.fixture
@@ -73,6 +96,13 @@ def test_seed_gives_anna_something_of_everything(seeded, client, dev_client):
     assert badges["club_invitations"] == 1
     assert badges["event_invitations"] == 2
     assert badges["unread_conversations"] == 2
+
+
+def test_seed_has_a_moderator_with_a_new_report_about_someone_already_warned(seeded, client, dev_client):
+    token = dev_client.post("/dev/login", json={"username": "bertil"}).json()["access_token"]
+    (report,) = client.get("/moderation/reports", headers={"Authorization": f"Bearer {token}"}).json()
+    assert report["reported"]["id"] == seeded["maximiliana"]
+    assert [w["reason"] for w in report["reported"]["warnings"]] == ["spam"]
 
 
 def test_seed_has_open_events_near_anna_this_week(seeded, client, dev_client):
@@ -150,3 +180,37 @@ def test_fake_ai_rejects_when_the_reject_word_is_written(library_with_fake_ai):
     check_text("Jag är glad och nyfiken.")
     with pytest.raises(TextNotAllowed):
         check_text(f"Det här {fake_ai.REJECT_WORD}.")
+
+
+def _matches_as(username, seeded, client, dev_client):
+    token = dev_client.post("/dev/login", json={"username": username}).json()["access_token"]
+    return client.get("/matches", headers={"Authorization": f"Bearer {token}"}).json()
+
+
+def test_seed_gives_anna_and_bertil_matches_on_several_levels(seeded, client, dev_client):
+    """Utan fler personer, och utan texter över 100 tecken, går Matcha inte att prova i testläget."""
+    anna = _matches_as("anna", seeded, client, dev_client)
+    assert anna["status"] == "ok"
+    assert {m["level"] for m in anna["matches"]} == {"super", "strong", "good", "okay"}
+    assert anna["matches"][0]["name"] == "Tove Aronsson"  # samma intressen och exakt samma text
+
+    bertil = _matches_as("bertil", seeded, client, dev_client)
+    assert bertil["status"] == "ok"
+    assert {"super", "strong"} <= {m["level"] for m in bertil["matches"]}
+    assert bertil["matches"][0]["name"] == "Agnes Persson"
+
+
+def test_seed_has_someone_who_does_not_meet_the_matching_minimum(seeded, client, dev_client):
+    """Cecilia har för få intressen: Matcha ska visa vad som saknas, inte förslag."""
+    body = _matches_as("cecilia", seeded, client, dev_client)
+    assert body["status"] == "not_ready"
+    assert body["matches"] == []
+
+
+def test_seed_people_can_be_filtered_on_gender_and_age(seeded, client, dev_client):
+    token = dev_client.post("/dev/login", json={"username": "anna"}).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    women = client.get("/users/", params={"gender": "kvinna"}, headers=headers).json()
+    assert women and all(p["name"] != "Gustav Hall" for p in women)
+    young = client.get("/users/", params={"max_age": 30}, headers=headers).json()
+    assert young and len(young) < len(client.get("/users/", headers=headers).json())

@@ -1,13 +1,16 @@
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import and_, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core import error_messages as msg
 from app.crud.contact import accepted_contact_ids, blocked_by_me_ids, blocked_user_ids
 from app.crud.group import get_group, get_membership
+from app.crud.notification import notify
 from app.models.contact import Contact
-from app.models.event import Event, EventAnswer, EventInvitation, EventResponse, EventVisibility
+from app.models.event import Event, EventAnswer, EventHost, EventInvitation, EventJoinRequest, EventResponse, EventVisibility
+from app.models.notification import NotificationKind
 from app.models.group import Group, GroupMember, GroupVisibility
 from app.models.user import User
 from app.schemas.event import EventCreate, EventUpdate
@@ -27,10 +30,15 @@ class EventRuleError(Exception):
 def _event_query(db: Session):
     return db.query(Event).options(
         selectinload(Event.interest),
-        selectinload(Event.group),
+        # Klubbens medlemmar och inbjudningar behövs för group_visible (SCRUM-276), så att en privat klubb inte ger
+        # en fråga per event.
+        selectinload(Event.group).selectinload(Group.members),
+        selectinload(Event.group).selectinload(Group.invitations),
         selectinload(Event.creator),
         selectinload(Event.invitations),
         selectinload(Event.responses),
+        selectinload(Event.join_requests),
+        selectinload(Event.hosts),
     )
 
 
@@ -49,6 +57,10 @@ def create_event(db: Session, user_id: int, data: EventCreate) -> Event:
         guests_can_invite=data.guests_can_invite,
         created_by=user_id,
         group_id=data.group_id,
+        scope=data.scope.value if data.scope else None,
+        scope_code=data.scope_code,
+        skill_level=data.skill_level.value if data.skill_level else None,
+        max_attendees=data.max_attendees,
     )
     db.add(event)
     db.commit()
@@ -67,7 +79,8 @@ def update_event(db: Session, event: Event, data: EventUpdate) -> Event:
     if ends_at is not None and _as_utc(ends_at) <= starts_at:
         raise EventRuleError(422, msg.EVENT_END_BEFORE_START)
     for field, value in changes.items():
-        setattr(event, field, value)
+        # Område och nivå sparas som text (se Event.scope).
+        setattr(event, field, value.value if hasattr(value, "value") else value)
     db.commit()
     return get_event(db, event.id)
 
@@ -78,10 +91,32 @@ def delete_event(db: Session, event: Event) -> None:
     db.commit()
 
 
+def is_host(event: Event, user_id: int) -> bool:
+    """Skaparen eller en medarrangör (SCRUM-296)."""
+    return event.created_by == user_id or any(h.user_id == user_id for h in event.hosts)
+
+
 def can_invite(event: Event, user_id: int) -> bool:
-    """Skaparen får alltid bjuda in, andra bara om skaparen har slagit på det.
+    """Skaparen och medarrangörerna får alltid bjuda in, andra bara om skaparen har slagit på det.
     Att användaren kan se eventet kontrolleras av den som anropar."""
-    return event.created_by == user_id or event.guests_can_invite
+    return is_host(event, user_id) or event.guests_can_invite
+
+
+def yes_count(event: Event) -> int:
+    return sum(1 for r in event.responses if r.answer == EventAnswer.yes)
+
+
+def is_full(event: Event) -> bool:
+    """Har eventet nått sitt max antal som kommer (SCRUM-293)? Alla Ja räknas, även dolda."""
+    return event.max_attendees is not None and yes_count(event) >= event.max_attendees
+
+
+def can_answer(event: Event, user_id: int) -> bool:
+    """Får användaren svara? Alltid, utom på ett event man ansöker till: där bara skaparen, medarrangörerna och de
+    inbjudna (en godkänd ansökan blir en inbjudan)."""
+    if event.visibility != EventVisibility.application:
+        return True
+    return is_host(event, user_id) or any(i.user_id == user_id for i in event.invitations)
 
 
 def get_event(db: Session, event_id: int) -> Event | None:
@@ -95,7 +130,7 @@ def _can_see(db: Session, user_id: int, hidden: set[int] | None = None):
     my_groups = db.query(GroupMember.group_id).filter(GroupMember.user_id == user_id)
     return and_(
         or_(
-            Event.visibility == EventVisibility.open,
+            Event.visibility.in_((EventVisibility.open, EventVisibility.application)),
             Event.created_by == user_id,
             Event.id.in_(invited),
             Event.group_id.in_(my_groups),
@@ -265,7 +300,13 @@ def remove_invitation(db: Session, event: Event, user_id: int) -> None:
 
 
 def set_answer(db: Session, event: Event, user_id: int, answer: EventAnswer) -> None:
-    """Sparar användarens svar. Svarar hen igen byts det tidigare svaret ut."""
+    """Sparar användarens svar. Svarar hen igen byts det tidigare svaret ut. På ett event man ansöker till får
+    bara den som är godkänd svara, och ett fullt event tar inte emot fler Ja (SCRUM-293, SCRUM-296)."""
+    if not can_answer(event, user_id):
+        raise EventRuleError(409, msg.EVENT_MUST_APPLY)
+    already_yes = any(r.user_id == user_id and r.answer == EventAnswer.yes for r in event.responses)
+    if answer == EventAnswer.yes and not already_yes and is_full(event):
+        raise EventRuleError(409, msg.EVENT_FULL)
     response = (
         db.query(EventResponse)
         .filter(EventResponse.event_id == event.id, EventResponse.user_id == user_id)
@@ -301,3 +342,144 @@ def list_responses(db: Session, event: Event, viewer_id: int) -> list[tuple[Even
         .all()
     }
     return [(r, users[r.user_id], r.user_id in blocked_by_me) for r in rows if r.user_id in users]
+
+
+
+# ---------- Ansökningar och medarrangörer (SCRUM-296) ----------
+
+
+def _host_ids(event: Event) -> list[int]:
+    return [event.created_by, *(h.user_id for h in event.hosts)]
+
+
+def _display_name(user: User) -> str:
+    return (user.profile.name if user.profile else None) or user.username
+
+
+def has_applied(event: Event, user_id: int) -> bool:
+    return any(r.user_id == user_id for r in event.join_requests)
+
+
+def request_count(db: Session, event: Event, host_id: int) -> int:
+    """Antalet ansökningar som väntar, som en värd ser dem (utan blockerade)."""
+    if not event.join_requests:
+        return 0
+    hidden = blocked_user_ids(db, host_id)
+    return sum(1 for r in event.join_requests if r.user_id not in hidden)
+
+
+def apply_to_event(db: Session, event: Event, user: User, message: str | None) -> None:
+    """Ansöker till ett event man ansöker till. Skaparen och medarrangörerna får en notis. Går att upprepa. Har
+    skaparen och den sökande en blockering skapas ingen ansökan, utan att det märks."""
+    if event.visibility != EventVisibility.application:
+        raise EventRuleError(409, msg.EVENT_NOT_APPLICATION)
+    if can_answer(event, user.id) or has_applied(event, user.id):
+        return
+    hidden = blocked_user_ids(db, user.id)
+    if event.created_by in hidden:
+        return
+    db.add(EventJoinRequest(event_id=event.id, user_id=user.id, message=message))
+    name = _display_name(user)
+    # En medarrangör som har en blockering med den sökande får ingen notis (och ser inte ansökan, se
+    # list_event_requests).
+    notify(
+        db,
+        [host_id for host_id in _host_ids(event) if host_id not in hidden],
+        NotificationKind.event_join_request,
+        title=f"{name} vill vara med på «{event.title}»",
+        body="Svara på ansökan på eventets sida.",
+        quote=message,
+        quote_by=name if message else None,
+        link=f"/events?event={event.id}",
+    )
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+
+def withdraw_event_request(db: Session, event: Event, user_id: int) -> None:
+    db.query(EventJoinRequest).filter(
+        EventJoinRequest.event_id == event.id, EventJoinRequest.user_id == user_id
+    ).delete(synchronize_session=False)
+    db.commit()
+
+
+def list_event_requests(db: Session, event: Event, host_id: int) -> list[tuple[EventJoinRequest, User]]:
+    hidden = blocked_user_ids(db, host_id)
+    requests = [r for r in event.join_requests if r.user_id not in hidden]
+    users = {
+        u.id: u
+        for u in db.query(User).options(selectinload(User.profile)).filter(User.id.in_([r.user_id for r in requests]))
+    }
+    return [(r, users[r.user_id]) for r in requests if r.user_id in users]
+
+
+def _pending_request(event: Event, user_id: int) -> EventJoinRequest:
+    request = next((r for r in event.join_requests if r.user_id == user_id), None)
+    if request is None:
+        raise EventRuleError(409, msg.GROUP_REQUEST_NOT_FOUND)
+    return request
+
+
+def approve_event_request(db: Session, event: Event, user_id: int) -> None:
+    """Godkänner ansökan: personen blir inbjuden (och kan svara) och får en notis."""
+    db.delete(_pending_request(event, user_id))
+    if not any(i.user_id == user_id for i in event.invitations):
+        db.add(EventInvitation(event_id=event.id, user_id=user_id))
+    notify(
+        db,
+        [user_id],
+        NotificationKind.event_request_approved,
+        title=f"Du får vara med på «{event.title}»!",
+        body="Din ansökan är godkänd. Svara Ja eller Kanske på eventets sida.",
+        link=f"/events?event={event.id}",
+    )
+    db.commit()
+
+
+def decline_event_request(db: Session, event: Event, user_id: int, by: User, message: str | None = None) -> None:
+    """Nekar ansökan: den tas bort, så att personen kan ansöka igen, och personen får en notis med förklaringen."""
+    db.delete(_pending_request(event, user_id))
+    by_name = _display_name(by)
+    notify(
+        db,
+        [user_id],
+        NotificationKind.event_request_declined,
+        title=f"Din ansökan till «{event.title}» fick nej",
+        body="Du kan ansöka igen senare, eller hitta ett annat event.",
+        quote=message,
+        quote_by=by_name if message else None,
+        link="/events",
+    )
+    db.commit()
+
+
+def set_host(db: Session, event: Event, user_id: int, host: bool) -> None:
+    """Gör någon till medarrangör eller tar tillbaka det, och säger till personen. Att den som anropar är skaparen
+    kontrolleras i routen. En medarrangör ska ha svarat på eventet (Ja, Kanske eller Nej)."""
+    if user_id == event.created_by:
+        raise EventRuleError(409, msg.EVENT_ONLY_CREATOR_SETS_HOSTS)
+    current = next((h for h in event.hosts if h.user_id == user_id), None)
+    if host == (current is not None):
+        return
+    if host:
+        answered = any(r.user_id == user_id for r in event.responses)
+        if not answered or user_id in blocked_user_ids(db, event.created_by):
+            raise EventRuleError(409, msg.EVENT_HOST_NOT_ATTENDING)
+        db.add(EventHost(event_id=event.id, user_id=user_id))
+    else:
+        db.delete(current)
+    notify(
+        db,
+        [user_id],
+        NotificationKind.event_host_changed,
+        title=f"Du är medarrangör för «{event.title}»" if host else f"Du är inte längre medarrangör för «{event.title}»",
+        body=(
+            "Du kan nu ändra eventet, bjuda in och svara på ansökningar."
+            if host
+            else "Skaparen har tagit tillbaka rollen."
+        ),
+        link=f"/events?event={event.id}",
+    )
+    db.commit()
