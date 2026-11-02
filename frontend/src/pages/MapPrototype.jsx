@@ -226,6 +226,9 @@ const PERSON_ICON =
   '<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="3.6" r="2.2"/><path d="M1.8 11c.4-2.3 2.1-3.6 4.2-3.6s3.8 1.3 4.2 3.6"/></svg>'
 const FEW_TEXT = 'färre än 5'
 const countText = (count) => (count === null ? FEW_TEXT : count.toLocaleString('sv-SE'))
+// Landskap och län räknas bara på kommuner med minst 5 (SCRUM-303), så null betyder där
+// bara att ingen kommun räknas. Det kan vara många utspridda, så "färre än 5" vore fel.
+const regionCount = (count) => (count === null ? 'några' : count)
 
 function countBadge(count) {
   if (count === undefined) return null
@@ -601,7 +604,7 @@ function syncPlaceLabels(
     const counts = getCounts()?.landskap
     const items = LANDSKAP_LABELS.map((label) => {
       const [u, v] = LANDSKAP_LIST_LAYOUT[label.name] ?? [0.5, 0.5]
-      const count = counts?.[String(label.id)]
+      const count = regionCount(counts?.[String(label.id)])
       const nameWidth = landskapNameWidth(label.name, size) + countBadgeWidth(count, size)
       const anchor = map.project(label.lngLat)
       let cx = minX + u * (maxX - minX)
@@ -668,7 +671,7 @@ function syncPlaceLabels(
     const landskap = getLandskap()
     const code = LANDSKAP_LABELS.find((l) => l.name === landskap)?.id
     const counts = getCounts()?.lan
-    const labels = LAN_LABELS.filter((l) => l.landskap === landskap).map((l) => ({ ...l, count: counts?.[`${code}:${l.id}`] }))
+    const labels = LAN_LABELS.filter((l) => l.landskap === landskap).map((l) => ({ ...l, count: regionCount(counts?.[`${code}:${l.id}`]) }))
     return areaNameEls(labels, (label) => landskapFontSize(label.km2, zoom + 1), 'is-lan')
   }
 
