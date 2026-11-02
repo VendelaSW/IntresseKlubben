@@ -53,6 +53,8 @@
   --color-pastel-rose: #f7e1e1;
   --color-success: #3b6d11;
   --color-error: #a32d2d;
+  /* En flik som inte är vald (Registerflikarna i testläget), och strecket i åldersreglaget. */
+  --color-tab: #f3ead8;
   /* Brev: pappret (aningen mörkare än bakgrunden, som ett gammalt papper), dess
      något mörkare kanter, den röda marginallinjen och kuvertets insida. */
   --color-paper: #f5eddc;
@@ -4288,25 +4290,135 @@ button.board-note:focus-visible {
   pointer-events: none;
 }
 
-/* "Ålder" följt av från- och till-ålder, i en av filtrens rutor. */
-.filter-age-range {
-  display: grid;
-  grid-template-columns: auto 1fr 1fr;
+/* Åldersfiltret (AgeRangeSlider): åldern till vänster, i samma storlek som de
+   andra filtren, och ett reglage med två handtag till höger, på en rad i en
+   ruta som ser ut som de andra filtren och inte är bredare än innehållet. Står
+   på en egen rad i ett filter med två kolumner. */
+.age-range {
+  --thumb: 1rem;
+  box-sizing: border-box;
+  display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  width: fit-content;
+  min-width: 0;
+  padding: 0.3rem 0.6rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  font-family: var(--font-body);
   font-size: var(--text-small);
 }
 
-/* Utan upp/ner-pilarna, så att platshållartexten får plats. */
-.filter-age-range input {
-  -moz-appearance: textfield;
-  appearance: textfield;
+.filter-select-row .age-range {
+  grid-column: 1 / -1;
+  justify-self: start;
 }
 
-.filter-age-range input::-webkit-outer-spin-button,
-.filter-age-range input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
+/* Skulle fältet före åldern stå ensamt på sin rad (kön i Sök), tar det också
+   hela bredden, så att raden inte får ett hål. */
+.filter-select-row > :nth-child(odd):has(+ .age-range) {
+  grid-column: 1 / -1;
+}
+
+/* Lika bred hela tiden ("upp till 99 år" är längst), så att reglaget inte
+   flyttar sig medan man drar. */
+.age-range-value {
+  flex: 0 0 5.9em;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+/* Två reglage på samma ställe. Bara handtagen tar emot musen, så att man
+   alltid tar tag i det handtag man pekar på. Strecket har samma beige som en
+   flik som inte är vald (--color-tab), och den gula biten visar spannet, från
+   --low till --high (0–100), räknat så att den slutar mitt i handtagen. */
+.age-range-slider {
+  position: relative;
+  flex: 0 0 5.75rem;
+  height: calc(var(--thumb) + 0.3rem);
+  background: linear-gradient(var(--color-tab), var(--color-tab)) center / 100% 4px no-repeat;
+}
+
+.age-range-fill {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--low) / 100);
+  right: calc(var(--thumb) / 2 + (100% - var(--thumb)) * (100 - var(--high)) / 100);
+  height: 4px;
+  translate: 0 -50%;
+  border: 1px solid var(--color-ink);
+  border-radius: 2px;
+  background: var(--color-accent);
+}
+
+.age-range .age-range-slider input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: none;
+}
+
+.age-range .age-range-slider input.is-on-top {
+  z-index: 1;
+}
+
+.age-range-slider input::-webkit-slider-runnable-track {
+  background: none;
+}
+
+.age-range-slider input::-moz-range-track {
+  background: none;
+}
+
+.age-range-slider input::-webkit-slider-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+  border: 1.5px solid var(--color-ink);
+  border-radius: 50% 46% 54% 48% / 52% 48% 52% 48%;
+  background: var(--color-white);
+  box-shadow: 1.5px 1.5px 0 var(--color-ink);
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.age-range-slider input::-moz-range-thumb {
+  box-sizing: border-box;
+  width: var(--thumb);
+  height: var(--thumb);
+  border: 1.5px solid var(--color-ink);
+  border-radius: 50% 46% 54% 48% / 52% 48% 52% 48%;
+  background: var(--color-white);
+  box-shadow: 1.5px 1.5px 0 var(--color-ink);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.age-range-slider input:active::-webkit-slider-thumb {
+  cursor: grabbing;
+}
+
+.age-range-slider input:focus {
+  outline: none;
+}
+
+.age-range-slider input:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.age-range-slider input:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /* Filtren kompakta, tillsammans inte bredare än ett personkort (300px), i

@@ -491,17 +491,23 @@
   }
 }
 
-/* Åldern: "Ålder" och två små fält, på samma rad som de andra. */
-.filter-select-row-paper .filter-age-range {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+/* Åldersreglaget (AgeRangeSlider) som en lapp bland de andra. Reglagen själva ska inte se ut som fält. */
+.filter-select-row-paper .age-range {
+  height: 2.25rem;
+  border: 1.25px solid rgba(58, 47, 37, 0.3);
+  background-color: #fffdf8;
+  box-shadow: 0 2px 0 rgba(58, 47, 37, 0.08);
 }
 
-.filter-select-row-paper .filter-age-range input {
-  width: 4.2rem;
-  padding: 0 0.5rem;
-  text-align: center;
+.filter-select-row-paper .age-range .age-range-slider input,
+.filter-select-row-paper .age-range .age-range-slider input:focus {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  outline: none;
 }
 
 

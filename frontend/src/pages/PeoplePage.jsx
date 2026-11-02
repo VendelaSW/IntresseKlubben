@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
+import AgeRangeSlider from '../components/AgeRangeSlider'
 import EmptyState from '../components/EmptyState'
 import FilterTabs from '../components/FilterTabs'
 import InterestPicker from '../components/InterestPicker'
@@ -31,7 +32,6 @@ import {
 } from '../services/people'
 import { useConfirm } from '../hooks/useConfirm'
 import LoadError from '../components/LoadError'
-import { MAX_AGE, MIN_AGE } from '../utils/age'
 
 const TABS = [
   { id: 'match', label: 'Matcha' },
@@ -42,14 +42,6 @@ const TABS = [
 
 // "Vill inte uppge" är inget att filtrera på.
 const GENDER_FILTER_OPTIONS = GENDER_OPTIONS.filter((o) => o.value !== 'vill inte uppge')
-
-// Samma gränser som backend (GET /users/). Tomt fält = inget filter (null),
-// allt annat ogiltigt = NaN.
-function parseAge(value) {
-  if (value === '') return null
-  const age = Number(value)
-  return Number.isInteger(age) && age >= MIN_AGE && age <= MAX_AGE ? age : NaN
-}
 
 // Så länge "Ångra" syns efter att man tagit bort ett förslag.
 const UNDO_MS = 8000
@@ -102,8 +94,9 @@ const NO_FILTERS = {
   interest: null,
   municipalityCode: '',
   gender: '',
-  minAge: '',
-  maxAge: '',
+  // Åldersreglaget: null = ingen gräns åt det hållet (se AgeRangeSlider).
+  minAge: null,
+  maxAge: null,
 }
 
 // Ett omslag runt filterraderna när `wrap` är sant, annars bara raderna.
@@ -155,27 +148,11 @@ function PeoplePage() {
 
   useEffect(() => loadFilterData(), [loadFilterData])
 
-  // Åldrarna skickas bara när de går ihop, så att en halvskriven ålder inte
-  // ger ett fel från servern. Felet visas i stället under filtren.
-  const minAge = parseAge(filters.minAge)
-  const maxAge = parseAge(filters.maxAge)
-  const ageError =
-    Number.isNaN(minAge) || Number.isNaN(maxAge)
-      ? `Ange en ålder mellan ${MIN_AGE} och ${MAX_AGE}.`
-      : minAge !== null && maxAge !== null && minAge > maxAge
-        ? 'Från-åldern kan inte vara högre än till-åldern.'
-        : ''
-  const { municipalityCode, gender } = filters
+  const { municipalityCode, gender, minAge, maxAge } = filters
   const interestId = filters.interest ? String(filters.interest.id) : ''
   const query = useMemo(
-    () => ({
-      interestId,
-      municipalityCode,
-      gender,
-      minAge: ageError ? null : minAge,
-      maxAge: ageError ? null : maxAge,
-    }),
-    [interestId, municipalityCode, gender, minAge, maxAge, ageError],
+    () => ({ interestId, municipalityCode, gender, minAge, maxAge }),
+    [interestId, municipalityCode, gender, minAge, maxAge],
   )
 
   // Medlemmarna och ens kompisar ur det delade minnet (se services/queryClient.js):
@@ -333,7 +310,7 @@ function PeoplePage() {
     (tab === 'suggested' && filters.interest ? 1 : 0) +
     (filters.municipalityCode ? 1 : 0) +
     (filters.gender ? 1 : 0) +
-    (filters.minAge !== '' || filters.maxAge !== '' ? 1 : 0)
+    (filters.minAge !== null || filters.maxAge !== null ? 1 : 0)
 
   // Kommun, kön och ålder. I Sök står intressefiltret först på samma rad.
   const demographics = (
@@ -367,29 +344,10 @@ function PeoplePage() {
             ))}
           </select>
         )}
-        <div className="filter-age-range">
-          <span aria-hidden="true">Ålder</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={MIN_AGE}
-            max={MAX_AGE}
-            placeholder="från"
-            aria-label="Från ålder"
-            value={filters.minAge}
-            onChange={(e) => setFilters({ ...filters, minAge: e.target.value })}
-          />
-          <input
-            type="number"
-            inputMode="numeric"
-            min={MIN_AGE}
-            max={MAX_AGE}
-            placeholder="till"
-            aria-label="Till ålder"
-            value={filters.maxAge}
-            onChange={(e) => setFilters({ ...filters, maxAge: e.target.value })}
-          />
-        </div>
+        <AgeRangeSlider
+          value={{ min: filters.minAge, max: filters.maxAge }}
+          onChange={({ min, max }) => setFilters({ ...filters, minAge: min, maxAge: max })}
+        />
     </>
   )
 
@@ -433,7 +391,6 @@ function PeoplePage() {
               {demographics}
             </div>
           </FilterPanel>
-          {ageError && <p className="status-error">{ageError}</p>}
           {filters.gender && (
             <p className="hint-text">Visar bara dem som valt att synas när man filtrerar på kön.</p>
           )}

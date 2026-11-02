@@ -17,7 +17,7 @@ på nya hex-koder eller pixelvärden.
 
 | Typ | Namn | Exempel på användning |
 |---|---|---|
-| Färger | `--color-bg`, `--color-text`, `--color-accent`, `--color-line`, `--color-white`, `--color-muted` | `background: var(--color-accent);` |
+| Färger | `--color-bg`, `--color-text`, `--color-accent`, `--color-line`, `--color-white`, `--color-muted`, `--color-tab` (flik som inte är vald) | `background: var(--color-accent);` |
 | Typsnitt | `--font-heading` (Caveat), `--font-body` (Inter) | `font-family: var(--font-heading);` |
 | Textstorlekar | `--text-hero`, `--text-h1`, `--text-card-title`, `--text-h2`, `--text-subheading`, `--text-body`, `--text-small` | `font-size: var(--text-body);` |
 | Knappar | `.primary-button`, `.account-choice-link`, `.button-small` och `.button-large` (kombineras med de andra två) | `<button className="primary-button button-small">` |
@@ -28,6 +28,7 @@ på nya hex-koder eller pixelvärden.
 | Plats på kartan | `LocationPicker` (sök adressen och sätt en nål på en liten karta), för events och klubbarnas träffplats | `<LocationPicker id="event-position" queries={[address, placeName]} value={position} onChange={setPosition} saveLabel="Skapa event" kommunCode={kod} />` |
 | Välja intresse | `InterestPicker` (sök i hela biblioteket, även på andra namn, med ens egna intressen som snabbval), i filtren och i Skapa klubb och Skapa event | `<InterestPicker id="event-interest" myInterests={myInterests} value={interest} onChange={setInterest} required />` |
 | Datum för events | `DateField` (från i dag till ett år framåt, som backend), med tid i Skapa event. I filtret `EventDayFilter`: Idag, I helgen, Denna vecka eller en dag ur kalendern | `<DateField id="event-starts-at" withTime value={startsAt} onChange={setStartsAt} required />` |
+| Ålder i filter | `AgeRangeSlider` (två handtag mellan 13 och 100 år, se `utils/age.js`), `null` = ingen gräns | `<AgeRangeSlider value={{ min: minAge, max: maxAge }} onChange={({ min, max }) => …} />` |
 | Stämplar | `.stamp` (mörk), `.stamp-success` (grön), flera i rad i `.trust-stamps` | `<span className="stamp stamp-success">E-post bekräftad</span>` |
 | Länkar | `.info-link` (fungerar även på en `<button>`, t.ex. något som fälls ut) | `<a className="info-link">` |
 | Brev | `.envelopes` + `ConversationCard` (kuvert), `.lined-paper` (linjerat papper), `.notepad` (konversationen) | Se Brev-exemplet i stilguiden |
