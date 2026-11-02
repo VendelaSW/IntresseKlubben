@@ -16,7 +16,7 @@ import MapPageWidgets from './MapPageWidgets'
 import MapPlaceSearch from './MapPlaceSearch'
 import MapProfileWidget from './MapProfileWidget'
 import { useBadgeCounts } from '../hooks/useBadgeCounts'
-import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
+import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden, pixelRatio, refreshWhileMoving } from './mapPrototypeStyle'
 import { getEvents } from '../services/events'
 import { searchPlaces } from '../services/geocode'
 import { getGroups, getMyGroups } from '../services/groups'
@@ -742,6 +742,7 @@ function syncPlaceLabels(
   }
 
   function refresh() {
+    if (!map.getLayer('place-anchors')) return // stilen har inte laddats än
     const seen = new Set()
     placed = map
       .queryRenderedFeatures({ layers: ['place-anchors'] })
@@ -753,9 +754,11 @@ function syncPlaceLabels(
         landskap: landskapMaskAt(f.geometry.coordinates),
         lan: lanCodeAt(f.geometry.coordinates),
       }))
-    render()
+    // Medan kartan rör sig ritas de av move strax efter.
+    if (!map.isMoving()) render()
   }
 
+  refreshWhileMoving(map, refresh)
   map.on('move', render)
   map.on('idle', refresh)
   return { render }
@@ -1201,6 +1204,7 @@ function MapPrototype() {
       pitchWithRotate: false,
       touchPitch: false,
       attributionControl: { compact: true },
+      pixelRatio: pixelRatio(),
     })
     // MapLibre passar in rektangeln runt Sverige, men i lutningen hamnar
     // landet då för lågt (mer luft ovanför än under). Därför justeras mitten
