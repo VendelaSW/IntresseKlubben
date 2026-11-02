@@ -227,6 +227,8 @@ pytest
 ```
 Testerna använder en tillfällig databas i minnet, och bildtesterna en fejkad bucket. De rör aldrig Neon eller den riktiga bucketen.
 
+Testerna körs parallellt, en process per kärna (`-n auto` i `pytest.ini`). Ska du felsöka ett test med `pdb` eller vill se utskrifter i ordning: `pytest -n 0 tests/test_x.py`.
+
 ### Vad som ska testas
 Testa beteendet som spelar roll: huvudflödet och de fel en användare faktiskt kan råka ut för (t.ex. upptaget användarnamn, ogiltig data, något som inte finns, inte inloggad). Varje test ska kontrollera ett riktigt resultat, inte bara köra kod för att höja täckningen. Fixturerna i `tests/conftest.py` ger dig en databas, en testklient och en inloggad användare (`user`).
 
