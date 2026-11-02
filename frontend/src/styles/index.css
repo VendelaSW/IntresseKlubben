@@ -2657,15 +2657,13 @@ span.tag-selected:hover {
 }
 
 /* Kuverten: fyra per rad på dator och tre på mobil. Ett öppnat kuvert når upp
-   ca 40 % av sin höjd (fliken), och höjden följer bredden. --envelope-reach är
-   den höjden, räknad från sidans bredd, så att ett öppnat kuvert alltid har
-   lite luft till flikarna och till kuvertet ovanför utan att mellanrummet blir
-   större än det behöver. */
+   ca 40 % av sin höjd (fliken), och höjden följer bredden. Marginalen på varje
+   kuvert (.envelopes li) räknas från kolumnens bredd, så att fliken alltid får
+   plats under kuvertet ovanför. */
 .envelopes {
-  --envelope-reach: calc(0.056 * (min(100vw - 3rem, 992px) - 5rem));
   list-style: none;
   margin: 0;
-  padding: calc(var(--envelope-reach) - 0.25rem) 0 0;
+  padding: 0;
   width: 100%;
   display: grid;
   /* Lika breda kolumner från vänster, i linje med rubriken och flikarna, som
@@ -2673,13 +2671,14 @@ span.tag-selected:hover {
      vanlig skärm, färre i ett smalare fönster eller i kartans block. */
   --envelope-gap: 1.25rem;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: calc(var(--envelope-reach) + 1.1rem) var(--envelope-gap);
+  gap: 1.1rem var(--envelope-gap);
 }
 
 /* Kuvertet man pekar på läggs överst, så att dess öppna flik och papper syns
    helt över kuvertet ovanför. */
 .envelopes li {
   position: relative;
+  margin-top: 28%;
 }
 
 .envelopes li:hover,
@@ -2881,27 +2880,28 @@ span.tag-selected:hover {
   }
 }
 
-/* Dator med mus: ett öppnat kuvert öppnar fliken och brevet kommer upp en bit.
-   Ett nytt kuvert förblir stängt; bara sigillet växer lite. */
+/* Ett öppnat kuvert står öppet: fliken är uppvikt och brevet sticker upp en bit. */
+.envelope:not(.envelope-new) .envelope-flap {
+  transform: rotateX(140deg);
+  z-index: 1;
+}
+
+/* Uppvikt syns flikens insida, i samma ton som kuvertets insida. */
+.envelope:not(.envelope-new) .envelope-flap::after {
+  background: var(--color-envelope-inside);
+}
+
+.envelope:not(.envelope-new) .envelope-letter {
+  transform: translateY(-19%);
+}
+
+/* Dator med mus: brevet i ett öppnat kuvert kommer upp lite till. Ett nytt
+   kuvert förblir stängt; bara sigillet växer lite. */
 @media (hover: hover) and (min-width: 768px) {
-  .envelope:not(.envelope-new):hover .envelope-flap,
-  .envelope:not(.envelope-new):focus-visible .envelope-flap {
-    transform: rotateX(140deg);
-    z-index: 1;
-    transition: transform 0.35s ease, z-index 0s 0.17s, background 0.15s ease;
-  }
-
-  /* Uppvikt syns flikens insida, i samma ton som kuvertets insida. */
-  .envelope:not(.envelope-new):hover .envelope-flap::after,
-  .envelope:not(.envelope-new):focus-visible .envelope-flap::after {
-    background: var(--color-envelope-inside);
-    transition: background 0s 0.17s;
-  }
-
   .envelope:not(.envelope-new):hover .envelope-letter,
   .envelope:not(.envelope-new):focus-visible .envelope-letter {
-    transform: translateY(-19%);
-    transition: transform 0.45s cubic-bezier(0.34, 1.6, 0.6, 1) 0.22s;
+    transform: translateY(-30%);
+    transition: transform 0.45s cubic-bezier(0.34, 1.6, 0.6, 1);
   }
 
   .envelope-new:hover .envelope-seal,
