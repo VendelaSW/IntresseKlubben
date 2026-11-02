@@ -187,8 +187,6 @@ def create(
             raise HTTPException(status_code=422, detail=msg.EVENT_APPLICATION_IN_PRIVATE_GROUP)
     _check_area(data.scope, data.scope_code)
     check_fields(
-        ai=True,
-        ai_text=f"{data.title}\n{data.description}",
         title=data.title,
         description=data.description,
         place_name=data.place_name,
@@ -222,16 +220,11 @@ def edit_event(
     if "scope" in data.model_fields_set:
         _check_area(data.scope, data.scope_code)
     changes = data.model_dump(exclude_unset=True)
-    public_text = [changes[field] for field in ("title", "description") if field in changes]
-    check_fields(
-        ai=True,
-        ai_text="\n".join(public_text),
-        **{
+    check_fields(**{
             field: changes[field]
             for field in ("title", "description", "place_name", "address")
             if field in changes
-        },
-    )
+        })
     # Tid och plats före ändringen, för att se om deltagarna ska få en notis.
     time_before, place_before = _time_of(event), _place_of(event)
     try:

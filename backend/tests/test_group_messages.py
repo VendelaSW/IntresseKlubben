@@ -119,19 +119,10 @@ def test_messages_from_blocked_users_are_hidden(client, db, user, outsider, grou
     assert [m["content"] for m in client.get(f"/groups/{group['id']}/messages").json()] == ["Från outsider"]
 
 
-@pytest.mark.parametrize("unavailable", [False, True])
-def test_group_chat_uses_only_local_filter(client, db, user, group, fake_moderation_client, unavailable):
-    fake_moderation_client.reset_mock()
-    if unavailable:
-        fake_moderation_client.submit.side_effect = RuntimeError("Space unavailable")
-    else:
-        fake_moderation_client.submit.return_value.result.return_value = {
-            "flagged": True, "translated_text": "Toxic", "score": 0.9,
-        }
+def test_group_chat_uses_local_filter(client, db, user, group):
     response = client.post(f"/groups/{group['id']}/messages", json={"content": "din fitta"})
     assert response.status_code == 201
     assert db.query(GroupMessage).one().content == "din *****"
-    fake_moderation_client.submit.assert_not_called()
 
 
 def test_obsolete_chat_ai_toggle_is_removed(client, user, group):
