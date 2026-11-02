@@ -1464,6 +1464,12 @@ span.tag-selected:hover {
   background: var(--color-accent);
 }
 
+/* "Visa fler" under en lista (Medlemmar > Sök, Klubbar > Alla): lagom bred och
+   mitt under listan, inte över hela sidan. */
+.show-more-button {
+  align-self: center;
+}
+
 /* Liten variant. Måste ligga efter .primary-button och .secondary-button,
    annars vinner deras padding och knappen blir inte mindre. */
 .button-small {

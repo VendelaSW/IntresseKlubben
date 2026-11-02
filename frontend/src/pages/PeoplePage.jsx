@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
@@ -26,6 +26,7 @@ import { GENDER_OPTIONS, getMunicipalities } from '../services/profile'
 import {
   dismissSuggestion,
   dismissedCountQuery,
+  peoplePages,
   peopleQuery,
   resetDismissedSuggestions,
   undoDismissSuggestion,
@@ -68,8 +69,8 @@ function sharedCountText(count) {
   )
 }
 
-// Varför någon står under Kompisförfrågningar eller Kompisar: hur många intressen
-// man har gemensamt. null om inget är gemensamt.
+// Varför någon står under Kompisförfrågningar: hur många intressen man har
+// gemensamt. null om inget är gemensamt.
 function sharedInterestsText(person, myInterestIds) {
   const count = sharedCountOf(person, myInterestIds)
   return count === 0 ? null : <>Ni har {sharedCountText(count)}</>
@@ -87,7 +88,6 @@ function sharedInterestsText(person, myInterestIds) {
 // för smala centrerade sidor och krymper annars hela sidan efter innehållet,
 // vilket flyttar om allt vid varje fliksbyte). Sök kan filtreras på
 // intresse, kommun, kön och ålder.
-const NO_PEOPLE = []
 const NO_CONTACTS = { contacts: [], incoming_requests: [], outgoing_requests: [] }
 // Inga filter valda. Filtren nollställs när man byter flik.
 const NO_FILTERS = {
@@ -158,11 +158,13 @@ function PeoplePage() {
   // Medlemmarna och ens kompisar ur det delade minnet (se services/queryClient.js):
   // har man varit här nyss visas de direkt och hämtas om i bakgrunden. När
   // filtren ändras ligger den förra listan kvar tills den nya har kommit.
-  const peopleResult = useQuery({ ...peopleQuery(query), placeholderData: keepPreviousData })
+  // Medlemmarna kommer en sida i taget (SCRUM-321): "Visa fler" hämtar nästa, och
+  // med nya filter börjar det om på första sidan (se peopleQuery).
+  const peopleResult = useInfiniteQuery({ ...peopleQuery(query), placeholderData: keepPreviousData })
   const contactsResult = useQuery(contactsQuery)
   // Hur många man har tagit bort från Sök. "Visa dem igen" syns bara då.
   const dismissedCount = useQuery(dismissedCountQuery).data?.count ?? 0
-  const people = peopleResult.data ?? NO_PEOPLE
+  const people = useMemo(() => peoplePages(peopleResult.data), [peopleResult.data])
   const contactsData = contactsResult.data ?? NO_CONTACTS
   const failed = (result) => result.isError && result.data === undefined
   const status =
@@ -194,9 +196,11 @@ function PeoplePage() {
   }
 
   // Den som redan är ens kompis, eller har skickat en kompisförfrågan till en,
-  // har sin egen flik - visa dem inte i Sök också. Den som redan fått en
-  // förfrågan skickad till sig stannar kvar, men med en statuspill i stället
-  // för "Skicka kompisförfrågan".
+  // har sin egen flik - visa dem inte i Sök också. Backend lämnar redan bort dem
+  // (SCRUM-321), men listorna hämtas var för sig, så de sorteras bort här också
+  // tills båda har hämtats om (t.ex. direkt efter att man svarat på en
+  // förfrågan). Den som redan fått en förfrågan skickad till sig stannar kvar,
+  // men med en statuspill i stället för "Skicka kompisförfrågan".
   const outgoingByUserId = new Map(
     contactsData.outgoing_requests.map((request) => [request.user.id, request]),
   )
@@ -224,7 +228,8 @@ function PeoplePage() {
   const others = suggested.filter(({ person }) => sharedCount(person) === 0)
 
   // Gemensamma intressen markerade och förklarade på korten under
-  // Kompisförfrågningar och Kompisar. Under Sök står antalet i gruppens rubrik.
+  // Kompisförfrågningar. Under Sök står antalet i gruppens rubrik, och under
+  // Kompisar markeras de bara (SCRUM-321): de gula taggarna räcker.
   function sharedProps(person) {
     return { sharedInterestIds: myInterestIds, reason: sharedInterestsText(person, myInterestIds) }
   }
@@ -355,9 +360,9 @@ function PeoplePage() {
     <section className="app-section">
       <h1 className="app-title">Medlemmar</h1>
 
-      {/* Antalet bara på Sök och Kompisförfrågningar, inte på Matcha och Kompisar. */}
+      {/* Antalet bara på Kompisförfrågningar, där det finns något att svara på (SCRUM-321). */}
       <FilterTabs
-        tabs={TABS.map((t) => ({ ...t, count: t.id === 'contacts' || t.id === 'match' ? undefined : lists[t.id].length }))}
+        tabs={TABS.map((t) => ({ ...t, count: t.id === 'incoming' ? lists.incoming.length : undefined }))}
         active={tab}
         onChange={setTab}
       />
@@ -477,7 +482,6 @@ function PeoplePage() {
           {matchGroups.length > 0 && (
             <>
               <h2>Medlemmar med liknande intressen</h2>
-              {!paperRow && <p className="hint-text">Flest gemensamma intressen först.</p>}
               {matchGroups.map((group) => (
                 <section key={group.count} className="match-group">
                   <h3 className="match-group-title">{sharedCountText(group.count)}</h3>
@@ -493,6 +497,16 @@ function PeoplePage() {
               <div className="card-grid card-grid-compact">{others.map(suggestionCard)}</div>
             </>
           )}
+          {peopleResult.hasNextPage && (
+            <button
+              type="button"
+              className="secondary-button show-more-button"
+              disabled={peopleResult.isFetchingNextPage}
+              onClick={() => peopleResult.fetchNextPage()}
+            >
+              {peopleResult.isFetchingNextPage ? 'Hämtar...' : 'Visa fler'}
+            </button>
+          )}
         </>
       ) : (
         <div className="card-grid card-grid-compact">
@@ -501,7 +515,7 @@ function PeoplePage() {
               <PersonCard
                 key={contact.id}
                 person={contact.user}
-                {...sharedProps(contact.user)}
+                sharedInterestIds={myInterestIds}
                 actions={
                   <PersonActions
                     userId={contact.user.id}

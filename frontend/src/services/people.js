@@ -1,12 +1,18 @@
 import { apiDelete, apiGet, apiPost } from './api'
-import { MINUTE, SECOND, cached, invalidate, queryClient } from './queryClient'
+import { MINUTE, SECOND, cached, invalidate } from './queryClient'
 
 export const PEOPLE_KEY = ['people']
 
+// Sök visar så här många förslag åt gången, med "Visa fler" för nästa (SCRUM-321).
+const PEOPLE_PAGE_SIZE = 20
+
 // Andra användare med sparad profil, valfritt filtrerade på intresse, kommun,
 // kön och ålder. Med kön kommer bara de som själva valt att synas då.
-// Tidigare borttagna förslag (se nedan) är redan uteslutna av backend.
-// Sparas i minnet en kort stund per filter (se queryClient.js).
+// Tidigare borttagna förslag (se nedan), kompisar och inkommande förfrågningar
+// är redan uteslutna av backend. Hämtas en sida i taget (useInfiniteQuery):
+// varje sida har en person extra, så att det syns om det finns fler, och den
+// visas först på nästa sida (se peoplePages). Sparas i minnet en kort stund per
+// filter (se queryClient.js).
 export function peopleQuery({ interestId, municipalityCode, gender, minAge, maxAge } = {}) {
   const params = new URLSearchParams()
   if (interestId) params.set('interest_id', interestId)
@@ -17,13 +23,22 @@ export function peopleQuery({ interestId, municipalityCode, gender, minAge, maxA
   const query = params.toString()
   return {
     queryKey: [...PEOPLE_KEY, query],
-    queryFn: () => apiGet(`/users/${query ? `?${query}` : ''}`),
+    queryFn: ({ pageParam }) => {
+      const page = new URLSearchParams(params)
+      page.set('limit', PEOPLE_PAGE_SIZE + 1)
+      page.set('offset', pageParam)
+      return apiGet(`/users/?${page}`)
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length > PEOPLE_PAGE_SIZE ? allPages.length * PEOPLE_PAGE_SIZE : undefined,
     staleTime: 15 * SECOND,
   }
 }
 
-export function getPeople(filters) {
-  return queryClient.fetchQuery(peopleQuery(filters))
+// Personerna på de sidor som har hämtats, utan den extra på varje sida.
+export function peoplePages(data) {
+  return data ? data.pages.flatMap((page) => page.slice(0, PEOPLE_PAGE_SIZE)) : []
 }
 
 // Hur många andra användare som finns per område, för kartan (SCRUM-82): { kommun, landskap, lan }, med kommunkod,

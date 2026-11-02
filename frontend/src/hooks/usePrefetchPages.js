@@ -23,9 +23,11 @@ export function usePrefetchPages(userId) {
   useEffect(() => {
     if (userId == null) return
     const timer = setTimeout(() => {
-      for (const query of [conversationsQuery, peopleQuery(), contactsQuery, groupsOverviewQuery, eventsQuery, myGroupsQuery]) {
+      for (const query of [conversationsQuery, contactsQuery, groupsOverviewQuery, eventsQuery, myGroupsQuery]) {
         queryClient.prefetchQuery(query)
       }
+      // Personer hämtas en sida i taget (se peopleQuery): här bara den första.
+      queryClient.prefetchInfiniteQuery(peopleQuery())
       Promise.all([getAllInterests(), getMyInterests(), getMunicipalities()]).catch(() => {})
     }, DELAY_MS)
     return () => clearTimeout(timer)

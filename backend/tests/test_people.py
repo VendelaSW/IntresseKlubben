@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import event
 
 from app.crud.profile import calculate_age
+from app.models.contact import Contact
 from app.models.interest import Interest
 from app.models.profile import GenderEnum
 from app.models.user import User
@@ -312,6 +313,52 @@ def test_filters_choose_who_is_in_the_list_but_not_the_order(client, db, user, m
 
     assert everyone == ["Bea", "Cai", "Ann", "Dan"]
     assert in_molndal == ["Cai", "Dan"]
+
+
+def test_limit_and_offset_give_a_page_of_the_sorted_list(client, db, user):
+    # SCRUM-321: Sök visar 20 i taget. Sidan tas ut efter sorteringen på gemensamma intressen, inte i namnordning.
+    a, b, c, d = _interests(db, "A", "B", "C", "D")
+    _give_user_interests(db, user, [a, b, c])
+    _create_person(db, "anna", "Anna", interests=[d])
+    _create_person(db, "bo", "Bo", interests=[a])
+    _create_person(db, "cia", "Cia", interests=[a, b])
+    _create_person(db, "dag", "Dag", interests=[a, b, c, d])
+    _create_person(db, "eva", "Eva", interests=[b, c])
+
+    def page(**params):
+        return [p["name"] for p in client.get("/users/", params=params).json()]
+
+    assert page(limit=2) == ["Dag", "Cia"]
+    assert page(limit=2, offset=2) == ["Eva", "Bo"]
+    assert page(limit=2, offset=4) == ["Anna"]
+    assert page(offset=3) == ["Bo", "Anna"]
+    assert page(limit=2, offset=10) == []
+
+
+@pytest.mark.parametrize("params", [{"limit": 0}, {"limit": 101}, {"offset": -1}])
+def test_invalid_page_is_rejected(client, db, user, params):
+    assert client.get("/users/", params=params).status_code == 422
+
+
+def test_contacts_and_incoming_requests_are_left_out_but_sent_requests_stay(client, db, user):
+    # Kompisar och de som har skickat en förfrågan står redan under Kompisar och Kompisförfrågningar.
+    # Den man själv har skickat en förfrågan till står kvar under Sök, med Avbryt.
+    friend = _create_person(db, "friend", "Friend")
+    asker = _create_person(db, "asker", "Asker")
+    asked = _create_person(db, "asked", "Asked")
+    _create_person(db, "other", "Other")
+
+    def pair(a, b):
+        return f"{min(a, b)}:{max(a, b)}"
+
+    db.add_all([
+        Contact(requester_id=user.id, addressee_id=friend.id, pair_key=pair(user.id, friend.id), status="ACCEPTED"),
+        Contact(requester_id=asker.id, addressee_id=user.id, pair_key=pair(user.id, asker.id), status="PENDING"),
+        Contact(requester_id=user.id, addressee_id=asked.id, pair_key=pair(user.id, asked.id), status="PENDING"),
+    ])
+    db.commit()
+
+    assert [p["name"] for p in client.get("/users/").json()] == ["Asked", "Other"]
 
 
 def test_someone_without_interests_gets_the_list_in_name_order(client, db, user):
