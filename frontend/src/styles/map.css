@@ -68,6 +68,7 @@
 .map-sketch.is-calm .map-sketch-compass,
 .map-sketch.is-calm .map-sketch-tools,
 .map-sketch.is-calm .map-place-search,
+.map-sketch.is-calm .map-view-tools,
 .map-sketch.is-calm .map-sketch-hint,
 .map-sketch.is-calm .map-levels {
   visibility: hidden;
@@ -719,6 +720,12 @@
   color: #3a2f25;
   white-space: nowrap;
   text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
+  /* En knapp som ser ut som text, och som släpper igenom musen till kartan (se placeLabelAt). */
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  pointer-events: none;
 }
 
 .map-sketch-label-big {
@@ -1061,13 +1068,22 @@
   min-width: 0;
 }
 
-/* Växeln Karta | Att göra högst upp till vänster. Syns i båda lägena: ovanpå
-   att göra-sidan (z-index 3) men under ett öppet block (5). Nålknapparna (bara
-   på kartan) ligger på raden under. */
-.map-view-toggle {
+/* Översta raden till vänster: växeln Karta | Att göra, Min kommun och Hitta mig.
+   Syns i båda lägena: ovanpå att göra-sidan (z-index 3) men under ett öppet
+   block (5). Min kommun och Hitta mig bara på kartan (se .is-calm). Nålknapparna
+   (bara på kartan) ligger på raden under. */
+.map-view-row {
   position: relative;
   z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   pointer-events: auto;
+}
+
+.map-view-tools {
+  display: flex;
+  gap: 0.4rem;
 }
 
 .map-sketch-tools {
@@ -1090,8 +1106,8 @@
   flex-wrap: wrap;
 }
 
-/* Sökrutan "Sök en ort" och Min kommun (MapPlaceSearch, SCRUM-220): under
-   växeln Karta | Att göra, med samma bläckkant och hårda skugga som knapparna.
+/* Sökrutan "Sök en ort" (MapPlaceSearch, SCRUM-220): under växeln
+   Karta | Att göra, med samma bläckkant och hårda skugga som knapparna.
    Förslagen fälls ut under rutan. */
 .map-place-search {
   position: relative;
@@ -1180,12 +1196,34 @@
   }
 }
 
+/* Besked under sökrutan: en lapp som knapparna, så att det går att läsa ovanpå kartan. */
 .map-place-search-message {
-  margin: 0.3rem 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.4rem 0 0;
+  padding: 0.35rem 0.6rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #3a2f25;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  line-height: 1.3;
+}
+
+.map-place-search-message-close {
+  flex: none;
+  margin: 0;
+  padding: 0 0.15rem;
+  border: none;
+  background: none;
   color: #3a2f25;
-  font-family: var(--font-heading);
-  font-size: 1.15rem;
-  text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
 }
 
 /* Var man är, efter Hitta mig: en liten ritad figur, som inte tar några klick från kartan. */
@@ -1195,6 +1233,10 @@
   z-index: 2;
   pointer-events: none;
   filter: drop-shadow(2px 2px 0 #3a2f25);
+}
+
+.map-you.is-hidden {
+  display: none;
 }
 
 .map-you svg {
@@ -1258,9 +1300,25 @@
   stroke-linejoin: round;
 }
 
-/* Hitta mig: text på större skärmar, bara figuren på mobil (se nedan), så att sökrutan får plats. */
+/* Knappar med bara en ritad ikon: växeln Karta | Att göra och Min kommun (SCRUM-330, SCRUM-331). */
+.map-tool-icon-only {
+  padding: 0.2rem 0.45rem;
+}
+
+.map-tool-icon {
+  display: block;
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .map-find-me-icon {
-  display: none;
+  display: block;
   width: 1.15rem;
   height: 1.15rem;
 }
@@ -1344,6 +1402,13 @@
   border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
   box-shadow: 3px 3px 0 #3a2f25;
   overflow: hidden;
+}
+
+/* Håll in − för hela Sverige: inget textval eller meny från telefonen under tiden. */
+.map-sketch .maplibregl-ctrl-zoom-out {
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 .map-sketch .maplibregl-ctrl-group button + button {
@@ -1560,10 +1625,10 @@
 }
 
 /* Menyn: en liten lapp under profillappen, högerställd. Ligger ovanpå det som
-   finns under (nivåknapparna Sverige–Kommun) i stället för i flödet: annars
-   gjorde den raden bredare, så att lapparna Brev–Events flyttade sig åt
-   vänster, och knuffade ner nivåknapparna. Högerkanten i linje med
-   nivåknapparnas, som sitter 44 px längre ut än profillappen (där
+   finns under (områdets namn) i stället för i flödet: annars gjorde den raden
+   bredare, så att lapparna Brev–Events flyttade sig åt vänster, och knuffade
+   ner namnet. Högerkanten i linje med namnets, som sitter 44 px längre ut än
+   profillappen (där
    zoomknapparna står ovanför, se margin-right på .map-top-widgets och
    right på .map-profile-wrap på mobil), så att menyn täcker dem helt i stället
    för att de sticker ut vid sidan. */
@@ -1895,11 +1960,6 @@
   gap: 0.4rem;
 }
 
-.map-levels .map-tool {
-  min-width: 6.6rem;
-  justify-content: center;
-}
-
 /* Med ett block öppet göms snabbzoomen (som på mobil, se nedan): man läser i
    blocket och navigerar inte på kartan, och namnet på området skulle annars
    hamna halvt bakom blocket. */
@@ -1936,7 +1996,7 @@
     display: contents;
   }
 
-  .map-view-toggle,
+  .map-view-row,
   .map-sketch-tools,
   .map-place-search,
   .map-sketch-hint,
@@ -1950,13 +2010,13 @@
 
   /* Knapparna från kanten (inte efter marginallinjen), mindre, och utan att
      krocka med zoomknapparna uppe till höger. Tar hänsyn till skärmens hack. */
-  .map-view-toggle {
+  .map-view-row {
     top: calc(0.6rem + env(safe-area-inset-top));
     left: calc(0.6rem + env(safe-area-inset-left));
   }
 
   /* I att göra-läget syns loggan i hörnet, så växeln står bredvid den. */
-  .map-sketch.is-calm .map-view-toggle {
+  .map-sketch.is-calm .map-view-row {
     left: calc(4rem + env(safe-area-inset-left));
   }
 
@@ -2129,14 +2189,6 @@
   .map-tool {
     padding: 0.2rem 0.5rem;
     font-size: 0.72rem;
-  }
-
-  .map-find-me-icon {
-    display: block;
-  }
-
-  .map-find-me-text {
-    display: none;
   }
 
   /* Smalare bordskant, annars tar den halva skärmen. */
