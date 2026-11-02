@@ -14,6 +14,7 @@ import LocationPicker from '../components/LocationPicker'
 import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
+import LetterFriends from '../components/LetterFriends'
 import CreateButton from '../components/CreateButton'
 import DateField from '../components/DateField'
 import EventDayFilter from '../components/events/EventDayFilter'
@@ -51,7 +52,16 @@ const COLORS = [
   { name: '--color-error', hex: '#a32d2d', label: 'Error (felmeddelanden)' },
   { name: '--color-paper', hex: '#f5eddc', label: 'Brevpapper (aningen mörkare än bakgrunden)' },
   { name: '--color-paper-margin', hex: '#e7a1a1', label: 'Brevpapprets röda marginal' },
-  { name: '--color-envelope-inside', hex: '#eef3f8', label: 'Kuvertets insida' },
+  { name: '--color-envelope-paper', hex: '#e8d3ad', label: 'Kuvertets papper' },
+  { name: '--color-envelope-inside', hex: '#cdb288', label: 'Kuvertets insida' },
+  { name: '--tag-ink', hex: '#3a2f25', label: 'Bläck (kanter och hårda skuggor på taggar, kuvert och anteckningsblocket)' },
+]
+
+// Exempel för Brev-avsnittet: kompisar man inte har skrivit till än.
+const EXAMPLE_FRIENDS = [
+  { id: 11, username: 'ida', name: 'Ida Sjöberg', image_url: null },
+  { id: 12, username: 'nora', name: 'Nora Lindqvist', image_url: null },
+  { id: 13, username: 'oskar', name: 'Oskar Bergman', image_url: null },
 ]
 
 // Exempel för Brev-avsnittet: ett nytt och ett öppnat kuvert.
@@ -455,10 +465,13 @@ function StyleGuide() {
         <h2>Brev</h2>
         <p className="swatch-label">Kuvert (.envelopes med ConversationCard)</p>
         <p className="hint-text">
-          Fem per rad på dator, från vänster i linje med rubriken och flikarna, och tre i mitten på
-          mobil. Klickbara som andra kort (.card-interactive): lyfts och
-          får gul kant vid hover. Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret; ett
-          nytt (.envelope-new) förblir stängt och har ett gult sigill. Avståndet mellan raderna följer
+          Fem per rad på dator, från vänster i linje med rubriken, och tre i mitten på
+          mobil. Brunt papper (--color-envelope-paper) med bläckkant och hård bläckskugga (--tag-ink), och små
+          ojämna hörn: inte --tag-shape, eftersom kuvertets sidor måste vara raka för att möta fliken och framsidan.
+          Klickbara som andra kort (.card-interactive): lyfts och får gul kant vid hover. Ett öppnat kuvert står
+          öppet, med fliken uppvikt och en bit av brevpappret synlig, och på dator kommer brevet upp lite till vid
+          hover. Ett nytt (.envelope-new) är stängt och knutet med ett tvinnat snöre och en rosett (.envelope-bow).
+          De oöppnade står först och de öppnade efter, nyast först i båda. Avståndet mellan raderna följer
           kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför. Personens bild står
           bredvid namnet och växer med kuvertet. Över bilden och namnet står "Från" eller "Till", efter vem som
           skrev det senaste brevet.
@@ -472,10 +485,20 @@ function StyleGuide() {
         </ul>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Kompisar man inte har skrivit till än (LetterFriends, .letter-friends)
+        </p>
+        <p className="hint-text">
+          Överst i Brev: runda bilder och förnamn på en rad, och ett klick öppnar ett nytt brev. Får de inte plats
+          tonar raden ut åt det håll där det finns fler, utan rullningslist. På dator finns en pil åt det hållet, och
+          på mobil sveper man. Raden syns inte när det inte finns någon kvar att skriva till.
+        </p>
+        <LetterFriends friends={EXAMPLE_FRIENDS} />
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Anteckningspapper (.notepad .lined-paper), för en konversation
         </p>
         <p className="hint-text">
-          Linjerat papper med röd marginal. Allt på pappret har radhöjden --line-gap, så att texten
+          Linjerat papper med röd marginal, bläckkant, frihandshörn (--tag-shape-alt) och hård bläckskugga. Allt på pappret har radhöjden --line-gap, så att texten
           står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. Någon annans bild och namn (överst och vid breven, ChatSender) är länkar till profilen. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
           ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och under på mobil: rubriken Klubbchatt, medlemmarnas bilder
           och namn vid varje meddelande, och en svarsrad. Meddelanden i följd från samma person, inom 5
