@@ -2656,6 +2656,66 @@ span.tag-selected:hover {
   background-position: 0 0, 0 0, 0 var(--line-offset);
 }
 
+/* Kompisar man inte har skrivit till än, överst i Brev: runda bilder på en rad som går att scrolla i sidled. */
+.letter-friends {
+  width: 100%;
+  min-width: 0;
+}
+
+.letter-friends h2 {
+  margin: 0;
+}
+
+.letter-friends ul {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.5rem 0.25rem;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.letter-friends li {
+  flex: none;
+  width: 4.5rem;
+}
+
+.letter-friend {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.letter-friend .letter-friend-avatar {
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 2px solid var(--color-line);
+  font-size: 1.25rem;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.letter-friend:hover .letter-friend-avatar,
+.letter-friend:focus-visible .letter-friend-avatar {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+}
+
+/* Luft runt namnet, så att Caveats bokstäver inte klipps av overflow: hidden (se .envelope-name). */
+.letter-friend-name {
+  max-width: 100%;
+  padding: 0.1em 0.2em;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Kuverten: fyra per rad på dator och tre på mobil. Ett öppnat kuvert når upp
    ca 40 % av sin höjd (fliken), och höjden följer bredden. Marginalen på varje
    kuvert (.envelopes li) räknas från kolumnens bredd, så att fliken alltid får
