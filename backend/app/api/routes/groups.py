@@ -156,7 +156,7 @@ def create(
     elif not is_known_area(data.scope, data.scope_code):
         raise HTTPException(status_code=422, detail=msg.GROUP_UNKNOWN_AREA)
     check_fields(
-        ai=True, labels={"name": "Gruppnamnet"}, name=data.name, description=data.description,
+        labels={"name": "Gruppnamnet"}, name=data.name, description=data.description,
         meeting_info=data.meeting_info, place_name=data.place_name, address=data.address,
     )
     try:

@@ -34,7 +34,8 @@
   position: relative;
   flex: 0 1 10rem;
   min-width: 0;
-  margin-left: -1.1rem;
+  margin-left: -0.5rem;
+  z-index: 1;
   padding: 0.5rem 0.5rem 1.7rem;
   background: var(--color-white);
   box-shadow: 0 3px 10px rgba(58, 47, 37, 0.28);
@@ -45,7 +46,12 @@
   margin-left: 0;
 }
 
-.home-polaroid img {
+/* Den sista ligger under den näst sista. */
+.home-polaroid:last-child {
+  z-index: 0;
+}
+
+.home-polaroid video {
   display: block;
   width: 100%;
   aspect-ratio: 1;
@@ -81,6 +87,23 @@
 }
 
 /* Texten under bilderna: kort, och i samma röst som devisen. */
+.home-pitch-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+/* Raden under huvudraden: mindre och dämpad. */
+.home-pitch-sub {
+  max-width: var(--content-width);
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
 .home-pitch {
   max-width: var(--content-width);
   margin: 0;
@@ -104,7 +127,7 @@
   }
 
   .home-polaroid {
-    margin-left: -0.6rem;
+    margin-left: -0.3rem;
     padding: 0.3rem 0.3rem 1rem;
   }
 
@@ -112,5 +135,152 @@
     width: 2.4rem;
     height: 0.9rem;
     top: -0.45rem;
+  }
+}
+
+/* Mobil (upp till 600 px), samma i alla varianter: loggan i mitten med polaroider runt: tre över, en på var sida om loggan
+   och tre under. Sedan devisen, texten och knapparna. Sidan blir ett rutnät med tre kolumner, och hero och listan
+   "försvinner" (display: contents) så att loggan och polaroiderna ligger direkt i rutnätet. */
+@media (max-width: 600px) {
+  .home-page-polaroids {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem 0.4rem;
+    align-items: center;
+    justify-items: center;
+  }
+
+  .home-page-polaroids .hero,
+  .home-polaroids {
+    display: contents;
+  }
+
+  .home-page-polaroids .logo {
+    grid-row: 2;
+    grid-column: 2;
+    max-width: 100%;
+  }
+
+  /* Allt annat tar hela bredden, under polaroiderna. */
+  .home-page-polaroids > :not(.hero):not(.home-polaroids),
+  .home-page-polaroids .tagline {
+    grid-column: 1 / -1;
+  }
+
+  .home-page-polaroids .tagline {
+    margin-top: 0.6rem;
+  }
+
+  .home-polaroids > .home-polaroid {
+    flex: none;
+    width: 88%;
+    margin-left: 0;
+  }
+
+  .home-polaroid:nth-child(-n + 3) {
+    grid-row: 1;
+  }
+
+  .home-polaroid:nth-child(n + 6) {
+    grid-row: 3;
+  }
+
+  .home-polaroid:nth-child(4),
+  .home-polaroid:nth-child(5) {
+    grid-row: 2;
+  }
+
+  .home-polaroid:nth-child(1),
+  .home-polaroid:nth-child(4),
+  .home-polaroid:nth-child(6) {
+    grid-column: 1;
+  }
+
+  .home-polaroid:nth-child(2),
+  .home-polaroid:nth-child(7) {
+    grid-column: 2;
+  }
+
+  .home-polaroid:nth-child(3),
+  .home-polaroid:nth-child(5),
+  .home-polaroid:nth-child(8) {
+    grid-column: 3;
+  }
+}
+
+/* Raden (version 1) på en bred skärm (laptop): fler polaroider, så raden får bli bredare. */
+@media (min-width: 1100px) {
+  .home-polaroids:not(.home-polaroids-scattered) {
+    width: min(100%, 78rem);
+  }
+}
+
+/* Version 2, utspridda (väljaren "Förstasidan"): på en bred skärm ligger polaroiderna i en ring runt texten, alla lika stora:
+   två över (vid loggan), två på sidorna och två under. Allt ligger ovanpå sidan och tar ingen plats, och texten centreras i
+   höjd. På en smalare skärm finns inte plats runt texten, då ligger de i raden som i version 1. */
+@media (min-width: 1100px) {
+  .home-page-scattered {
+    min-height: 100svh;
+    justify-content: center;
+    overflow-x: clip;
+    /* Loggan och texten ligger lite över mitten av fönstret (i mitten ser de ut att sitta för lågt). */
+    padding-bottom: 14svh;
+  }
+
+  /* Loggan är lite större här, med polaroiderna tätt omkring. */
+  .home-page-scattered .logo {
+    max-width: 200px;
+  }
+
+  .home-polaroids-scattered {
+    /* Lika stora; på en låg skärm mindre, så att de över och under texten får plats. */
+    --w: min(clamp(8.5rem, 13vw, 12.5rem), 24vh);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100svh;
+    display: block;
+    width: auto;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  /* Version 3, kollage: tio, lite mindre så att de får plats, med några ytterst som bleknar ut mot kanten. */
+  .home-polaroids-collage {
+    --w: min(clamp(7rem, 10vw, 10rem), 21vh);
+  }
+
+  /* Testlägets inloggning ligger under första skärmen i stället för mellan texten och polaroiderna. */
+  .home-page-scattered .dev-login {
+    position: absolute;
+    top: calc(100svh + 1rem);
+    left: 50%;
+    width: min(28rem, calc(100% - 3rem));
+    transform: translateX(-50%);
+  }
+
+  .home-polaroids-scattered .home-polaroid {
+    position: absolute;
+    flex: none;
+    width: var(--w);
+    margin: 0;
+    left: var(--cx);
+    top: var(--cy);
+    z-index: 1;
+    transform: translate(-50%, -50%) rotate(var(--tilt));
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .home-polaroids-scattered .home-polaroid {
+      animation-name: home-polaroid-in-ring;
+    }
+
+    @keyframes home-polaroid-in-ring {
+      from {
+        opacity: 0;
+        transform: translate(-50%, calc(-50% - 1.2rem)) rotate(calc(var(--tilt) * 2.5));
+      }
+    }
   }
 }
