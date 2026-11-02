@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useDismiss } from '../hooks/useDismiss'
 import { getChildInterests, getTopInterests } from '../services/interests'
 import { areaColors } from '../utils/interestColors'
@@ -104,7 +104,8 @@ function PickGroup({ interest, areaSlug, picked }) {
 }
 
 // Intressebiblioteket som taggar: huvudområdena (Utforska), och ett tryck öppnar
-// området i en ruta i dess färg med intressena som taggar att trycka på. Området
+// området i en ruta i dess färg, direkt under raden med taggen, med intressena som
+// taggar att trycka på. Området
 // självt går också att välja ("(allmänt)"). Har ett intresse underintressen
 // öppnar pilen i taggen dem (PickGroup). Biblioteket har tre nivåer (område ›
 // intresse › mer specifikt).
@@ -117,6 +118,31 @@ function InterestLibrary({ selectedIds, busyId, onToggle, onError }) {
   const [level, setLevel] = useState([])
   const picked = { selectedIds, busyId, onToggle, onError }
   const [attempt, retry] = useRetry()
+  const listRef = useRef(null)
+  // Sista taggen på samma rad som det öppna området: rutan läggs efter den, så att den hamnar under raden.
+  const [rowEnd, setRowEnd] = useState(null)
+  const openIndex = area ? top.findIndex((item) => item.id === area.id) : -1
+
+  useLayoutEffect(() => {
+    if (openIndex < 0) return undefined
+    const list = listRef.current
+    function place() {
+      const tags = [...list.children].filter((li) => !li.classList.contains('library-area-row'))
+      const row = tags[openIndex].offsetTop
+      let end = openIndex
+      while (end + 1 < tags.length && tags[end + 1].offsetTop === row) end++
+      setRowEnd(end)
+    }
+    place()
+    const observer = new ResizeObserver(place)
+    observer.observe(list)
+    return () => observer.disconnect()
+  }, [openIndex])
+
+  // En ruta högre upp stängs när man öppnar ett område längre ner, och då flyttar sig taggen. Håll den i bild.
+  useEffect(() => {
+    if (openIndex >= 0) listRef.current.children[openIndex]?.querySelector('button')?.scrollIntoView({ block: 'nearest' })
+  }, [openIndex])
 
   useEffect(() => {
     setLoadError('')
@@ -143,55 +169,59 @@ function InterestLibrary({ selectedIds, busyId, onToggle, onError }) {
 
   return (
     <div className="interest-library">
-      <ul className="interest-tags">
-        {top.map((item) => {
+      <ul className="interest-tags" ref={listRef}>
+        {top.map((item, index) => {
           const isOpen = area?.id === item.id
           return (
-            <li key={item.id}>
-              {/* Huvudområdena som intressetaggar, i sin egen färg. Pilen pekar nedåt när området är öppet. */}
-              <button
-                type="button"
-                className={`interest-tag explorer-area${isOpen ? ' explorer-area-open' : ''}`}
-                style={areaColors(item.area_slug)}
-                aria-expanded={isOpen}
-                onClick={() => setArea(isOpen ? null : item)}
-              >
-                {item.name}
-                <DrawnArrow className="explorer-arrow" />
-              </button>
-            </li>
+            <Fragment key={item.id}>
+              <li>
+                {/* Huvudområdena som intressetaggar, i sin egen färg. Pilen pekar nedåt när området är öppet. */}
+                <button
+                  type="button"
+                  className={`interest-tag explorer-area${isOpen ? ' explorer-area-open' : ''}`}
+                  style={areaColors(item.area_slug)}
+                  aria-expanded={isOpen}
+                  onClick={() => setArea(isOpen ? null : item)}
+                >
+                  {item.name}
+                  <DrawnArrow className="explorer-arrow" />
+                </button>
+              </li>
+              {area && index === (rowEnd ?? openIndex) && (
+                <li className="library-area-row">
+                  <div className="library-area" style={areaColors(area.area_slug)}>
+                    <h3 className="library-area-title">{area.name}</h3>
+                    <ul className="interest-tags">
+                      <PickTag
+                        interest={area}
+                        areaSlug={area.area_slug}
+                        label={`${area.name} (allmänt)`}
+                        on={selectedIds.has(area.id)}
+                        busy={busyId === area.id}
+                        onToggle={onToggle}
+                      />
+                      {level.map((sub) =>
+                        sub.has_children ? (
+                          <PickGroup key={sub.id} interest={sub} areaSlug={area.area_slug} picked={picked} />
+                        ) : (
+                          <PickTag
+                            key={sub.id}
+                            interest={sub}
+                            areaSlug={area.area_slug}
+                            on={selectedIds.has(sub.id)}
+                            busy={busyId === sub.id}
+                            onToggle={onToggle}
+                          />
+                        ),
+                      )}
+                    </ul>
+                  </div>
+                </li>
+              )}
+            </Fragment>
           )
         })}
       </ul>
-      {area && (
-        <div className="library-area" style={areaColors(area.area_slug)}>
-          <h3 className="library-area-title">{area.name}</h3>
-          <ul className="interest-tags">
-            <PickTag
-              interest={area}
-              areaSlug={area.area_slug}
-              label={`${area.name} (allmänt)`}
-              on={selectedIds.has(area.id)}
-              busy={busyId === area.id}
-              onToggle={onToggle}
-            />
-            {level.map((item) =>
-              item.has_children ? (
-                <PickGroup key={item.id} interest={item} areaSlug={area.area_slug} picked={picked} />
-              ) : (
-                <PickTag
-                  key={item.id}
-                  interest={item}
-                  areaSlug={area.area_slug}
-                  on={selectedIds.has(item.id)}
-                  busy={busyId === item.id}
-                  onToggle={onToggle}
-                />
-              ),
-            )}
-          </ul>
-        </div>
-      )}
     </div>
   )
 }

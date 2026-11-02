@@ -5623,8 +5623,13 @@ label.person-list-item {
 
 /* Intressebiblioteket (InterestLibrary): det öppna området i en ruta i sin
    ljusa färg, med intressena som taggar att trycka på. */
+/* Rutan står på en egen rad i listan med områden, direkt under raden med taggen. */
+.library-area-row {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
 .library-area {
-  margin-top: 0.9rem;
   padding: 0.9rem 0.9rem 1rem;
   background: var(--tag-sub, var(--color-white));
   border: 1.5px solid #3a2f25;
