@@ -13,7 +13,7 @@ import Intressekompis from '../components/Intressekompis'
 import MapCalmPage from './MapCalmPage'
 import MapPagePad, { MAP_PAGES, widgetFor } from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
-import MapPlaceSearch, { YOU_ICON_PATHS } from './MapPlaceSearch'
+import MapPlaceSearch from './MapPlaceSearch'
 import MapProfileWidget from './MapProfileWidget'
 import { useBadgeCounts } from '../hooks/useBadgeCounts'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
@@ -129,6 +129,11 @@ const DISTRICT_ZOOM = 15
 // plats): ända ner till gatorna och husen. Utan nål flygs det till FULL_ZOOM
 // (se mapPrototypeActivities.js), där lappen visas hel.
 const ACTIVITY_PLACE_ZOOM = 16
+// Figuren för var man är: på knappen Hitta mig och på kartan.
+const YOU_ICON_PATHS = [
+  'M6.5 28.5c.4-6.6 3.8-10.3 9.6-10.2 5.6.1 9.2 3.7 9.5 10.1-6.2 1.1-12.8 1.2-19.1.1Z',
+  'M16.3 3.6c3.4-.1 5.9 2.5 5.8 5.8-.1 3.4-2.7 5.8-6 5.7-3.3-.1-5.7-2.6-5.6-5.9.1-3.2 2.6-5.5 5.8-5.6Z',
+]
 // Ikonen för var man är: en liten ritad figur, i samma bläckstil som kartan.
 function youIcon() {
   const icon = document.createElement('div')
@@ -1592,33 +1597,70 @@ function MapPrototype() {
           .map-top-bar i map.css; på mobil sprids de ut som förut). */}
       <div className="map-top-bar">
         <div className="map-top-left">
-          {/* Kartan eller dagens att göra (se `calm`). Den valda är nedtryckt. */}
-          <div className="map-view-toggle map-tool-group" role="group" aria-label="Visa">
-            <button
-              type="button"
-              className={`map-tool${calm ? '' : ' is-on'}`}
-              aria-pressed={!calm}
-              onClick={() => setCalm(false)}
-            >
-              Karta
-            </button>
-            <button
-              type="button"
-              className={`map-tool${calm ? ' is-on' : ''}`}
-              aria-pressed={calm}
-              onClick={() => setCalm(true)}
-            >
-              Att göra
-            </button>
+          {/* Översta raden, som ritade ikoner: kartan eller dagens att göra (se `calm`, den valda är nedtryckt),
+              Min kommun och Hitta mig. De två sista bara på kartan. */}
+          <div className="map-view-row">
+            <div className="map-tool-group" role="group" aria-label="Visa">
+              <button
+                type="button"
+                className={`map-tool map-tool-icon-only touch-target${calm ? '' : ' is-on'}`}
+                aria-label="Karta"
+                title="Karta"
+                aria-pressed={!calm}
+                onClick={() => setCalm(false)}
+              >
+                <svg className="map-tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3.2 6.4 8.8 4l6.3 2.3 5.7-2.5.2 13.6-5.8 2.6-6.3-2.4-5.6 2.4Z" />
+                  <path d="M8.8 4l.1 13.9M15.1 6.3l.1 14" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className={`map-tool map-tool-icon-only touch-target${calm ? ' is-on' : ''}`}
+                aria-label="Att göra"
+                title="Att göra"
+                aria-pressed={calm}
+                onClick={() => setCalm(true)}
+              >
+                <svg className="map-tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 3.3h12.2c.6 0 1 .5 1 1l-.2 15.5c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1l.1-15.5c0-.6.3-1 .9-1Z" />
+                  <path d="m8 8.2 1.3 1.4 2.3-2.8M13.6 8.7h3M8 14.2l1.3 1.4 2.3-2.8M13.6 14.7h3" />
+                </svg>
+              </button>
+            </div>
+            <div className="map-view-tools">
+              {hasHome && (
+                <button
+                  type="button"
+                  className="map-tool map-tool-icon-only touch-target"
+                  aria-label="Min kommun"
+                  title="Min kommun"
+                  onClick={() => startAtHome(mapRef.current, true)}
+                >
+                  <svg className="map-tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3.5 11.6 12 4l8.5 7.7" />
+                    <path d="m6 9.8-.1 9.8c0 .5.3.8.8.8h10.7c.5 0 .8-.3.8-.8l-.1-9.8" />
+                    <path d="M10 20.3V15h4.1v5.3" />
+                  </svg>
+                </button>
+              )}
+              <button
+                type="button"
+                className="map-tool map-tool-icon-only touch-target map-find-me"
+                aria-label={findingMe ? 'Letar efter dig' : 'Hitta mig'}
+                title="Hitta mig"
+                disabled={findingMe}
+                onClick={findMe}
+              >
+                <svg className="map-find-me-icon" viewBox="0 0 32 32" aria-hidden="true">
+                  {YOU_ICON_PATHS.map((d) => (
+                    <path key={d} d={d} />
+                  ))}
+                </svg>
+              </button>
+            </div>
           </div>
-          <MapPlaceSearch
-            activities={activityItems}
-            onPick={goToSearchResult}
-            onHome={hasHome ? () => startAtHome(mapRef.current, true) : undefined}
-            onFindMe={findMe}
-            findingMe={findingMe}
-            findMeMessage={findMeMessage}
-          />
+          <MapPlaceSearch activities={activityItems} onPick={goToSearchResult} findMeMessage={findMeMessage} />
           <div className="map-sketch-tools" role="toolbar" aria-label="Nålar och väg" hidden={!pinsShown}>
             <button
               type="button"

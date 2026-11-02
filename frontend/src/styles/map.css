@@ -68,6 +68,7 @@
 .map-sketch.is-calm .map-sketch-compass,
 .map-sketch.is-calm .map-sketch-tools,
 .map-sketch.is-calm .map-place-search,
+.map-sketch.is-calm .map-view-tools,
 .map-sketch.is-calm .map-sketch-hint,
 .map-sketch.is-calm .map-levels {
   visibility: hidden;
@@ -1061,13 +1062,22 @@
   min-width: 0;
 }
 
-/* Växeln Karta | Att göra högst upp till vänster. Syns i båda lägena: ovanpå
-   att göra-sidan (z-index 3) men under ett öppet block (5). Nålknapparna (bara
-   på kartan) ligger på raden under. */
-.map-view-toggle {
+/* Översta raden till vänster: växeln Karta | Att göra, Min kommun och Hitta mig.
+   Syns i båda lägena: ovanpå att göra-sidan (z-index 3) men under ett öppet
+   block (5). Min kommun och Hitta mig bara på kartan (se .is-calm). Nålknapparna
+   (bara på kartan) ligger på raden under. */
+.map-view-row {
   position: relative;
   z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   pointer-events: auto;
+}
+
+.map-view-tools {
+  display: flex;
+  gap: 0.4rem;
 }
 
 .map-sketch-tools {
@@ -1090,8 +1100,8 @@
   flex-wrap: wrap;
 }
 
-/* Sökrutan "Sök en ort" och Min kommun (MapPlaceSearch, SCRUM-220): under
-   växeln Karta | Att göra, med samma bläckkant och hårda skugga som knapparna.
+/* Sökrutan "Sök en ort" (MapPlaceSearch, SCRUM-220): under växeln
+   Karta | Att göra, med samma bläckkant och hårda skugga som knapparna.
    Förslagen fälls ut under rutan. */
 .map-place-search {
   position: relative;
@@ -1258,9 +1268,25 @@
   stroke-linejoin: round;
 }
 
-/* Hitta mig: text på större skärmar, bara figuren på mobil (se nedan), så att sökrutan får plats. */
+/* Knappar med bara en ritad ikon: växeln Karta | Att göra och Min kommun (SCRUM-330, SCRUM-331). */
+.map-tool-icon-only {
+  padding: 0.2rem 0.45rem;
+}
+
+.map-tool-icon {
+  display: block;
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .map-find-me-icon {
-  display: none;
+  display: block;
   width: 1.15rem;
   height: 1.15rem;
 }
@@ -1936,7 +1962,7 @@
     display: contents;
   }
 
-  .map-view-toggle,
+  .map-view-row,
   .map-sketch-tools,
   .map-place-search,
   .map-sketch-hint,
@@ -1950,13 +1976,13 @@
 
   /* Knapparna från kanten (inte efter marginallinjen), mindre, och utan att
      krocka med zoomknapparna uppe till höger. Tar hänsyn till skärmens hack. */
-  .map-view-toggle {
+  .map-view-row {
     top: calc(0.6rem + env(safe-area-inset-top));
     left: calc(0.6rem + env(safe-area-inset-left));
   }
 
   /* I att göra-läget syns loggan i hörnet, så växeln står bredvid den. */
-  .map-sketch.is-calm .map-view-toggle {
+  .map-sketch.is-calm .map-view-row {
     left: calc(4rem + env(safe-area-inset-left));
   }
 
@@ -2129,14 +2155,6 @@
   .map-tool {
     padding: 0.2rem 0.5rem;
     font-size: 0.72rem;
-  }
-
-  .map-find-me-icon {
-    display: block;
-  }
-
-  .map-find-me-text {
-    display: none;
   }
 
   /* Smalare bordskant, annars tar den halva skärmen. */
