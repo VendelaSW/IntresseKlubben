@@ -9,13 +9,10 @@ import { allKommuner } from './mapPrototypeZoomLevels'
 // - klubbar och events på kartan (`activities`, lapparna, se mapPrototypeActivities),
 // - orter, platser och adresser ("Gustavsberg", "Slottsskogen", "Storgatan 1")
 //   från adressökningen, en kort stund efter att man slutat skriva.
-// "Min kommun" tar en tillbaka till ens egen kommun, samma vy som när kartan öppnas.
 //
 // `onPick(förslag)` flyttar kartan; förslaget har `kind` ('kommun', 'lan',
 // 'landskap', 'klubb', 'event' eller 'place') och det som behövs för att hitta
-// dit. `onHome` saknas när profilen inte har någon kommun.
-// `onFindMe` är knappen Hitta mig (SCRUM-71), `findingMe` medan positionen hämtas
-// och `findMeMessage` beskedet om den inte gick att få.
+// dit. `findMeMessage` är beskedet från Hitta mig (se findMe i MapPrototype), och `onCloseFindMeMessage` stänger det.
 const MAX_REGIONS = 5
 const MAX_ACTIVITIES = 4
 const MAX_PLACES = 4
@@ -23,12 +20,6 @@ const MAX_PLACES = 4
 // har slutat skriva en stund, så att inte varje bokstav blir en sökning.
 const MIN_PLACE_SEARCH = 3
 const PLACE_SEARCH_DELAY_MS = 400
-
-// Figuren för var man är: på knappen Hitta mig och på kartan (se youIcon i MapPrototype).
-export const YOU_ICON_PATHS = [
-  'M6.5 28.5c.4-6.6 3.8-10.3 9.6-10.2 5.6.1 9.2 3.7 9.5 10.1-6.2 1.1-12.8 1.2-19.1.1Z',
-  'M16.3 3.6c3.4-.1 5.9 2.5 5.8 5.8-.1 3.4-2.7 5.8-6 5.7-3.3-.1-5.7-2.6-5.6-5.9.1-3.2 2.6-5.5 5.8-5.6Z',
-]
 
 const normalize = (text) => text.toLocaleLowerCase('sv').replace(/\s+/g, ' ').trim()
 
@@ -55,7 +46,7 @@ function matching(items, wanted, max) {
     .slice(0, max)
 }
 
-function MapPlaceSearch({ activities = [], onPick, onHome, onFindMe, findingMe = false, findMeMessage = '' }) {
+function MapPlaceSearch({ activities = [], onPick, findMeMessage = '', onCloseFindMeMessage }) {
   const listId = useId()
   const [kommuner, setKommuner] = useState([])
   const [query, setQuery] = useState('')
@@ -180,25 +171,6 @@ function MapPlaceSearch({ activities = [], onPick, onHome, onFindMe, findingMe =
           onBlur={() => setOpen(false)}
           onKeyDown={onKeyDown}
         />
-        {onHome && (
-          <button type="button" className="map-tool touch-target" onClick={onHome}>
-            Min kommun
-          </button>
-        )}
-        <button
-          type="button"
-          className="map-tool touch-target map-find-me"
-          aria-label={findingMe ? 'Letar efter dig' : 'Hitta mig'}
-          disabled={findingMe}
-          onClick={onFindMe}
-        >
-          <svg className="map-find-me-icon" viewBox="0 0 32 32" aria-hidden="true">
-            {YOU_ICON_PATHS.map((d) => (
-              <path key={d} d={d} />
-            ))}
-          </svg>
-          <span className="map-find-me-text">{findingMe ? 'Letar...' : 'Hitta mig'}</span>
-        </button>
       </div>
       {showList && (
         <ul id={listId} className="map-place-search-list" role="listbox" aria-label="Förslag">
@@ -234,6 +206,14 @@ function MapPlaceSearch({ activities = [], onPick, onHome, onFindMe, findingMe =
       {findMeMessage && (
         <p className="map-place-search-message" role="status">
           {findMeMessage}
+          <button
+            type="button"
+            className="map-place-search-message-close touch-target"
+            aria-label="Stäng"
+            onClick={onCloseFindMeMessage}
+          >
+            ×
+          </button>
         </p>
       )}
     </div>

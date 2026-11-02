@@ -266,7 +266,7 @@ export function attachAreaSymbols(map, layer, { getView, onOpen }) {
       areas = next
       render()
     },
-    // Platsen kartan flyger till i kommunen [longitud, latitud] (se flyToPlaceIn i MapPrototype.jsx).
+    // Stadsdelen kartan flyger till i ens kommun [longitud, latitud] (se flyToDistrict i MapPrototype.jsx).
     setKommunCenter(kod, lngLat) {
       kommunCenters.set(kod, lngLat)
       render()

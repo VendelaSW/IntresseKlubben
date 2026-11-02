@@ -22,6 +22,7 @@ const MAX_LINES = 3
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 const notOver = (event, now) => new Date(event.ends_at ?? event.starts_at).getTime() >= now
+const startsThisWeek = (event, now) => new Date(event.starts_at).getTime() < now + WEEK_MS
 const byStart = (a, b) => new Date(a.starts_at) - new Date(b.starts_at)
 
 // Ens bokade events: samma som "Mina events" i appen (skapat, eller svarat Ja
@@ -38,6 +39,12 @@ function unansweredInvitations(events, now) {
   return events.filter((e) => !e.is_owner && e.is_invited && e.my_answer === null && notOver(e, now))
 }
 
+// De bokade eventen som är att göra nu: de som pågår eller börjar de närmaste sju dagarna (SCRUM-333). Resten finns
+// under Mina events.
+const bookedThisWeek = (booked, now) => booked.filter((e) => startsThisWeek(e, now))
+// Börjar eventet senast i dag? De bokade eventen har inte tagit slut, så de pågår i så fall i dag.
+const startsByToday = (event, now) => new Date(event.starts_at).getTime() < new Date(now).setHours(24, 0, 0, 0)
+
 // "I närheten den här veckan": öppna events i ens kommun som pågår någon gång de
 // närmaste sju dagarna och som man varken har skapat, blivit inbjuden till eller
 // svarat på. Kommunen räknas ut som på kartan (se activitiesFrom): nålen,
@@ -51,7 +58,7 @@ function nearbyEvents({ events, groups, kommuner, municipalityCode, interestIds,
       !e.is_invited &&
       e.my_answer === null &&
       notOver(e, now) &&
-      new Date(e.starts_at).getTime() < now + WEEK_MS,
+      startsThisWeek(e, now),
   )
   const inMyKommun = new Set(
     activitiesFrom({ groups, events: candidates, kommuner })
@@ -66,7 +73,7 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 
 // Att göra-läget (se MapPrototype.jsx): i stället för kartan en sida i ett
 // anteckningsblock. Överst en hälsning och dagens datum, och på linjerna
-// dagens att göra: de närmaste bokade eventen (och en länk till Mina events),
+// dagens att göra: de närmaste bokade eventen den här veckan (och en länk till Mina events),
 // obesvarade eventinbjudningar, nya brev, klubbinbjudningar och
 // kompisförfrågningar. Under det "I närheten den här veckan", tips på events i
 // ens kommun. Varje rad öppnar rätt block (`onOpen(sida, adress)` eller
@@ -96,9 +103,12 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
       const me = value(profile, null)
       const allEvents = value(events, [])
       const now = Date.now()
+      const booked = bookedEvents(allEvents, now)
       setName(me?.name ?? null)
       setTodo({
-        booked: bookedEvents(allEvents, now),
+        booked: bookedThisWeek(booked, now),
+        hasBookedLater: booked.length > 0,
+        hasBookedToday: booked.some((e) => startsByToday(e, now)),
         eventInvitations: unansweredInvitations(allEvents, now).length,
         // Utan kommunerna eller ens kommun går det inte att veta vad som är i närheten.
         nearby:
@@ -124,6 +134,12 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
   }, [])
 
   const firstName = (name ?? user.username).trim().split(/\s+/)[0]
+  // Inget att göra i dag, men bokade events senare i veckan. Annat att göra (brev, inbjudningar...) är att göra i dag.
+  const nothingUntilLater =
+    todo !== null &&
+    todo.booked.length > 0 &&
+    !todo.hasBookedToday &&
+    !(todo.eventInvitations || todo.letters || todo.invitations || todo.requests || todo.notifications)
 
   return (
     <div className="map-calm">
@@ -137,6 +153,7 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
           <p className="map-calm-muted">Bläddrar i blocket...</p>
         ) : (
           <>
+            {nothingUntilLater && <p className="map-calm-muted">Ingenting att göra idag, men...</p>}
             <ul className="map-calm-todo">
               {todo.booked.length > 0 ? (
                 <>
@@ -149,6 +166,10 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
                     Alla mina events →
                   </TodoLine>
                 </>
+              ) : todo.hasBookedLater ? (
+                <TodoLine onClick={() => onOpen('events', '/events?flik=mina-events')} done={false}>
+                  Inga bokade events den här veckan. Alla mina events →
+                </TodoLine>
               ) : (
                 <TodoLine onClick={() => onOpen('events')} done={false}>
                   Inga bokade events. Kika på Events?

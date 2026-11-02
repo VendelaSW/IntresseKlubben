@@ -6,9 +6,9 @@ from app.models import Municipality, User
 from tests.event_helpers import add_contact
 from tests.helpers import make_profile
 
-# Göteborg (1480) ligger i Västergötland (7) och Västra Götalands län (14), Kungsbacka (1384) i Halland (4) och Hallands
-# län (13). Se data/regions.json.
-GOTEBORG, KUNGSBACKA = "1480", "1384"
+# Göteborg (1480) och Borås (1490) ligger i Västergötland (7) och Västra Götalands län (14), Kungsbacka (1384) i Halland
+# (4) och Hallands län (13). Se data/regions.json.
+GOTEBORG, BORAS, KUNGSBACKA = "1480", "1490", "1384"
 
 
 def _people(db, municipality_code, count, first_id):
@@ -54,16 +54,51 @@ def test_a_kommun_where_nobody_lives_is_left_out(client, db, user):
     assert "1481" not in client.get("/users/area-counts").json()["kommun"]
 
 
-def test_blocked_and_suspended_people_are_not_counted(client, db, user):
+def test_a_block_does_not_change_the_counts(client, db, user):
+    # SCRUM-303: annars skulle antalet sjunka med en direkt efter en blockering och avslöja var personen bor.
     goteborg, _ = _setup(db, user)
+    before = client.get("/users/area-counts").json()
     add_contact(db, user.id, goteborg[0], status="BLOCKED")  # jag har blockerat en
     add_contact(db, goteborg[1], user.id, status="BLOCKED")  # en har blockerat mig
-    suspend_user(db, goteborg[2], 7, "spam", moderator_id=goteborg[3])
+
+    assert client.get("/users/area-counts").json() == before
+
+
+def test_suspended_people_are_not_counted(client, db, user):
+    goteborg, _ = _setup(db, user)
+    suspend_user(db, goteborg[0], 7, "spam", moderator_id=goteborg[1])
+    suspend_user(db, goteborg[2], 7, "spam", moderator_id=goteborg[1])
+
+    # Sex i Göteborg, minus två: färre än 5.
+    assert client.get("/users/area-counts").json()["kommun"][GOTEBORG] is None
+
+
+def test_landskap_and_lan_only_count_kommuner_with_at_least_five(client, db, user):
+    # SCRUM-303: annars skulle länet minus Göteborg ge just de två i Borås.
+    _setup(db, user)
+    db.add(Municipality(code=BORAS, name="Borås"))
+    db.commit()
+    _people(db, BORAS, 2, 30)
 
     counts = client.get("/users/area-counts").json()
 
-    # Sex i Göteborg, minus tre: färre än 5.
-    assert counts["kommun"][GOTEBORG] is None
+    assert counts["kommun"] == {GOTEBORG: 6, BORAS: None, KUNGSBACKA: None}
+    assert counts["landskap"]["7"] == 6
+    assert counts["lan"]["7:14"] == 6
+
+
+def test_kommuner_that_are_all_small_never_add_up_to_a_number(client, db, user):
+    # Två små kommuner med sju tillsammans: länet säger "färre än 5" i stället för att avslöja summan.
+    db.add_all([Municipality(code=BORAS, name="Borås"), Municipality(code=GOTEBORG, name="Göteborg")])
+    db.add(make_profile(user.id, name="Jag", municipality_code=GOTEBORG))
+    db.commit()
+    _people(db, BORAS, 4, 10)
+    _people(db, GOTEBORG, 3, 20)
+
+    counts = client.get("/users/area-counts").json()
+
+    assert counts["landskap"] == {"7": None}
+    assert counts["lan"] == {"7:14": None}
 
 
 def test_people_without_a_profile_are_not_counted(client, db, user):
