@@ -17,10 +17,14 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.core.age import MAX_AGE, MIN_AGE
+
 # ---------- Validering av profilfält (schemas/profile.py) ----------
 NAME_EMPTY = "Namn får inte vara tomt"
 NAME_TOO_LONG = "Namn får max vara 50 tecken"
 BIRTH_DATE_IN_FUTURE = "Födelsedatum kan inte vara i framtiden"
+AGE_TOO_YOUNG = f"Du måste ha fyllt {MIN_AGE} år för att vara med i Intresseklubben"
+AGE_TOO_OLD = f"Åldern kan vara högst {MAX_AGE} år. Kolla att året stämmer"
 MUNICIPALITY_REQUIRED = "Välj en kommun"
 DISTRICT_EMPTY = "Stadsdel får inte vara tom"
 DISTRICT_TOO_LONG = "Stadsdel får max vara 100 tecken"

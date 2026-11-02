@@ -645,7 +645,12 @@ function GroupsPanel() {
                 />
               )}
               {tab === 'all' && hasMore && (
-                <button type="button" className="secondary-button" disabled={loadingMore} onClick={handleShowMore}>
+                <button
+                  type="button"
+                  className="secondary-button show-more-button"
+                  disabled={loadingMore}
+                  onClick={handleShowMore}
+                >
                   {loadingMore ? 'Hämtar...' : 'Visa fler'}
                 </button>
               )}

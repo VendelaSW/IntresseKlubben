@@ -7,6 +7,7 @@ import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import notiserIcon from '../assets/notiser.svg'
 import personerIcon from '../assets/personer.png'
+import AgeRangeSlider from '../components/AgeRangeSlider'
 import Avatar from '../components/Avatar'
 import Intressekompis from '../components/Intressekompis'
 import LocationPicker from '../components/LocationPicker'
@@ -140,6 +141,7 @@ function StyleGuide() {
   const [filterMunicipality, setFilterMunicipality] = useState('')
   const [filterInterest, setFilterInterest] = useState(null)
   const [filterDay, setFilterDay] = useState('')
+  const [filterAges, setFilterAges] = useState({ min: null, max: null })
   const [exampleDay, setExampleDay] = useState('')
   const [compactStart, setCompactStart] = useState('')
   const [compactEnd, setCompactEnd] = useState('')
@@ -626,6 +628,17 @@ function StyleGuide() {
           skriver och får träffar i hela biblioteket, även på andra namn, med var intresset hör hemma under namnet
           (.interest-picker-path). Det valda tas bort med krysset (.field-clear) eller genom att tömma fältet.
         </p>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Åldersreglage (AgeRangeSlider, .age-range)
+        </p>
+        <p className="hint-text">
+          Två handtag mellan 13 och 100 år (utils/age.js), med åldern till vänster (.age-range-value) och spannet i gult
+          (.age-range-fill). Handtagen i ändarna betyder ingen gräns. Värdet skickas först när man släpper handtaget.
+        </p>
+        <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
+          <AgeRangeSlider value={filterAges} onChange={setFilterAges} />
+        </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Datumfält för events (DateField, .date-field)

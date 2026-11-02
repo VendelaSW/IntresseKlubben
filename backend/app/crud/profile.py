@@ -1,8 +1,10 @@
+from collections.abc import Collection
 from datetime import date
 
 from sqlalchemy import and_, case, distinct, func
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.age import age_on
 from app.crud.interest import set_user_interests
 from app.models.interest import Interest, InterestStatus
 from app.models.profile import GenderEnum, Profile
@@ -24,9 +26,7 @@ class UnknownInterestError(Exception):
 
 
 def calculate_age(birth_date: date) -> int:
-    today = date.today()
-    had_birthday_this_year = (today.month, today.day) >= (birth_date.month, birth_date.day)
-    return today.year - birth_date.year - (0 if had_birthday_this_year else 1)
+    return age_on(birth_date, date.today())
 
 
 def _latest_birth_date_for_age(age: int) -> date:
@@ -115,9 +115,9 @@ def _people_query(
     db: Session,
     exclude_user_id: int,
     interest_ids: set[int] | None = None,
-    municipality_code: str | None = None,
+    municipality_codes: Collection[str] | None = None,
     exclude_user_ids: set[int] | None = None,
-    gender: GenderEnum | None = None,
+    genders: Collection[GenderEnum] | None = None,
     min_age: int | None = None,
     max_age: int | None = None,
 ):
@@ -133,22 +133,23 @@ def _people_query(
         query = query.filter(Profile.user_id.notin_(exclude_user_ids))
     if interest_ids:
         query = query.filter(User.interests.any(Interest.id.in_(interest_ids)))
-    return filter_by_profile(query, municipality_code, gender, min_age, max_age)
+    return filter_by_profile(query, municipality_codes, genders, min_age, max_age)
 
 
 def filter_by_profile(
     query,
-    municipality_code: str | None = None,
-    gender: GenderEnum | None = None,
+    municipality_codes: Collection[str] | None = None,
+    genders: Collection[GenderEnum] | None = None,
     min_age: int | None = None,
     max_age: int | None = None,
 ):
     """Filtret på kommun, kön och ålder för en fråga över Profile. Det delas av listan (list_people) och förslagen (GET /matches),
-    så att de aldrig kan skilja sig, och det är det som hindrar filtret från att avslöja något man har valt att dölja."""
-    if municipality_code is not None:
-        query = query.filter(Profile.municipality_code == municipality_code)
-    if gender is not None:
-        query = query.filter(Profile.gender == gender, Profile.gender_searchable.is_(True))
+    så att de aldrig kan skilja sig, och det är det som hindrar filtret från att avslöja något man har valt att dölja.
+    Flera kommuner eller kön räcker med ett av dem (kvinna eller man), och tomt betyder inget filter."""
+    if municipality_codes:
+        query = query.filter(Profile.municipality_code.in_(municipality_codes))
+    if genders:
+        query = query.filter(Profile.gender.in_(genders), Profile.gender_searchable.is_(True))
     if min_age is not None or max_age is not None:
         # Den som har dolt sin ålder kommer inte med när man filtrerar på ålder, så att filtret inte avslöjar
         # åldern (SCRUM-134), på samma sätt som kön och gender_searchable.
@@ -163,14 +164,13 @@ def filter_by_profile(
 def list_people(
     db: Session,
     exclude_user_id: int,
-    interest_id: int | None = None,
-    municipality_code: str | None = None,
-    exclude_user_ids: set[int] | None = None,
-    gender: GenderEnum | None = None,
-    min_age: int | None = None,
-    max_age: int | None = None,
     *,
     interest_ids: set[int] | None = None,
+    municipality_codes: Collection[str] | None = None,
+    exclude_user_ids: set[int] | None = None,
+    genders: Collection[GenderEnum] | None = None,
+    min_age: int | None = None,
+    max_age: int | None = None,
     limit: int | None = None,
     offset: int = 0,
 ) -> list[Profile]:
@@ -178,15 +178,14 @@ def list_people(
     kommun, kön och ålder (min_age och max_age räknas med, som calculate_age).
     exclude_user_ids är en extra uteslutningslista utöver dig själv -
     används för tidigare borttagna förslag (se crud/dismissed_suggestion.py).
-    interest_ids tar personer som har något av flera intressen (ett intresse och dess underintressen,
-    se crud/interest_people.py), och limit och offset sidindelar listan.
+    interest_ids, municipality_codes och genders tar personer som har något av dem (t.ex. ett intresse och dess
+    underintressen, se crud/interest_people.py), och limit och offset sidindelar listan.
 
     Filtret på kön tar bara med dem som valt gender_searchable, eftersom
     träffarna annars avslöjar könet hos alla andra."""
-    ids = set(interest_ids or ())
-    if interest_id is not None:
-        ids.add(interest_id)
-    query = _people_query(db, exclude_user_id, ids or None, municipality_code, exclude_user_ids, gender, min_age, max_age).options(
+    query = _people_query(
+        db, exclude_user_id, interest_ids or None, municipality_codes, exclude_user_ids, genders, min_age, max_age
+    ).options(
         selectinload(Profile.municipality),
         selectinload(Profile.user).selectinload(User.interest_links).selectinload(UserInterest.interest),
         selectinload(Profile.user).selectinload(User.profile),  # annars hämtas profilen en gång till per person (to_person_response)

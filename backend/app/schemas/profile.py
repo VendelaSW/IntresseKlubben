@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, field_validator
 
 from app.core import error_messages as msg
+from app.core.age import MAX_AGE, MIN_AGE, age_on
 from app.models.profile import GenderEnum
 from app.schemas.interest import ProfileInterest
 
@@ -18,8 +19,15 @@ def _clean_name(v: str) -> str:
 
 
 def _check_birth_date(v: date) -> date:
-    if v > date.today():
+    # Åldersgränsen 13–100 år (SCRUM-312, se app/core/age.py).
+    today = date.today()
+    if v > today:
         raise ValueError(msg.BIRTH_DATE_IN_FUTURE)
+    age = age_on(v, today)
+    if age < MIN_AGE:
+        raise ValueError(msg.AGE_TOO_YOUNG)
+    if age > MAX_AGE:
+        raise ValueError(msg.AGE_TOO_OLD)
     return v
 
 
