@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import Avatar from '../components/Avatar'
 import ConversationCard from '../components/ConversationCard'
 import EmptyState from '../components/EmptyState'
 import { contactsQuery } from '../services/contacts'
 import { conversationsQuery } from '../services/messages'
 import { shortNames } from '../utils/shortNames'
+import LetterFriends from '../components/LetterFriends'
 import LoadError from '../components/LoadError'
 
 // Alla konversationer som kuvert på en sida: de man inte har öppnat först och
@@ -32,7 +31,6 @@ function InboxPage() {
   const names = shortNames(conversations)
   const withLetters = new Set(conversations.map((c) => c.id))
   const friends = status === 'ready' ? (contactsData?.contacts ?? []).map((c) => c.user).filter((f) => !withLetters.has(f.id)) : []
-  const friendNames = shortNames(friends)
 
   // Sidan är ett <section className="app-section"> rakt av, som Personer,
   // Klubbar och Events, och ligger inte i content-stack (den är byggd för smala
@@ -41,24 +39,7 @@ function InboxPage() {
     <section className="app-section">
       <h1 className="app-title">Brev</h1>
 
-      {friends.length > 0 && (
-        <div className="letter-friends">
-          <h2 className="hint-text">Skriv ett första brev till</h2>
-          <ul>
-            {friends.map((friend) => {
-              const name = friend.name ?? friend.username
-              return (
-                <li key={friend.id}>
-                  <Link to={`/meddelanden/${friend.id}`} className="letter-friend" aria-label={`Skriv till ${name}`} title={name}>
-                    <Avatar name={name} imageUrl={friend.image_url} className="person-list-avatar letter-friend-avatar" />
-                    <span className="letter-friend-name">{friendNames.get(friend.id)}</span>
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
+      {friends.length > 0 && <LetterFriends friends={friends} />}
 
       {status === 'loading' ? (
         <p className="hint-text">Laddar brev...</p>

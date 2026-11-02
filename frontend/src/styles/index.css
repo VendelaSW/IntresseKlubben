@@ -2656,7 +2656,8 @@ span.tag-selected:hover {
   background-position: 0 0, 0 0, 0 var(--line-offset);
 }
 
-/* Kompisar man inte har skrivit till än, överst i Brev: runda bilder på en rad som går att scrolla i sidled. */
+/* Kompisar man inte har skrivit till än, överst i Brev (LetterFriends): runda bilder på en rad som går att scrolla
+   i sidled. Ingen rullningslist: raden tonar ut mot den sida där det finns fler. */
 .letter-friends {
   width: 100%;
   min-width: 0;
@@ -2666,6 +2667,20 @@ span.tag-selected:hover {
   margin: 0;
 }
 
+.letter-friends-row {
+  --fade-left: 0px;
+  --fade-right: 0px;
+  position: relative;
+}
+
+.letter-friends-row.has-more-left {
+  --fade-left: 3rem;
+}
+
+.letter-friends-row.has-more-right {
+  --fade-right: 3rem;
+}
+
 .letter-friends ul {
   display: flex;
   gap: 0.75rem;
@@ -2673,11 +2688,70 @@ span.tag-selected:hover {
   padding: 0.5rem 0.25rem;
   list-style: none;
   overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 0.25rem;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, transparent, #000 var(--fade-left), #000 calc(100% - var(--fade-right)), transparent);
+}
+
+.letter-friends ul::-webkit-scrollbar {
+  display: none;
 }
 
 .letter-friends li {
   flex: none;
   width: 4.5rem;
+  scroll-snap-align: start;
+}
+
+/* Pilarna, i höjd med bilderna. Bara på dator: på en pekskärm sveper man. */
+.letter-friends-arrow {
+  display: none;
+  position: absolute;
+  top: 1.1rem;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1.5px solid var(--color-text);
+  border-radius: 50%;
+  background: var(--color-white);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.letter-friends-arrow.is-left {
+  left: 0;
+}
+
+.letter-friends-arrow.is-right {
+  right: 0;
+}
+
+.letter-friends-arrow svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+/* Den skissade pilen pekar nedåt: vrid den åt rätt håll. */
+.letter-friends-arrow.is-left svg {
+  transform: rotate(90deg);
+}
+
+.letter-friends-arrow.is-right svg {
+  transform: rotate(-90deg);
+}
+
+.letter-friends-arrow:hover,
+.letter-friends-arrow:focus-visible {
+  background: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .letter-friends-arrow {
+    display: flex;
+  }
 }
 
 .letter-friend {
