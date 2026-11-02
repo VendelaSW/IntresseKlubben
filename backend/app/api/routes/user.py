@@ -61,8 +61,8 @@ crud.user.delete_user). Kräver lösenordet i AccountDelete. Fel lösenord ger
 bara ge ett felmeddelande.
 
 GET /users/ - andra användare med sparad profil, valfritt filtrerade på
-?interest_id=, ?municipality_code=, ?gender= och ?min_age=/?max_age= (0-120,
-400 om min_age är större än max_age). ?gender= ger bara dem som själva valt att
+?interest_id=, ?municipality_code=, ?gender= och ?min_age=/?max_age= (13–100,
+se app/core/age.py; 400 om min_age är större än max_age). ?gender= ger bara dem som själva valt att
 gå att hitta på kön (gender_searchable), så att filtret inte avslöjar könet
 hos alla andra. Listan kommer med de som har flest intressen gemensamt med dig först, därefter i
 namnordning (filtren väljer bara vilka som är med). Utesluter dig själv, dina
@@ -110,6 +110,7 @@ from app.auth.security import (
 )
 from app.core import error_messages as msg
 from app.core import storage
+from app.core.age import MAX_AGE, MIN_AGE
 from app.core.config import settings
 from app.crud.email_token import TooManyEmails
 from app.crud.contact import blocked_user_ids, is_blocked, mutual_contact_names
@@ -362,8 +363,8 @@ def read_people(
     interest_id: int | None = None,
     municipality_code: str | None = None,
     gender: GenderEnum | None = None,
-    min_age: int | None = Query(None, ge=0, le=120),
-    max_age: int | None = Query(None, ge=0, le=120),
+    min_age: int | None = Query(None, ge=MIN_AGE, le=MAX_AGE),
+    max_age: int | None = Query(None, ge=MIN_AGE, le=MAX_AGE),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[PersonResponse]:

@@ -253,6 +253,9 @@ def test_a_minimum_age_above_the_maximum_is_refused(client, db, user, climbing):
 
     assert response.status_code == 400
     assert client.get("/matches", params={"min_age": 130}).status_code == 422
+    # Åldersgränsen 13–100 år (SCRUM-312).
+    assert client.get("/matches", params={"min_age": 12}).status_code == 422
+    assert client.get("/matches", params={"max_age": 101}).status_code == 422
 
 
 def test_a_persons_score_is_the_same_with_and_without_a_filter(client, db, user, climbing, music):

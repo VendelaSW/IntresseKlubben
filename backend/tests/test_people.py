@@ -242,8 +242,9 @@ def test_min_age_above_max_age_gives_400(client, db, user):
 @pytest.mark.parametrize(
     ("params", "message"),
     [
-        ({"min_age": -1}, "Får inte vara lägre än 0"),
-        ({"max_age": 121}, "Får inte vara högre än 120"),
+        # Åldersgränsen 13–100 år (SCRUM-312).
+        ({"min_age": 12}, "Får inte vara lägre än 13"),
+        ({"max_age": 101}, "Får inte vara högre än 100"),
         ({"min_age": "tjugo"}, "Fältet måste vara ett heltal"),
     ],
 )

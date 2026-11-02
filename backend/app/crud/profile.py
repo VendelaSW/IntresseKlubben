@@ -3,6 +3,7 @@ from datetime import date
 from sqlalchemy import and_, case, distinct, func
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.age import age_on
 from app.crud.interest import set_user_interests
 from app.models.interest import Interest, InterestStatus
 from app.models.profile import GenderEnum, Profile
@@ -24,9 +25,7 @@ class UnknownInterestError(Exception):
 
 
 def calculate_age(birth_date: date) -> int:
-    today = date.today()
-    had_birthday_this_year = (today.month, today.day) >= (birth_date.month, birth_date.day)
-    return today.year - birth_date.year - (0 if had_birthday_this_year else 1)
+    return age_on(birth_date, date.today())
 
 
 def _latest_birth_date_for_age(age: int) -> date:

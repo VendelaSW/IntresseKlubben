@@ -31,6 +31,7 @@ import {
 } from '../services/people'
 import { useConfirm } from '../hooks/useConfirm'
 import LoadError from '../components/LoadError'
+import { MAX_AGE, MIN_AGE } from '../utils/age'
 
 const TABS = [
   { id: 'match', label: 'Matcha' },
@@ -47,7 +48,7 @@ const GENDER_FILTER_OPTIONS = GENDER_OPTIONS.filter((o) => o.value !== 'vill int
 function parseAge(value) {
   if (value === '') return null
   const age = Number(value)
-  return Number.isInteger(age) && age >= 0 && age <= 120 ? age : NaN
+  return Number.isInteger(age) && age >= MIN_AGE && age <= MAX_AGE ? age : NaN
 }
 
 // Så länge "Ångra" syns efter att man tagit bort ett förslag.
@@ -160,7 +161,7 @@ function PeoplePage() {
   const maxAge = parseAge(filters.maxAge)
   const ageError =
     Number.isNaN(minAge) || Number.isNaN(maxAge)
-      ? 'Ange en ålder mellan 0 och 120.'
+      ? `Ange en ålder mellan ${MIN_AGE} och ${MAX_AGE}.`
       : minAge !== null && maxAge !== null && minAge > maxAge
         ? 'Från-åldern kan inte vara högre än till-åldern.'
         : ''
@@ -371,8 +372,8 @@ function PeoplePage() {
           <input
             type="number"
             inputMode="numeric"
-            min={0}
-            max={120}
+            min={MIN_AGE}
+            max={MAX_AGE}
             placeholder="från"
             aria-label="Från ålder"
             value={filters.minAge}
@@ -381,8 +382,8 @@ function PeoplePage() {
           <input
             type="number"
             inputMode="numeric"
-            min={0}
-            max={120}
+            min={MIN_AGE}
+            max={MAX_AGE}
             placeholder="till"
             aria-label="Till ålder"
             value={filters.maxAge}
