@@ -117,6 +117,9 @@ function PeoplePage() {
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [filters, setFilters] = useState(NO_FILTERS)
   useResetOnTabChange(tab, () => setFilters(NO_FILTERS))
+  // Intresset som Kompisar är filtrerad på (SCRUM-88), som ett id i text. Tomt = alla.
+  const [friendInterest, setFriendInterest] = useState('')
+  useResetOnTabChange(tab, () => setFriendInterest(''))
   const [myInterests, setMyInterests] = useState([])
   const [municipalities, setMunicipalities] = useState([])
   const [busy, setBusy] = useState(false)
@@ -253,6 +256,14 @@ function PeoplePage() {
       />
     )
   }
+
+  // Intressena som kompisarna har, för filtret under Kompisar. Bara kompisarna filtreras, och i webbläsaren: hela listan finns redan här.
+  const friendInterests = [
+    ...new Map(contactsData.contacts.flatMap((c) => c.user.interests ?? []).map((i) => [i.id, i])).values(),
+  ].sort((a, b) => a.name.localeCompare(b.name, 'sv'))
+  const shownContacts = contactsData.contacts.filter(
+    (c) => !friendInterest || (c.user.interests ?? []).some((i) => String(i.id) === friendInterest),
+  )
 
   const lists = {
     suggested,
@@ -546,9 +557,25 @@ function PeoplePage() {
           )}
         </>
       ) : (
+        <>
+        {tab === 'contacts' && friendInterests.length > 1 && (
+          <select
+            className="club-filter friend-interest-filter"
+            aria-label="Visa kompisar med intresset"
+            value={friendInterest}
+            onChange={(event) => setFriendInterest(event.target.value)}
+          >
+            <option value="">Alla intressen</option>
+            {friendInterests.map((interest) => (
+              <option key={interest.id} value={interest.id}>
+                {interest.name}
+              </option>
+            ))}
+          </select>
+        )}
         <div className="card-grid card-grid-compact">
           {tab === 'contacts' &&
-            contactsData.contacts.map((contact) => (
+            shownContacts.map((contact) => (
               <PersonCard
                 key={contact.id}
                 person={contact.user}
@@ -564,6 +591,7 @@ function PeoplePage() {
               />
             ))}
         </div>
+        </>
       )}
 
       {/* Ligger kvar längst ner i blocket när man scrollar (position: sticky), så
