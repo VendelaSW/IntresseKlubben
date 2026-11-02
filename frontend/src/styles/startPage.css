@@ -1,0 +1,1146 @@
+/* TILLFÄLLIGT: den nya startsidan (pages/StartPage.jsx, på /ny-start), huvudrubriken som skrivs för hand
+   (components/HandwrittenHeadline.jsx) och inloggningen och registreringen i samma stil (pages/AuthPage.jsx, längst
+   ned). Bara appens färger och typsnitt; kartbilden har kartans egna färger. */
+
+/* ---------- Huvudrubriken ---------- */
+
+.hw-headline {
+  position: relative;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hw-headline-line {
+  display: block;
+}
+
+.hw-word {
+  white-space: nowrap;
+}
+
+.hw-letter {
+  display: inline-block;
+}
+
+/* Tecknet skrivs från vänster till höger, ett i taget. När det är klart går klippet en bit utanför tecknets ruta,
+   eftersom Caveat lutar och svansarna sticker ut (se stilguiden). Innan dess syns inget av det. */
+.hw-headline.is-waiting .hw-letter,
+.hw-headline.is-writing .hw-letter {
+  clip-path: inset(-0.4em 100% -0.4em 0);
+}
+
+.hw-headline.is-writing .hw-letter {
+  animation: hw-write var(--hw-dur) var(--hw-delay) ease-in-out forwards;
+}
+
+@keyframes hw-write {
+  to {
+    clip-path: inset(-0.4em -0.4em -0.4em -0.4em);
+  }
+}
+
+/* Pennan. Spetsen sitter längst ned till vänster (8 och 60 av 64 i ritningen); JavaScript flyttar spetsen till
+   tecknet som skrivs (se HandwrittenHeadline). */
+.hw-pen {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  width: 0.65em;
+  height: 0.65em;
+  translate: -12.5% -93.75%;
+  overflow: visible;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Den gula linjen under rubriken. Pennan drar den (JavaScript sätter stroke-dashoffset); innan dess syns den inte. */
+.hw-underline {
+  display: block;
+  width: min(26rem, 70vw);
+  height: 1.2rem;
+  margin: 0.4rem auto 0;
+}
+
+.hw-underline path {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.hw-headline.is-done .hw-underline path {
+  stroke-dashoffset: 0;
+}
+
+/* Pennan rör sig lite som när man skriver: små vickningar kring mitten av skaftet, där man håller den, och spetsen
+   upp och ned i små slingor. Mitten ligger i (25, 35) i ritningen, och förflyttningarna är i ritningens enheter. */
+.hw-pen-wiggle {
+  transform-box: view-box;
+  transform-origin: 25px 35px;
+  animation: hw-pen-write 0.45s ease-in-out infinite;
+}
+
+/* Pennan kommer: den glider ned längs sitt eget skaft från övre högra hörnet, lite större (närmare en) och tonas fram,
+   tills spetsen nuddar pappret och trycks ned ett litet tag, som när man sätter ned pennan för att börja skriva. Ingen
+   studs och ingen vridning, så att det inte ser ut som korten som faller. Förflyttningen är i ritningens enheter och
+   följer skaftet (35 grader). Tiden är PEN_IN_MS i HandwrittenHeadline. */
+.hw-pen-arrive {
+  transform-box: view-box;
+  transform-origin: 8px 60px;
+  animation: hw-pen-arrive 650ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes hw-pen-arrive {
+  0% {
+    opacity: 0;
+    transform: translate(17px, -24px) scale(1.2);
+  }
+
+  45% {
+    opacity: 1;
+  }
+
+  80% {
+    transform: translate(0, 1.5px) scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Pennan går: när rubriken är klar lyfts den upp samma väg som den kom och tonas bort, samtidigt som polaroiderna
+   faller ned. Tiden är PEN_OUT_MS i HandwrittenHeadline. */
+.hw-pen.is-leaving .hw-pen-arrive {
+  animation: hw-pen-leave 600ms cubic-bezier(0.5, 0, 0.8, 0.4) both;
+}
+
+.hw-pen.is-leaving .hw-pen-wiggle {
+  animation-play-state: paused;
+}
+
+@keyframes hw-pen-leave {
+  0% {
+    opacity: 1;
+    transform: none;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(17px, -24px) scale(1.2);
+  }
+}
+
+/* Vid radbytet och innan linjen vilar pennan: den stannar i den vinkel den har och fortsätter därifrån sedan. */
+.hw-pen.is-resting .hw-pen-wiggle {
+  animation-play-state: paused;
+}
+
+@keyframes hw-pen-write {
+  0%,
+  100% {
+    transform: rotate(-4deg) translate(0, 0);
+  }
+
+  25% {
+    transform: rotate(3deg) translate(1px, -4px);
+  }
+
+  50% {
+    transform: rotate(-2deg) translate(2px, 1px);
+  }
+
+  75% {
+    transform: rotate(5deg) translate(0, -3px);
+  }
+}
+
+/* ---------- Sidan ---------- */
+
+.start-page {
+  color: var(--color-text);
+}
+
+.start-page a.primary-button,
+.start-page a.secondary-button,
+.start-page a.quiet-link {
+  text-decoration: none;
+}
+
+/* Knapparna är minst 48 px höga (se CONTRIBUTING, "Mobil"). */
+.start-page .primary-button,
+.start-page .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+}
+
+/* Knapparna på startsidan ritade med märkpenna, som linjen under rubriken: mjukt rundade ändar och kanter som böljar
+   lite, i stället för en rak ruta. Formen är en bild bakom texten (::before), utsträckt till knappens storlek.
+   "Registrera dig" är ifylld med gult och ligger rakt; "Logga in" har den blågrå färgen som kanten på de vanliga
+   sekundära knapparna (--color-line) och lutar lite. När man håller muspekaren över en av dem blir den en ljusare
+   nyans av sin egen färg, rätas upp och växer lite. Samma knapp används för att skicka formulären på /logga-in och
+   /registrera (.auth-page). */
+.start-page .start-marker,
+.auth-page .auth-form button[type='submit'] {
+  position: relative;
+  z-index: 0;
+  padding: 0.85rem 1.4rem;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-weight: 700;
+}
+
+.start-page .start-marker::before,
+.auth-page .auth-form button[type='submit']::before {
+  content: "";
+  position: absolute;
+  inset: -3px -4px;
+  z-index: -1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M10 10 C40 9 70 12 100 10 C130 8 160 11 190 10 C196 10 199 18 198 30 C199 42 196 50 190 50 C160 51 130 48 100 50 C70 52 40 49 10 50 C4 50 1 42 2 30 C1 18 4 10 10 10 Z' fill='%23f4c430'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  transition:
+    rotate 0.15s ease,
+    scale 0.15s ease,
+    filter 0.15s ease;
+}
+
+.start-page .secondary-button.start-marker::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M10 10 C40 9 70 12 100 10 C130 8 160 11 190 10 C196 10 199 18 198 30 C199 42 196 50 190 50 C160 51 130 48 100 50 C70 52 40 49 10 50 C4 50 1 42 2 30 C1 18 4 10 10 10 Z' fill='%23bfd7ed'/%3E%3C/svg%3E");
+  rotate: 0.5deg;
+}
+
+.start-page .start-marker:hover,
+.auth-page .auth-form button[type='submit']:hover,
+.start-page .start-marker:focus-visible,
+.auth-page .auth-form button[type='submit']:focus-visible {
+  opacity: 1;
+  background: none;
+}
+
+.start-page .start-marker:hover::before,
+.auth-page .auth-form button[type='submit']:hover::before,
+.start-page .start-marker:focus-visible::before,
+.auth-page .auth-form button[type='submit']:focus-visible::before {
+  rotate: 0deg;
+  scale: 1.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M10 10 C40 9 70 12 100 10 C130 8 160 11 190 10 C196 10 199 18 198 30 C199 42 196 50 190 50 C160 51 130 48 100 50 C70 52 40 49 10 50 C4 50 1 42 2 30 C1 18 4 10 10 10 Z' fill='%23f8d55f'/%3E%3C/svg%3E");
+}
+
+.start-page .secondary-button.start-marker:hover::before,
+.start-page .secondary-button.start-marker:focus-visible::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M10 10 C40 9 70 12 100 10 C130 8 160 11 190 10 C196 10 199 18 198 30 C199 42 196 50 190 50 C160 51 130 48 100 50 C70 52 40 49 10 50 C4 50 1 42 2 30 C1 18 4 10 10 10 Z' fill='%23d6e6f4'/%3E%3C/svg%3E");
+}
+
+/* Trycks lite inåt när man klickar. */
+.start-page .start-marker:active::before,
+.auth-page .auth-form button[type='submit']:active::before {
+  scale: 0.98;
+  filter: brightness(0.9);
+}
+
+.start-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  /* Fyller hela fönstret, med innehållet i mitten, så att nästa del inte syns förrän man scrollar. Pilen ligger
+     längst ned. */
+  justify-content: center;
+  min-height: 100svh;
+  padding: 2rem 1.5rem 6rem;
+  text-align: center;
+}
+
+/* En sida i anteckningsblocket: svaga linjer över hela delen och, på en bred skärm, den röda marginallinjen som på
+   brevpappret (.lined-paper). På toppen, kartan och sista uppmaningen; "Så funkar det" och intressena ligger på
+   det mörkare pappret emellan. */
+.start-lined {
+  --line-gap: 2.2rem;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--line-gap) - 1px),
+    rgba(191, 215, 237, 0.75) calc(var(--line-gap) - 1px) var(--line-gap)
+  );
+}
+
+/* Brödtexten på de linjerade delarna: linjerna suddas ut bakom texten, så att den är lätt att läsa. Pappersfärgen
+   bakom texten tonas ut mjukt mot kanterna (en suddig skugga i samma färg), så att linjerna försvinner gradvis i
+   stället för att sluta tvärt. Polaroiderna och klottret ligger ändå ovanpå. */
+.start-lined > .problem-statement,
+.start-lined > .start-section-text {
+  background: var(--color-bg);
+  border-radius: 2rem;
+  /* Två lager: ett tätt närmast texten och ett brett och mjukt utanför, så att linjerna tonas bort över en lång
+     sträcka i stället för att sluta tvärt. */
+  box-shadow:
+    0 0 1.5rem 1rem var(--color-bg),
+    0 0 5rem 2rem var(--color-bg);
+}
+
+/* Rubriken ovanför ska ligga ovanpå den breda tonade kanten, inte under den (delarna är flex, och då målas en
+   senare text ovanpå en tidigare; ett element med position målas sist). */
+.start-lined > .start-heading {
+  position: relative;
+}
+
+.start-logo {
+  /* Större på en bred skärm: 96 px på en smal och upp till 150 px på en stor. */
+  width: clamp(96px, 8vw, 150px);
+  height: auto;
+}
+
+.start-headline {
+  margin: 0;
+  font-size: clamp(3.2rem, 13vw, 6.5rem);
+}
+
+/* Polaroiderna: i en rad under rubriken, och på en bred skärm utspridda runt texten. De kommer när rubriken är klar. */
+.start-polaroids {
+  display: flex;
+  justify-content: center;
+  /* Luft mellan polaroiderna i raden, så att ingen (inte heller skuggan) når in över grannens film. Filmerna ritas
+     som egna lager, och en polaroid som ligger ovanpå en annans film blir också ett eget lager; när det lagret är
+     lutat blir bildtexten suddig på en del telefoner. */
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.start-polaroid {
+  /* Lutningen. I raden lutar de bara hälften så mycket (se nedan), så att de sneda hörnen inte når in över grannen. */
+  --lean: calc(var(--tilt) / 2);
+  flex: 0 1 8rem;
+  min-width: 0;
+  padding: 0.4rem 0.4rem 0.1rem;
+  background: var(--color-white);
+  box-shadow: 0 3px 10px rgba(58, 47, 37, 0.28);
+  transform: rotate(var(--lean));
+  opacity: 0;
+}
+
+.start-polaroids.is-shown .start-polaroid {
+  opacity: 1;
+}
+
+/* När rubriken är klar faller polaroiderna ned på bordet en i taget (--order, se StartPage): större, snedare och
+   med en mjuk skugga långt ned, som när man släpper ett foto. De landar med en liten studs och skuggan dras ihop.
+   Sedan framkallas bilden, som på ett riktigt polaroidfoto: från blek och nästan tom till full färg. Bara första
+   gången per session och när sidan får röra sig (.is-intro, se StartPage); annars ligger polaroiderna bara där.
+   "backwards" och inte "both": när animationen är klar släpper den polaroiden, som då ligger kvar med sina vanliga
+   stilar (samma läge som sista steget). Annars hålls den kvar som ett animerat lager, och då blir bildtexten suddig
+   på en del telefoner. */
+.start-page.is-intro .start-polaroids.is-shown .start-polaroid {
+  animation: start-polaroid-drop 650ms cubic-bezier(0.3, 0.7, 0.4, 1) calc(var(--order) * 150ms) backwards;
+}
+
+.start-page.is-intro .start-polaroids.is-shown .start-polaroid :is(img, video) {
+  animation: start-polaroid-develop 1.8s ease-out calc(var(--order) * 150ms + 350ms) backwards;
+}
+
+@keyframes start-polaroid-drop {
+  0% {
+    opacity: 0;
+    transform: translate(-1.5rem, -3.5rem) scale(1.18) rotate(calc(var(--lean) - 10deg));
+    box-shadow: 18px 36px 28px rgba(58, 47, 37, 0.12);
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  70% {
+    transform: translate(0, 0) scale(0.98) rotate(calc(var(--lean) + 1deg));
+    box-shadow: 0 2px 6px rgba(58, 47, 37, 0.35);
+  }
+
+  85% {
+    transform: translate(0, -3px) scale(1.01) rotate(var(--lean));
+  }
+
+  100% {
+    opacity: 1;
+    transform: rotate(var(--lean));
+    box-shadow: 0 3px 10px rgba(58, 47, 37, 0.28);
+  }
+}
+
+@keyframes start-polaroid-develop {
+  0% {
+    filter: sepia(0.6) brightness(1.6) contrast(0.35) saturate(0) blur(1px);
+  }
+
+  60% {
+    filter: sepia(0.3) brightness(1.15) contrast(0.8) saturate(0.6) blur(0);
+  }
+
+  100% {
+    filter: none;
+  }
+}
+
+.start-polaroid img,
+.start-polaroid video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.start-polaroid-caption {
+  display: block;
+  min-height: 2.4em;
+  padding: 0.2rem 0;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* Den korta texten under rubriken, lite större än vanlig brödtext eftersom den bara är en mening. I det varma bruna
+   bläcket som klottret och lapparna har (--color-ink) i stället för nästan svart, så att den blir mjukare och passar
+   ihop med resten av sidan. */
+.start-intro.problem-statement {
+  max-width: 42rem;
+  color: var(--color-ink);
+  font-size: 1.15rem;
+}
+
+.start-actions {
+  margin-top: 0.5rem;
+}
+
+.start-scroll {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  translate: -50% 0;
+}
+
+/* Pilen ritad med penna (components/PenArrow): mörka, rundade streck, och spetsen dragen en gång till lite ljusare. */
+.pen-arrow {
+  overflow: visible;
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.15s ease;
+}
+
+.pen-arrow .pen-arrow-pass {
+  stroke-width: 1.6;
+  opacity: 0.55;
+}
+
+.start-scroll-arrow {
+  width: 2.2rem;
+  height: 3.3rem;
+}
+
+.start-scroll:hover .start-scroll-arrow,
+.start-scroll:focus-visible .start-scroll-arrow {
+  transform: scale(1.12);
+}
+
+/* Pilen gungar lite upp och ned, så att man ser att det finns mer nedanför. */
+.start-page.is-animated .start-scroll {
+  animation: start-scroll-bob 1.6s ease-in-out infinite;
+}
+
+@keyframes start-scroll-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(0.4rem);
+  }
+}
+
+/* Delarna under toppen är lika höga som sitt innehåll, med samma luft ovanför och nedanför överallt. Luften växer
+   lite med fönstrets höjd. Kartan är undantaget (se .start-map-section). */
+.start-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: clamp(4rem, 9vh, 7rem) 1.5rem;
+  text-align: center;
+}
+
+/* "Så funkar det" och intressena är lösa papper som ligger ovanpå anteckningsblocket: en tunn kant och en mjuk skugga
+   ned på de linjerade delarna ovanför och under, så att man ser var pappret slutar. */
+#sa-funkar-det,
+#intressen {
+  position: relative;
+  z-index: 1;
+  background: var(--color-paper);
+  border-block: 1px solid rgba(58, 47, 37, 0.14);
+  box-shadow:
+    0 -6px 14px -6px rgba(58, 47, 37, 0.28),
+    0 8px 16px -6px rgba(58, 47, 37, 0.32);
+}
+
+.start-heading {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(2.6rem, 7vw, 4rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* Undertexten under rubrikerna (kartan, intressena och pratbubblan): samma varma bruna bläck som texten under
+   huvudrubriken (.start-intro), och lite större än vanlig brödtext, så att den känns mjukare och hör ihop med sidan. */
+.start-section-text {
+  max-width: var(--content-width);
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 1.1rem;
+}
+
+/* Så funkar det: tre lappar bredvid varandra på en bred skärm, annars under varandra i en smal kolumn i mitten. */
+.start-steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.75rem;
+  width: min(100%, 26rem);
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Alla tre bredvid varandra först när de får plats, så att den tredje aldrig blir ensam på en egen rad. */
+@media (min-width: 900px) {
+  .start-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: min(100%, 60rem);
+  }
+}
+
+.start-step.paper-note {
+  padding: 1.6rem 1.2rem 1.2rem;
+  font-size: var(--text-body);
+  line-height: 1.5;
+  rotate: -1.5deg;
+}
+
+.start-step.paper-note:nth-child(2) {
+  rotate: 1deg;
+}
+
+/* Lapparna och intressetaggarna rör sig lite när man håller muspekaren över dem: lappen lyfts och rätas upp, rutan
+   lyfts mot en. Med "minska rörelse" byter de läge direkt, utan att glida. */
+.start-step.paper-note:hover {
+  rotate: 0deg;
+  translate: 0 -4px;
+  box-shadow: 5px 6px 0 #3a2f25;
+}
+
+.start-step-number {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.start-step-title {
+  margin: 0.25rem 0 0;
+  font-size: var(--text-subheading);
+}
+
+.start-step-text {
+  margin: 0.3rem 0 0;
+}
+
+.start-pitch {
+  max-width: 34rem;
+  margin: 1.5rem 0 0;
+  font-family: var(--font-heading);
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+  rotate: -2deg;
+}
+
+/* Kartan: en bild av appens karta med påhittade events, som lappar som i appen (.map-activity i map.css). Ett
+   klick öppnar eventet i ett block (MapPad), som i appen. */
+.start-map {
+  position: relative;
+  /* Så bred som får plats, men aldrig högre än att rubriken, texten och hela kartan ryms i fönstret (19.5rem är
+     rubriken, texten och luften runt). Höjden följer av bredden (aspect-ratio). */
+  width: min(100%, 72rem, calc((100svh - 19.5rem) * 1400 / 615));
+  aspect-ratio: 1400 / 615;
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 6px solid var(--color-white);
+  border-radius: 4px;
+  box-shadow: 0 14px 35px rgba(58, 47, 37, 0.2);
+  text-align: left;
+}
+
+.start-map-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.start-map-marker.map-activity {
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+}
+
+.start-map-stamp {
+  position: absolute;
+  top: 0.9rem;
+  left: 0.9rem;
+  background: var(--color-white);
+}
+
+.start-map-caption {
+  position: absolute;
+  right: 0.9rem;
+  bottom: 0.7rem;
+  padding: 0.1rem 0.6rem;
+  background: rgba(255, 255, 255, 0.85);
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 700;
+  rotate: -2deg;
+}
+
+.start-map .map-pad-stage {
+  padding: 1rem;
+}
+
+/* Knappen i det påhittade eventet: flyttad ut till vänster, så att ordet på knappen hamnar nästan i linje med texten
+   ovanför och den gula formen närmare blockets kant, men utan att nudda den. */
+.start-page .start-demo-signup {
+  margin-left: -1rem;
+}
+
+/* Intressena: tre rader med intressetaggar (samma som i appen, fast större) som glider sakta åt sidan, varannan rad åt
+   andra hållet. Varje rad har sitt innehåll två gånger (se StartPage), så när den har glidit en halv längd börjar den
+   om utan att det syns. Kanterna tonas ut. Raden stannar när man håller muspekaren över den, och taggen under pekaren
+   lyfts. Med "minska rörelse" (utan .is-animated) står raderna still, centrerade, och bara den första kopian syns. */
+/* Hela sidans bredd (förbi delens luft på sidorna). */
+.start-marquees {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: 1rem;
+  margin: 1.5rem -1.5rem 0;
+  overflow: hidden;
+}
+
+.start-marquee {
+  display: flex;
+  justify-content: center;
+}
+
+.start-marquee-track.interest-tags {
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 0.3rem 0.45rem 0.5rem;
+}
+
+.start-marquee .interest-tag {
+  min-height: 2.5rem;
+  padding: 0.35rem 1rem;
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+.start-marquee li:nth-child(even) .interest-tag {
+  border-radius: var(--tag-shape-alt);
+}
+
+.start-marquee .interest-tag:hover {
+  translate: -2px -3px;
+  box-shadow: 4px 5px 0 var(--tag-ink);
+}
+
+.start-marquee-track[aria-hidden] {
+  display: none;
+}
+
+.start-page.is-animated .start-marquees {
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.start-page.is-animated .start-marquee {
+  justify-content: flex-start;
+}
+
+.start-page.is-animated .start-marquee-track.interest-tags {
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.start-page.is-animated .start-marquee-track[aria-hidden] {
+  display: flex;
+}
+
+.start-page.is-animated .start-marquee-track {
+  animation: start-marquee 60s linear infinite;
+}
+
+.start-page.is-animated .start-marquee-2 .start-marquee-track {
+  animation-duration: 70s;
+  animation-direction: reverse;
+}
+
+.start-page.is-animated .start-marquee-3 .start-marquee-track {
+  animation-duration: 65s;
+}
+
+.start-page.is-animated .start-marquee:hover .start-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes start-marquee {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .start-step.paper-note,
+  .start-marquee .interest-tag {
+    transition:
+      translate 0.2s ease,
+      rotate 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+}
+
+/* Sista uppmaningen: kompisen bredvid en pratbubbla, och på en smal skärm bubblan ovanför honom. */
+.start-final {
+  flex-direction: row;
+  justify-content: center;
+  gap: 2.5rem;
+}
+
+.start-final-kompis {
+  flex: 0 0 auto;
+  width: 12rem;
+}
+
+/* Pratbubblan, som i en serietidning: en bullig, ojämn form med en kraftig bläckkant, och några tunnare drag på kanten,
+   som när man har gått över med pennan. Formen är en bild bakom innehållet (::before), utsträckt till bubblans
+   storlek; kanten behåller sin tjocklek (non-scaling-stroke). Samma hårda skugga som lapparna, lagd med filter så att
+   den följer både bubblan och spetsen. */
+.start-bubble {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 38rem;
+  padding: 2.5rem 3rem 2.25rem;
+  filter: drop-shadow(4px 4px 0 #3a2f25);
+}
+
+.start-bubble::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200' preserveAspectRatio='none'%3E%3Cpath d='M44 18 C96 4 170 10 214 6 C268 1 318 2 356 14 C390 25 398 58 394 94 C391 124 399 160 380 176 C362 192 318 186 270 193 C206 202 150 196 98 194 C62 193 18 192 8 160 C0 134 6 112 4 88 C2 52 12 28 44 18 Z' fill='white' stroke='%233a2f25' stroke-width='4.5' stroke-linejoin='round' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M58 23 C110 11 166 15 212 11 C262 7 304 8 338 18 M387 132 C389 158 382 172 364 180 M18 154 C24 172 38 182 64 186 M10 70 C12 50 18 36 32 28' fill='none' stroke='%233a2f25' stroke-width='2' stroke-linecap='round' stroke-opacity='0.6' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+
+.start-bubble .start-heading {
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+}
+
+/* Spetsen: en kil från bubblans vänstra kant mot kompisens mun, som sitter strax ovanför mitten (kompisen och
+   bubblan ligger mitt för varandra). Spetsen ligger 9 av 30 ned i ritningen, och munnen ungefär 32 px ovanför
+   mitten, därav top. Den går in en bit över kanten (vit fyllning, kant
+   bara på de två böjda sidorna), så att kanten under försvinner och spetsen ser ut att växa ur bubblan. */
+.start-bubble-tail {
+  position: absolute;
+  left: -46px;
+  top: calc(50% - 45px);
+  width: 50px;
+  height: 38px;
+  overflow: visible;
+  fill: var(--color-white);
+  stroke: #3a2f25;
+  stroke-width: 3.4;
+  stroke-linejoin: round;
+}
+
+.start-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding: 1.5rem;
+  border-top: 1px solid rgba(58, 47, 37, 0.15);
+  color: var(--color-muted);
+  font-size: var(--text-small);
+}
+
+.start-footer-brand {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.start-footer-links {
+  display: flex;
+  gap: 1.25rem;
+}
+
+/* Bred skärm: polaroiderna runt texten, som foton utlagda på ett bord. */
+/* Klottret i marginalerna (HeroDoodles i StartPage): bara på en bred skärm, utspritt i luckorna mellan polaroiderna
+   och texten. Platserna räknas från sidans mitt i sidled och från toppens höjd i höjdled, som polaroiderna. */
+.start-doodles {
+  display: none;
+}
+
+.start-doodle {
+  position: absolute;
+  overflow: visible;
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.start-doodle-paper {
+  fill: var(--color-white);
+}
+
+.start-doodle-dashed {
+  stroke-dasharray: 3 4;
+  opacity: 0.7;
+}
+
+/* Kartnålen till höger om texten, under fotbollen. */
+.start-doodle-pin {
+  left: calc(50% + 22.5rem);
+  top: calc(52% - 2rem);
+  width: 2.8rem;
+  height: 5.2rem;
+  rotate: 6deg;
+}
+
+.start-doodle-pin-body {
+  fill: var(--color-accent);
+}
+
+.start-doodle-star {
+  left: calc(50% - 25rem);
+  top: calc(44% - 2rem);
+  width: 1.8rem;
+  height: 1.8rem;
+  rotate: -12deg;
+}
+
+.start-doodle-ball {
+  left: calc(50% + 21.5rem);
+  top: calc(40% - 2rem);
+  width: 2.1rem;
+  height: 2.1rem;
+  rotate: 18deg;
+}
+
+.start-doodle-ink {
+  fill: var(--color-ink);
+}
+
+.start-doodle-heart {
+  left: calc(50% - 21rem);
+  top: calc(30% - 2rem);
+  width: 1.7rem;
+  height: 1.45rem;
+  rotate: -10deg;
+}
+
+.start-doodle-heart path {
+  fill: rgba(231, 161, 161, 0.55);
+}
+
+/* Lappen till vänster om knapparna, med en böjd pil som pekar på dem (StartPage). Den ligger i knappraden, så att
+   pilen alltid når knapparna. Bara på en bred skärm. */
+.start-actions {
+  position: relative;
+}
+
+.start-actions-note {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  /* Innehållet lite ovanför mitten (mer luft nedtill), så att det inte känns lågt. Pilen ligger kvar längst ned.
+     Polaroiderna och klottret nedan är flyttade lika mycket uppåt (2rem). */
+  .start-hero {
+    min-height: max(44rem, 100svh);
+    padding-top: 1rem;
+    padding-bottom: 9rem;
+  }
+
+  /* Den röda marginallinjen, en bit in från vänster. */
+  .start-lined {
+    background-image:
+      linear-gradient(
+        90deg,
+        transparent 4.5rem,
+        var(--color-paper-margin) 4.5rem,
+        var(--color-paper-margin) calc(4.5rem + 2px),
+        transparent calc(4.5rem + 2px)
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0 calc(var(--line-gap) - 1px),
+        rgba(191, 215, 237, 0.75) calc(var(--line-gap) - 1px) var(--line-gap)
+      );
+  }
+
+  .start-doodles {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+
+  .start-page.is-intro .start-doodles {
+    opacity: 0;
+    transition: opacity 0.8s ease 0.6s;
+  }
+
+  .start-page.is-intro .start-doodles.is-shown {
+    opacity: 1;
+  }
+
+  /* Pilen överst, som böjer sig upp mot knapparna, och texten under, så att lappen hamnar under texten ovanför
+     knapparna i stället för i den. Smal nog att få plats bredvid polaroiden. Spetsen (11 av 44 ned i pilen) hamnar
+     mitt för knapparna. */
+  .start-actions-note {
+    position: absolute;
+    right: calc(100% + 0.4rem);
+    top: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    translate: 0 -11px;
+    color: var(--color-ink);
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 700;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .start-actions-note span {
+    rotate: -6deg;
+  }
+
+  .start-actions-note svg {
+    width: 4.5rem;
+    height: 2.75rem;
+    margin: 0 -0.2rem -0.2rem 0;
+    overflow: visible;
+    fill: none;
+    stroke: var(--color-ink);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .start-page.is-intro .start-actions-note {
+    opacity: 0;
+    transition: opacity 0.8s ease 0.6s;
+  }
+
+  .start-page.is-intro .start-actions-note.is-shown {
+    opacity: 1;
+  }
+
+  .start-polaroids {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+
+  .start-polaroid {
+    --lean: var(--tilt);
+    position: absolute;
+    width: 10.5rem;
+    margin: 0;
+  }
+
+  .start-polaroid-1 {
+    left: max(1.5rem, calc(50% - 37rem));
+    top: 5rem;
+  }
+
+  .start-polaroid-2 {
+    right: max(1.5rem, calc(50% - 37rem));
+    top: 6.5rem;
+  }
+
+  .start-polaroid-3 {
+    left: max(3rem, calc(50% - 33rem));
+    bottom: 5rem;
+  }
+
+  .start-polaroid-4 {
+    right: max(3rem, calc(50% - 33rem));
+    bottom: 6rem;
+  }
+}
+
+/* Kartan är sidans stora bild: på en dator fyller delen hela fönstret, med kartan i mitten. */
+@media (min-width: 601px) {
+  .start-map-section {
+    justify-content: center;
+    min-height: 100svh;
+  }
+}
+
+/* Telefon: kompisen och lappen längst ned hamnar under varandra. */
+@media (max-width: 600px) {
+  .start-hero {
+    gap: 0.75rem;
+    padding: 1.25rem 1rem 5rem;
+  }
+
+  .start-logo {
+    width: 72px;
+  }
+
+  .start-polaroid {
+    flex-basis: 6.5rem;
+  }
+
+  .start-polaroid-caption {
+    font-size: 0.95rem;
+  }
+
+  .start-section {
+    padding: clamp(3rem, 8vh, 4.5rem) 1rem;
+  }
+
+  .start-map {
+    aspect-ratio: auto;
+    height: 28rem;
+  }
+
+  .start-map-marker.map-activity {
+    left: var(--mx);
+    top: var(--my);
+  }
+
+  .start-marquees {
+    margin-inline: -1rem;
+  }
+
+  .start-marquee .interest-tag {
+    min-height: 2.2rem;
+    font-size: 0.95rem;
+  }
+
+  .start-final {
+    flex-direction: column-reverse;
+    gap: 2rem;
+  }
+
+  /* Spetsen nedåt, mot kompisen under bubblan. */
+  .start-bubble-tail {
+    left: 40%;
+    top: auto;
+    bottom: -40px;
+    rotate: -90deg;
+  }
+
+  .start-final-kompis {
+    width: 8rem;
+  }
+}
+
+/* ---------- Inloggning och registrering (AuthPage) ----------
+   Samma anteckningsblock som startsidan (.start-lined), formuläret på en lapp med tejp, rubriken med samma gula
+   penndrag under som huvudrubriken, märkpennsknappen (se .start-marker ovan) och den pennritade pilen tillbaka. Bara
+   på /logga-in och /registrera; Home, som visar samma formulär inuti sidan, ser ut som förut. */
+.auth-page {
+  min-height: 100svh;
+}
+
+.auth-note.paper-note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(100%, 24rem);
+  /* Svart text som i resten av appens formulär, i stället för lappens bruna bläck. */
+  color: var(--color-text);
+  /* Luft ovanför, så att tejpen inte hamnar över loggan. */
+  margin-top: 0.6rem;
+  padding: 1.75rem 1.5rem 1.4rem;
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+.auth-note h1 {
+  display: inline-block;
+  /* Lagom stor för att "Registrera dig" ska rymmas på en rad på en telefon, så att formuläret får plats utan att
+     scrolla (se CONTRIBUTING, "Mobil"). */
+  font-size: clamp(2.4rem, 10vw, 3.4rem);
+  line-height: 1.1;
+  padding-bottom: 0.3em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 440 22' preserveAspectRatio='none'%3E%3Cpath d='M8 13 C100 2 205 19 300 9 S400 8 430 5' fill='none' stroke='%23f4c430' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E")
+    bottom / 100% 0.35em no-repeat;
+}
+
+.auth-page .auth-form button[type='submit'] {
+  min-height: 48px;
+  margin-top: 0.75rem;
+}
+
+/* Tillbaka: den pennritade pilen, vriden så att den pekar åt vänster. */
+.auth-back {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.auth-back-arrow {
+  width: 1.6rem;
+  height: 2.4rem;
+  rotate: 90deg;
+}
+
+.auth-back:hover .auth-back-arrow,
+.auth-back:focus-visible .auth-back-arrow {
+  transform: scale(1.12);
+}
