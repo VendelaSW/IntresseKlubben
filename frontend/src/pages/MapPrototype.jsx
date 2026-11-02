@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import '../styles/map.css'
-import { LngLat, Map as MapLibreMap, NavigationControl } from 'maplibre-gl'
+import { LngLat, Map as MapLibreMap, Marker, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { addMissingDoodle } from './mapPrototypeDoodles'
 import { attachPlaceNotes } from './mapPrototypeNotes'
@@ -13,7 +13,7 @@ import Intressekompis from '../components/Intressekompis'
 import MapCalmPage from './MapCalmPage'
 import MapPagePad, { MAP_PAGES, widgetFor } from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
-import MapPlaceSearch from './MapPlaceSearch'
+import MapPlaceSearch, { YOU_ICON_PATHS } from './MapPlaceSearch'
 import MapProfileWidget from './MapProfileWidget'
 import { useBadgeCounts } from '../hooks/useBadgeCounts'
 import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
@@ -25,6 +25,7 @@ import { getProfile } from '../services/profile'
 import { HOUR, cachedInBrowser } from '../services/queryClient'
 import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
 import { areasFrom, attachAreaSymbols } from './mapPrototypeAreaSymbols'
+import { attachNearbyArrows } from './mapPrototypeNearby'
 import {
   ZOOM_LEVELS,
   allKommuner,
@@ -128,6 +129,16 @@ const DISTRICT_ZOOM = 15
 // plats): ända ner till gatorna och husen. Utan nål flygs det till FULL_ZOOM
 // (se mapPrototypeActivities.js), där lappen visas hel.
 const ACTIVITY_PLACE_ZOOM = 16
+// Ikonen för var man är: en liten ritad figur, i samma bläckstil som kartan.
+function youIcon() {
+  const icon = document.createElement('div')
+  icon.className = 'map-you'
+  icon.setAttribute('role', 'img')
+  icon.setAttribute('aria-label', 'Här är du')
+  const paths = YOU_ICON_PATHS.map((d) => `<path d="${d}" />`).join('')
+  icon.innerHTML = `<svg viewBox="0 0 32 32" aria-hidden="true">${paths}</svg>`
+  return icon
+}
 // Längst in man kan zooma: kvarter med husen tydliga. Kartdatan har ingen
 // mer detalj längre in (den förstoras bara), och husen blir bara större.
 const MAX_ZOOM = 17
@@ -893,6 +904,8 @@ function MapPrototype() {
   const flyTokenRef = useRef(0)
   const activitiesRef = useRef(null) // klubbarnas och eventens lappar på kartan
   const activitiesLayerRef = useRef(null)
+  const nearbyRef = useRef(null) // pilarna till det som är nära efter Hitta mig
+  const nearbyLayerRef = useRef(null)
   const areaClubsRef = useRef(null) // symbolerna för klubbar och events utan nål (se mapPrototypeAreaSymbols.js)
   const areaClubsLayerRef = useRef(null)
 
@@ -927,6 +940,7 @@ function MapPrototype() {
       // Symbolerna först, så att lapparna kan flytta sig undan för dem.
       areaClubsRef.current?.setAreas(areasFrom({ groups, events, eventItems: items, kommuner }))
       activitiesRef.current?.setItems(items)
+      nearbyRef.current?.setItems(items)
       // Samma klubbar och events går att söka fram i sökrutan (se MapPlaceSearch).
       setActivityItems(items)
     } catch {
@@ -954,6 +968,8 @@ function MapPrototype() {
     setLevelName(item.name)
     map.once('moveend', () => activitiesRef.current?.highlight(`${item.type}:${item.id}`))
   }
+  const flyToActivityRef = useRef(flyToActivity)
+  flyToActivityRef.current = flyToActivity
 
   // Klick på en lapp på kartan: är den hopfälld till en ikon flygs det dit
   // först, och är den hel (man är redan där) öppnas klubben eller eventet.
@@ -1006,6 +1022,10 @@ function MapPrototype() {
   const [levelName, setLevelName] = useState('')
   // Har profilen en kommun? Då visas Min kommun vid sökrutan (se startAtHome).
   const [hasHome, setHasHome] = useState(false)
+  // "Hitta mig" (se findMe): väntar på positionen, och beskedet om den inte gick att få.
+  const [findingMe, setFindingMe] = useState(false)
+  const [findMeMessage, setFindMeMessage] = useState('')
+  const youMarkerRef = useRef(null)
   // Klubbarna och eventen på kartan, för sökrutan (se loadActivities).
   const [activityItems, setActivityItems] = useState([])
   // Platslapparna (se attachPlaceNotes), för lappen vid det man sökte fram.
@@ -1248,6 +1268,52 @@ function MapPrototype() {
     if (note) map.once('moveend', () => placeNotesRef.current?.showSearchNote({ ...note, lngLat }))
   }
 
+  // "Hitta mig" (SCRUM-71): webbläsaren frågar om lov först nu, när man trycker på
+  // knappen. Positionen stannar i webbläsaren: den sparas inte och skickas inte till
+  // backend. Kartan hämtar sina kartbilder för området som visas, som när man bläddrar.
+  function findMe() {
+    if (!navigator.geolocation) {
+      setFindMeMessage('Din webbläsare kan inte visa var du är.')
+      return
+    }
+    setFindMeMessage('')
+    setFindingMe(true)
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setFindingMe(false)
+        goToMe([coords.longitude, coords.latitude])
+      },
+      (error) => {
+        setFindingMe(false)
+        setFindMeMessage(
+          error.code === error.PERMISSION_DENIED
+            ? 'Vi får inte se var du är. Du kan ändra det i webbläsarens inställningar.'
+            : 'Vi kunde inte hitta dig just nu. Försök igen om en stund.',
+        )
+      },
+      { timeout: 10000, maximumAge: 60000 },
+    )
+  }
+
+  // Flyg till positionen i ens kommun, ända ner till gatorna (samma zoom som en
+  // klubb eller ett event med nål), med ikonen där man är.
+  async function goToMe(lngLat) {
+    const map = mapRef.current
+    if (!map) return
+    if (!inSweden(...lngLat)) {
+      setFindMeMessage('Du verkar vara utanför Sverige, så kartan stannar här.')
+      return
+    }
+    const kommun = await regionAt('kommun', lngLat)
+    if (mapRef.current !== map) return
+    setMode('free', null, kommun.lan, kommun.kod)
+    map.easeTo({ center: lngLat, zoom: ACTIVITY_PLACE_ZOOM, duration: 1600 })
+    setLevelName(kommun.name)
+    youMarkerRef.current?.remove()
+    youMarkerRef.current = new Marker({ element: youIcon() }).setLngLat(lngLat).addTo(map)
+    nearbyRef.current?.setPosition(lngLat, kommun.kod)
+  }
+
   const zoomToLevelRef = useRef(zoomToLevel)
   zoomToLevelRef.current = zoomToLevel
   const stepLevelRef = useRef(stepLevel)
@@ -1433,6 +1499,10 @@ function MapPrototype() {
       onPick: (item, compact) => pickActivityRef.current(item, compact),
       getFixed: () => areaClubsRef.current?.boxes() ?? [],
     })
+    nearbyRef.current = attachNearbyArrows(map, nearbyLayerRef.current, {
+      getKommun: () => selectedKommunRef.current,
+      onPick: (item) => flyToActivityRef.current(item),
+    })
     loadActivities()
     labelsApiRef.current = labelsApi
     loadAreaCounts()
@@ -1505,6 +1575,7 @@ function MapPrototype() {
       <div ref={activitiesLayerRef} className="map-sketch-activities" />
       <div ref={areaClubsLayerRef} className="map-sketch-activities map-sketch-area-clubs" />
       <div ref={notesRef} className="map-sketch-notes" />
+      <div ref={nearbyLayerRef} className="map-sketch-activities map-sketch-nearby" />
       <div ref={threadRef} className="map-sketch-thread" hidden={!pinsShown} />
       <svg className="map-sketch-compass" viewBox="0 0 80 80" aria-hidden="true">
         <circle cx="40" cy="44" r="24" />
@@ -1541,6 +1612,9 @@ function MapPrototype() {
             activities={activityItems}
             onPick={goToSearchResult}
             onHome={hasHome ? () => startAtHome(mapRef.current, true) : undefined}
+            onFindMe={findMe}
+            findingMe={findingMe}
+            findMeMessage={findMeMessage}
           />
           <div className="map-sketch-tools" role="toolbar" aria-label="Nålar och väg" hidden={!pinsShown}>
             <button
