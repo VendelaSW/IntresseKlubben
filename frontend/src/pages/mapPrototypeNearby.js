@@ -9,8 +9,6 @@ import klubbarIcon from '../assets/klubbar.png'
 // Fler än så här blir bara rörigt, och i en storstad kan det finnas hundratals.
 const MAX_ARROWS = 4
 const KM_PER_DEGREE = 111.32
-// Kartan lutar (se TILT i MapPrototype.jsx), så avstånd i nord-sydlig led ser kortare ut på skärmen.
-const TILT_SQUEEZE = Math.cos((45 * Math.PI) / 180)
 // Luft mot skärmens kanter i pixlar, så att pilarna inte hamnar under knapparna
 // upptill och blocken nedtill. Mitten av pilen, så det räknar in dess halva storlek.
 const EDGE = { top: 120, right: 50, bottom: 120, left: 50 }
@@ -68,6 +66,8 @@ export function attachNearbyArrows(map, layer, { getKommun, onPick }) {
     const { width, height } = map.getContainer().getBoundingClientRect()
     const bounds = map.getBounds()
     const center = map.getCenter()
+    // Kartan lutar, så avstånd i nord-sydlig led ser kortare ut på skärmen.
+    const squeeze = Math.cos((map.getPitch() * Math.PI) / 180)
     const nearest =
       me && getKommun() === me.kommun
         ? items
@@ -103,7 +103,7 @@ export function attachNearbyArrows(map, layer, { getKommun, onPick }) {
       // Riktningen på skärmen (kartan vrids aldrig, så norr är alltid uppåt), och
       // där den linjen från skärmens mitt når den tillåtna rutan.
       const dx = (item.lngLat[0] - center.lng) * Math.cos((center.lat * Math.PI) / 180)
-      const dy = -(item.lngLat[1] - center.lat) * TILT_SQUEEZE
+      const dy = -(item.lngLat[1] - center.lat) * squeeze
       el.firstChild.style.transform = `rotate(${(Math.atan2(dx, -dy) * 180) / Math.PI}deg)`
       const halfWidth = Math.max(10, width / 2 - EDGE.right)
       const halfHeight = Math.max(10, height / 2 - EDGE.top)

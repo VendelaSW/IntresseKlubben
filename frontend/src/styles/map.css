@@ -1236,7 +1236,8 @@
   background: #ffd6e7;
 }
 
-.map-nearby:hover {
+.map-nearby:hover,
+.map-nearby:focus-visible {
   box-shadow: none;
   translate: 2px 2px;
 }
