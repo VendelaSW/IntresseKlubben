@@ -111,7 +111,7 @@ export function attachNearbyArrows(map, layer, { getKommun, onPick }) {
       let x = width / 2 + dx * scale
       let y = height / 2 + dy * scale
 
-      // Inte under nivåknapparna uppe till höger, och inte ovanpå de andra pilarna.
+      // Inte under områdets namn uppe till höger, och inte ovanpå de andra pilarna.
       const box = el.getBoundingClientRect()
       const at = (cx, cy) => ({
         left: cx - box.width / 2,

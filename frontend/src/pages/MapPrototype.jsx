@@ -27,7 +27,6 @@ import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototype
 import { areasFrom, attachAreaSymbols } from './mapPrototypeAreaSymbols'
 import { attachNearbyArrows } from './mapPrototypeNearby'
 import {
-  ZOOM_LEVELS,
   allKommuner,
   isInside,
   kommunByCode,
@@ -74,6 +73,8 @@ const FIT_PADDING = 24
 // Hur nära helt utzoomat (i zoomnivåer) man ska vara för att kartan ska glida
 // till landets mitt när man har slutat zooma.
 const SETTLE_ZOOMS = 0.15
+// Så länge man håller in − innan kartan går ut till hela Sverige, i millisekunder.
+const HOLD_FOR_SWEDEN_MS = 500
 
 // Närmaste punkt på en gräns (ringar av [longitud, latitud]; longitud räknad
 // i rätt skala för latituden, så att "närmast" stämmer i verkligheten).
@@ -1056,7 +1057,7 @@ function MapPrototype() {
     }
   }, [openPage])
   const fitRef = useRef(null) // mitt och zoom för hela Sverige (se fitSweden)
-  // Namnet på området man senast zoomade till med nivåknapparna.
+  // Namnet på området man senast zoomade till.
   const [levelName, setLevelName] = useState('')
   // Har profilen en kommun? Då visas Min kommun vid sökrutan (se startAtHome).
   const [hasHome, setHasHome] = useState(false)
@@ -1071,6 +1072,8 @@ function MapPrototype() {
   // Kartans nivå: 'sverige', 'landskap' eller 'free' (se LEVEL_PADDING ovan).
   const [mode, setModeState] = useState('free')
   const modeRef = useRef('free')
+  // Var man var när man lämnade den fria nivån, så att + leder tillbaka dit (SCRUM-332).
+  const leftFreeAtRef = useRef(null)
   const pinsShown = PINS_ENABLED && mode === 'free'
 
   async function rememberKommunOverview(kod) {
@@ -1084,6 +1087,8 @@ function MapPrototype() {
   // Byt nivå: lås eller släpp zoomen med mus, fingrar och tangentbord.
   // `lan`: länskoden på fri nivå (länsvyn och kommuner i den), annars null.
   function setMode(next, landskap = null, lan = null, kommun = null) {
+    if (next === 'free') leftFreeAtRef.current = null
+    else if (modeRef.current === 'free') leftFreeAtRef.current = mapRef.current?.getCenter().toArray() ?? null
     modeRef.current = next
     setModeState(next)
     selectedLandskapRef.current = next === 'landskap' ? landskap : null
@@ -1405,12 +1410,23 @@ function MapPrototype() {
     map.on('resize', fitSweden)
     // Helt utzoomat: glid till landets mitt när man har slutat röra kartan,
     // så att hela Sverige ligger mitt på skärmen.
-    map.on('moveend', () => {
-      if (!fit || map.getZoom() > fit.zoom + SETTLE_ZOOMS) return
-      const center = map.getCenter()
-      if (Math.abs(center.lng - fit.center.lng) + Math.abs(center.lat - fit.center.lat) < 0.01) return
-      map.easeTo({ center: fit.center, zoom: fit.zoom, duration: 500 })
-    })
+    // Får aldrig starta en ny animation direkt i moveend eller zoomend: de skickas också när en ny animation
+    // avbryter den gamla, och då tappar MapLibre bort den ena och hela kartan fryser ("_onEaseFrame is not a
+    // function"). Så vänta tills avbrottet är klart, och låt bli om en ny animation har börjat: då kommer den
+    // att skicka sina egna händelser när den är klar.
+    function whenSettled(callback) {
+      queueMicrotask(() => {
+        if (mapRef.current === map && !map.isEasing()) callback()
+      })
+    }
+    map.on('moveend', () =>
+      whenSettled(() => {
+        if (!fit || map.getZoom() > fit.zoom + SETTLE_ZOOMS) return
+        const center = map.getCenter()
+        if (Math.abs(center.lng - fit.center.lng) + Math.abs(center.lat - fit.center.lat) < 0.01) return
+        map.easeTo({ center: fit.center, zoom: fit.zoom, duration: 500 })
+      }),
+    )
     mapRef.current = map
     // Klick på kartan på en låst nivå: ett steg in, där man klickade. Bara i
     // Sverige, och på landskapsnivån bara i det valda landskapet: runt om ligger
@@ -1426,27 +1442,69 @@ function MapPrototype() {
     // + och − stegar mellan nivåerna när zoomen är låst (fångas innan
     // MapLibres egna knappar hinner zooma).
     function onZoomButton(event) {
+      // Släppte man − efter att ha hållit in det är kartan redan på väg ut, så klicket ska inte zooma också.
+      if (heldForSweden && event.target.closest('.maplibregl-ctrl-zoom-out')) {
+        heldForSweden = false
+        event.stopPropagation()
+        return
+      }
       if (modeRef.current === 'free') return // fri nivå: vanlig zoom
       const button = event.target.closest('.maplibregl-ctrl-zoom-in, .maplibregl-ctrl-zoom-out')
       if (!button) return
       event.stopPropagation()
-      stepLevelRef.current(button.matches('.maplibregl-ctrl-zoom-in') ? 1 : -1, map.getCenter().toArray())
+      const center = map.getCenter().toArray()
+      if (button.matches('.maplibregl-ctrl-zoom-out')) {
+        stepLevelRef.current(-1, center)
+        return
+      }
+      // + leder tillbaka dit man kom ifrån, om man inte har valt ett annat landskap under tiden. Annars skulle
+      // det alltid bli det som råkar ligga mitt på skärmen (Hälsingland från Sverige-nivån).
+      const from = leftFreeAtRef.current
+      const backThere =
+        from && (modeRef.current === 'sverige' || landskapAt(from).name === selectedLandskapRef.current)
+      stepLevelRef.current(1, backThere ? from : center)
     }
     rootRef.current.addEventListener('click', onZoomButton, true)
+    // Håll in − så går kartan direkt ut till hela Sverige (annars är det cirka tio tryck från gatunivå).
+    let heldForSweden = false
+    let holdTimer = null
+    function onZoomOutDown(event) {
+      if (!event.target.closest('.maplibregl-ctrl-zoom-out')) return
+      heldForSweden = false
+      clearTimeout(holdTimer)
+      holdTimer = setTimeout(() => {
+        heldForSweden = true
+        zoomToLevelRef.current('sverige')
+      }, HOLD_FOR_SWEDEN_MS)
+    }
+    function onZoomOutUp() {
+      clearTimeout(holdTimer)
+    }
+    // Annars öppnar ett långt tryck på en telefon webbläsarens egen meny.
+    function onZoomOutMenu(event) {
+      if (event.target.closest('.maplibregl-ctrl-zoom-out')) event.preventDefault()
+    }
+    rootRef.current.addEventListener('pointerdown', onZoomOutDown)
+    window.addEventListener('pointerup', onZoomOutUp)
+    window.addEventListener('pointercancel', onZoomOutUp)
+    rootRef.current.addEventListener('contextmenu', onZoomOutMenu)
     // Zoomar man själv ut förbi landskapets storlek fastnar kartan på
     // landskapet vid skärmens mitt.
     map.on('zoomend', (event) => {
-      if (modeRef.current !== 'free' || !event.originalEvent) return
-      const region = landskapAt(map.getCenter().toArray())
-      // I länsvyn: förbi länets storlek går man upp till landskapet.
-      const lanBounds = lanFocusRef.current?.bounds
-      if (lanBounds) {
-        const lan = map.cameraForBounds(lanBounds, { padding: LEVEL_PADDING, pitch: TILT })
-        if (lan && map.getZoom() < lan.zoom - 0.3) enterLandskapRef.current(region)
-        return
-      }
-      const landskap = map.cameraForBounds(region.bounds, { padding: LEVEL_PADDING, pitch: TILT })
-      if (landskap && map.getZoom() < landskap.zoom) enterLandskapRef.current(region)
+      if (!event.originalEvent) return
+      whenSettled(() => {
+        if (modeRef.current !== 'free') return
+        const region = landskapAt(map.getCenter().toArray())
+        // I länsvyn: förbi länets storlek går man upp till landskapet.
+        const lanBounds = lanFocusRef.current?.bounds
+        if (lanBounds) {
+          const lan = map.cameraForBounds(lanBounds, { padding: LEVEL_PADDING, pitch: TILT })
+          if (lan && map.getZoom() < lan.zoom - 0.3) enterLandskapRef.current(region)
+          return
+        }
+        const landskap = map.cameraForBounds(region.bounds, { padding: LEVEL_PADDING, pitch: TILT })
+        if (landskap && map.getZoom() < landskap.zoom) enterLandskapRef.current(region)
+      })
     })
     // På Sverige-nivån markeras landskapet under musen, som man kan klicka på
     // (se landskap-fill i mapPrototypeStyle.js).
@@ -1475,7 +1533,7 @@ function MapPrototype() {
     })
     map.on('mouseleave', 'lan-fill', () => setHoveredLan(null))
     map.on('zoomstart', () => setHoveredLan(null))
-    // Namnet från nivåknapparna gäller tills man drar kartan själv.
+    // Namnet gäller tills man drar kartan själv.
     map.on('dragstart', () => setLevelName(''))
     // Drar eller zoomar man själv innan flygningen till en ort har börjat
     // ska den inte ta över.
@@ -1485,6 +1543,8 @@ function MapPrototype() {
     map.keyboard.disableRotation()
     map.on('styleimagemissing', (e) => addMissingDoodle(map, e.id))
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right')
+    const zoomOutButton = map.getContainer().querySelector('.maplibregl-ctrl-zoom-out')
+    if (zoomOutButton) zoomOutButton.title = 'Zooma ut. Håll in för hela Sverige.'
     outsideApiRef.current = attachOutsidePaper(map, outsideRef.current, () =>
       selectedLandskapRef.current
         ? { landskap: selectedLandskapRef.current }
@@ -1579,6 +1639,11 @@ function MapPrototype() {
     return () => {
       root.removeEventListener('wheel', forwardWheel)
       root.removeEventListener('click', onZoomButton, true)
+      clearTimeout(holdTimer)
+      root.removeEventListener('pointerdown', onZoomOutDown)
+      window.removeEventListener('pointerup', onZoomOutUp)
+      window.removeEventListener('pointercancel', onZoomOutUp)
+      root.removeEventListener('contextmenu', onZoomOutMenu)
       mapRef.current = null
       labelsApiRef.current = null
       outsideApiRef.current = null
@@ -1735,12 +1800,8 @@ function MapPrototype() {
             />
             <MapProfileWidget onOpen={openPad} notifications={badgeCounts?.notifications ?? 0} />
           </div>
-          <div className="map-levels" role="group" aria-label="Zooma till">
-            {ZOOM_LEVELS.map(({ id, label }) => (
-              <button key={id} type="button" className="map-tool" onClick={() => zoomToLevel(id)}>
-                {label}
-              </button>
-            ))}
+          {/* Man tar sig mellan nivåerna med + och − (SCRUM-332). */}
+          <div className="map-levels">
             {/* Bara det mest exakta namnet: "Göteborg", inte "Göteborg kommun" eller "Majorna, Göteborg kommun". */}
             {levelName && <p className="map-level-name">{levelName.replace(/ kommun$/, '')}</p>}
           </div>

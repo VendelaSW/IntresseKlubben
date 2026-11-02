@@ -10,13 +10,6 @@
 import masks from './mapPrototypeMasks.json'
 import { LANDSKAP_AREAS } from './mapPrototypeStyle'
 
-export const ZOOM_LEVELS = [
-  { id: 'sverige', label: 'Sverige' },
-  { id: 'landskap', label: 'Landskap' },
-  { id: 'lan', label: 'Län' },
-  { id: 'kommun', label: 'Kommun' },
-]
-
 // Ligger punkten i ytan (Polygon eller MultiPolygon, med hål)? Strålmetoden
 // över alla ringar, så att hål (t.ex. en sjö eller en annan kommun) räknas bort.
 function contains(geometry, lng, lat) {
