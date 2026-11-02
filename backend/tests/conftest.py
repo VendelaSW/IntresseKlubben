@@ -37,6 +37,7 @@ os.environ["VERCEL_ENV"] = ""
 # Egen nyckel för inloggningstoken i tester, aldrig den riktiga från .env.
 os.environ["JWT_SECRET"] = "test-secret-only-for-tests-0123456789"
 
+import bcrypt  # noqa: E402
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import create_engine  # noqa: E402
@@ -52,6 +53,13 @@ from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Municipality, User  # noqa: E402
+
+# Lägsta kostnaden för lösenorden i tester: ett riktigt lösenord tar en kvarts sekund att hasha, med flit, och det
+# skulle göra testerna minuter längre. Gäller bara testerna, appen använder bcrypts vanliga kostnad.
+_gensalt = bcrypt.gensalt
+bcrypt.gensalt = lambda rounds=4, prefix=b"2b": _gensalt(rounds=4, prefix=prefix)
+
+
 @pytest.fixture(autouse=True)
 def fake_geocoder():
     """Inget test ska anropa Nominatim: adressökningen är en fejkad version utan träffar, om inte

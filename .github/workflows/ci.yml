@@ -30,6 +30,9 @@ jobs:
       # som saknar tester, men fäller inte bygget.
       - name: Kör tester
         run: pytest
+        env:
+          # Pythons snabbare sätt att mäta täckningen (finns från 3.12).
+          COVERAGE_CORE: sysmon
 
   frontend:
     name: Frontend-bygge

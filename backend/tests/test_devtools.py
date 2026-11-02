@@ -2,6 +2,8 @@
 eller på Vercel, och att testdatan och scenarierna fortfarande går igenom appens API (så att de inte tyst går
 sönder när appen ändras)."""
 
+import sqlite3
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -40,16 +42,37 @@ def test_allows_sqlite_locally(monkeypatch):
     assert_safe()
 
 
+@pytest.fixture(scope="module")
+def seeded_copy():
+    """Testdatan tar flera sekunder att bygga, så den byggs en gång och sparas här (se `seeded`)."""
+    saved = {}
+    yield saved
+    if saved:
+        saved["database"].close()
+
+
 @pytest.fixture
-def seeded(db, client, profile_lock):
+def seeded(db, client, profile_lock, seeded_copy):
     """Databasen som testläget bygger: biblioteket, kommunerna, fejkad AI och testdatan. Låset för profil är på,
-    som i den riktiga appen."""
-    sync_library(db, load_library())
-    db.add_all([Municipality(code=code, name=name) for code, name in [("1480", "Göteborg"), ("1481", "Mölndal"),
-                                                                      ("0180", "Stockholm")]])
-    db.commit()
-    fake_ai.install([name for (name,) in db.query(Interest.name).all()])
-    return seed(app, db)
+    som i den riktiga appen. Varje test får en egen kopia, så att det får ändra i den."""
+    live = db.get_bind().raw_connection().driver_connection
+    if not seeded_copy:
+        sync_library(db, load_library())
+        db.add_all([Municipality(code=code, name=name) for code, name in [("1480", "Göteborg"), ("1481", "Mölndal"),
+                                                                          ("0180", "Stockholm")]])
+        db.commit()
+        names = [name for (name,) in db.query(Interest.name).all()]
+        fake_ai.install(names)
+        ids = seed(app, db)
+        db.commit()
+        copy = sqlite3.connect(":memory:", check_same_thread=False)
+        live.backup(copy)
+        seeded_copy.update(database=copy, ids=ids, names=names)
+    else:
+        db.commit()
+        seeded_copy["database"].backup(live)
+        fake_ai.install(seeded_copy["names"])
+    return seeded_copy["ids"]
 
 
 @pytest.fixture
