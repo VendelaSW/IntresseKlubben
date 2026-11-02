@@ -121,11 +121,11 @@ const MIN_HATCH_PX = 3
 // ritas platt (tak med kontur), alla sådana i ett enda anrop. Under
 // DETAIL_PX: väggar och tak utan skraffering. Annars allt. Antalet
 // ritanrop, inte räknandet, är det som kostar när tusentals hus syns.
-// Medan kartan rör sig skrafferas inga hus: strecken är ungefär hälften av
-// ritanropen (i tät stad 48 bilder/s med, 70 utan), och de syns ändå knappt
-// i rörelse. De ritas när kartan har stannat.
+// Strecken är ungefär hälften av ritanropen, så bara större hus (nära eller
+// höga) skrafferas: i tät stad 20-25 % fler bilder/s än när alla hus
+// skrafferades. Samma gräns gäller när kartan rör sig, så att inget blinkar.
 const FLAT_PX = 3
-const DETAIL_PX = 6
+const DETAIL_PX = 14
 
 // Förbereder ett hus för ritning: allt som inte beror på kameran (meter,
 // klippkanter mellan kartrutor, väggarnas längd, darret i linjerna och takets
@@ -323,7 +323,6 @@ export function attachSketchedBuildings(map, canvas) {
     // Husen växer upp mellan zoom 14 och 15.
     const grown = Math.min(1, Math.max(0, zoom - 14))
     if (grown <= 0 || buildings.length === 0) return
-    const moving = map.isMoving() // ingen skraffering, se FLAT_PX
 
     const sinPitch = Math.sin((map.getPitch() * Math.PI) / 180)
     const center = map.getCenter().toArray()
@@ -409,7 +408,7 @@ export function attachSketchedBuildings(map, canvas) {
           // avståndet dubblas i hela steg med avståndet till kameran. Strecken
           // ligger fortfarande fast på huset, som vid zoomnivåerna.
           sparser: 2 ** Math.max(0, Math.round(Math.log2(1 / depth))),
-          detail: top - bottom < FLAT_PX ? 'flat' : top - bottom < DETAIL_PX || moving ? 'simple' : 'full',
+          detail: top - bottom < FLAT_PX ? 'flat' : top - bottom < DETAIL_PX ? 'simple' : 'full',
         })
       }
     }
@@ -680,8 +679,6 @@ export function attachSketchedBuildings(map, canvas) {
     if (map.getZoom() < 14) return
     map.off('render', refreshWhenLoaded)
     map.on('render', refreshWhenLoaded)
-    // Skrafferingen tillbaka nu när kartan står still (move ritade utan).
-    requestAnimationFrame(() => !map.isMoving() && render())
   })
   // Sista chansen, om rutorna kom medan kartan rörde sig.
   map.on('idle', refresh)
