@@ -49,23 +49,43 @@ function bboxOf(geometry) {
   return box
 }
 
-// Avstånd (ungefärligt, i grader) från punkten till en utbredning. 0 = inuti.
-function distanceToBbox([west, south, east, north], lng, lat) {
+// Avstånd (ungefärligt, i grader i kvadrat) från punkten till ytans kant.
+function distanceToOutline(geometry, lng, lat) {
   const k = Math.cos((lat * Math.PI) / 180)
-  const dx = Math.max(west - lng, 0, lng - east) * k
-  const dy = Math.max(south - lat, 0, lat - north)
-  return Math.hypot(dx, dy)
+  const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
+  let nearest = Infinity
+  for (const polygon of polygons) {
+    for (const ring of polygon) {
+      for (let i = 0; i < ring.length - 1; i++) {
+        const ax = (ring[i][0] - lng) * k
+        const ay = ring[i][1] - lat
+        const dx = (ring[i + 1][0] - lng) * k - ax
+        const dy = ring[i + 1][1] - lat - ay
+        const t = Math.min(1, Math.max(0, -(ax * dx + ay * dy) / (dx * dx + dy * dy || 1)))
+        nearest = Math.min(nearest, (ax + t * dx) ** 2 + (ay + t * dy) ** 2)
+      }
+    }
+  }
+  return nearest
 }
 
-// Ytan som innehåller punkten, annars den närmaste (t.ex. när skärmens mitt
-// är ute i havet, utanför alla kommuner).
-function findAt(features, lng, lat, bbox) {
-  return (
-    features.find((f) => contains(f.geometry, lng, lat)) ??
-    features.reduce((best, f) =>
-      distanceToBbox(bbox(f), lng, lat) < distanceToBbox(bbox(best), lng, lat) ? f : best,
-    )
-  )
+// Ytan som innehåller punkten, annars den vars kant ligger närmast. Ytorna är
+// förenklade, så orter längs kusten och i skärgården hamnar ofta utanför alla
+// kommuner (Sandhamn, Vaxholm, Lysekil), och skärmens mitt kan vara ute i havet.
+// Kanten, inte utbredningen: Värmdös stora utbredning täcker också Vaxholm.
+function findAt(features, lng, lat) {
+  const inside = features.find((f) => contains(f.geometry, lng, lat))
+  if (inside) return inside
+  let nearest = null
+  let distance = Infinity
+  for (const f of features) {
+    const d = distanceToOutline(f.geometry, lng, lat)
+    if (d < distance) {
+      nearest = f
+      distance = d
+    }
+  }
+  return nearest
 }
 
 let regions = null
@@ -152,7 +172,7 @@ export function landskapNameAt([lng, lat]) {
 // Landskapet vid punkten: { name, bounds }. Utan väntan, eftersom landskapen
 // redan är laddade (används för att avgöra om nålarna ska synas).
 export function landskapAt([lng, lat]) {
-  const area = findAt(LANDSKAP_AREAS.features, lng, lat, (f) => bboxOf(f.geometry))
+  const area = findAt(LANDSKAP_AREAS.features, lng, lat)
   const [w, s, e, n] = bboxOf(area.geometry)
   return { name: area.properties.namn, bounds: [[w, s], [e, n]] }
 }
@@ -162,7 +182,7 @@ export function landskapAt([lng, lat]) {
 export async function regionAt(level, [lng, lat]) {
   if (level === 'landskap') return landskapAt([lng, lat])
   const { kommuner, lan } = await loadRegions()
-  const kommun = findAt(kommuner, lng, lat, (f) => f.properties.bbox)
+  const kommun = findAt(kommuner, lng, lat)
   const region = level === 'lan' ? lan.get(kommun.properties.lan) : kommun
   const [w, s, e, n] = region.properties.bbox
   const name = level === 'lan' ? region.properties.namn : `${region.properties.namn} kommun`

@@ -720,6 +720,12 @@
   color: #3a2f25;
   white-space: nowrap;
   text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
+  /* En knapp som ser ut som text, och som släpper igenom musen till kartan (se placeLabelAt). */
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  pointer-events: none;
 }
 
 .map-sketch-label-big {
