@@ -42,6 +42,7 @@ const ANSWERS = [
 // som öppnar en ruta där man kan skriva ett meddelande till dem som har svarat Ja
 // eller Kanske (de får en notis från Intresseklubben), och sedan anropar
 // `onDeleted`. Andra ser inte knapparna (och backend låter bara skaparen ändra och radera).
+// Ägaren av eventets klubb ser också Radera (`event.can_delete`, SCRUM-326).
 // Tillbaka-knappen ligger ovanför rutan, i EventsPanel.
 //
 // SCRUM-293, 295 och 296: nivån, området och "3 av 10 kommer" visas under titeln, och
@@ -229,22 +230,26 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
           )}
         </p>
 
-        {event.is_host && (
+        {(event.is_host || event.can_delete) && (
           <>
-            <label>
-              <input
-                type="checkbox"
-                checked={event.guests_can_invite}
-                disabled={settingBusy}
-                onChange={(e) => handleGuestsCanInvite(e.target.checked)}
-              />{' '}
-              Gäster får bjuda in
-            </label>
+            {event.is_host && (
+              <label>
+                <input
+                  type="checkbox"
+                  checked={event.guests_can_invite}
+                  disabled={settingBusy}
+                  onChange={(e) => handleGuestsCanInvite(e.target.checked)}
+                />{' '}
+                Gäster får bjuda in
+              </label>
+            )}
             <div className="card-actions">
-              <button type="button" className="secondary-button button-small" onClick={onEdit} disabled={deleting}>
-                Redigera
-              </button>
-              {event.is_owner && (
+              {event.is_host && (
+                <button type="button" className="secondary-button button-small" onClick={onEdit} disabled={deleting}>
+                  Redigera
+                </button>
+              )}
+              {event.can_delete && (
                 <button
                   type="button"
                   className="text-button"
@@ -278,10 +283,17 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
                       från Intresseklubben om att eventet är inställt.
                     </p>
                   )}
-                  {responses !== null && coming === 0 && (
+                  {responses !== null && coming === 0 && event.is_owner && (
                     <p className="hint-text">Ingen har svarat Ja eller Kanske, så ingen får någon notis.</p>
                   )}
-                  {(failed || coming > 0) && (
+                  {/* Klubbens ägare tar bort någon annans event: skaparen får också veta det. */}
+                  {!event.is_owner && (
+                    <p className="hint-text">
+                      {event.creator_name ?? event.creator_username}, som skapade eventet, får en notis om att du har
+                      tagit bort det.
+                    </p>
+                  )}
+                  {(failed || coming > 0 || !event.is_owner) && (
                     <>
                       <label htmlFor={`cancel-message-${event.id}`}>Meddelande till dem (valfritt)</label>
                       <TextareaWithCount
