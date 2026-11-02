@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
-import { useTabParam } from '../../hooks/useTabParam'
+import { useResetOnTabChange, useTabParam } from '../../hooks/useTabParam'
 import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
@@ -11,6 +11,8 @@ import CreateOffer from '../CreateOffer'
 import { PadHeadAction } from '../PadHead'
 import EmptyState from '../EmptyState'
 import FilterTabs from '../FilterTabs'
+import InterestPicker from '../InterestPicker'
+import EventDayFilter from './EventDayFilter'
 import EventDetails from './EventDetails'
 import EventList from './EventList'
 import { contactsQuery } from '../../services/contacts'
@@ -19,7 +21,7 @@ import { myGroupsQuery } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
 import { useAuth } from '../../hooks/useAuth'
 import { markEventsSeen } from '../../services/eventsSeen'
-import { TIME_FILTERS, inTimeFilter } from '../../utils/eventTime'
+import { inDayFilter } from '../../utils/eventTime'
 import LoadError from '../LoadError'
 
 const TABS = [
@@ -62,7 +64,8 @@ function splitEvents(events) {
 const NONE = []
 
 function EventsPanel() {
-  // Intressena (för formuläret och för att markera ens egna) hämtas ur minnet.
+  // Intressena (biblioteket för ett förvalt intresse i formuläret, och ens egna för markeringen och snabbvalen) hämtas
+  // ur minnet.
   const [interestsStatus, setInterestsStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
@@ -118,7 +121,10 @@ function EventsPanel() {
         ? 'ready'
         : 'loading'
   const loadEvents = () => eventsResult.refetch()
+  // Hela biblioteket, för namnet på intresset i adressen (?intresse=ID) när formuläret ska ha det förvalt. Det listas
+  // inte; intressen väljs med InterestPicker.
   const [interests, setInterests] = useState([])
+  const createInterest = interests.find((i) => i.id === createInterestId) ?? null
   // Fel från inbjudningarna när eventet skapades (eventet skapades ändå).
   const [inviteProblem, setInviteProblem] = useState('')
   // Visas formuläret för att redigera eventet som är öppet? Stängs när man byter vy.
@@ -129,15 +135,19 @@ function EventsPanel() {
     setEditing(false)
     if (view !== 'list') setNotice('')
   }, [view])
-  const [myInterestIds, setMyInterestIds] = useState(new Set())
-  // Filtren ('' = alla): tid (se utils/eventTime.js) och intresse. Gäller alla flikar.
-  const [timeFilter, setTimeFilter] = useState('')
-  const [interestFilter, setInterestFilter] = useState('')
-  const filtering = Boolean(timeFilter || interestFilter)
+  // Ens egna intressen: deras events först i Förslag, och snabbvalen i intresseväljaren.
+  const [myInterests, setMyInterests] = useState([])
+  const myInterestIds = useMemo(() => new Set(myInterests.map((i) => i.id)), [myInterests])
+  // Filtren: datum (ett snabbval eller en dag, '' = alla, se dayRange i utils/eventTime.js) och intresse ({ id, name }
+  // eller null). Nollställs när man byter flik.
+  const [dayFilter, setDayFilter] = useState('')
+  const [interestFilter, setInterestFilter] = useState(null)
+  const filtering = Boolean(dayFilter || interestFilter)
   function clearFilters() {
-    setTimeFilter('')
-    setInterestFilter('')
+    setDayFilter('')
+    setInterestFilter(null)
   }
+  useResetOnTabChange(view === 'list' ? tab : null, clearFilters)
   // Formuläret, med intresset förvalt om det finns ett.
   function openCreate(interestId = null) {
     setInviteProblem('')
@@ -149,7 +159,7 @@ function EventsPanel() {
     Promise.all([getAllInterests(), getMyInterests()])
       .then(([allInterests, mine]) => {
         setInterests(allInterests)
-        setMyInterestIds(new Set(mine.map((i) => i.id)))
+        setMyInterests(mine)
         setInterestsStatus('ready')
       })
       .catch(() => setInterestsStatus('error'))
@@ -196,7 +206,7 @@ function EventsPanel() {
     ? splitEvents(
         events.filter(
           (event) =>
-            inTimeFilter(event, timeFilter) && (!interestFilter || event.interest_id === Number(interestFilter)),
+            inDayFilter(event, dayFilter) && (!interestFilter || event.interest_id === interestFilter.id),
         ),
       )
     : unfiltered
@@ -206,7 +216,6 @@ function EventsPanel() {
     ...lists.suggested.filter((event) => !myInterestIds.has(event.interest_id)),
   ]
   const shown = { ...lists, suggested }
-  const interestName = interests.find((i) => i.id === Number(interestFilter))?.name
   // Leta upp eventet i hela listan, så att vyn visar ens senaste svar.
   const selected = typeof view === 'number' ? events.find((e) => e.id === view) : null
   // Ett event som inte (längre) finns i listan: raderat av den som skapade det,
@@ -243,11 +252,11 @@ function EventsPanel() {
           <BackButton onClick={goBack} />
           <div className="card sheet sheet-form">
             <CreateEventForm
-              interests={interests}
+              myInterests={myInterests}
               groups={myGroups}
               contacts={contacts}
               initialGroupId={fromGroupId}
-              initialInterestId={createInterestId}
+              initialInterest={createInterest}
               onCreated={handleCreated}
               onCancel={goBack}
             />
@@ -277,7 +286,7 @@ function EventsPanel() {
                   // key: ett nytt formulär (med eventets uppgifter) varje gång man börjar redigera.
                   key={selected.id}
                   event={selected}
-                  interests={interests}
+                  myInterests={myInterests}
                   groups={myGroups}
                   contacts={contacts}
                   onSaved={async () => {
@@ -313,31 +322,20 @@ function EventsPanel() {
           ) : (
             <>
               <div className="filter-select-row filter-select-row-compact">
-                <select aria-label="Filtrera på tid" value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
-                  {TIME_FILTERS.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-                <select
+                <EventDayFilter value={dayFilter} onChange={setDayFilter} />
+                <InterestPicker
                   aria-label="Filtrera på intresse"
+                  placeholder="Alla intressen"
+                  myInterests={myInterests}
                   value={interestFilter}
-                  onChange={(e) => setInterestFilter(e.target.value)}
-                >
-                  <option value="">Alla intressen</option>
-                  {interests.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setInterestFilter}
+                />
               </div>
-              {shown[tab].length === 0 && interestName ? (
+              {shown[tab].length === 0 && interestFilter ? (
                 <CreateOffer
-                  text={`Det finns inga events för ${interestName}. Vill du skapa ett?`}
+                  text={`Det finns inga events för ${interestFilter.name}. Vill du skapa ett?`}
                   createLabel="Skapa event"
-                  onCreate={() => openCreate(Number(interestFilter))}
+                  onCreate={() => openCreate(interestFilter.id)}
                   onClear={clearFilters}
                 />
               ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
