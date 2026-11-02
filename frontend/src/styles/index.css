@@ -4298,8 +4298,8 @@ button.board-note:focus-visible {
 
 /* Åldersfiltret (AgeRangeSlider): åldern till vänster, i samma storlek som de
    andra filtren, och ett reglage med två handtag till höger, på en rad i en
-   ruta som ser ut som de andra filtren och inte är bredare än innehållet. Står
-   på en egen rad i ett filter med två kolumner. */
+   ruta som ser ut som de andra filtren och inte är bredare än innehållet (på
+   en egen rad längre, se .filter-age-row). */
 .age-range {
   --thumb: 1rem;
   box-sizing: border-box;
@@ -4316,18 +4316,74 @@ button.board-note:focus-visible {
   font-size: var(--text-small);
 }
 
-.filter-select-row .age-range {
-  grid-column: 1 / -1;
-  justify-self: start;
+/* Medlemmars filter (PeoplePage): en Filter-knapp med en pil, som fäller ut
+   fälten. Utfällda står intresse, kommun och kön på en rad och åldern ensam på
+   raden under, så att reglaget får plats att vara längre. Åldern är lika lång i
+   Matcha och Sök: som raden i Matcha (kommun och kön). */
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border: 2px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 700;
+  cursor: pointer;
 }
 
-/* Skulle fältet före åldern stå ensamt på sin rad (kön i Sök), tar det också
-   hela bredden, så att raden inte får ett hål. */
-.filter-select-row > :nth-child(odd):has(+ .age-range) {
-  grid-column: 1 / -1;
+.filter-toggle::after {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 1.6px solid var(--color-ink);
+  border-bottom: 1.6px solid var(--color-ink);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.15s ease;
 }
 
-/* Lika bred hela tiden ("upp till 99 år" är längst), så att reglaget inte
+.filter-toggle.is-open::after {
+  transform: translateY(1px) rotate(-135deg);
+}
+
+.filter-toggle:hover,
+.filter-toggle:focus-visible {
+  border-color: var(--color-ink);
+}
+
+.filter-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.filter-panel .filter-select-row:not(.filter-select-row-paper) {
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  width: 27rem;
+  max-width: 100%;
+}
+
+.filter-age-row .age-range {
+  width: 27rem;
+  max-width: 100%;
+}
+
+.filter-age-row .age-range-slider {
+  flex: 1 1 auto;
+}
+
+/* Lika bred hela tiden ("Upp till 99 år" är längst), så att reglaget inte
    flyttar sig medan man drar. */
 .age-range-value {
   flex: 0 0 5.9em;

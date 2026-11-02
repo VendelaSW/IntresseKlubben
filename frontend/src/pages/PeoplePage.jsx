@@ -1,5 +1,5 @@
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
@@ -99,11 +99,6 @@ const NO_FILTERS = {
   maxAge: null,
 }
 
-// Ett omslag runt filterraderna när `wrap` är sant, annars bara raderna.
-function FilterPanel({ wrap, className, children }) {
-  return wrap ? <div className={className}>{children}</div> : <>{children}</>
-}
-
 function PeoplePage() {
   const confirm = useConfirm()
   // TILLFÄLLIGT (testläget): matchningssidans layout (väljaren "Matchningssidan"), se MatchPanel.
@@ -126,8 +121,9 @@ function PeoplePage() {
   const [error, setError] = useState('')
   // Den man nyss tog bort från Sök ({ id, name }), med "Ångra" en stund.
   const [removed, setRemoved] = useState(null)
-  // Filterfälten är utfällda på en smal skärm (bara i layouten Nicklas förslag 1: där är de bakom en Filter-knapp).
+  // Filterfälten ligger bakom en Filter-knapp och är ihopfällda från början.
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const filterPanelId = useId()
 
   useEffect(() => {
     if (!removed) return undefined
@@ -310,14 +306,14 @@ function PeoplePage() {
     runAction(() => resetDismissedSuggestions())
   }
 
-  // Hur många filter som är på, för Filter-knappen på en smal skärm. Intressefiltret finns bara i Sök.
+  // Hur många filter som är på, för Filter-knappen. Intressefiltret finns bara i Sök.
   const activeFilters =
     (tab === 'suggested' && filters.interest ? 1 : 0) +
     (filters.municipalityCode ? 1 : 0) +
     (filters.gender ? 1 : 0) +
     (filters.minAge !== null || filters.maxAge !== null ? 1 : 0)
 
-  // Kommun, kön och ålder. I Sök står intressefiltret först på samma rad.
+  // Kommun och kön. I Sök står intressefiltret först på samma rad.
   const demographics = (
     <>
         <MunicipalityPicker
@@ -349,10 +345,6 @@ function PeoplePage() {
             ))}
           </select>
         )}
-        <AgeRangeSlider
-          value={{ min: filters.minAge, max: filters.maxAge }}
-          onChange={({ min, max }) => setFilters({ ...filters, minAge: min, maxAge: max })}
-        />
     </>
   )
 
@@ -369,33 +361,40 @@ function PeoplePage() {
 
       {(tab === 'suggested' || tab === 'match') && (
         <>
-          {/* Nicklas förslag 1: på en smal skärm är filterfälten bakom en knapp, som visar hur många filter som är på. */}
-          {paperRow && (
-            <button
-              type="button"
-              className={`filter-toggle${filtersOpen ? ' is-open' : ''}`}
-              aria-expanded={filtersOpen}
-              onClick={() => setFiltersOpen((open) => !open)}
-            >
-              Filter{activeFilters > 0 ? ` · ${activeFilters}` : ''}
-            </button>
-          )}
-          {/* Omslaget (.filter-panel) finns bara i Nicklas förslag 1: i övrigt ligger raderna direkt i listan, så att de behåller sitt vanliga avstånd. */}
-          <FilterPanel className={`filter-panel${filtersOpen ? ' is-open' : ''}`} wrap={paperRow}>
-            {/* I Matcha och Sök, i layouten Nicklas förslag 1, är fälten papperslappar (se .filter-select-row-paper). */}
-            <div className={`filter-select-row filter-select-row-compact${paperRow ? ' filter-select-row-paper' : ''}`}>
-              {tab === 'suggested' && (
-                <InterestPicker
-                  aria-label="Filtrera på intresse"
-                  placeholder="Alla intressen"
-                  myInterests={myInterests}
-                  value={filters.interest}
-                  onChange={(interest) => setFilters({ ...filters, interest })}
+          {/* Filterfälten bakom en knapp, som visar hur många filter som är på. Utfällda: intresse (i Sök), kommun och
+              kön på en rad, och åldern ensam på raden under, så att reglaget får plats att vara långt. I layouten
+              Nicklas förslag 1 är fälten papperslappar (se .filter-select-row-paper). */}
+          <button
+            type="button"
+            className={`filter-toggle${paperRow ? ' filter-toggle-paper' : ''}${filtersOpen ? ' is-open' : ''}`}
+            aria-expanded={filtersOpen}
+            aria-controls={filterPanelId}
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            Filter{activeFilters > 0 ? ` · ${activeFilters}` : ''}
+          </button>
+          {filtersOpen && (
+            <div id={filterPanelId} className="filter-panel">
+              <div className={`filter-select-row${paperRow ? ' filter-select-row-paper' : ''}`}>
+                {tab === 'suggested' && (
+                  <InterestPicker
+                    aria-label="Filtrera på intresse"
+                    placeholder="Alla intressen"
+                    myInterests={myInterests}
+                    value={filters.interest}
+                    onChange={(interest) => setFilters({ ...filters, interest })}
+                  />
+                )}
+                {demographics}
+              </div>
+              <div className={`filter-age-row${paperRow ? ' filter-select-row-paper' : ''}`}>
+                <AgeRangeSlider
+                  value={{ min: filters.minAge, max: filters.maxAge }}
+                  onChange={({ min, max }) => setFilters({ ...filters, minAge: min, maxAge: max })}
                 />
-              )}
-              {demographics}
+              </div>
             </div>
-          </FilterPanel>
+          )}
           {filters.gender && (
             <p className="hint-text">Visar bara dem som valt att synas när man filtrerar på kön.</p>
           )}
