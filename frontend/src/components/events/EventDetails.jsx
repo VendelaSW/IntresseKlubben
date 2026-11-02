@@ -295,7 +295,11 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
                   )}
                   {(failed || coming > 0 || !event.is_owner) && (
                     <>
-                      <label htmlFor={`cancel-message-${event.id}`}>Meddelande till dem (valfritt)</label>
+                      <label htmlFor={`cancel-message-${event.id}`}>
+                        {/* Klubbens ägare och ingen som ska komma: bara skaparen får meddelandet. */}
+                        Meddelande till {!event.is_owner && responses !== null && coming === 0 ? (event.creator_name ?? event.creator_username) : 'dem'}{' '}
+                        (valfritt)
+                      </label>
                       <TextareaWithCount
                         id={`cancel-message-${event.id}`}
                         value={cancelMessage}

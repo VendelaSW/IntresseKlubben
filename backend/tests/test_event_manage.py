@@ -243,7 +243,9 @@ def test_only_the_owner_of_the_club_can_delete_someone_elses_event(client, db, u
 
     # Vanlig medlem.
     assert client.get("/events/").json()[0]["can_delete"] is False
-    assert client.delete(f"/events/{event.id}").status_code == 403
+    response = client.delete(f"/events/{event.id}")
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Bara den som skapat eventet och klubbens ägare kan ta bort det"
 
     # Administratör.
     next(m for m in group.members if m.user_id == user.id).role = GroupRole.admin

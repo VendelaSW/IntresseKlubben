@@ -73,16 +73,27 @@ def _creator_name(event: Event) -> str:
 def notify_event_cancelled(db: Session, event: Event, message: str | None, by) -> None:
     """Notiser om att eventet ställs in, med meddelandet från `by`, den som tar bort det. Görs innan eventet raderas
     (svaren behövs). Sparar inte: raderingen sparar allt på en gång. Ingen länk, eftersom eventet inte finns kvar.
-    Tar klubbens ägare bort någon annans event (SCRUM-326) får också skaparen veta det, men ägaren får ingen själv."""
+    Tar klubbens ägare bort någon annans event (SCRUM-326) får också skaparen veta det, men ägaren får ingen själv.
+    Den av deltagarna som har en blockering med `by` får veta att eventet är borta, men inte av vem eller meddelandet."""
     name = _user_name(by)
+    blocked = blocked_user_ids(db, by.id)
+    attendees = [user_id for user_id in _attendee_ids(db, event) if user_id != by.id]
+    title = f"«{event.title}» har ställts in"
     notify(
         db,
-        [user_id for user_id in _attendee_ids(db, event) if user_id != by.id],
+        [user_id for user_id in attendees if user_id not in blocked],
         NotificationKind.event_cancelled,
-        title=f"«{event.title}» har ställts in",
+        title=title,
         body=f"{name} har tagit bort eventet som du skulle gå på.",
         quote=message,
         quote_by=name if message else None,
+    )
+    notify(
+        db,
+        [user_id for user_id in attendees if user_id in blocked],
+        NotificationKind.event_cancelled,
+        title=title,
+        body="Eventet som du skulle gå på har tagits bort.",
     )
     if by.id != event.created_by:
         notify(

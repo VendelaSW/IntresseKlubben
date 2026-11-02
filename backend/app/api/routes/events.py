@@ -258,7 +258,7 @@ def remove_event(
 ):
     event = _visible_event_or_404(db, event_id, current_user.id)
     if not _can_delete(event, current_user.id):
-        raise HTTPException(status_code=403, detail=msg.EVENT_ONLY_CREATOR)
+        raise HTTPException(status_code=403, detail=msg.EVENT_ONLY_CREATOR_OR_CLUB_OWNER_CAN_DELETE)
     message = data.message if data else None
     notify_event_cancelled(db, event, censor_text(message) if message else None, current_user)
     delete_event(db, event)
