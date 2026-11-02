@@ -568,7 +568,7 @@ button.banner-button {
   line-height: 1.05;
   /* Långa namn bryts mellan orden, och ett ord som ändå inte får plats med
      bindestreck, inte mitt i ("Maximilian-a"). */
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   hyphens: auto;
 }
 
@@ -595,6 +595,7 @@ button.banner-button {
 .profile-header-facts {
   margin: 0;
   color: var(--color-muted);
+  overflow-wrap: anywhere;
 }
 
 /* Konto och inställningar på Min profil: ihopfällt, eftersom det sällan behövs. */
@@ -1003,6 +1004,15 @@ span.tag-selected:hover {
   font-weight: 400;
   font-size: var(--text-body);
   margin: 0;
+}
+
+/* Långa ord och e-postadresser bryts inom sin ruta (SCRUM-314). Med anywhere, inte break-word, gör ordet
+   inte heller rutan bredare. */
+.card-title,
+.card-subheading,
+.card-text,
+.hint-text {
+  overflow-wrap: anywhere;
 }
 
 .hint-text {
@@ -2477,7 +2487,7 @@ span.tag-selected:hover {
    under, så att intressena får mer plats på kortet. */
 .person-card-link {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 0.5rem 1rem;
   text-decoration: none;
@@ -3020,6 +3030,11 @@ span.tag-selected:hover {
   align-items: center;
   gap: 0.4rem;
   height: var(--line-gap);
+}
+
+/* Tiden hålls hel bredvid ett långt namn. */
+.notepad-message-head time {
+  flex: none;
 }
 
 /* Ett meddelande i följd från samma person (se utils/messageGroups.js): utan
@@ -4089,6 +4104,11 @@ button.board-note:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Rollen får plats, och det är namnet som kortas av. */
+.person-list.group-members .person-list-item .hint-text {
+  flex: none;
 }
 
 /* Ett ark: ett vitt kort lika brett som profilkorten, vänsterställt som resten
@@ -5322,6 +5342,7 @@ select.club-filter:focus-visible,
   color: var(--color-text);
   text-decoration: none;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .person-list-item:hover span:not(.hint-text):not(.person-list-avatar) {
