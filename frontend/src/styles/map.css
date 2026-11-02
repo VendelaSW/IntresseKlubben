@@ -1346,6 +1346,13 @@
   overflow: hidden;
 }
 
+/* Håll in − för hela Sverige: inget textval eller meny från telefonen under tiden. */
+.map-sketch .maplibregl-ctrl-zoom-out {
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
 .map-sketch .maplibregl-ctrl-group button + button {
   border-top: 1.5px solid #3a2f25;
 }
@@ -1560,10 +1567,10 @@
 }
 
 /* Menyn: en liten lapp under profillappen, högerställd. Ligger ovanpå det som
-   finns under (nivåknapparna Sverige–Kommun) i stället för i flödet: annars
-   gjorde den raden bredare, så att lapparna Brev–Events flyttade sig åt
-   vänster, och knuffade ner nivåknapparna. Högerkanten i linje med
-   nivåknapparnas, som sitter 44 px längre ut än profillappen (där
+   finns under (områdets namn) i stället för i flödet: annars gjorde den raden
+   bredare, så att lapparna Brev–Events flyttade sig åt vänster, och knuffade
+   ner namnet. Högerkanten i linje med namnets, som sitter 44 px längre ut än
+   profillappen (där
    zoomknapparna står ovanför, se margin-right på .map-top-widgets och
    right på .map-profile-wrap på mobil), så att menyn täcker dem helt i stället
    för att de sticker ut vid sidan. */
@@ -1893,11 +1900,6 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 0.4rem;
-}
-
-.map-levels .map-tool {
-  min-width: 6.6rem;
-  justify-content: center;
 }
 
 /* Med ett block öppet göms snabbzoomen (som på mobil, se nedan): man läser i
