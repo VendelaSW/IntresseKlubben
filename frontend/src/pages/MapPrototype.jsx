@@ -1242,12 +1242,15 @@ function MapPrototype() {
     fitSweden()
     map.on('resize', fitSweden)
     // Helt utzoomat: glid till landets mitt när man har slutat röra kartan,
-    // så att hela Sverige ligger mitt på skärmen.
-    map.on('moveend', () => {
-      if (!fit || map.getZoom() > fit.zoom + SETTLE_ZOOMS) return
+    // så att hela Sverige ligger mitt på skärmen. Glidningen märks med settle
+    // och dess eget moveend hoppas över: med minska rörelse på går easeTo
+    // direkt och moveend kommer inuti anropet, och om kartan inte kan nå
+    // mitten (begränsningarna) skulle den annars glida om och om igen.
+    map.on('moveend', (event) => {
+      if (event.settle || !fit || map.getZoom() > fit.zoom + SETTLE_ZOOMS) return
       const center = map.getCenter()
       if (Math.abs(center.lng - fit.center.lng) + Math.abs(center.lat - fit.center.lat) < 0.01) return
-      map.easeTo({ center: fit.center, zoom: fit.zoom, duration: 500 })
+      map.easeTo({ center: fit.center, zoom: fit.zoom, duration: 500 }, { settle: true })
     })
     mapRef.current = map
     // Klick på kartan på en låst nivå: ett steg in, där man klickade. Bara i
