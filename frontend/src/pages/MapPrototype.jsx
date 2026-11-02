@@ -1487,8 +1487,10 @@ function MapPrototype() {
         zoomToLevelRef.current('sverige')
       }, HOLD_FOR_SWEDEN_MS)
     }
-    function onZoomOutUp() {
+    function onZoomOutUp(event) {
       clearTimeout(holdTimer)
+      // Släpper man utanför knappen kommer inget klick som kan ta hand om flaggan, och då skulle nästa tryck försvinna.
+      if (!event.target.closest?.('.maplibregl-ctrl-zoom-out')) heldForSweden = false
     }
     // Annars öppnar ett långt tryck på en telefon webbläsarens egen meny.
     function onZoomOutMenu(event) {
