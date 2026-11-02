@@ -60,7 +60,12 @@
   --color-paper: #f5eddc;
   --color-paper-edge: rgba(176, 140, 80, 0.08);
   --color-paper-margin: #e7a1a1;
-  --color-envelope-inside: #eef3f8;
+  --color-envelope-paper: #e8d3ad;
+  --color-envelope-inside: #cdb288;
+  /* Det handritade: bläck och ojämna frihandshörn, på taggar, kuvert och anteckningsblocket. */
+  --tag-ink: #3a2f25;
+  --tag-shape: 12px 225px 12px 255px / 255px 12px 225px 12px;
+  --tag-shape-alt: 225px 12px 255px 12px / 12px 255px 12px 225px;
 
   --font-heading: 'Caveat', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
@@ -1125,9 +1130,6 @@ span.tag-selected:hover {
    fetstil och en bock på gul botten uppe på vänstra kanten. Egna klasser i
    stället för .tag, så att flikar och filter inte påverkas. */
 .interest-tags {
-  --tag-ink: #3a2f25;
-  --tag-shape: 12px 225px 12px 255px / 255px 12px 225px 12px;
-  --tag-shape-alt: 225px 12px 255px 12px / 12px 255px 12px 225px;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
@@ -2714,8 +2716,9 @@ span.tag-selected:hover {
   width: 2rem;
   height: 2rem;
   padding: 0;
-  border: 1.5px solid var(--color-text);
+  border: 1.5px solid var(--tag-ink);
   border-radius: 50%;
+  box-shadow: 2px 2px 0 var(--tag-ink);
   background: var(--color-white);
   color: var(--color-text);
   cursor: pointer;
@@ -2766,7 +2769,8 @@ span.tag-selected:hover {
 .letter-friend .letter-friend-avatar {
   width: 3.25rem;
   height: 3.25rem;
-  border: 2px solid var(--color-line);
+  border: 1.5px solid var(--tag-ink);
+  box-shadow: 2px 2px 0 var(--tag-ink);
   font-size: 1.25rem;
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
@@ -2821,26 +2825,37 @@ span.tag-selected:hover {
 }
 
 /* Kanten och skuggan ligger på själva kuvertet, så att .card-interactive ger
-   samma gula kant, gula skugga och lyft som andra klickbara kort. */
+   samma gula kant och lyft som andra klickbara kort. Kuvert i brunt papper, med
+   bläckkant och en hård bläckskugga som intressetaggarna. Hörnen är ojämna men
+   små, inte --tag-shape: fliken och framsidan har raka kanter, och kuvertets
+   sidor måste vara raka för att de ska mötas. */
 .envelope {
   position: relative;
   display: block;
   aspect-ratio: 10 / 7;
-  border: 2px solid var(--color-line);
-  border-radius: 6px;
-  box-shadow: 0 6px 0 var(--color-line);
-  background: var(--color-white);
+  border: 1.5px solid var(--tag-ink);
+  border-radius: 7px 4px 8px 5px / 5px 8px 4px 7px;
+  box-shadow: 3px 3px 0 var(--tag-ink);
+  background: var(--color-envelope-paper);
   color: var(--color-text);
   text-decoration: none;
   perspective: 700px;
   container-type: inline-size;
 }
 
+.envelopes li:nth-child(even) .envelope {
+  border-radius: 4px 7px 5px 8px / 8px 5px 7px 4px;
+}
+
+.envelope:hover,
+.envelope:focus-within {
+  box-shadow: 3px 3px 0 var(--color-accent);
+}
+
 .envelope-inside,
 .envelope-letter,
 .envelope-front,
-.envelope-flap,
-.envelope-seal {
+.envelope-flap {
   position: absolute;
 }
 
@@ -2848,7 +2863,7 @@ span.tag-selected:hover {
 .envelope-inside {
   inset: 0;
   z-index: 1;
-  border-radius: 4px;
+  border-radius: inherit;
   background: var(--color-envelope-inside);
 }
 
@@ -2861,17 +2876,20 @@ span.tag-selected:hover {
   top: 7%;
   bottom: 6%;
   z-index: 2;
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--tag-ink);
   border-radius: 3px;
   transition: transform 0.3s ease;
 }
 
-/* Framsidan, med ett V-format hack upptill där fliken ligger. */
+/* Framsidan, med ett V-format hack upptill där fliken ligger, och V:et ritat i bläck. */
 .envelope-front {
   inset: 0;
   z-index: 3;
-  border-radius: 4px;
-  background: var(--color-white);
+  border-radius: inherit;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 0 50 40 100 0' fill='none' stroke='%233a2f25' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+      center / 100% 100% no-repeat,
+    var(--color-envelope-paper);
   clip-path: polygon(0 0, 50% 40%, 100% 0, 100% 100%, 0 100%);
 }
 
@@ -2923,7 +2941,7 @@ span.tag-selected:hover {
 
 .envelope-when {
   font-size: clamp(0.5rem, 4.9cqi, 0.7rem);
-  color: var(--color-muted);
+  color: #5b4630;
 }
 
 /* "Från" eller "Till" centrerat över bilden och namnet (vem som skrev det
@@ -2936,19 +2954,19 @@ span.tag-selected:hover {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-muted);
+  color: #5b4630;
 }
 
-/* Fliken: en blå triangel med en vit triangel inuti, så att kanten syns. Blir
-   gul vid hover, som kuvertets kant. Vänds upp och hamnar bakom brevet när
-   kuvertet öppnas. */
+/* Fliken: en triangel i bläck med en triangel i kuvertets papper inuti, så att
+   kanten syns. Blir gul vid hover, som kuvertets kant. Vänds upp och hamnar
+   bakom brevet när kuvertet öppnas. */
 .envelope-flap {
   left: 0;
   right: 0;
   top: 0;
   height: 44%;
   z-index: 4;
-  background: var(--color-line);
+  background: var(--tag-ink);
   clip-path: polygon(0 0, 100% 0, 50% 100%);
   transform-origin: top;
   transition: transform 0.35s ease 0.25s, z-index 0s 0.25s, background 0.15s ease;
@@ -2958,7 +2976,7 @@ span.tag-selected:hover {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--color-white);
+  background: var(--color-envelope-paper);
   clip-path: polygon(2px 0, calc(100% - 2px) 0, 50% calc(100% - 3px));
 }
 
@@ -2967,50 +2985,56 @@ span.tag-selected:hover {
   background: var(--color-accent);
 }
 
-/* Gult sigill på ett nytt, oöppnat kuvert. */
-.envelope-seal {
-  left: 50%;
-  /* Lite ovanför flikens spets, så att "Från" under sigillet går fritt. */
-  top: 40%;
-  width: clamp(1.35rem, 16cqi, 2.3rem);
-  height: clamp(1.35rem, 16cqi, 2.3rem);
-  translate: -50% -55%;
+/* Ett nytt, oöppnat kuvert är knutet med ett tvinnat snöre och en rosett. Ritat i kuvertets egna mått (10:7), så
+   att det skalar med kuvertet. */
+.envelope-bow {
+  position: absolute;
+  inset: 0;
   z-index: 5;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-white), 0 2px 0 3px var(--color-line);
-  font-size: clamp(0.38rem, 4.3cqi, 0.62rem);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke-linecap: round;
+  transform-origin: 50% 43%;
   transition: transform 0.2s ease;
 }
 
-/* Små kuvert (på mobil): datumet döljs och sigillet blir mindre, annars rör
-   sigillet namnraden. Kuvertet är en container, så det gäller kuvertets egen
-   bredd, inte skärmens. */
+.envelope-twine {
+  stroke: #6e4620;
+  stroke-width: 1.8;
+}
+
+.envelope-twine-twist {
+  stroke: #c79a62;
+  stroke-width: 0.7;
+  stroke-dasharray: 1.4 1.6;
+}
+
+.envelope-knot {
+  fill: #6e4620;
+}
+
+/* Små kuvert (på mobil): datumet döljs, annars rör rosetten namnraden. Kuvertet
+   är en container, så det gäller kuvertets egen bredd, inte skärmens. */
 @container (max-width: 130px) {
   .envelope-when {
     display: none;
   }
-
-  .envelope-seal {
-    width: 1.1rem;
-    height: 1.1rem;
-    font-size: 0.32rem;
-  }
 }
 
 /* De minsta kuverten (smala mobiler, under 360px): där får "Från" eller "Till"
-   inte plats ovanför namnet utan att sigillet täcker det, så det står på samma
-   rad som bilden och namnet i stället. */
+   inte plats ovanför namnet utan att rosetten täcker det, så det står på samma
+   rad som bilden och namnet i stället. Namnet kortas av om det inte får plats. */
 @container (max-width: 100px) {
   .envelope-address {
     flex-direction: row;
     justify-content: center;
     gap: 2.5cqi;
+  }
+
+  .envelope-addressee {
+    min-width: 0;
   }
 }
 
@@ -3030,7 +3054,7 @@ span.tag-selected:hover {
 }
 
 /* Dator med mus: brevet i ett öppnat kuvert kommer upp lite till. Ett nytt
-   kuvert förblir stängt; bara sigillet växer lite. */
+   kuvert förblir stängt; bara rosetten växer lite. */
 @media (hover: hover) and (min-width: 768px) {
   .envelope:not(.envelope-new):hover .envelope-letter,
   .envelope:not(.envelope-new):focus-visible .envelope-letter {
@@ -3038,9 +3062,9 @@ span.tag-selected:hover {
     transition: transform 0.45s cubic-bezier(0.34, 1.6, 0.6, 1);
   }
 
-  .envelope-new:hover .envelope-seal,
-  .envelope-new:focus-visible .envelope-seal {
-    transform: scale(1.12);
+  .envelope-new:hover .envelope-bow,
+  .envelope-new:focus-visible .envelope-bow {
+    transform: scale(1.06);
   }
 }
 
@@ -3061,9 +3085,11 @@ span.tag-selected:hover {
   --notepad-right: 1.2rem;
   --notepad-indent: 0.8rem;
   padding: var(--notepad-top) var(--notepad-right) var(--line-gap) calc(var(--paper-margin) + var(--notepad-indent));
-  border: 2px solid var(--color-line);
-  border-radius: 4px;
-  box-shadow: 0 6px 0 var(--color-line);
+  border: 1.5px solid var(--tag-ink);
+  border-radius: var(--tag-shape-alt);
+  /* Raderna (.notepad-messages) går ut till kanten: klipp dem efter pappret. */
+  overflow: hidden;
+  box-shadow: 3px 3px 0 var(--tag-ink);
   line-height: var(--line-gap);
   text-align: left;
 }
@@ -3356,7 +3382,7 @@ span.tag-selected:hover {
 @media (prefers-reduced-motion: reduce) {
   .envelope-flap,
   .envelope-letter,
-  .envelope-seal {
+  .envelope-bow {
     transition: none;
   }
 }
