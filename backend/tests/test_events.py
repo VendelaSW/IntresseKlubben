@@ -7,6 +7,7 @@ from app.main import app
 from app.models import Contact, Event, EventInvitation, GroupMember, Interest, User
 from app.models.event import EventVisibility
 from app.models.group import GroupVisibility
+from app.schemas.event import EVENT_MAX_DAYS_AHEAD
 from tests.event_helpers import add_contact, add_event, add_group, future, payload
 
 
@@ -96,6 +97,25 @@ def test_required_fields_are_required(client, user, interest, missing):
 )
 def test_invalid_values_are_rejected(client, user, interest, overrides):
     assert client.post("/events/", json=payload(**overrides)).status_code == 422
+
+
+def test_event_can_be_at_most_a_year_ahead(client, user, interest):
+    # SCRUM-313: år 2188 gick att välja och syntes sedan under Att göra idag.
+    response = client.post("/events/", json=payload(starts_at=future(days=EVENT_MAX_DAYS_AHEAD + 1).isoformat()))
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Value error, Starttiden kan vara högst ett år fram i tiden"
+
+    response = client.post(
+        "/events/",
+        json=payload(starts_at=future().isoformat(), ends_at=future(days=EVENT_MAX_DAYS_AHEAD + 1).isoformat()),
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Value error, Sluttiden kan vara högst ett år fram i tiden"
+
+    # Precis innanför gränsen går det bra.
+    edge = future(days=EVENT_MAX_DAYS_AHEAD, hours=-1)
+    response = client.post("/events/", json=payload(starts_at=edge.isoformat()))
+    assert response.status_code == 201
 
 
 def test_unknown_interest_is_rejected(client, user, interest):

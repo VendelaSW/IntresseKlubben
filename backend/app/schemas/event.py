@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
@@ -12,6 +12,11 @@ from app.services.regions import COUNTRY_CODE
 # Max antal deltagare går att sätta mellan de här (SCRUM-293).
 MIN_MAX_ATTENDEES = 2
 MAX_MAX_ATTENDEES = 1000
+
+# Hur långt fram ett event kan ligga (SCRUM-313): ett år. Annars går det att välja t.ex. år 2188, och då visar listorna
+# och Att göra idag events som inte är riktiga träffar. Gäller både start och slut. Samma gräns finns i frontend
+# (utils/eventTime.js).
+EVENT_MAX_DAYS_AHEAD = 365
 
 
 def _max_attendees(value: int | None) -> int | None:
@@ -67,6 +72,13 @@ def _to_utc(value: datetime) -> datetime:
     return value.astimezone(timezone.utc)
 
 
+def _within_limit(value: datetime, too_far_message: str) -> datetime:
+    # Högst EVENT_MAX_DAYS_AHEAD fram i tiden. `value` är redan i UTC (se _to_utc).
+    if value > datetime.now(timezone.utc) + timedelta(days=EVENT_MAX_DAYS_AHEAD):
+        raise ValueError(too_far_message)
+    return value
+
+
 class EventCreate(BaseModel):
     title: str
     description: str
@@ -120,10 +132,15 @@ class EventCreate(BaseModel):
     def address_valid(cls, v: str) -> str:
         return _address(v)
 
-    @field_validator("starts_at", "ends_at")
+    @field_validator("starts_at")
     @classmethod
-    def time_has_timezone(cls, v: datetime | None) -> datetime | None:
-        return None if v is None else _to_utc(v)
+    def starts_at_valid(cls, v: datetime) -> datetime:
+        return _within_limit(_to_utc(v), msg.EVENT_START_TOO_FAR)
+
+    @field_validator("ends_at")
+    @classmethod
+    def ends_at_valid(cls, v: datetime | None) -> datetime | None:
+        return None if v is None else _within_limit(_to_utc(v), msg.EVENT_END_TOO_FAR)
 
     @model_validator(mode="after")
     def times_make_sense(self):
@@ -230,12 +247,12 @@ class EventUpdate(BaseModel):
         v = _to_utc(v)
         if v <= datetime.now(timezone.utc):
             raise ValueError(msg.EVENT_START_IN_PAST)
-        return v
+        return _within_limit(v, msg.EVENT_START_TOO_FAR)
 
     @field_validator("ends_at")
     @classmethod
-    def ends_at_has_timezone(cls, v: datetime | None) -> datetime | None:
-        return None if v is None else _to_utc(v)
+    def ends_at_valid(cls, v: datetime | None) -> datetime | None:
+        return None if v is None else _within_limit(_to_utc(v), msg.EVENT_END_TOO_FAR)
 
 
 class EventInvite(BaseModel):
