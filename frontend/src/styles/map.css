@@ -114,6 +114,8 @@
   font-family: var(--font-heading);
   font-size: 1.45rem;
   line-height: var(--calm-line);
+  /* Långa namn och titlar bryts inom sidan (SCRUM-314). */
+  overflow-wrap: anywhere;
 }
 
 .map-calm-page p,
