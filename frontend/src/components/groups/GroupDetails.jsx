@@ -104,13 +104,16 @@ function GroupDetails({
               <button type="button" className="secondary-button button-small" onClick={onOpenBoard}>
                 Anslagstavla
               </button>
-              <button
-                type="button"
-                className="secondary-button button-small"
-                onClick={() => navigate(`/events?skapa=1&klubb=${group.id}`)}
-              >
-                Skapa event
-              </button>
+              {/* Bara ägaren och administratörer skapar event för klubben (SCRUM-326). */}
+              {(group.is_owner || group.is_admin) && (
+                <button
+                  type="button"
+                  className="secondary-button button-small"
+                  onClick={() => navigate(`/events?skapa=1&klubb=${group.id}`)}
+                >
+                  Skapa event
+                </button>
+              )}
             </>
           ) : (
             <>
