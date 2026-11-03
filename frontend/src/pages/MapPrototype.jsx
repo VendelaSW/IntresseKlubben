@@ -16,7 +16,7 @@ import MapPageWidgets from './MapPageWidgets'
 import MapPlaceSearch from './MapPlaceSearch'
 import MapProfileWidget from './MapProfileWidget'
 import { useBadgeCounts } from '../hooks/useBadgeCounts'
-import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden } from './mapPrototypeStyle'
+import mapStyle, { LANDSKAP_LABELS, LAN_LABELS, SWEDEN_RINGS, inSweden, pixelRatio, refreshWhileMoving } from './mapPrototypeStyle'
 import { getEvents } from '../services/events'
 import { searchPlaces } from '../services/geocode'
 import { getAllGroups, getMyGroups } from '../services/groups'
@@ -840,6 +840,7 @@ function syncPlaceLabels(
   }
 
   function refresh() {
+    if (!map.getLayer('place-anchors')) return // stilen har inte laddats än
     const seen = new Set()
     placed = map
       .queryRenderedFeatures({ layers: ['place-anchors'] })
@@ -851,9 +852,11 @@ function syncPlaceLabels(
         landskap: landskapMaskAt(f.geometry.coordinates),
         lan: lanCodeAt(f.geometry.coordinates),
       }))
-    render()
+    // Medan kartan rör sig ritas de av move strax efter.
+    if (!map.isMoving()) render()
   }
 
+  refreshWhileMoving(map, refresh)
   map.on('move', render)
   map.on('idle', refresh)
   return { render }
@@ -1382,6 +1385,7 @@ function MapPrototype() {
       pitchWithRotate: false,
       touchPitch: false,
       attributionControl: { compact: true },
+      pixelRatio: pixelRatio(),
     })
     // MapLibre passar in rektangeln runt Sverige, men i lutningen hamnar
     // landet då för lågt (mer luft ovanför än under). Därför justeras mitten
@@ -1428,17 +1432,19 @@ function MapPrototype() {
     // avbryter den gamla, och då tappar MapLibre bort den ena och hela kartan fryser ("_onEaseFrame is not a
     // function"). Så vänta tills avbrottet är klart, och låt bli om en ny animation har börjat: då kommer den
     // att skicka sina egna händelser när den är klar.
+    // Glidningen märks med settle och dess eget moveend hoppas över: med minska rörelse på går easeTo direkt,
+    // och om kartan inte kan nå mitten (begränsningarna) skulle den annars glida om och om igen.
     function whenSettled(callback) {
       queueMicrotask(() => {
         if (mapRef.current === map && !map.isEasing()) callback()
       })
     }
-    map.on('moveend', () =>
+    map.on('moveend', (event) =>
       whenSettled(() => {
-        if (!fit || map.getZoom() > fit.zoom + SETTLE_ZOOMS) return
+        if (event.settle || !fit || map.getZoom() > fit.zoom + SETTLE_ZOOMS) return
         const center = map.getCenter()
         if (Math.abs(center.lng - fit.center.lng) + Math.abs(center.lat - fit.center.lat) < 0.01) return
-        map.easeTo({ center: fit.center, zoom: fit.zoom, duration: 500 })
+        map.easeTo({ center: fit.center, zoom: fit.zoom, duration: 500 }, { settle: true })
       }),
     )
     mapRef.current = map

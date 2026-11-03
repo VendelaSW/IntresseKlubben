@@ -333,6 +333,8 @@ class EventOut(BaseModel):
     is_owner: bool
     # Skaparen eller en medarrangör (SCRUM-296): får ändra eventet, bjuda in och svara på ansökningar.
     is_host: bool
+    # Skaparen eller ägaren av eventets klubb (SCRUM-326): får ta bort eventet.
+    can_delete: bool
     # Medarrangörernas id (inte skaparen), för att visa dem bland deltagarna.
     host_ids: list[int]
     # Får den inloggade svara? Nej på ett event man ansöker till, tills ansökan är godkänd.

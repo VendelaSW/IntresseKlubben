@@ -44,6 +44,7 @@ const ANSWERS = [
 // som öppnar en ruta där man kan skriva ett meddelande till dem som har svarat Ja
 // eller Kanske (de får en notis från Intresseklubben), och sedan anropar
 // `onDeleted`. Andra ser inte knapparna (och backend låter bara skaparen ändra och radera).
+// Ägaren av eventets klubb ser också Radera (`event.can_delete`, SCRUM-326).
 // Tillbaka-knappen ligger ovanför rutan, i EventsPanel.
 //
 // SCRUM-293, 295 och 296: nivån står under titeln, området under platsen, "7 platser kvar" vid Kommer du? (och
@@ -245,14 +246,17 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
       </div>
 
       <div className="detail-aside">
-        {/* Redigera och Radera överst till höger, för skaparen och medarrangörerna. */}
-        {event.is_host && (
+        {/* Redigera och Radera överst till höger: Redigera för skaparen och medarrangörerna, Radera för skaparen och
+            klubbens ägare (event.can_delete, SCRUM-326). */}
+        {(event.is_host || event.can_delete) && (
           <>
             <div className="card-actions event-host-actions">
-              <button type="button" className="secondary-button button-small" onClick={onEdit} disabled={deleting}>
-                Redigera
-              </button>
-              {event.is_owner && (
+              {event.is_host && (
+                <button type="button" className="secondary-button button-small" onClick={onEdit} disabled={deleting}>
+                  Redigera
+                </button>
+              )}
+              {event.can_delete && (
                 <button
                   type="button"
                   className="text-button"
@@ -286,12 +290,23 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
                       från Intresseklubben om att eventet är inställt.
                     </p>
                   )}
-                  {responses !== null && coming === 0 && (
+                  {responses !== null && coming === 0 && event.is_owner && (
                     <p className="hint-text">Ingen har svarat Ja eller Kanske, så ingen får någon notis.</p>
                   )}
-                  {(failed || coming > 0) && (
+                  {/* Klubbens ägare tar bort någon annans event: skaparen får också veta det. */}
+                  {!event.is_owner && (
+                    <p className="hint-text">
+                      {event.creator_name ?? event.creator_username}, som skapade eventet, får en notis om att du har
+                      tagit bort det.
+                    </p>
+                  )}
+                  {(failed || coming > 0 || !event.is_owner) && (
                     <>
-                      <label htmlFor={`cancel-message-${event.id}`}>Meddelande till dem (valfritt)</label>
+                      <label htmlFor={`cancel-message-${event.id}`}>
+                        {/* Klubbens ägare och ingen som ska komma: bara skaparen får meddelandet. */}
+                        Meddelande till {!event.is_owner && responses !== null && coming === 0 ? (event.creator_name ?? event.creator_username) : 'dem'}{' '}
+                        (valfritt)
+                      </label>
                       <TextareaWithCount
                         id={`cancel-message-${event.id}`}
                         value={cancelMessage}

@@ -109,6 +109,41 @@ def test_only_the_creator_can_cancel(client, db, event, people):
     assert db.query(Notification).count() == 0
 
 
+def notice_to(db, user_id):
+    return db.query(Notification).filter(Notification.user_id == user_id).one()
+
+
+def test_when_the_club_owner_removes_it_the_attendees_see_the_owners_name(client, db, event, people):
+    event.group_id = add_group(db, 5, members=[1, 2, 3]).id
+    db.commit()
+
+    login_as(people[5])
+    assert client.request("DELETE", f"/events/{event.id}", json={"message": "Fel klubb"}).status_code == 204
+
+    # De som skulle gå och skaparen, inte ägaren själv.
+    assert recipients(db) == [1, 2, 3]
+    notice = notice_to(db, 2)
+    assert notice.body == "person5 har tagit bort eventet som du skulle gå på."
+    assert notice.quote == "Fel klubb"
+    assert notice.quote_by == "person5"
+    assert notice_to(db, 1).body == "person5, som äger klubben, har tagit bort ditt event."
+
+
+def test_someone_with_a_block_against_the_owner_never_sees_the_owners_name(client, db, event, people):
+    event.group_id = add_group(db, 5, members=[1, 2, 3]).id
+    db.commit()
+    add_contact(db, 2, 5, status="BLOCKED")  # en som skulle gå har blockerat ägaren
+
+    login_as(people[5])
+    assert client.request("DELETE", f"/events/{event.id}", json={"message": "Fel klubb"}).status_code == 204
+
+    notice = notice_to(db, 2)
+    assert notice.body == "Eventet som du skulle gå på har tagits bort."
+    assert notice.quote is None
+    assert notice.quote_by is None
+    assert notice_to(db, 3).quote_by == "person5"
+
+
 # ---------- Ändrat ----------
 
 

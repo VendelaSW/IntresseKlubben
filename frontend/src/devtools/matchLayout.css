@@ -18,13 +18,43 @@
     #fffdf7;
   box-shadow: 1px 3px 6px rgba(58, 47, 37, 0.32);
   transform: rotate(-0.6deg);
+  /* Kortet flyttas och rätas upp som en enda bild vid hovring, annars ritas varje del om för sig och bockarna på
+     taggarna ser ut att hoppa. */
+  will-change: transform;
 }
 
 .match-card-poster.card-interactive:hover,
 .match-card-poster.card-interactive:focus-within {
   border: 0;
   box-shadow: 2px 8px 12px rgba(58, 47, 37, 0.38);
-  transform: translateY(-3px);
+  transform: translateY(var(--hover-lift, -3px)) rotate(var(--hover-turn, 0deg));
+}
+
+/* Korten lyfts och rätas upp lite olika vid hovring, som papper man plockar upp. Fem varianter som går runt, efter
+   kortets plats i listan. */
+.match-card-poster:nth-child(5n + 1) {
+  --hover-lift: -3px;
+  --hover-turn: 0.3deg;
+}
+
+.match-card-poster:nth-child(5n + 2) {
+  --hover-lift: -4px;
+  --hover-turn: -0.2deg;
+}
+
+.match-card-poster:nth-child(5n + 3) {
+  --hover-lift: -2px;
+  --hover-turn: 0.1deg;
+}
+
+.match-card-poster:nth-child(5n + 4) {
+  --hover-lift: -4px;
+  --hover-turn: 0.4deg;
+}
+
+.match-card-poster:nth-child(5n) {
+  --hover-lift: -3px;
+  --hover-turn: -0.3deg;
 }
 
 /* Personkorten i Sök, Förfrågningar och Kompisar (PersonCard) har affischstilen i rutnät: kortens vanliga bredd, inte matchningskortets. */

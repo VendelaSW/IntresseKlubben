@@ -1,0 +1,288 @@
+/* TILLFÄLLIGT, bara i testläget: kalendern över ens egna events (se EventCalendar). Tas bort om den inte väljs; väljs den
+   flyttas den in i appen. */
+
+/* Smal skärm: månaden, och under den dagens events. */
+.event-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 34rem;
+}
+
+/* Bred skärm: månaden till vänster och dagens events bredvid, så att man slipper scrolla ned till dem. */
+@media (min-width: 900px) {
+  .event-calendar {
+    display: grid;
+    grid-template-columns: minmax(0, 34rem) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+    max-width: none;
+  }
+}
+
+/* Anteckningsblocket: vitt papper med tjock, lite ojämn svart kant och hård skugga som intressetaggarna (samma färg och
+   hörn, men mindre rundade så att de passar en stor yta), och spiralhål längs överkanten. */
+.event-calendar-month {
+  position: relative;
+  container: month / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.9rem 0.75rem 0.75rem;
+  --cal-line: rgba(58, 47, 37, 0.3);
+  border: 2.5px solid var(--color-ink);
+  border-radius: 10px 30px 10px 36px / 36px 10px 30px 10px;
+  background: var(--color-white);
+  box-shadow: 4px 5px 0 var(--color-ink);
+}
+
+.event-calendar-month::before {
+  content: '';
+  position: absolute;
+  top: 0.3rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  height: 1.1rem;
+  background-image: radial-gradient(
+    circle,
+    var(--color-bg) 0 0.2rem,
+    var(--color-ink) 0.22rem 0.34rem,
+    transparent 0.36rem
+  );
+  background-size: 1.5rem 1.1rem;
+  background-repeat: repeat-x;
+  background-position: center;
+}
+
+.event-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Månadsnamnet handskrivet och lite snett, som en rubrik på en anteckningsblockssida. */
+.event-calendar-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 2.2rem;
+  line-height: 1;
+  font-weight: 700;
+  text-transform: capitalize;
+  transform: rotate(-1.5deg);
+}
+
+/* Veckorna som en rutad kalender: tunna svarta linjer mellan dagarna. */
+.event-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid var(--cal-line);
+  border-left: 1px solid var(--cal-line);
+}
+
+.event-calendar-weekday {
+  padding: 0.1rem 0 0.05rem;
+  border-right: 1px solid var(--cal-line);
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  line-height: 1.1;
+  color: var(--color-ink);
+}
+
+.event-calendar-day {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.15rem;
+  min-height: 3.6rem;
+  padding: 0.2rem 0.15rem 0.25rem;
+  border: 0;
+  border-right: 1px solid var(--cal-line);
+  border-bottom: 1px solid var(--cal-line);
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.event-calendar-day.is-outside {
+  color: var(--color-muted);
+  opacity: 0.55;
+}
+
+/* Vald dag: gul. */
+.event-calendar-day.is-selected {
+  background: var(--color-accent);
+}
+
+.event-calendar-day:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: -2px;
+}
+
+.event-calendar-number {
+  align-self: flex-start;
+  min-width: 1.5rem;
+  padding: 0.05rem 0.2rem;
+  text-align: center;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* I dag: datumet ringat med en handritad ring (lite oval och sned). */
+.event-calendar-day.is-today .event-calendar-number {
+  border: 2px solid var(--color-ink);
+  border-radius: 55% 45% 50% 50% / 50% 55% 45% 50%;
+  transform: rotate(-6deg);
+}
+
+/* En post-it med eventets namn. Smal skärm: ryms inte, då visas "YAY!" i stället (se container-regeln nedan). */
+.event-calendar-note {
+  display: none;
+  padding: 0.15rem 0.25rem;
+  background: var(--note, var(--color-pastel-yellow));
+  box-shadow: 1px 2px 0 rgba(58, 47, 37, 0.25);
+  transform: rotate(var(--note-tilt, -2deg));
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: 700;
+  text-align: left;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* "YAY!" på dagar med event, handskrivet och lite snett, i svart. */
+.event-calendar-yay {
+  align-self: center;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text);
+  transform: rotate(-6deg);
+}
+
+/* Ryms lapparna (bred kalender) visas de, och "YAY!" döljs. */
+@container month (min-width: 26rem) {
+  .event-calendar-note {
+    display: -webkit-box;
+  }
+
+  .event-calendar-yay {
+    display: none;
+  }
+}
+
+/* Dagens events, centrerade: i höjd bredvid kalendern och i sidled i sin kolumn. */
+.event-calendar-day-events {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: center;
+  gap: 0.75rem;
+  min-width: 0;
+  width: 100%;
+  text-align: center;
+}
+
+/* En hög biljetter. Alla lager ligger i samma ruta och är lika breda som ett kort; de bakom är de nästa eventen, förskjutna
+   och lutade så att de skymtar bakom det översta. */
+.event-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 300px;
+}
+
+/* Ett kort i kolumnen, lika brett som lagret (inte flera kolumner som i en lista). */
+.event-stack .card-grid-compact {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.event-stack-pile {
+  display: grid;
+  align-items: start;
+  width: 100%;
+  padding: 0 calc(var(--behind, 0) * 0.6rem) calc(var(--behind, 0) * 0.6rem) 0;
+}
+
+.event-stack-layer {
+  grid-area: 1 / 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.event-stack-back {
+  z-index: calc(2 - var(--layer));
+  transform: translate(calc(var(--layer) * 0.6rem), calc(var(--layer) * 0.6rem)) rotate(calc(var(--layer) * 1.8deg));
+  filter: brightness(0.96);
+  pointer-events: none;
+}
+
+.event-stack-top {
+  position: relative;
+  z-index: 3;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .event-stack-top {
+    animation: event-ticket-in 0.25s ease;
+  }
+
+  @keyframes event-ticket-in {
+    from {
+      opacity: 0;
+      transform: translateX(1.5rem) rotate(3deg);
+    }
+  }
+}
+
+.event-stack-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.event-stack-count {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.event-calendar-selected {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  line-height: 1.1;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+@media (max-width: 480px) {
+  .event-calendar-month {
+    padding-inline: 0.5rem;
+  }
+
+  .event-calendar-month::before {
+    left: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .event-calendar-day {
+    min-height: 3.1rem;
+  }
+
+  .event-calendar-title {
+    font-size: 1.9rem;
+  }
+}

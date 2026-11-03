@@ -568,7 +568,7 @@ button.banner-button {
   line-height: 1.05;
   /* Långa namn bryts mellan orden, och ett ord som ändå inte får plats med
      bindestreck, inte mitt i ("Maximilian-a"). */
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   hyphens: auto;
 }
 
@@ -595,6 +595,7 @@ button.banner-button {
 .profile-header-facts {
   margin: 0;
   color: var(--color-muted);
+  overflow-wrap: anywhere;
 }
 
 /* Konto och inställningar på Min profil: ihopfällt, eftersom det sällan behövs. */
@@ -1005,6 +1006,15 @@ span.tag-selected:hover {
   margin: 0;
 }
 
+/* Långa ord och e-postadresser bryts inom sin ruta (SCRUM-314). Med anywhere, inte break-word, gör ordet
+   inte heller rutan bredare. */
+.card-title,
+.card-subheading,
+.card-text,
+.hint-text {
+  overflow-wrap: anywhere;
+}
+
 .hint-text {
   font-family: var(--font-body);
   font-weight: 400;
@@ -1222,6 +1232,19 @@ span.tag-selected:hover {
   outline-offset: 3px;
 }
 
+/* Bocken (CheckMark), samma som i .interest-tag.is-shared. */
+.check-mark {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* Den skissade pilen (DrawnArrow): kontur och skraffering i textens färg, som
    blyerts. Lika stor på taggarna och under Utforska. */
 .drawn-arrow {
@@ -1264,12 +1287,14 @@ span.tag-selected:hover {
   rotate: -5deg;
 }
 
+/* Pilen pekar åt höger när taggen är infälld, och vrids 90° nedåt när den är utfälld (SCRUM-298). */
 .interest-tag-arrow {
+  transform: rotate(-90deg);
   transition: transform 0.15s ease;
 }
 
 .interest-tag-group.is-open .interest-tag-arrow {
-  transform: rotate(180deg);
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1310,9 +1335,8 @@ span.tag-selected:hover {
   border: 1.5px solid var(--tag-ink);
   border-radius: 50%;
   background: var(--color-accent)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b1d10' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 13c2 1.5 3.5 3.5 5 6 3-7 6.5-11 11-14'/%3E%3C/svg%3E")
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b1d10' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4.5 4.5L19 7'/%3E%3C/svg%3E")
     center / 0.7rem no-repeat;
-  rotate: -8deg;
 }
 
 /* Medan en ruta är öppen döljs bockarna på taggarna bakom den, så att de inte
@@ -2720,7 +2744,7 @@ button.answer-summary-box:disabled {
    under, så att intressena får mer plats på kortet. */
 .person-card-link {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 0.5rem 1rem;
   text-decoration: none;
@@ -3263,6 +3287,11 @@ button.answer-summary-box:disabled {
   align-items: center;
   gap: 0.4rem;
   height: var(--line-gap);
+}
+
+/* Tiden hålls hel bredvid ett långt namn. */
+.notepad-message-head time {
+  flex: none;
 }
 
 /* Ett meddelande i följd från samma person (se utils/messageGroups.js): utan
@@ -4332,6 +4361,11 @@ button.board-note:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Rollen får plats, och det är namnet som kortas av. */
+.person-list.group-members .person-list-item .hint-text {
+  flex: none;
 }
 
 /* Ett ark: ett vitt kort lika brett som profilkorten, vänsterställt som resten
@@ -5588,6 +5622,7 @@ select.club-filter:focus-visible,
   color: var(--color-text);
   text-decoration: none;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .person-list-item:hover span:not(.hint-text):not(.person-list-avatar) {
@@ -5859,11 +5894,12 @@ label.person-list-item {
 
 /* Svart trekant: nedåt när området går att öppna, uppåt när det är öppet. */
 .explorer .explorer-arrow {
+  transform: rotate(-90deg);
   transition: transform 0.15s ease;
 }
 
 .explorer .explorer-area-open .explorer-arrow {
-  transform: rotate(180deg);
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5874,8 +5910,13 @@ label.person-list-item {
 
 /* Intressebiblioteket (InterestLibrary): det öppna området i en ruta i sin
    ljusa färg, med intressena som taggar att trycka på. */
+/* Rutan står på en egen rad i listan med områden, direkt under raden med taggen. */
+.library-area-row {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
 .library-area {
-  margin-top: 0.9rem;
   padding: 0.9rem 0.9rem 1rem;
   background: var(--tag-sub, var(--color-white));
   border: 1.5px solid #3a2f25;
@@ -5974,10 +6015,6 @@ label.person-list-item {
 
 .interest-pick-toggle:disabled {
   cursor: progress;
-}
-
-.interest-tag-group.is-open .interest-pick-drill .interest-tag-arrow {
-  transform: rotate(180deg);
 }
 
 @media (prefers-reduced-motion: reduce) {

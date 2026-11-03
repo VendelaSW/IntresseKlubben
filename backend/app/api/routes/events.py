@@ -35,7 +35,7 @@ from app.crud.event import (
     withdraw_event_request,
     yes_count,
 )
-from app.crud.group import get_membership, is_invited
+from app.crud.group import get_membership, is_club_owner, is_invited, is_moderator
 from app.crud.interest import get_active_interest, interest_place
 from app.crud.notification import notify_event_cancelled, notify_event_changed
 from app.db.session import get_db
@@ -111,6 +111,7 @@ def _to_response(db: Session, event: Event, user_id: int) -> EventOut:
         creator_name=creator.profile.name if creator.profile else None,
         is_owner=event.created_by == user_id,
         is_host=host,
+        can_delete=_can_delete(event, user_id),
         host_ids=[h.user_id for h in event.hosts],
         can_answer=can_answer(event, user_id),
         has_applied=has_applied(event, user_id),
@@ -149,11 +150,9 @@ def _to_attendees(db: Session, event: Event, viewer_id: int) -> list[EventAttend
     ]
 
 
-def _own_event_or_error(db: Session, event_id: int, user_id: int) -> Event:
-    event = _visible_event_or_404(db, event_id, user_id)
-    if event.created_by != user_id:
-        raise HTTPException(status_code=403, detail=msg.EVENT_ONLY_CREATOR)
-    return event
+def _can_delete(event: Event, user_id: int) -> bool:
+    """Skaparen, och ägaren av klubben eventet hör till: ägaren bestämmer över allt i sin klubb (SCRUM-326)."""
+    return event.created_by == user_id or (event.group is not None and is_club_owner(event.group, user_id))
 
 
 def _hosted_event_or_error(db: Session, event_id: int, user_id: int) -> Event:
@@ -185,6 +184,10 @@ def create(
             group = get_group_for_member(db, data.group_id, current_user.id)
         except EventRuleError as err:
             raise HTTPException(status_code=err.status_code, detail=err.detail)
+        # Bara ägaren och administratörer skapar event för klubben (SCRUM-326). Vanliga medlemmar kan fortfarande
+        # skapa egna event utan klubb.
+        if not is_moderator(group, current_user.id):
+            raise HTTPException(status_code=403, detail=msg.EVENT_ONLY_CLUB_ADMINS_CAN_CREATE)
         # Privata klubbars events är alltid privata. Ett uttryckligt "open"
         # avvisas hellre än rättas tyst, så att felet syns direkt.
         if group.visibility == GroupVisibility.private and data.visibility == EventVisibility.open:
@@ -259,9 +262,11 @@ def remove_event(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    event = _own_event_or_error(db, event_id, current_user.id)
+    event = _visible_event_or_404(db, event_id, current_user.id)
+    if not _can_delete(event, current_user.id):
+        raise HTTPException(status_code=403, detail=msg.EVENT_ONLY_CREATOR_OR_CLUB_OWNER_CAN_DELETE)
     message = data.message if data else None
-    notify_event_cancelled(db, event, censor_text(message) if message else None)
+    notify_event_cancelled(db, event, censor_text(message) if message else None, current_user)
     delete_event(db, event)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

@@ -112,8 +112,12 @@ function CreateEventForm({
   // Ens egen kommun, som kartan visar innan nålen är satt (profilen finns redan
   // i det delade minnet, se services/queryClient.js).
   const { data: profile } = useQuery(profileQuery)
+  // Bara ägaren och administratörer skapar event för en klubb (SCRUM-326).
+  const clubsToCreateFor = groups.filter((g) => g.is_owner || g.is_admin)
   // Klubben kan vara vald från början (när man skapar ett event från en klubbs sida).
-  const [groupId, setGroupId] = useState(initialGroupId ? String(initialGroupId) : '')
+  const [chosenGroupId, setGroupId] = useState(initialGroupId ? String(initialGroupId) : '')
+  // Klubbarna kan laddas efter att formuläret öppnats, så valet kontrolleras här i stället för när det görs.
+  const groupId = clubsToCreateFor.some((g) => String(g.id) === chosenGroupId) ? chosenGroupId : ''
   const [visibility, setVisibility] = useState(EVENT_VISIBILITY.inviteOnly)
   // Område, nivå och max antal (SCRUM-293, SCRUM-295), valfria.
   const [scope, setScope] = useState(initial.scope)
@@ -293,16 +297,18 @@ function CreateEventForm({
           </div>
           {!editing && (
             <>
-              <FormField id="event-group" label="Klubb (valfritt)">
-                <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
-                  <option value="">Ingen klubb</option>
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
+              {clubsToCreateFor.length > 0 && (
+                <FormField id="event-group" label="Klubb (valfritt)">
+                  <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
+                    <option value="">Ingen klubb</option>
+                    {clubsToCreateFor.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+              )}
 
               <fieldset className="form-choice">
                 <legend>Vem kan vara med?</legend>
