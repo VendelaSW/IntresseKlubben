@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../services/api'
+import CheckMark from './CheckMark'
 import { searchInterests, similarInterests, suggestInterest } from '../services/interests'
 
 // Lägg till ett intresse som inte finns i biblioteket. Samma funktion överallt, i två lägen:
@@ -254,7 +255,7 @@ function AddInterest({ selectedIds = [], onPickExisting, onAddNew }) {
         disabled={busyId === item.id || chosen.has(item.id)}
         onClick={() => pick(item)}
       >
-        {chosen.has(item.id) ? '✓' : '+'}
+        {chosen.has(item.id) ? <CheckMark /> : '+'}
       </button>
     )
   }

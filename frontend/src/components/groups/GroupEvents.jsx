@@ -21,15 +21,14 @@ function GroupEvents({ groupId }) {
       .catch(() => setFailed(true))
   }, [groupId, attempt])
 
+  // Inga kommande events: ingen tom rubrik heller (SCRUM-328). Inte heller medan de laddas, så att den inte blinkar till.
+  if (!failed && !events?.length) return null
+
   return (
     <div className="person-list person-list-compact person-list-marker">
       <p className="card-subheading">Kommande events</p>
       {failed ? (
         <LoadError text="Kunde inte hämta events." onRetry={retry} className="hint-text" />
-      ) : events === null ? (
-        <p className="hint-text">Laddar events...</p>
-      ) : events.length === 0 ? (
-        <p className="hint-text">Inga kommande events.</p>
       ) : (
         <ul>
           {events.map((event) => (

@@ -101,9 +101,6 @@ function GroupDetails({
         <div className="card-actions">
           {group.is_member ? (
             <>
-              <button type="button" className="secondary-button button-small" onClick={onOpenBoard}>
-                Anslagstavla
-              </button>
               {/* Bara ägaren och administratörer skapar event för klubben (SCRUM-326). */}
               {(group.is_owner || group.is_admin) && (
                 <button
@@ -201,6 +198,14 @@ function GroupDetails({
         )}
         <GroupEvents groupId={group.id} />
         <GroupMembers group={group} onChanged={onMembersChanged} />
+        {/* Anslagstavlan står under events och medlemmar, så att det viktigaste om klubben syns först (SCRUM-280). */}
+        {group.is_member && (
+          <div className="card-actions">
+            <button type="button" className="secondary-button button-small" onClick={onOpenBoard}>
+              Anslagstavla
+            </button>
+          </div>
+        )}
         {group.is_member && (
           <div className="card-actions">
             <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onLeave(group)}>

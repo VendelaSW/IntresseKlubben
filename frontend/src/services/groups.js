@@ -157,6 +157,10 @@ export const groupsOverviewQuery = {
   staleTime: 15 * SECOND,
 }
 
+export function getGroupsOverview() {
+  return queryClient.fetchQuery(groupsOverviewQuery)
+}
+
 // Kör ett anrop som ändrar vilka klubbar man är med i, och säger sedan till
 // minnet (alla klubblistor). Klubbens events syns bara för medlemmar, så events
 // hämtas också om.
