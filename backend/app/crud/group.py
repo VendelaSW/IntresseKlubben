@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core import error_messages as msg
 from app.crud.contact import accepted_contact_ids, blocked_user_ids
 from app.crud.interest import related_interests
-from app.crud.notification import mark_request_answered, notify
+from app.crud.notification import delete_link_notifications, mark_request_answered, notify
 from app.crud.text_search import escape_like, swedish_key
 from app.models.group import (
     Group,
@@ -314,7 +314,17 @@ def leave_group(db: Session, group: Group, user: User) -> None:
     db.commit()
 
 
-def delete_group(db: Session, group: Group) -> None:
+def delete_group(db: Session, group: Group, by_id: int) -> None:
+    """Tar bort klubben (ägaren, `by_id`). Notiserna som leder till klubben tas bort (se delete_link_notifications),
+    och de andra medlemmarna får en notis om att den är borttagen, utan länk eftersom klubben inte finns kvar."""
+    delete_link_notifications(db, f"/klubbar?klubb={group.id}")
+    notify(
+        db,
+        [m.user_id for m in group.members if m.user_id != by_id],
+        NotificationKind.group_deleted,
+        title=f"Klubben ”{group.name}” har tagits bort",
+        body="Ägaren har tagit bort klubben som du var med i.",
+    )
     db.delete(group)
     db.commit()
 

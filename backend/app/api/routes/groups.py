@@ -558,5 +558,5 @@ def delete(group_id: int, current_user=Depends(get_current_user), db: Session = 
     membership = get_membership(group, current_user.id)
     if membership is None or membership.role != GroupRole.owner:
         raise HTTPException(status_code=403, detail="Bara ägaren kan radera klubben")
-    delete_group(db, group)
+    delete_group(db, group, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

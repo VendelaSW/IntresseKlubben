@@ -64,6 +64,13 @@ def mark_request_answered(db: Session, kind: NotificationKind, link: str, applic
     ).update({Notification.read_at: utc_now()}, synchronize_session=False)
 
 
+def delete_link_notifications(db: Session, link: str) -> None:
+    """Det notiserna gäller (`link`, ett event eller en klubb) har raderats: notiserna som leder dit tas bort hos
+    alla, eftersom det inte finns något kvar att visa eller svara på. Beskedet om raderingen (t.ex. att eventet är
+    inställt) har ingen länk och blir kvar. Sparar inte."""
+    db.query(Notification).filter(Notification.link == link).delete(synchronize_session=False)
+
+
 # ---------- Events ----------
 
 

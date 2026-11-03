@@ -179,7 +179,7 @@ function rowTime(value) {
 }
 
 // Bilden till vänster på raden: personen notisen gäller (profilbilden eller initialen), annars en symbol för
-// sorten. Ett inställt event har eventsymbolen med ett rött kryss, en varning ett rött utropstecken (moderatorn
+// sorten. Ett inställt event och en borttagen klubb har sin symbol med ett rött kryss, en varning ett rött utropstecken (moderatorn
 // visas aldrig) och brev från utvecklarna Intresseklubbens loggan.
 export function NotificationImage({ notification: n }) {
   if (n.actor) {
@@ -202,7 +202,7 @@ export function NotificationImage({ notification: n }) {
   return (
     <span className="notification-image is-symbol" aria-hidden="true">
       <img src={symbol} alt="" />
-      {n.kind === 'event_cancelled' && <span className="notification-image-cross">×</span>}
+      {(n.kind === 'event_cancelled' || n.kind === 'group_deleted') && <span className="notification-image-cross">×</span>}
     </span>
   )
 }

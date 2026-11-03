@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core import error_messages as msg
 from app.crud.contact import accepted_contact_ids, blocked_by_me_ids, blocked_user_ids
 from app.crud.group import get_group, get_membership
-from app.crud.notification import mark_request_answered, notify
+from app.crud.notification import delete_link_notifications, mark_request_answered, notify
 from app.models.contact import Contact
 from app.models.event import Event, EventAnswer, EventHost, EventInvitation, EventJoinRequest, EventResponse, EventVisibility
 from app.models.notification import NotificationKind
@@ -87,7 +87,9 @@ def update_event(db: Session, event: Event, data: EventUpdate) -> Event:
 
 
 def delete_event(db: Session, event: Event) -> None:
-    """Tar bort eventet och dess inbjudningar och svar."""
+    """Tar bort eventet och dess inbjudningar och svar, och notiserna som leder till eventet (se
+    delete_link_notifications)."""
+    delete_link_notifications(db, f"/events?event={event.id}")
     db.delete(event)
     db.commit()
 

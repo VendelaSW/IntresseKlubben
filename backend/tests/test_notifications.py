@@ -366,3 +366,43 @@ def test_withdrawing_an_application_marks_its_notification_read(client, db, peop
     client.delete(f"/events/{applied.id}/requests/me")
     db.expire_all()
     assert db.query(Notification).filter_by(user_id=1, read_at=None).count() == 0
+
+
+# ---------- Det notisen gäller har raderats ----------
+
+
+def test_cancelling_removes_the_old_notifications_about_the_event(client, db, user, event, people):
+    other = add_event(db, user.id, title="Andra träffen", starts_at=future(days=7))
+    db.add(EventResponse(event_id=other.id, user_id=2, answer=EventAnswer.yes))
+    db.commit()
+    client.patch(f"/events/{event.id}", json={"starts_at": future(days=6).isoformat()})
+    client.patch(f"/events/{other.id}", json={"starts_at": future(days=8).isoformat()})
+
+    assert client.request("DELETE", f"/events/{event.id}").status_code == 204
+    login_as(people[2])
+    # Bara beskedet om att eventet är inställt finns kvar om det, och notiserna om andra events står kvar.
+    titles = [n["title"] for n in client.get("/notifications").json()]
+    assert sorted(titles) == ["Eventet ”Andra träffen” har fått ny tid", "Eventet ”Fotbollsträffen” har ställts in"]
+
+
+def test_deleting_a_group_tells_the_members_and_removes_the_old_notifications(client, db, user, people):
+    group = add_group(db, user.id, members=(2, 3), name="Löparna")
+    assert client.put(f"/groups/{group.id}/members/2/role", json={"role": "admin"}).status_code == 204
+
+    assert client.delete(f"/groups/{group.id}").status_code == 204
+    assert recipients(db) == [2, 3]
+    login_as(people[2])
+    [notice] = client.get("/notifications").json()
+    assert notice["kind"] == "group_deleted"
+    assert notice["title"] == "Klubben ”Löparna” har tagits bort"
+    assert notice["link"] is None
+    assert notice["actor"] is None
+
+
+def test_deleting_an_account_removes_the_notifications_about_its_events(client, db, user, event, people):
+    from app.crud.user import delete_user
+
+    client.patch(f"/events/{event.id}", json={"starts_at": future(days=6).isoformat()})
+    assert recipients(db) == [2, 3]
+    delete_user(db, db.get(User, user.id))
+    assert recipients(db) == []
