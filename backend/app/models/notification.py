@@ -1,6 +1,7 @@
 import enum
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.orm import relationship
 
 from app.db.base import Base
 from app.models.email_token import utc_now
@@ -49,9 +50,15 @@ class Notification(Base):
     quote_by = Column(String(100), nullable=True)
     # Sidan i appen notisen gäller, t.ex. "/events?event=3". None om det inte finns något att visa.
     link = Column(String(200), nullable=True)
+    # Personen notisen gäller, t.ex. den som ansökte eller som svarade på ens ansökan, så att Notiser kan visa hens
+    # profilbild. None när notisen inte gäller någon särskild (ett inställt event, en varning från en moderator, som
+    # inte ska avslöjas) eller när kontot har raderats.
+    actor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     # I Python och inte i databasen, så att tiden har tidszon även i testerna (SQLite).
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
     read_at = Column(DateTime(timezone=True), nullable=True)
+
+    actor = relationship("User", foreign_keys=[actor_id])
 
     @property
     def read(self) -> bool:

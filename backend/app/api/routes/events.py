@@ -24,10 +24,13 @@ from app.crud.event import (
     list_invitees,
     list_responses,
     list_visible_events,
+    remove_answer,
     remove_invitation,
     request_count,
     set_answer,
     set_host,
+    spots_left,
+    unanswered_count,
     update_event,
     withdraw_event_request,
     yes_count,
@@ -95,7 +98,10 @@ def _to_response(db: Session, event: Event, user_id: int) -> EventOut:
         scope_name=area_name(event.scope, event.scope_code) if event.scope else None,
         skill_level=event.skill_level,
         max_attendees=event.max_attendees,
+        creator_in_max=event.creator_in_max,
         yes_count=yes_count(event),
+        unanswered_count=unanswered_count(event),
+        spots_left=spots_left(event),
         is_full=is_full(event),
         group_id=event.group_id,
         group_name=event.group.name if event.group else None,
@@ -335,6 +341,14 @@ def answer_event(
     return _to_attendees(db, event, current_user.id)
 
 
+# Tar bort sitt svar, t.ex. ett Kanske som klickas av. Går att upprepa.
+@router.delete("/{event_id}/response", response_model=list[EventAttendee])
+def remove_my_answer(event_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    event = _visible_event_or_404(db, event_id, current_user.id)
+    remove_answer(db, event, current_user.id)
+    return _to_attendees(db, event, current_user.id)
+
+
 # ---------- Ansökningar (SCRUM-296) ----------
 
 
@@ -377,7 +391,7 @@ def read_requests(event_id: int, current_user=Depends(get_current_user), db: Ses
 def approve(event_id: int, user_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     event = _hosted_event_or_error(db, event_id, current_user.id)
     try:
-        approve_event_request(db, event, user_id)
+        approve_event_request(db, event, user_id, current_user.id)
     except EventRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=err.detail)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
