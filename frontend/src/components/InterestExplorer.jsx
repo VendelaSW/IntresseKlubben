@@ -3,6 +3,7 @@ import { DidYouMean, MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest
 import InterestLibrary, { PickTag } from './InterestLibrary'
 import InterestTree, { profileTree } from './InterestTree'
 import { searchInterests } from '../services/interests'
+import InfoTip from './InfoTip'
 
 // Så länge sökningen väntar efter senaste tangenttrycket, så att inte varje
 // bokstav blir ett anrop.
@@ -169,19 +170,23 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
   const mine = (
     <div className="explorer-section">
       <div className="explorer-heading-row">
-        <h3 className="explorer-heading">Dina intressen ({selected.length})</h3>
+        <h3 className="explorer-heading">
+          Dina intressen ({selected.length})
+          {mode === 'card' && editing && (
+            <>
+              {' '}
+              <InfoTip
+                text={`Tryck på × för att ta bort ett intresse.${onSetPractices ? ' Välj om du själv håller på med intresset eller bara är intresserad.' : ''}`}
+              />
+            </>
+          )}
+        </h3>
         {mode === 'card' && selected.length > 0 && (
           <button type="button" className="text-button" aria-pressed={editing} onClick={() => setEditing(!editing)}>
             {editing ? 'Klar' : 'Redigera'}
           </button>
         )}
       </div>
-      {mode === 'card' && editing && (
-        <p className="hint-text">
-          Tryck på × för att ta bort ett intresse.
-          {onSetPractices && ' Välj om du själv håller på med intresset eller bara är intresserad.'}
-        </p>
-      )}
       {selected.length === 0 ? (
         <p className="hint-text">Inga intressen än.</p>
       ) : (

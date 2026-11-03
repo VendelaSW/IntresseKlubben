@@ -1005,6 +1005,70 @@ span.tag-selected:hover {
   margin: 0;
 }
 
+/* I-ikonen med en förklaring (InfoTip). Stor nog att trycka på på mobil genom en osynlig yta runt den. */
+.info-tip {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.info-tip .info-tip-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border: 1.5px solid #3a2f25;
+  border-radius: 50%;
+  background: var(--color-white);
+  color: #3a2f25;
+  cursor: help;
+}
+
+.info-tip .info-tip-button::after {
+  content: '';
+  position: absolute;
+  inset: -0.75rem;
+}
+
+.info-tip .info-tip-button:hover,
+.info-tip .info-tip-button:focus-visible {
+  background: var(--color-accent);
+}
+
+.info-tip-bubble {
+  position: fixed;
+  inset: auto;
+  z-index: 1000;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(17rem, calc(100vw - 1rem));
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  background: var(--color-white);
+  box-shadow: 2px 2px 0 #3a2f25;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+/* En etikett, kryssruta eller knapp med en i-ikon bredvid. */
+.with-info-tip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.with-info-tip label {
+  margin: 0;
+}
+
 .hint-text {
   font-family: var(--font-body);
   font-weight: 400;

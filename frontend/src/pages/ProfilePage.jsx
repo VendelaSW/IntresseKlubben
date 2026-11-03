@@ -39,6 +39,7 @@ import {
 } from '../services/profile'
 import { useConfirm } from '../hooks/useConfirm'
 import LoadError, { useRetry } from '../components/LoadError'
+import InfoTip from '../components/InfoTip'
 
 // Så länge kontrollen av användarnamn/e-post väntar efter senaste
 // tangenttrycket, så att inte varje bokstav blir ett anrop.
@@ -482,13 +483,13 @@ function ProfilePage() {
 
               <label htmlFor="profile-birth-date">Födelsedatum</label>
               <BirthDatePicker id="profile-birth-date" value={birthDate} onChange={setBirthDate} required />
-              <label>
-                <input type="checkbox" checked={ageHidden} onChange={(e) => setAgeHidden(e.target.checked)} /> Dölj
-                min ålder för andra
-              </label>
-              <p className="hint-text">
-                Du syns då inte när andra filtrerar på ålder. Intresseklubbens moderatorer ser alltid åldern.
-              </p>
+              <div className="with-info-tip">
+                <label>
+                  <input type="checkbox" checked={ageHidden} onChange={(e) => setAgeHidden(e.target.checked)} /> Dölj
+                  min ålder för andra
+                </label>
+                <InfoTip text="Du syns då inte när andra filtrerar på ålder. Intresseklubbens moderatorer ser alltid åldern." />
+              </div>
 
               <label htmlFor="profile-gender">Kön</label>
               <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)} required>
@@ -508,7 +509,10 @@ function ProfilePage() {
                 Låt andra hitta mig när de filtrerar på kön (då kan de räkna ut mitt kön)
               </label>
 
-              <label htmlFor="profile-municipality">Kommun</label>
+              <div className="with-info-tip">
+                <label htmlFor="profile-municipality">Kommun</label>
+                <InfoTip text="Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke." />
+              </div>
               <MunicipalityPicker
                 id="profile-municipality"
                 municipalities={municipalities}
@@ -516,7 +520,6 @@ function ProfilePage() {
                 onChange={setMunicipalityCode}
                 required
               />
-              <p className="hint-text">Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke.</p>
 
               <label htmlFor="profile-district">Stadsdel (valfritt)</label>
               <input
@@ -556,7 +559,10 @@ function ProfilePage() {
                   />
                   {availability.username && <p className="form-error">{availability.username}</p>}
 
-                  <label htmlFor="profile-email">E-postadress</label>
+                  <div className="with-info-tip">
+                    <label htmlFor="profile-email">E-postadress</label>
+                    <InfoTip text="E-posten syns bara för dig." />
+                  </div>
                   <input
                     id="profile-email"
                     type="email"
@@ -565,7 +571,6 @@ function ProfilePage() {
                     onChange={(e) => setEmail(e.target.value)}
                   />
                   {availability.email && <p className="form-error">{availability.email}</p>}
-                  <p className="hint-text">E-posten syns bara för dig.</p>
 
                   {/* Lösenordet krävs bara när användarnamn eller e-post ändras. */}
                   {accountChanged && (
@@ -656,7 +661,7 @@ function ProfilePage() {
           <dd>{account?.username}</dd>
           {account?.email && (
             <>
-              <dt>E-post</dt>
+              <dt>E-post <InfoTip text="E-posten syns bara för dig." /></dt>
               <dd>{account.email}</dd>
             </>
           )}
@@ -671,7 +676,6 @@ function ProfilePage() {
           <dt>Ålder synlig för andra</dt>
           <dd>{profile.age_hidden ? 'Nej' : 'Ja'}</dd>
         </dl>
-        {account?.email && <p className="hint-text">E-posten syns bara för dig.</p>}
         {account?.email_verified && <EmailVerification account={account} />}
         <BlockedUsers />
       </details>

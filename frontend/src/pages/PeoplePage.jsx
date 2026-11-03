@@ -35,6 +35,7 @@ import { useConfirm } from '../hooks/useConfirm'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import LoadError from '../components/LoadError'
 import { MAX_AGE, MIN_AGE } from '../utils/age'
+import InfoTip from '../components/InfoTip'
 
 const TABS = [
   { id: 'match', label: 'Matcha' },
@@ -405,6 +406,11 @@ function PeoplePage() {
                   Rensa alla
                 </button>
               </li>
+              {genders.length > 0 && (
+                <li>
+                  <InfoTip text="Visar bara dem som valt att synas när man filtrerar på kön." />
+                </li>
+              )}
             </ul>
           )}
           {filtersOpen && (
@@ -432,9 +438,6 @@ function PeoplePage() {
                 />
               </div>
             </div>
-          )}
-          {genders.length > 0 && (
-            <p className="hint-text">Visar bara dem som valt att synas när man filtrerar på kön.</p>
           )}
           {tab === 'suggested' && dismissedCount > 0 && (
             <p className="hint-text">
@@ -530,7 +533,6 @@ function PeoplePage() {
           {others.length > 0 && (
             <>
               <h2>Fler i Intresseklubben</h2>
-              <p className="hint-text">Ni har inga intressen gemensamt än.</p>
               <div className="card-grid card-grid-compact">{others.map(suggestionCard)}</div>
             </>
           )}

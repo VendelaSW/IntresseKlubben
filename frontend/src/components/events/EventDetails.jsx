@@ -24,6 +24,7 @@ import {
 } from '../../services/events'
 import { skillLevelLabel } from '../../services/groups'
 import LoadError, { useRetry } from '../LoadError'
+import InfoTip from '../InfoTip'
 
 const ANSWERS = [
   { id: EVENT_ANSWER.yes, label: 'Ja' },
@@ -352,10 +353,12 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
               </div>
             ) : (
               <>
-                <p className="hint-text">Skaparen godkänner vem som får vara med.</p>
-                <button type="button" className="primary-button" disabled={busy} onClick={() => setApplyOpen(true)}>
-                  Ansök
-                </button>
+                <div className="with-info-tip">
+                  <button type="button" className="primary-button" disabled={busy} onClick={() => setApplyOpen(true)}>
+                    Ansök
+                  </button>
+                  <InfoTip text="Skaparen godkänner vem som får vara med." />
+                </div>
               </>
             )}
             {error && <p className="status-error">{error}</p>}
@@ -363,7 +366,10 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
           {applyOpen && (
             <Modal title={`Ansök till ${event.title}`} onClose={() => setApplyOpen(false)}>
               <form className="auth-form" onSubmit={handleApply}>
-                <label htmlFor="event-apply-message">Meddelande till skaparen (valfritt)</label>
+                <div className="with-info-tip">
+                  <label htmlFor="event-apply-message">Meddelande till skaparen (valfritt)</label>
+                  <InfoTip text="Skaparen får en notis och svarar på din ansökan." />
+                </div>
                 <TextareaWithCount
                   id="event-apply-message"
                   rows={3}
@@ -372,7 +378,6 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
                   onChange={(e) => setApplyMessage(e.target.value)}
                   placeholder="T.ex. varför du vill vara med"
                 />
-                <p className="hint-text">Skaparen får en notis och svarar på din ansökan.</p>
                 {error && <p className="status-error">{error}</p>}
                 <div className="form-actions">
                   <button type="submit" disabled={busy}>

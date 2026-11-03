@@ -9,6 +9,7 @@ import GroupJoinRequests from './GroupJoinRequests'
 import GroupMembers from './GroupMembers'
 import { RoleBadge, groupMembersText } from './GroupList'
 import { inviteToGroup, skillLevelLabel } from '../../services/groups'
+import InfoTip from '../InfoTip'
 
 // Mer information om en grupp, med knapparna som passar ens roll. Medlemmar kan
 // öppna anslagstavlan (`onOpenBoard`) och skapa ett event i klubben (öppnar
@@ -157,7 +158,10 @@ function GroupDetails({
         {applyOpen && (
           <Modal title={`Ansök till ${group.name}`} onClose={() => setApplyOpen(false)}>
             <form className="auth-form" onSubmit={handleApply}>
-              <label htmlFor="apply-message">Meddelande till ägaren (valfritt)</label>
+              <div className="with-info-tip">
+                <label htmlFor="apply-message">Meddelande till ägaren (valfritt)</label>
+                <InfoTip text="Ägaren får en notis och svarar på din ansökan." />
+              </div>
               <textarea
                 id="apply-message"
                 rows={3}
@@ -166,7 +170,6 @@ function GroupDetails({
                 onChange={(e) => setApplyMessage(e.target.value)}
                 placeholder="T.ex. vad du gillar med intresset"
               />
-              <p className="hint-text">Ägaren får en notis och svarar på din ansökan.</p>
               <div className="form-actions">
                 <button type="submit" disabled={busy}>
                   {busy ? 'Skickar...' : 'Skicka ansökan'}
