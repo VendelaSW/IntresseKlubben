@@ -906,11 +906,15 @@ function MapPrototype() {
   useEffect(() => saveCalm(calm), [calm])
   // Adressen blocket öppnas på (se MapPagePad), t.ex. '/klubbar?klubb=3'.
   const [padStart, setPadStart] = useState(null)
+  // Räknas upp varje gång ett block öppnas, så att samma sida öppnas på nytt från början (se key nedan).
+  const [padOpenings, setPadOpenings] = useState(0)
 
-  // Öppnar ett block: en widget (start = widgetens sida) eller en viss sida.
+  // Öppnar ett block: en widget (start = widgetens sida) eller en viss sida. Är samma sida redan öppen börjar den om
+  // på startsidan, t.ex. Notiser i menyn när man har gått från en notis till eventet den gäller.
   function openPad(page, start = MAP_PAGES[page] ?? null) {
     setOpenPage(page)
     setPadStart(start)
+    setPadOpenings((n) => n + 1)
   }
 
   // En gammal adress till en av sidorna (t.ex. /klubbar?klubb=3) skickas hit
@@ -1838,9 +1842,9 @@ function MapPrototype() {
       )}
       <div className="map-sketch-table" aria-hidden="true" />
       {openPage && padStart && (
-        // key: byter man sida landar ett nytt block.
+        // key: byter man sida, eller öppnar samma sida igen, landar ett nytt block.
         <MapPagePad
-          key={`${openPage} ${padStart}`}
+          key={`${openPage} ${padStart} ${padOpenings}`}
           start={padStart}
           onClose={() => setOpenPage(null)}
           mapActions={mapActions}
