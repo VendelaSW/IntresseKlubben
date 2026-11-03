@@ -115,6 +115,16 @@ const PICKERS = [
     ],
   },
   {
+    key: 'testlage-event-kalender',
+    attr: 'eventCalendar',
+    label: 'Events: kalender',
+    fallback: 'pre-dev',
+    options: [
+      { id: 'pre-dev', label: '0. Som nu (bara lista)' },
+      { id: 'kalender', label: '1. Lista eller kalender på Mina events' },
+    ],
+  },
+  {
     key: 'testlage-forstasidan',
     attr: 'homePage',
     label: 'Förstasidan',
