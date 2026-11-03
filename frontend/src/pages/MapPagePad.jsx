@@ -13,6 +13,7 @@ import ConversationPage from './ConversationPage'
 import EventsPage from './EventsPage'
 import GroupsPage from './GroupsPage'
 import InboxPage from './InboxPage'
+import InterestPage from './InterestPage'
 import MapPad from './MapPad'
 import ModerationPage from './ModerationPage'
 import NotificationsPage from './NotificationsPage'
@@ -51,15 +52,18 @@ const PAD_ROUTES = [
   { path: '/events', title: 'Events', Page: EventsPage },
   { path: '/notiser', title: 'Notiser', Page: NotificationsPage },
   { path: '/profil', title: 'Min profil', Page: ProfilePage },
+  { path: '/intressen/:interestId', title: 'Intressen', Page: InterestPage },
   { path: '/moderering', title: 'Moderering', Page: ModerationPage },
 ]
 
 const padRouteFor = (pathname) => PAD_ROUTES.find((r) => matchPath(r.path, pathname)) ?? null
 
-// Vilken lapp (MAP_PAGES) en adress hör till, t.ex. '/anvandare/3' → 'personer'.
+// Vilken lapp (MAP_PAGES) en adress hör till, t.ex. '/anvandare/3' → 'personer'. Ett intresses sida hör till profilen,
+// där intressena finns.
 export function widgetFor(address) {
   const { pathname = '' } = parsePath(address)
   if (pathname.startsWith('/anvandare/')) return 'personer'
+  if (pathname.startsWith('/intressen/')) return 'profil'
   return Object.keys(MAP_PAGES).find((id) => pathname.startsWith(MAP_PAGES[id])) ?? null
 }
 

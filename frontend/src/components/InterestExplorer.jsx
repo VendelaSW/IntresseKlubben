@@ -38,6 +38,9 @@ const PRACTICE_CHOICES = [
 // - 'library': Intressebiblioteket över hela blocket, med sökrutan och alla områden.
 // - 'form' (när profilen skapas): allt direkt i formuläret, eftersom man måste
 //   välja minst ett intresse där. Taggarna har alltid kryss.
+//
+// Utom i 'form' går det att öppna ett intresses sida (SCRUM-306): namnen på de valda, och › på sökträffarna och
+// bibliotekets taggar.
 function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices, mode = 'card', onOpenLibrary }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null) // null = ingen sökning
@@ -46,6 +49,8 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
   const removable = mode === 'form' || editing
+  // Intressenas sidor (SCRUM-306) öppnas i kartans block, och dit kommer man först när profilen är klar.
+  const linkPages = mode !== 'form'
   const searchRequest = useRef(0)
 
   // Sökningen, en kort stund efter senaste tangenttrycket. Ett svar på en
@@ -158,6 +163,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
                   on={selectedIds.has(item.id)}
                   busy={busyId === item.id}
                   onToggle={toggle}
+                  linkPage={linkPages}
                 />
               ))}
             </ul>
@@ -189,6 +195,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
         <InterestTree
           proposals={profileTree(selected)}
           align="start"
+          linkPages={linkPages}
           busyKey={busyId === null ? null : `id:${busyId}`}
           onRemove={removable ? (key) => toggle(selected.find((i) => `id:${i.id}` === key)) : undefined}
         />
@@ -226,7 +233,13 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
   const library = (
     <div className="explorer-section">
       <h3 className="explorer-heading">{mode === 'library' ? 'Områden' : 'Utforska'}</h3>
-      <InterestLibrary selectedIds={selectedIds} busyId={busyId} onToggle={toggle} onError={setError} />
+      <InterestLibrary
+        selectedIds={selectedIds}
+        busyId={busyId}
+        onToggle={toggle}
+        onError={setError}
+        linkPages={linkPages}
+      />
     </div>
   )
 

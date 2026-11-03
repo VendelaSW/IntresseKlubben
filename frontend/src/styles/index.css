@@ -1335,7 +1335,11 @@ span.tag-selected:hover {
   flex-wrap: wrap;
   gap: 0.55rem 0.4rem;
   width: max-content;
-  max-width: min(16rem, 80vw);
+  /* Bred nog för att en lång lista (t.ex. ett tjugotal spel) inte ska bli en hög smal pelare, och högst så hög att den
+     inte går ut under blocket: annars scrollar den (SCRUM-306). */
+  max-width: min(28rem, 80vw);
+  max-height: min(22rem, 60vh);
+  overflow-y: auto;
   margin: 0;
   padding: 0.75rem 0.7rem 0.65rem;
   list-style: none;
@@ -1344,6 +1348,91 @@ span.tag-selected:hover {
   border-radius: var(--tag-shape-alt);
   box-shadow: 3px 3px 0 var(--tag-ink);
   rotate: -0.6deg;
+}
+
+/* "Om {intresse} ›" överst i rutan och i arket: länken till intressets sida (SCRUM-306). */
+.interest-tag-panel-about-row {
+  flex-basis: 100%;
+}
+
+.interest-tag-panel-about {
+  color: var(--color-text);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.interest-tag-panel-about:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Rutan som ett ark nedifrån på en smal skärm (InterestSheet i InterestTagPanel.jsx): över allt annat, högst 70 % av
+   skärmen, och listan scrollar i arket när den är lång. Taggens färg, mörk kant och rundade hörn upptill. */
+.interest-sheet {
+  inset: auto 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: 70vh;
+  margin: 0;
+  padding: 0;
+  background: var(--tag-fill, var(--color-white));
+  border: 1.5px solid var(--tag-ink);
+  border-bottom: none;
+  border-radius: 18px 18px 0 0;
+  color: var(--color-text);
+}
+
+.interest-sheet::backdrop {
+  background: rgba(26, 26, 26, 0.35);
+}
+
+.interest-sheet-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 70vh;
+  padding: 0.6rem 1rem max(1rem, env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+.interest-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.interest-sheet-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.interest-sheet-close {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.interest-sheet-close:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.interest-sheet-list {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.2rem 0.2rem 0.4rem;
 }
 
 .interest-tag-sub {
@@ -5703,12 +5792,14 @@ label.person-list-item {
   font-weight: 700;
 }
 
-/* I rutan med underintressen (som har områdets färg) är de vita tills de är valda. */
-.interest-tag-panel .interest-pick {
+/* I rutan och arket med underintressen (som har områdets färg) är de vita tills de är valda. */
+.interest-tag-panel .interest-pick,
+.interest-sheet .interest-pick {
   background: var(--color-white);
 }
 
-.interest-tag-panel .interest-pick.is-on {
+.interest-tag-panel .interest-pick.is-on,
+.interest-sheet .interest-pick.is-on {
   background: var(--tag-sub, var(--color-white));
 }
 
@@ -5749,6 +5840,107 @@ label.person-list-item {
 
 .interest-pick-toggle:disabled {
   cursor: progress;
+}
+
+/* Den lilla runda › i en tagg (PickTag med linkPage): öppnar intressets sida, medan resten av taggen
+   väljer (SCRUM-306). */
+.interest-pick-page {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  margin: 0 0.35rem 0 0.05rem;
+  border: 1.5px solid var(--tag-ink);
+  border-radius: 50%;
+  background: var(--color-white);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.interest-pick-page:hover {
+  background: var(--tag-sub, var(--color-white));
+}
+
+.interest-pick-page:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Ett namn på profilens taggar som är en länk till intressets sida (InterestTagGroup med pageHref). */
+.interest-tag-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.interest-tag-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.interest-tag-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Ett intresses sida (InterestPage, SCRUM-306): sökvägen över namnet, antalet i landet och kommunen som två lappar, och
+   över- och underintressena som taggar med antal. */
+.interest-page-path {
+  margin: 0 0 0.2rem;
+}
+
+.interest-page-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.75rem;
+}
+
+.interest-page-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 10px 14px 9px 12px;
+  background: var(--color-white);
+  box-shadow: 2px 2px 0 var(--color-ink);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.interest-page-number {
+  font-family: var(--font-heading);
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.interest-page-link {
+  text-decoration: none;
+}
+
+.interest-page-link:hover {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.interest-page-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.interest-page-link-count {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.interest-page-people {
+  align-self: flex-start;
 }
 
 @media (prefers-reduced-motion: reduce) {

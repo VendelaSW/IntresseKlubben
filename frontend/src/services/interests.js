@@ -28,6 +28,20 @@ export function getChildInterests(id) {
   return cached(['interests', 'children', id], () => apiGet(`/interests/${id}/children`), HOUR)
 }
 
+// Intressesidan (/intressen/:id): intresset med path, hur många som har det eller något under det i landet och i
+// kommunen, överintressena och ett steg ner, var och en med antal (GET /interests/{id}/people). Personerna behövs inte,
+// så bara en hämtas. Utan kommun är municipality null. 404 betyder att intresset inte finns eller inte syns för en.
+export const interestPageQuery = (id, municipalityCode) => ({
+  queryKey: ['interests', 'page', id, municipalityCode ?? null],
+  queryFn: () => {
+    const params = new URLSearchParams({ limit: '1' })
+    if (municipalityCode) params.set('municipality_code', municipalityCode)
+    return apiGet(`/interests/${id}/people?${params}`)
+  },
+  staleTime: 5 * MINUTE,
+  retry: (count, error) => !(error instanceof ApiError && error.status === 404) && count < 2,
+})
+
 export function searchInterests(query) {
   return apiGet(`/interests/search?${new URLSearchParams({ q: query })}`).then((items) => items.filter(hasContent))
 }
