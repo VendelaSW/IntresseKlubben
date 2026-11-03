@@ -11,6 +11,7 @@ import CreateOffer from '../CreateOffer'
 import { PadHeadAction } from '../PadHead'
 import EmptyState from '../EmptyState'
 import FilterTabs from '../FilterTabs'
+import SearchToggle from '../SearchToggle'
 import InterestPicker from '../InterestPicker'
 import EventDayFilter from './EventDayFilter'
 import EventDetails from './EventDetails'
@@ -321,16 +322,18 @@ function EventsPanel() {
             </>
           ) : (
             <>
-              <div className="filter-select-row filter-select-row-compact">
-                <EventDayFilter value={dayFilter} onChange={setDayFilter} />
-                <InterestPicker
-                  aria-label="Filtrera på intresse"
-                  placeholder="Alla intressen"
-                  myInterests={myInterests}
-                  value={interestFilter}
-                  onChange={setInterestFilter}
-                />
-              </div>
+              <SearchToggle count={(interestFilter ? 1 : 0) + (dayFilter ? 1 : 0)}>
+                <div className="filter-select-row filter-select-row-compact">
+                  <InterestPicker
+                    aria-label="Filtrera på intresse"
+                    placeholder="Alla intressen"
+                    myInterests={myInterests}
+                    value={interestFilter}
+                    onChange={setInterestFilter}
+                  />
+                  <EventDayFilter value={dayFilter} onChange={setDayFilter} />
+                </div>
+              </SearchToggle>
               {shown[tab].length === 0 && interestFilter ? (
                 <CreateOffer
                   text={`Det finns inga events för ${interestFilter.name}. Vill du skapa ett?`}
