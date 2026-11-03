@@ -7,6 +7,7 @@ import klubbarIcon from '../assets/klubbar.png'
 import logo from '../assets/intresseklubben.png'
 import notiserIcon from '../assets/notiser.svg'
 import personerIcon from '../assets/personer.png'
+import AgeRangeSlider from '../components/AgeRangeSlider'
 import Avatar from '../components/Avatar'
 import Intressekompis from '../components/Intressekompis'
 import LocationPicker from '../components/LocationPicker'
@@ -14,6 +15,8 @@ import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
 import CreateButton from '../components/CreateButton'
+import DateField from '../components/DateField'
+import EventDayFilter from '../components/events/EventDayFilter'
 import DrawnArrow from '../components/DrawnArrow'
 import Modal from '../components/Modal'
 import MunicipalityPicker from '../components/MunicipalityPicker'
@@ -22,6 +25,7 @@ import FilterTabs from '../components/FilterTabs'
 import MatchCard from '../components/MatchCard'
 import MatchThumb from '../components/MatchThumb'
 import FormField from '../components/FormField'
+import InterestPicker from '../components/InterestPicker'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
@@ -122,12 +126,25 @@ const EXAMPLE_MUNICIPALITIES = [
   { code: '0120', name: 'Värmdö' },
 ]
 
+// Snabbvalen i intresseväljarens exempel (de riktiga är ens egna intressen).
+const EXAMPLE_MY_INTERESTS = [
+  { id: -1, name: 'Brädspel' },
+  { id: -2, name: 'Klättring' },
+  { id: -3, name: 'Stickning och virkning' },
+]
+
 function StyleGuide() {
   const [exampleText, setExampleText] = useState('')
   const [exampleTab, setExampleTab] = useState('forsta')
   const [exampleMunicipality, setExampleMunicipality] = useState('')
   const [exampleBirthDate, setExampleBirthDate] = useState('')
   const [filterMunicipality, setFilterMunicipality] = useState('')
+  const [filterInterest, setFilterInterest] = useState(null)
+  const [filterDay, setFilterDay] = useState('')
+  const [filterAges, setFilterAges] = useState({ min: null, max: null })
+  const [exampleDay, setExampleDay] = useState('')
+  const [compactStart, setCompactStart] = useState('')
+  const [compactEnd, setCompactEnd] = useState('')
   const [compactText, setCompactText] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [examplePosition, setExamplePosition] = useState(null)
@@ -589,7 +606,13 @@ function StyleGuide() {
           Filter (.filter-select-row, .filter-select-row-compact för smalare)
         </p>
         <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
-          <select aria-label="Exempel 1"><option>Alla intressen</option></select>
+          <InterestPicker
+            aria-label="Exempel 1"
+            placeholder="Alla intressen"
+            myInterests={EXAMPLE_MY_INTERESTS}
+            value={filterInterest}
+            onChange={setFilterInterest}
+          />
           <MunicipalityPicker
             aria-label="Exempel 2"
             municipalities={EXAMPLE_MUNICIPALITIES}
@@ -599,48 +622,39 @@ function StyleGuide() {
           />
         </div>
 
+        <p className="hint-text">
+          Intresseväljaren (InterestPicker) är samma sorts fält som kommunfältet och används i alla filter och i Skapa
+          klubb och Skapa event. Med tomt fält visas ens egna intressen som snabbval (.interest-picker-heading). Man
+          skriver och får träffar i hela biblioteket, även på andra namn, med var intresset hör hemma under namnet
+          (.interest-picker-path). Det valda tas bort med krysset (.field-clear) eller genom att tömma fältet.
+        </p>
+
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Filter med sökruta (InterestFilter)
+          Åldersreglage (AgeRangeSlider, .age-range)
         </p>
         <p className="hint-text">
-          En rullista och en sökruta (input) i samma rad (.filter-select-row). Träffarna står i en ruta under raden
-          (.explorer med .explorer-box, .explorer-rows och .explorer-row), med en liten knapp (.secondary-button) per
-          träff; .filter-select-row-compact håller rutan lika smal som filtren. Det som är valt står som en tagg med ett
-          kryss (.interest-tag med .interest-tag-remove) som tar bort filtret.
+          Två handtag mellan 13 och 100 år (utils/age.js), med åldern till vänster (.age-range-value) och spannet i gult
+          (.age-range-fill). Handtagen i ändarna betyder ingen gräns. Värdet skickas först när man släpper handtaget.
         </p>
         <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
-          <select aria-label="Exempel 3"><option>Alla intressen</option></select>
-          <input type="search" aria-label="Exempel 4" placeholder="Sök andra intressen" />
+          <AgeRangeSlider value={filterAges} onChange={setFilterAges} />
         </div>
-        <ul className="interest-tags" style={{ marginTop: '0.75rem' }}>
-          <li>
-            <span className="interest-tag">
-              Klättring
-              <button type="button" className="interest-tag-remove" aria-label="Ta bort filtret Klättring">
-                ×
-              </button>
-            </span>
-          </li>
-        </ul>
-        <div className="explorer filter-select-row-compact" style={{ marginTop: '0.75rem' }}>
-          <div className="explorer-box">
-            <ul className="explorer-rows">
-              <li className="explorer-row">
-                <span className="explorer-name">
-                  Bouldering
-                  <span className="hint-text">Friluftsliv › Klättring</span>
-                </span>
-                <button type="button" className="secondary-button">Välj</button>
-              </li>
-              <li className="explorer-row">
-                <span className="explorer-name">
-                  Sportklättring
-                  <span className="hint-text">Friluftsliv › Klättring</span>
-                </span>
-                <button type="button" className="secondary-button">Välj</button>
-              </li>
-            </ul>
-          </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Datumfält för events (DateField, .date-field)
+        </p>
+        <p className="hint-text">
+          Kalendern går bara att välja i från i dag till ett år framåt, samma gräns som backend. I Skapa event med tid
+          (withTime), se formuläret nedan. Med emptyLabel står t.ex. "Alla datum" (.date-field-empty) i fältet när
+          inget är valt, och ett kryss (.field-clear) tar bort det.
+        </p>
+        <p className="hint-text">
+          I filtret under Events (EventDayFilter, .event-day-filter) en lista med Alla datum, Idag, I helgen och Denna
+          vecka, och sist Välj datum…, som öppnar kalendern. En vald dag står sedan i listan.
+        </p>
+        <div className="filter-select-row filter-select-row-compact" style={{ marginTop: '1rem' }}>
+          <EventDayFilter value={filterDay} onChange={setFilterDay} />
+          <DateField aria-label="Exempel 3" value={exampleDay} onChange={setExampleDay} emptyLabel="Alla datum" />
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
@@ -1030,10 +1044,16 @@ function StyleGuide() {
             </FormField>
             <div className="form-row">
               <FormField id="compact-start" label="Start">
-                <input id="compact-start" type="datetime-local" />
+                <DateField id="compact-start" withTime value={compactStart} onChange={setCompactStart} />
               </FormField>
               <FormField id="compact-end" label="Slut (valfritt)">
-                <input id="compact-end" type="datetime-local" />
+                <DateField
+                  id="compact-end"
+                  withTime
+                  value={compactEnd}
+                  onChange={setCompactEnd}
+                  min={compactStart || undefined}
+                />
               </FormField>
             </div>
             <FormField id="compact-place" label="Plats">

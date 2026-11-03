@@ -9,11 +9,10 @@ import { allKommuner } from './mapPrototypeZoomLevels'
 // - klubbar och events på kartan (`activities`, lapparna, se mapPrototypeActivities),
 // - orter, platser och adresser ("Gustavsberg", "Slottsskogen", "Storgatan 1")
 //   från adressökningen, en kort stund efter att man slutat skriva.
-// "Min kommun" tar en tillbaka till ens egen kommun, samma vy som när kartan öppnas.
 //
 // `onPick(förslag)` flyttar kartan; förslaget har `kind` ('kommun', 'lan',
 // 'landskap', 'klubb', 'event' eller 'place') och det som behövs för att hitta
-// dit. `onHome` saknas när profilen inte har någon kommun.
+// dit. `findMeMessage` är beskedet från Hitta mig (se findMe i MapPrototype), och `onCloseFindMeMessage` stänger det.
 const MAX_REGIONS = 5
 const MAX_ACTIVITIES = 4
 const MAX_PLACES = 4
@@ -47,7 +46,7 @@ function matching(items, wanted, max) {
     .slice(0, max)
 }
 
-function MapPlaceSearch({ activities = [], onPick, onHome }) {
+function MapPlaceSearch({ activities = [], onPick, findMeMessage = '', onCloseFindMeMessage }) {
   const listId = useId()
   const [kommuner, setKommuner] = useState([])
   const [query, setQuery] = useState('')
@@ -172,11 +171,6 @@ function MapPlaceSearch({ activities = [], onPick, onHome }) {
           onBlur={() => setOpen(false)}
           onKeyDown={onKeyDown}
         />
-        {onHome && (
-          <button type="button" className="map-tool touch-target" onClick={onHome}>
-            Min kommun
-          </button>
-        )}
       </div>
       {showList && (
         <ul id={listId} className="map-place-search-list" role="listbox" aria-label="Förslag">
@@ -207,6 +201,19 @@ function MapPlaceSearch({ activities = [], onPick, onHome }) {
       {open && wanted !== '' && options.length === 0 && !searchingPlaces && (
         <p className="map-place-search-message" role="status">
           Hittade inget som heter &quot;{text}&quot; på kartan.
+        </p>
+      )}
+      {findMeMessage && (
+        <p className="map-place-search-message" role="status">
+          {findMeMessage}
+          <button
+            type="button"
+            className="map-place-search-message-close touch-target"
+            aria-label="Stäng"
+            onClick={onCloseFindMeMessage}
+          >
+            ×
+          </button>
         </p>
       )}
     </div>

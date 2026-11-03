@@ -53,19 +53,26 @@ def area_name(scope: str, code: str, municipality_name: str | None = None) -> st
     return _names()[scope].get(code, code)
 
 
+# Under så här många visas inte det exakta antalet på kartan, bara "färre än 5" (SCRUM-82).
+FEW_PEOPLE = 5
+
+
 def people_per_area(per_kommun: dict[str, int]) -> dict[str, dict[str, int]]:
     """Antal per område för kartan (SCRUM-82), ur antalet per kommun: per kommun, per landskap och per del av ett län som
     ligger i ett landskap (nyckel "landskap:län", som länens namn i kartans landskapsvy). En kommun räknas till det
-    landskap den hör till här (se ovan). Exakta tal; att små tal inte visas sköter den som anropar."""
+    landskap den hör till här (se ovan). Landskapen och länen räknas bara på kommuner med minst FEW_PEOPLE (SCRUM-303),
+    så att länet minus kommunerna aldrig ger ett litet tal. De får 0 om någon bor där men ingen kommun räknas. Exakta
+    tal; att små tal inte visas sköter den som anropar."""
     landskap: dict[str, int] = {}
     lan_in_landskap: dict[str, int] = {}
     for code, count in per_kommun.items():
         place = regions()["kommuner"].get(code)
         if place is None:
             continue
-        landskap[place["landskap"]] = landskap.get(place["landskap"], 0) + count
+        counted = count if count >= FEW_PEOPLE else 0
+        landskap[place["landskap"]] = landskap.get(place["landskap"], 0) + counted
         key = f"{place['landskap']}:{place['lan']}"
-        lan_in_landskap[key] = lan_in_landskap.get(key, 0) + count
+        lan_in_landskap[key] = lan_in_landskap.get(key, 0) + counted
     return {"kommun": dict(per_kommun), "landskap": landskap, "lan": lan_in_landskap}
 
 

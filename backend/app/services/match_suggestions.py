@@ -14,6 +14,7 @@ vad som saknas. Samma krav gäller dem som föreslås. Förslag under den lägst
 """
 
 from collections import defaultdict
+from collections.abc import Collection
 from dataclasses import dataclass, field
 
 from sqlalchemy import func, select
@@ -203,8 +204,8 @@ def suggestions_for(
     offset: int = 0,
     config: MatchConfig = DEFAULT_CONFIG,
     *,
-    municipality_code: str | None = None,
-    gender: GenderEnum | None = None,
+    municipality_codes: Collection[str] | None = None,
+    genders: Collection[GenderEnum] | None = None,
     min_age: int | None = None,
     max_age: int | None = None,
 ) -> SuggestionPage:
@@ -220,7 +221,7 @@ def suggestions_for(
     hidden = hidden_user_ids(db, user_id)
     if hidden:
         candidates = candidates.filter(Profile.user_id.notin_(hidden))
-    candidates = filter_by_profile(candidates, municipality_code, gender, min_age, max_age)
+    candidates = filter_by_profile(candidates, municipality_codes, genders, min_age, max_age)
     people: dict[int, tuple[int, str]] = {}  # användar-id -> (profil-id, text)
     for profile_id, other_id, text in candidates:
         people[other_id] = (profile_id, (text or "").strip())

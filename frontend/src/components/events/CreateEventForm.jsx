@@ -1,12 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
+import DateField from '../DateField'
 import FormField from '../FormField'
+import InterestPicker from '../InterestPicker'
 import LocationPicker from '../LocationPicker'
 import Modal from '../Modal'
 import TextareaWithCount from '../TextareaWithCount'
 import InvitePicker from './InvitePicker'
 import { EVENT_VISIBILITY, createEvent, inviteToEvent, updateEvent } from '../../services/events'
 import { SCOPES, SKILL_LEVELS, areaOptions, getRegions } from '../../services/groups'
+import { profileQuery } from '../../services/profile'
+import { localInputValue } from '../../utils/eventTime'
 
 // Hur man kommer med (SCRUM-296). Öppet och Ansökan går inte i en privat klubb.
 const VISIBILITY_OPTIONS = [
@@ -18,13 +22,6 @@ const VISIBILITY_OPTIONS = [
 // Ett event kan valfritt gälla ett större område (SCRUM-295); kommun finns inte, eftersom eventet redan hör till
 // sin plats.
 const EVENT_SCOPES = SCOPES.filter((s) => s.value !== 'kommun')
-import { profileQuery } from '../../services/profile'
-
-// Värdet ett <input type="datetime-local"> vill ha: lokal tid utan tidszon.
-function localInputValue(date) {
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
 
 // "2 personer och 1 klubb", eller en kort uppmaning om inget är valt än.
 function inviteSummary({ userIds, groupIds }) {
@@ -39,7 +36,7 @@ function fieldsFrom(event) {
   return {
     title: event.title,
     description: event.description,
-    interestId: String(event.interest_id),
+    interest: { id: event.interest_id, name: event.interest_name },
     startsAt: localInputValue(new Date(event.starts_at)),
     endsAt: event.ends_at ? localInputValue(new Date(event.ends_at)) : '',
     placeName: event.place_name,
@@ -56,7 +53,7 @@ function fieldsFrom(event) {
 const EMPTY_FIELDS = {
   title: '',
   description: '',
-  interestId: '',
+  interest: null,
   startsAt: '',
   endsAt: '',
   placeName: '',
@@ -83,26 +80,27 @@ const samePosition = (a, b) =>
 // in" sköts i eventets vy. Bara det som har ändrats skickas: backend vägrar en
 // starttid som har passerat, och ett event som redan har börjat ska ändå kunna
 // få t.ex. en ny beskrivning.
-// Ett nytt event kan ha intresset förvalt (`initialInterestId`, från "Det finns inga events för … Vill du skapa ett?").
+// Ett nytt event kan ha intresset förvalt (`initialInterest`, { id, name }, från "Det finns inga events för … Vill du
+// skapa ett?"). `myInterests` är snabbvalen i intresseväljaren.
 function CreateEventForm({
   event = null,
-  interests,
+  myInterests,
   groups,
   contacts,
   initialGroupId = null,
-  initialInterestId = null,
+  initialInterest = null,
   onCreated,
   onSaved,
   onCancel,
 }) {
   const editing = event !== null
   const initial = useMemo(
-    () => (event ? fieldsFrom(event) : { ...EMPTY_FIELDS, interestId: initialInterestId ? String(initialInterestId) : '' }),
-    [event, initialInterestId],
+    () => (event ? fieldsFrom(event) : { ...EMPTY_FIELDS, interest: initialInterest }),
+    [event, initialInterest],
   )
   const [title, setTitle] = useState(initial.title)
   const [description, setDescription] = useState(initial.description)
-  const [interestId, setInterestId] = useState(initial.interestId)
+  const [interest, setInterest] = useState(initial.interest)
   const [startsAt, setStartsAt] = useState(initial.startsAt)
   const [endsAt, setEndsAt] = useState(initial.endsAt)
   const [placeName, setPlaceName] = useState(initial.placeName)
@@ -146,7 +144,7 @@ function CreateEventForm({
     const changes = {}
     if (title !== initial.title) changes.title = title
     if (description !== initial.description) changes.description = description
-    if (interestId !== initial.interestId) changes.interest_id = Number(interestId)
+    if (interest.id !== initial.interest.id) changes.interest_id = interest.id
     if (startsAt !== initial.startsAt) changes.starts_at = new Date(startsAt).toISOString()
     if (endsAt !== initial.endsAt) changes.ends_at = endsAt ? new Date(endsAt).toISOString() : null
     if (placeName !== initial.placeName) changes.place_name = placeName
@@ -190,7 +188,7 @@ function CreateEventForm({
       const created = await createEvent({
         title,
         description,
-        interest_id: Number(interestId),
+        interest_id: interest.id,
         starts_at: new Date(startsAt).toISOString(),
         ends_at: endsAt ? new Date(endsAt).toISOString() : null,
         place_name: placeName,
@@ -255,36 +253,35 @@ function CreateEventForm({
           </FormField>
 
           <FormField id="event-interest" label="Intresse">
-            <select id="event-interest" value={interestId} onChange={(e) => setInterestId(e.target.value)} required>
-              <option value="">Välj...</option>
-              {interests.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.name}
-                </option>
-              ))}
-            </select>
+            <InterestPicker
+              id="event-interest"
+              myInterests={myInterests}
+              value={interest}
+              onChange={setInterest}
+              required
+            />
           </FormField>
 
           <div className="form-row">
             <FormField id="event-starts-at" label="Start">
-              <input
+              <DateField
                 id="event-starts-at"
-                type="datetime-local"
+                withTime
                 value={startsAt}
+                onChange={setStartsAt}
                 // En ny tid måste vara framåt. En oförändrad tid på ett event som
                 // redan har börjat ska inte stoppa att resten sparas.
-                min={!editing || startsAt !== initial.startsAt ? localInputValue(new Date()) : undefined}
-                onChange={(e) => setStartsAt(e.target.value)}
+                min={!editing || startsAt !== initial.startsAt ? undefined : null}
                 required
               />
             </FormField>
             <FormField id="event-ends-at" label="Slut (valfritt)">
-              <input
+              <DateField
                 id="event-ends-at"
-                type="datetime-local"
+                withTime
                 value={endsAt}
-                min={startsAt || localInputValue(new Date())}
-                onChange={(e) => setEndsAt(e.target.value)}
+                onChange={setEndsAt}
+                min={startsAt || undefined}
               />
             </FormField>
           </div>

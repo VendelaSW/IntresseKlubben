@@ -1,8 +1,11 @@
 import pytest
 
+from app.auth.security import hash_password
 from app.core.profanity import BLOCKED_STEMS, censor_text, contains_profanity, validate_clean_text
 from app.models.group import Group
 from app.models.interest import Interest
+from app.models.message import Message
+from app.models.profile import Profile
 from app.models.user import User
 from tests.helpers import profile_payload
 
@@ -33,15 +36,22 @@ def test_words_containing_blocked_word_are_not_masked():
     assert censor_text("Han är nigeriansk och gillar fagott.") == "Han är nigeriansk och gillar fagott."
 
 
-def test_sent_message_is_censored(client, db, user):
+@pytest.mark.parametrize(("text", "expected"), [
+    ("Din CUNT!", "Din ****!"),
+    ("Hej h0ran och fiiiitta!", "Hej ***** och ********!"),
+    ("Vi spelar fagott på lördag.", "Vi spelar fagott på lördag."),
+])
+def test_sent_message_is_censored(client, db, user, text, expected):
     db.add(User(id=2, username="friend", password_hash="unused"))
     db.commit()
 
-    response = client.post("/messages", json={"recipient_id": 2, "text": "Din CUNT!"})
+    response = client.post("/messages", json={"recipient_id": 2, "text": text})
     assert response.status_code == 201
-    assert response.json()["text"] == "Din ****!"
+    assert response.json()["text"] == expected
 
-    assert client.get("/messages/2").json()["messages"][0]["text"] == "Din ****!"
+    db.expire_all()
+    assert db.query(Message).one().text == expected
+    assert client.get("/messages/2").json()["messages"][0]["text"] == expected
 
 
 @pytest.mark.parametrize(
@@ -98,6 +108,36 @@ def test_registration_accepts_clean_username(client, db):
     assert db.query(User).one().username == "Vendela"
 
 
+@pytest.mark.parametrize("username", ["FUCK", "f1ttan123", "fuck_you"])
+def test_username_update_rejects_profanity_without_changing_account(client, db, user, username):
+    user.password_hash = hash_password("hemligt123")
+    user.email = "original@example.com"
+    db.commit()
+    original_username = user.username
+    user_id = user.id
+
+    response = client.patch("/users/me", json={
+        "username": username, "email": "new@example.com", "password": "hemligt123",
+    })
+    _assert_profanity_error(response, "username", "Användarnamnet")
+    db.expire_all()
+    stored = db.get(User, user_id)
+    assert stored.username == original_username
+    assert stored.email == "original@example.com"
+
+
+def test_username_update_accepts_and_saves_clean_name(client, db, user):
+    user.password_hash = hash_password("hemligt123")
+    db.commit()
+    user_id = user.id
+
+    response = client.patch("/users/me", json={"username": "Fagottspelaren", "password": "hemligt123"})
+    assert response.status_code == 200
+    assert response.json()["username"] == "Fagottspelaren"
+    db.expire_all()
+    assert db.get(User, user_id).username == "Fagottspelaren"
+
+
 @pytest.fixture
 def profile_creation_payload(db, municipalities):
     interest = Interest(name="Yoga")
@@ -107,30 +147,37 @@ def profile_creation_payload(db, municipalities):
 
 
 @pytest.mark.parametrize("word", ["FITTA", "Svartskalle", "FUCK", "Cunt"])
-def test_profile_name_rejection_preserves_existing_name(client, user, profile_creation_payload, word):
+def test_profile_name_rejection_preserves_existing_name(client, db, user, profile_creation_payload, word):
     assert client.post("/profile/", json=profile_creation_payload).status_code == 201
 
     response = client.patch("/profile/", json={"name": f"Hej {word}"})
     _assert_profanity_error(response, "name", "Namnet")
+    db.expire_all()
+    assert db.query(Profile).one().name == "Vendela"
     assert client.get("/profile/").json()["name"] == "Vendela"
 
 
 @pytest.mark.parametrize("word", ["FITTA", "Svartskalle", "FUCK", "Cunt"])
-def test_profile_creation_rejects_profanity(client, user, profile_creation_payload, word):
+def test_profile_creation_rejects_profanity(client, db, user, profile_creation_payload, word):
     response = client.post("/profile/", json={**profile_creation_payload, "name": word})
     _assert_profanity_error(response, "name", "Namnet")
+    assert db.query(Profile).count() == 0
     assert client.get("/profile/").status_code == 404
 
 
-def test_profile_accepts_clean_name(client, user, profile_creation_payload):
+def test_profile_accepts_clean_name(client, db, user, profile_creation_payload):
     response = client.post("/profile/", json={**profile_creation_payload, "name": "  Vendela  "})
     assert response.status_code == 201
     assert response.json()["name"] == "Vendela"
+    db.expire_all()
+    assert db.query(Profile).one().name == "Vendela"
     assert client.get("/profile/").json()["name"] == "Vendela"
 
     response = client.patch("/profile/", json={"name": "  Anna  "})
     assert response.status_code == 200
     assert response.json()["name"] == "Anna"
+    db.expire_all()
+    assert db.query(Profile).one().name == "Anna"
     assert client.get("/profile/").json()["name"] == "Anna"
 
 

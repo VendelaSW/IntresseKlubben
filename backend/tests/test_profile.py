@@ -23,6 +23,22 @@ def yoga(db):
     return interest
 
 
+def _born(years_ago, days=0):
+    """Födelsedatumet för den som fyller `years_ago` år i dag, plus `days`. Fanns inte dagen det året (29 februari)
+    blir det 28 februari, som i app/core/age.py."""
+    today = date.today()
+    try:
+        born = today.replace(year=today.year - years_ago)
+    except ValueError:
+        born = today.replace(year=today.year - years_ago, day=28)
+    return (born + timedelta(days=days)).isoformat()
+
+
+# Åldersgränsen 13–100 år (SCRUM-312): en dag för ung och en dag för gammal.
+TOO_YOUNG = ({"birth_date": _born(13, days=1)}, "Du måste ha fyllt 13 år för att vara med i Intresseklubben")
+TOO_OLD = ({"birth_date": _born(101)}, "Åldern kan vara högst 100 år. Kolla att året stämmer")
+
+
 def _create_profile(client, yoga, **overrides):
     response = client.post("/profile/", json=profile_payload([yoga.id], **overrides))
     assert response.status_code == 201, response.text
@@ -90,9 +106,12 @@ def test_prefer_not_to_say_is_a_valid_gender(client, user, municipalities, yoga)
     assert _create_profile(client, yoga, gender="vill inte uppge")["gender"] == "vill inte uppge"
 
 
-def test_birth_date_today_is_allowed(client, user, municipalities, yoga):
-    body = _create_profile(client, yoga, birth_date=date.today().isoformat())
-    assert body["age"] == 0
+def test_age_limits_are_inclusive(client, user, municipalities, yoga):
+    # Den som fyller 13 i dag kan skapa en profil, och den som fyller 101 i morgon (alltså är 100) kan byta till det.
+    assert _create_profile(client, yoga, birth_date=_born(13))["age"] == 13
+    response = client.patch("/profile/", json={"birth_date": _born(101, days=1)})
+    assert response.status_code == 200, response.text
+    assert response.json()["age"] == 100
 
 
 @pytest.mark.parametrize(
@@ -112,6 +131,8 @@ def test_post_requires_every_mandatory_field(client, user, municipalities, yoga,
         ({"name": "   "}, "Namn får inte vara tomt"),
         ({"name": "x" * 51}, "Namn får max vara 50 tecken"),
         ({"birth_date": (date.today() + timedelta(days=1)).isoformat()}, "Födelsedatum kan inte vara i framtiden"),
+        TOO_YOUNG,
+        TOO_OLD,
         ({"municipality_code": "  "}, "Välj en kommun"),
         ({"profile_text": "   "}, "Om mig-texten får inte vara tom"),
         ({"profile_text": "x" * 801}, "Om mig-texten får max vara 800 tecken"),
@@ -248,6 +269,8 @@ def test_profile_text_is_untouched_when_not_sent(client, user, municipalities, y
         ({"name": "   "}, "Namn får inte vara tomt"),
         ({"name": "x" * 51}, "Namn får max vara 50 tecken"),
         ({"birth_date": (date.today() + timedelta(days=1)).isoformat()}, "Födelsedatum kan inte vara i framtiden"),
+        TOO_YOUNG,
+        TOO_OLD,
         ({"municipality_code": "  "}, "Välj en kommun"),
         ({"profile_text": "   "}, "Om mig-texten får inte vara tom"),
         ({"profile_text": "x" * 801}, "Om mig-texten får max vara 800 tecken"),

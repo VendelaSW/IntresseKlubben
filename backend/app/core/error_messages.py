@@ -17,10 +17,14 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.core.age import MAX_AGE, MIN_AGE
+
 # ---------- Validering av profilfält (schemas/profile.py) ----------
 NAME_EMPTY = "Namn får inte vara tomt"
 NAME_TOO_LONG = "Namn får max vara 50 tecken"
 BIRTH_DATE_IN_FUTURE = "Födelsedatum kan inte vara i framtiden"
+AGE_TOO_YOUNG = f"Du måste ha fyllt {MIN_AGE} år för att vara med i Intresseklubben"
+AGE_TOO_OLD = f"Åldern kan vara högst {MAX_AGE} år. Kolla att året stämmer"
 MUNICIPALITY_REQUIRED = "Välj en kommun"
 DISTRICT_EMPTY = "Stadsdel får inte vara tom"
 DISTRICT_TOO_LONG = "Stadsdel får max vara 100 tecken"
@@ -51,6 +55,8 @@ EVENT_ADDRESS_TOO_LONG = "Gatuadress får max vara 100 tecken"
 EVENT_INTEREST_REQUIRED = "Välj ett intresse"
 EVENT_START_EMPTY = "Starttiden får inte vara tom"
 EVENT_START_IN_PAST = "Starttiden måste vara i framtiden"
+EVENT_START_TOO_FAR = "Starttiden kan vara högst ett år fram i tiden"
+EVENT_END_TOO_FAR = "Sluttiden kan vara högst ett år fram i tiden"
 EVENT_END_BEFORE_START = "Sluttiden måste vara efter starttiden"
 EVENT_TIME_NEEDS_TIMEZONE = "Ange tiden med tidszon"
 EVENT_INVITE_NOBODY = "Välj minst en person eller klubb att bjuda in"
