@@ -21,7 +21,7 @@
 //
 // Husen växer upp mellan zoom 14 och 15, som innan, så att de inte poppar.
 
-import { inSweden } from './mapPrototypeStyle'
+import { boxInSweden, inSweden, pixelRatio, refreshWhileMoving } from './mapPrototypeStyle'
 
 const LAYER_ID = 'building-shapes'
 // Blyerts på det gula blocket: grå grafit, så att husen blir mörkare än
@@ -125,8 +125,11 @@ const MIN_HATCH_PX = 3
 // ritas platt (tak med kontur), alla sådana i ett enda anrop. Under
 // DETAIL_PX: väggar och tak utan skraffering. Annars allt. Antalet
 // ritanrop, inte räknandet, är det som kostar när tusentals hus syns.
+// Strecken är ungefär hälften av ritanropen, så bara större hus (nära eller
+// höga) skrafferas: i tät stad 20-25 % fler bilder/s än när alla hus
+// skrafferades. Samma gräns gäller när kartan rör sig, så att inget blinkar.
 const FLAT_PX = 3
-const DETAIL_PX = 6
+const DETAIL_PX = 14
 
 // Förbereder ett hus för ritning: allt som inte beror på kameran (meter,
 // klippkanter mellan kartrutor, väggarnas längd, darret i linjerna och takets
@@ -195,29 +198,82 @@ function makeProjector(map) {
   }
 }
 
+// Ett hus (en grupp hus med samma höjd i en kartruta) känns igen på rutan och
+// sitt id. Samma hus kommer tillbaka varje gång kartan stannar i samma
+// område. Rutan är intern i MapLibre, så finns den inte används första
+// hörnet, antalet hörn och höjden (då måste formen läsas, vilket kostar mer).
+function cacheKey(feature) {
+  if (feature._z !== undefined && feature.id !== undefined) {
+    return `${feature._z}/${feature._x}/${feature._y}/${feature.id}`
+  }
+  const { coordinates, type } = feature.geometry
+  const flat = coordinates.flat(type === 'MultiPolygon' ? 2 : 1)
+  const first = flat[0] ?? []
+  const { render_height: height, render_min_height: base } = feature.properties
+  return `${first[0]},${first[1]},${flat.length},${height},${base}`
+}
+
+// Bara hus i Sverige ritas. Hela gruppens rektangel testas först, och bara
+// grupper som ligger över gränsen testas hus för hus.
+function keepInSweden(polygons) {
+  let west = Infinity
+  let south = Infinity
+  let east = -Infinity
+  let north = -Infinity
+  for (const { rings } of polygons) {
+    for (const { lng, lat } of rings[0]?.pts ?? []) {
+      if (lng < west) west = lng
+      if (lng > east) east = lng
+      if (lat < south) south = lat
+      if (lat > north) north = lat
+    }
+  }
+  if (west > east) return []
+  const where = boxInSweden(west, south, east, north)
+  if (where !== 'border') return where === 'inside' ? polygons : []
+  return polygons.filter(({ rings }) => {
+    const first = rings[0]?.pts[0]
+    return first && inSweden(first.lng, first.lat)
+  })
+}
+
+// Så många förberedda grupper sparas (en vy på zoom 15 har ett par hundra).
+// Fler än så: cachen töms och fylls på nytt med det som syns.
+const CACHE_SIZE = 3000
+
 // Kopplar de skissade husen till kartan. `canvas` är ritytan ovanpå kartan.
 export function attachSketchedBuildings(map, canvas) {
   const ctx = canvas.getContext('2d')
   let buildings = [] // från prepare()
+  // prepare() är det som kostar mest när kartan stannar, och det mesta av
+  // det som syns har oftast förberetts förut.
+  const prepared = new Map()
 
-  // Hämtar husen som kartan har i bild.
+  function prepareCached(feature) {
+    const key = cacheKey(feature)
+    let building = prepared.get(key)
+    if (!building) {
+      building = prepare(feature)
+      building.polygons = keepInSweden(building.polygons)
+      if (prepared.size >= CACHE_SIZE) prepared.clear()
+      prepared.set(key, building)
+    }
+    return building
+  }
+
+  // Hämtar husen som kartan har i bild. Samma hus som förra gången (samma
+  // objekt ur cachen) ritas inte om: kartan har redan ritat dem vid move.
+  // Medan kartan rör sig ritas de av move strax efter.
   function refresh() {
     if (!map.getLayer(LAYER_ID)) return
-    buildings = map
-      .queryRenderedFeatures({ layers: [LAYER_ID] })
-      .map(prepare)
-      .map((building) => ({
-        ...building,
-        polygons: building.polygons.filter(({ rings }) => {
-          const first = rings[0]?.pts[0]
-          return first && inSweden(first.lng, first.lat)
-        }),
-      }))
-    render()
+    const next = map.queryRenderedFeatures({ layers: [LAYER_ID] }).map(prepareCached)
+    if (next.length === buildings.length && next.every((building, i) => building === buildings[i])) return
+    buildings = next
+    if (!map.isMoving()) render()
   }
 
   function resize() {
-    const ratio = window.devicePixelRatio || 1
+    const ratio = pixelRatio()
     const { clientWidth: w, clientHeight: h } = canvas
     if (canvas.width !== Math.round(w * ratio) || canvas.height !== Math.round(h * ratio)) {
       canvas.width = Math.round(w * ratio)
@@ -594,7 +650,23 @@ export function attachSketchedBuildings(map, canvas) {
     strokePath()
   }
 
+  refreshWhileMoving(map, () => map.getZoom() >= 14 && refresh())
   map.on('move', render)
   map.on('resize', render)
+  // När kartan har stannat: husen hämtas i första bildrutan där rutorna i bild
+  // är klara, i stället för att vänta på idle (som också väntar på att namnen
+  // har tonat in, några tiondelar till). Inte vid själva moveend, för vid
+  // jumpTo kommer det innan kartan har bytt rutor.
+  function refreshWhenLoaded() {
+    if (!map.isMoving() && !map.areTilesLoaded()) return
+    map.off('render', refreshWhenLoaded)
+    if (!map.isMoving()) refresh()
+  }
+  map.on('moveend', () => {
+    if (map.getZoom() < 14) return
+    map.off('render', refreshWhenLoaded)
+    map.on('render', refreshWhenLoaded)
+  })
+  // Sista chansen, om rutorna kom medan kartan rörde sig.
   map.on('idle', refresh)
 }
