@@ -48,6 +48,12 @@ export function answerEvent(eventId, answer) {
   return changingEvents(apiPut(`/events/${eventId}/response`, { answer }))
 }
 
+// Tar bort ens eget svar (t.ex. ett Kanske som klickas av) och returnerar den uppdaterade listan över alla som har
+// svarat.
+export function removeAnswer(eventId) {
+  return changingEvents(apiDelete(`/events/${eventId}/response`))
+}
+
 // Bjuder in kompisar (userIds) och/eller alla medlemmar i klubbar (groupIds).
 // Returnerar de som blev inbjudna den här gången.
 export function inviteToEvent(eventId, { userIds = [], groupIds = [] }) {

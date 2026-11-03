@@ -27,7 +27,8 @@ function EmptyState({ text, title = 'Här var det tomt', image = null, compact =
 // I ett block (.map-pad-page) står kompisen mitt i blocket, på samma höjd oavsett vad som är ovanför (flikar,
 // filter eller ingenting), så att han inte hoppar när man byter mellan t.ex. Events och Notiser. Marginalen ovanför
 // räknas ut efter varje utritning och när blocket eller lappen ändrar storlek. Räcker inte platsen under flikarna
-// och filtren hamnar han direkt under dem, som vanligt.
+// och filtren hamnar han direkt under dem, som vanligt. Står det något under (t.ex. exemplen på Notiser) flyttas han
+// bara ner så långt att det också får plats.
 function useSteadyPlace(ref, enabled) {
   useLayoutEffect(() => {
     const el = ref.current
@@ -39,7 +40,13 @@ function useSteadyPlace(ref, enabled) {
       const kompis = el.firstElementChild.getBoundingClientRect()
       const top = page.getBoundingClientRect().top + page.clientTop - page.scrollTop
       const extra = page.clientHeight / 2 - (kompis.top + kompis.height / 2 - top)
-      if (extra > 0) el.style.marginTop = `${parseFloat(getComputedStyle(el).marginTop) + extra}px`
+      let bottom = el.getBoundingClientRect().bottom
+      for (let next = el.nextElementSibling; next; next = next.nextElementSibling) {
+        bottom = Math.max(bottom, next.getBoundingClientRect().bottom)
+      }
+      const room = top + page.clientHeight - parseFloat(getComputedStyle(page).paddingBottom) - bottom
+      const add = Math.min(extra, room)
+      if (add > 0) el.style.marginTop = `${parseFloat(getComputedStyle(el).marginTop) + add}px`
     }
 
     place()

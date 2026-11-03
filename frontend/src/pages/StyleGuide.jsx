@@ -29,7 +29,7 @@ import InterestPicker from '../components/InterestPicker'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
-import { NotificationDetails, NotificationRow } from './NotificationsPage'
+import { NotificationDetails, NotificationRow, NotificationsEmpty } from './NotificationsPage'
 
 const NAV_ICONS = [
   { icon: hemIcon, label: 'Hem' },
@@ -89,21 +89,40 @@ const EXAMPLE_CONVERSATIONS = [
   { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', last_message_from_me: true, isNew: false },
 ]
 
-// Exempel för Notiser-avsnittet: en oläst och en läst notis, och en öppnad med citat och länk.
+// Exempel för Notiser-avsnittet: ett oläst inställt event med citat, en läst ansökan till en klubb (med personen)
+// och en varning.
 const EXAMPLE_NOTIFICATIONS = [
-  { id: 1, title: '«Fotbollsträffen» har ställts in', read: false, created_at: new Date().toISOString() },
-  { id: 2, title: '«Brädspelskväll» har fått ny tid', read: true, created_at: '2025-10-06T18:02:00Z' },
+  {
+    id: 1,
+    kind: 'event_cancelled',
+    title: 'Eventet ”Fotbollsträffen” har ställts in',
+    body: 'Bob har tagit bort eventet som du skulle gå på.',
+    quote: 'Inställt pga sjukdom, vi ses nästa vecka!',
+    quote_by: 'Bob',
+    link: null,
+    read: false,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    kind: 'group_join_request',
+    title: 'Cecilia vill gå med i din klubb ”Bokcirkeln Väst”',
+    body: 'Svara på ansökan i klubben.',
+    link: '/stilguide',
+    actor: { id: 7, name: 'Cecilia', profile_image_url: null },
+    read: true,
+    created_at: '2025-10-06T18:02:00Z',
+  },
+  {
+    id: 3,
+    kind: 'moderation_warning',
+    title: 'Du har fått en varning: Reklam eller spam',
+    body: 'En moderator har sett att du har brutit mot reglerna.',
+    link: null,
+    read: true,
+    created_at: '2025-10-04T09:30:00Z',
+  },
 ]
-const EXAMPLE_NOTIFICATION = {
-  id: 3,
-  title: '«Fotbollsträffen» har ställts in',
-  body: 'Bob har tagit bort eventet som du skulle gå på.',
-  quote: 'Inställt pga sjukdom, vi ses nästa vecka!',
-  quote_by: 'Bob',
-  link: '/stilguide',
-  read: true,
-  created_at: new Date().toISOString(),
-}
 
 const SIZES = [
   { name: '--text-hero', rem: '5rem', label: 'Hero', font: 'heading', weight: 700 },
@@ -544,10 +563,16 @@ function StyleGuide() {
           Listan (.notification-list med NotificationRow)
         </p>
         <p className="hint-text">
-          Som en inkorg: en kompakt rad per notis i en vit ruta, nyaste först. En oläst notis har gul prick, fet
-          rubrik och en gul kant till vänster. Långa rubriker kortas med ... på raden. Ett klick öppnar notisen och
-          först då räknas den som läst; krysset tar bort den. Ovanför listan står "Markera alla som lästa" (grå och
-          utan gul linje när allt redan är läst) och "Ta bort alla", som frågar först i en popup.
+          En rad per notis, nyaste först, uppdelade i Idag och Tidigare (rubriker i handstil med ett gult penndrag
+          under). Raden har en prick (gul när den är oläst, och då är raden ljusgul), en rund bild, rubriken och en rad
+          under i handstil, tiden och en pil. Bilden är personen notisen gäller (profilbilden eller initialen), annars en
+          symbol: eventsymbolen (med rött kryss när eventet är inställt), klubbsymbolen, ett rött utropstecken för en
+          varning eller loggan för brev från utvecklarna. Under rubriken står citatet om det finns, annars texten.
+          Raden går till det notisen gäller och räknas då som läst; utan ställe att gå till öppnar den notisen.
+          Krysset längst till höger tar bort en notis. Rubriker och text står i brödtextens font, så att de är lätta
+          att läsa; handstilen är kvar i Idag och Tidigare.
+          Ovanför står "Markera alla som lästa" (grå och utan gul linje när allt redan är läst) och "Ta bort alla",
+          som frågar först i en popup.
         </p>
         <ul className="notification-list" style={{ marginTop: '1rem' }}>
           {EXAMPLE_NOTIFICATIONS.map((n) => (
@@ -559,11 +584,22 @@ function StyleGuide() {
           En öppnad notis (NotificationDetails)
         </p>
         <p className="hint-text">
-          Ett vitt kort med avsändare och tid, rubriken, texten och ett citat (t.ex. skaparens meddelande när ett
-          event ställs in), och "Visa" om notisen har en länk. Långa ord bryts, så att inget sticker ut på mobil.
+          För notiser utan ställe att gå till (ett inställt event, en varning): bilden, avsändare och tid, rubriken,
+          hela texten och citatet, och "Ta bort". Långa ord bryts, så att inget sticker ut på mobil.
         </p>
         <div style={{ marginTop: '1rem' }}>
-          <NotificationDetails notification={EXAMPLE_NOTIFICATION} onRemove={() => {}} />
+          <NotificationDetails notification={EXAMPLE_NOTIFICATIONS[0]} onRemove={() => {}} />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Inga notiser (NotificationsEmpty)
+        </p>
+        <p className="hint-text">
+          Kompisen säger att det inte finns några notiser än, och under står bleka, streckade exempel på vad som kan
+          dyka upp, så att sidan visar vad den är till för i stället för att se tom ut.
+        </p>
+        <div style={{ marginTop: '1rem' }}>
+          <NotificationsEmpty />
         </div>
       </section>
 
