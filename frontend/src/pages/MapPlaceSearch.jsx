@@ -2,6 +2,8 @@ import { useEffect, useId, useState } from 'react'
 import { searchPlaces } from '../services/geocode'
 import { LANDSKAP_LABELS, LAN_LABELS } from './mapPrototypeStyle'
 import { allKommuner } from './mapPrototypeZoomLevels'
+import SearchField from '../components/SearchField'
+import SearchToggle from '../components/SearchToggle'
 
 // Sökrutan på kartan (SCRUM-220): sök efter allt som finns på kartan, så flyger
 // kartan dit. Förslagen kommer medan man skriver:
@@ -151,26 +153,27 @@ function MapPlaceSearch({ activities = [], onPick, findMeMessage = '', onCloseFi
   return (
     <div className="map-place-search">
       <div className="map-place-search-row">
-        <input
-          type="search"
-          className="map-place-search-input"
-          placeholder="Sök på kartan"
-          aria-label="Sök en plats, kommun, klubb eller event på kartan"
-          role="combobox"
-          aria-expanded={showList}
-          aria-controls={listId}
-          aria-autocomplete="list"
-          aria-activedescendant={showList && active >= 0 ? `${listId}-${active}` : undefined}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            setOpen(true)
-            setActive(-1)
-          }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setOpen(false)}
-          onKeyDown={onKeyDown}
-        />
+        <SearchToggle label="Sök på kartan" count={query ? 1 : 0}>
+          <SearchField
+            placeholder="Sök på kartan"
+            aria-label="Sök en plats, kommun, klubb eller event på kartan"
+            role="combobox"
+            aria-expanded={showList}
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-activedescendant={showList && active >= 0 ? `${listId}-${active}` : undefined}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setOpen(true)
+              setActive(-1)
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setOpen(false)}
+            onKeyDown={onKeyDown}
+            onClear={reset}
+          />
+        </SearchToggle>
       </div>
       {showList && (
         <ul id={listId} className="map-place-search-list" role="listbox" aria-label="Förslag">

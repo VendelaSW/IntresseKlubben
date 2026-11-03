@@ -3,6 +3,8 @@ import { DidYouMean, MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest
 import InterestLibrary, { PickTag } from './InterestLibrary'
 import InterestTree, { profileTree } from './InterestTree'
 import { searchInterests } from '../services/interests'
+import SearchField from './SearchField'
+import SearchToggle from './SearchToggle'
 
 // Så länge sökningen väntar efter senaste tangenttrycket, så att inte varje
 // bokstav blir ett anrop.
@@ -113,17 +115,27 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
     )
   }
 
+  const searchField = (
+    <SearchField
+      aria-label="Lägg till ett intresse"
+      placeholder={mode === 'library' ? 'Sök bland alla intressen' : 'Lägg till ett intresse, t.ex. "foto"'}
+      maxLength={MAX_INTEREST_LENGTH}
+      value={query}
+      onChange={(e) => setQuery(e.target.value)}
+      onClear={() => setQuery('')}
+    />
+  )
+
   const search = (
     <>
-      <input
-        type="search"
-        className="explorer-search"
-        aria-label="Lägg till ett intresse"
-        placeholder={mode === 'library' ? 'Sök bland alla intressen' : 'Lägg till ett intresse, t.ex. "foto"'}
-        maxLength={MAX_INTEREST_LENGTH}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      {/* Sökikonen bara där man också kan leta för hand i biblioteket. På profilkortet är fältet sättet att lägga till. */}
+      {mode === 'card' ? (
+        searchField
+      ) : (
+        <SearchToggle label={mode === 'library' ? 'Sök bland alla intressen' : 'Lägg till ett intresse'} count={query ? 1 : 0}>
+          {searchField}
+        </SearchToggle>
+      )}
       {results && (
         <div className="explorer-box">
           {results.length === 0 ? (

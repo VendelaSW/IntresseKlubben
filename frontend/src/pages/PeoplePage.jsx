@@ -1,5 +1,6 @@
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import SearchToggle from '../components/SearchToggle'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
@@ -123,9 +124,6 @@ function PeoplePage() {
   const [error, setError] = useState('')
   // Den man nyss tog bort från Sök ({ id, name }), med "Ångra" en stund.
   const [removed, setRemoved] = useState(null)
-  // Filterfälten ligger bakom en Filter-knapp och är ihopfällda från början.
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const filterPanelId = useId()
   // På en smal skärm står bara "Intresse", "Kommun" och "Kön" i tomma fält, så att alla tre får plats på en rad.
   const narrow = useMediaQuery('(max-width: 767px)')
 
@@ -371,18 +369,34 @@ function PeoplePage() {
 
       {(tab === 'suggested' || tab === 'match') && (
         <>
-          {/* Filterfälten bakom en knapp, som visar hur många filter som är på. Utfällda: intresse (i Sök), kommun och
-              kön på en rad, och åldern ensam på raden under, så att reglaget får plats att vara långt. I layouten
-              Nicklas förslag 1 är fälten papperslappar (se .filter-select-row-paper). */}
-          <button
-            type="button"
-            className={`filter-toggle${paperRow ? ' filter-toggle-paper' : ''}${filtersOpen ? ' is-open' : ''}`}
-            aria-expanded={filtersOpen}
-            aria-controls={filterPanelId}
-            onClick={() => setFiltersOpen((open) => !open)}
-          >
-            Filter{activeFilters.length > 0 ? ` · ${activeFilters.length}` : ''}
-          </button>
+          {/* Samma kompakta fält som på Klubbar och Events, alltid synliga: intresse (i Sök), kommun och kön på en rad, och åldern
+              på raden under. De valda filtren står under, som lappar med kryss. */}
+          <SearchToggle count={activeFilters.length}>
+          <div className="filter-panel">
+            <div className={`filter-select-row${paperRow ? ' filter-select-row-paper' : ''}`}>
+              {tab === 'suggested' && (
+                <InterestPicker
+                  aria-label="Lägg till ett intresse"
+                  placeholder={narrow ? 'Intresse' : interests.length > 0 ? 'Lägg till intresse' : 'Alla intressen'}
+                  myInterests={myInterests}
+                  value={null}
+                  onChange={(interest) =>
+                    interest &&
+                    !interests.some((i) => i.id === interest.id) &&
+                    setFilters({ ...filters, interests: [...interests, interest] })
+                  }
+                />
+              )}
+              {demographics}
+            </div>
+            <div className={`filter-age-row${paperRow ? ' filter-select-row-paper' : ''}`}>
+              <AgeRangeSlider
+                value={{ min: filters.minAge, max: filters.maxAge }}
+                onChange={({ min, max }) => setFilters({ ...filters, minAge: min, maxAge: max })}
+              />
+            </div>
+          </div>
+          </SearchToggle>
           {activeFilters.length > 0 && (
             <ul className="interest-tags filter-chips" aria-label="Valda filter">
               {activeFilters.map((chip) => (
@@ -406,32 +420,6 @@ function PeoplePage() {
                 </button>
               </li>
             </ul>
-          )}
-          {filtersOpen && (
-            <div id={filterPanelId} className="filter-panel">
-              <div className={`filter-select-row${paperRow ? ' filter-select-row-paper' : ''}`}>
-                {tab === 'suggested' && (
-                  <InterestPicker
-                    aria-label="Lägg till ett intresse"
-                    placeholder={narrow ? 'Intresse' : interests.length > 0 ? 'Lägg till intresse' : 'Alla intressen'}
-                    myInterests={myInterests}
-                    value={null}
-                    onChange={(interest) =>
-                      interest &&
-                      !interests.some((i) => i.id === interest.id) &&
-                      setFilters({ ...filters, interests: [...interests, interest] })
-                    }
-                  />
-                )}
-                {demographics}
-              </div>
-              <div className={`filter-age-row${paperRow ? ' filter-select-row-paper' : ''}`}>
-                <AgeRangeSlider
-                  value={{ min: filters.minAge, max: filters.maxAge }}
-                  onChange={({ min, max }) => setFilters({ ...filters, minAge: min, maxAge: max })}
-                />
-              </div>
-            </div>
           )}
           {genders.length > 0 && (
             <p className="hint-text">Visar bara dem som valt att synas när man filtrerar på kön.</p>

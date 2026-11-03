@@ -1123,20 +1123,6 @@
   gap: 0.4rem;
 }
 
-.map-place-search-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.3rem 0.6rem;
-  border: 1.5px solid #3a2f25;
-  border-radius: 4px;
-  background: var(--color-white);
-  box-shadow: 2px 2px 0 #3a2f25;
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: var(--text-small);
-  line-height: 1.2;
-}
-
 .map-place-search-list {
   position: absolute;
   top: calc(100% + 0.3rem);
@@ -1186,14 +1172,6 @@
   color: var(--color-muted);
   font-family: var(--font-body);
   font-size: var(--text-small);
-}
-
-/* På pekskärm är fältet och Min kommun lättare att träffa (se CONTRIBUTING,
-   "Mobil"): fältet blir högre, och knappen får en osynlig yta (.touch-target). */
-@media (pointer: coarse) {
-  .map-place-search-input {
-    min-height: 44px;
-  }
 }
 
 /* Besked under sökrutan: en lapp som knapparna, så att det går att läsa ovanpå kartan. */
