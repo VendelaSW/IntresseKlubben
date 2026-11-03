@@ -185,10 +185,10 @@
    lite, i stället för en rak ruta. Formen är en bild bakom texten (::before), utsträckt till knappens storlek.
    "Registrera dig" är ifylld med gult och ligger rakt; "Logga in" har den blågrå färgen som kanten på de vanliga
    sekundära knapparna (--color-line) och lutar lite. När man håller muspekaren över en av dem blir den en ljusare
-   nyans av sin egen färg, rätas upp och växer lite. Samma knapp används för att skicka formulären på /logga-in och
-   /registrera (.auth-page). */
+   nyans av sin egen färg, rätas upp och växer lite. Samma knapp används för att skicka formulären på lappen med
+   inloggningen och registreringen (.auth-note), på /logga-in och /registrera och överst på startsidan. */
 .start-page .start-marker,
-.auth-page .auth-form button[type='submit'] {
+.auth-note .auth-form button[type='submit'] {
   position: relative;
   z-index: 0;
   padding: 0.85rem 1.4rem;
@@ -199,7 +199,7 @@
 }
 
 .start-page .start-marker::before,
-.auth-page .auth-form button[type='submit']::before {
+.auth-note .auth-form button[type='submit']::before {
   content: "";
   position: absolute;
   inset: -3px -4px;
@@ -217,17 +217,17 @@
 }
 
 .start-page .start-marker:hover,
-.auth-page .auth-form button[type='submit']:hover,
+.auth-note .auth-form button[type='submit']:hover,
 .start-page .start-marker:focus-visible,
-.auth-page .auth-form button[type='submit']:focus-visible {
+.auth-note .auth-form button[type='submit']:focus-visible {
   opacity: 1;
   background: none;
 }
 
 .start-page .start-marker:hover::before,
-.auth-page .auth-form button[type='submit']:hover::before,
+.auth-note .auth-form button[type='submit']:hover::before,
 .start-page .start-marker:focus-visible::before,
-.auth-page .auth-form button[type='submit']:focus-visible::before {
+.auth-note .auth-form button[type='submit']:focus-visible::before {
   rotate: 0deg;
   scale: 1.04;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M10 10 C40 9 70 12 100 10 C130 8 160 11 190 10 C196 10 199 18 198 30 C199 42 196 50 190 50 C160 51 130 48 100 50 C70 52 40 49 10 50 C4 50 1 42 2 30 C1 18 4 10 10 10 Z' fill='%23f8d55f'/%3E%3C/svg%3E");
@@ -240,7 +240,7 @@
 
 /* Trycks lite inåt när man klickar. */
 .start-page .start-marker:active::before,
-.auth-page .auth-form button[type='submit']:active::before {
+.auth-note .auth-form button[type='submit']:active::before {
   scale: 0.98;
   filter: brightness(0.9);
 }
@@ -384,6 +384,47 @@
 
   100% {
     filter: none;
+  }
+}
+
+/* Polaroiderna byts när Logga in eller Registrera dig visas (och tillbaka): de vänds en i taget runt sin lodräta axel,
+   som när man vänder ett foto (de trycks ihop på bredden till en kant och breddas ut igen), och de nya vänds fram och
+   framkallas som i introt. Tiderna står också i StartPage (FLIP_OUT_MS, FLIP_IN_MS). Lutningen ligger kvar i
+   transform; vändningen är en egen scale, så de påverkar inte varandra. Högre specificitet än introt ovan, så att
+   bytet vinner även första gången per session. */
+.start-page .start-polaroids.is-shown.is-flip-out .start-polaroid {
+  animation: start-polaroid-flip-out 260ms ease-in calc(var(--order) * 90ms) forwards;
+}
+
+.start-page .start-polaroids.is-shown.is-flip-in .start-polaroid {
+  animation: start-polaroid-flip-in 420ms cubic-bezier(0.3, 0.7, 0.4, 1) calc(var(--order) * 90ms) backwards;
+}
+
+.start-page .start-polaroids.is-shown.is-flip-in .start-polaroid :is(img, video) {
+  animation: start-polaroid-develop 1.2s ease-out calc(var(--order) * 90ms + 200ms) backwards;
+}
+
+@keyframes start-polaroid-flip-out {
+  from {
+    scale: 1 1;
+  }
+
+  to {
+    scale: 0 1;
+  }
+}
+
+@keyframes start-polaroid-flip-in {
+  0% {
+    scale: 0 1;
+  }
+
+  70% {
+    scale: 1.06 1;
+  }
+
+  100% {
+    scale: 1 1;
   }
 }
 
@@ -822,63 +863,173 @@
   overflow: visible;
   fill: none;
   stroke: var(--color-ink);
-  stroke-width: 1.6;
+  /* Tjockt som en tuschpenna. Strecket räknas i bildens enheter, så de större figurerna får lite tunnare tal för att
+     se lika tjocka ut. */
+  stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.start-doodle-paper {
-  fill: var(--color-white);
+.start-doodle-dot {
+  fill: var(--color-ink);
+  stroke: none;
 }
 
-.start-doodle-dashed {
-  stroke-dasharray: 3 4;
-  opacity: 0.7;
-}
-
-/* Kartnålen till höger om texten, under fotbollen. */
-.start-doodle-pin {
-  left: calc(50% + 22.5rem);
-  top: calc(52% - 2rem);
-  width: 2.8rem;
-  height: 5.2rem;
-  rotate: 6deg;
-}
-
-.start-doodle-pin-body {
-  fill: var(--color-accent);
+/* Vänster om texten, uppifrån: smileyn och spiralen, och luffarschacket uppe vid loggan. Stjärnan ligger till höger
+   om polaroiden nere till höger. */
+.start-doodle-smiley {
+  left: calc(50% - 23.5rem);
+  top: calc(25% - 2rem);
+  width: 4.2rem;
+  height: 4.2rem;
+  rotate: -8deg;
 }
 
 .start-doodle-star {
-  left: calc(50% - 25rem);
-  top: calc(44% - 2rem);
-  width: 1.8rem;
-  height: 1.8rem;
+  left: calc(50% + 34.3rem);
+  top: calc(78% - 2rem);
+  width: 2rem;
+  height: 2rem;
   rotate: -12deg;
 }
 
-.start-doodle-ball {
-  left: calc(50% + 21.5rem);
-  top: calc(40% - 2rem);
-  width: 2.1rem;
-  height: 2.1rem;
-  rotate: 18deg;
+.start-doodle-spiral {
+  left: calc(50% - 23rem);
+  top: calc(56% - 2rem);
+  width: 2.4rem;
+  height: 2.4rem;
+  rotate: 20deg;
 }
 
-.start-doodle-ink {
-  fill: var(--color-ink);
+.start-doodle-tictactoe {
+  left: calc(50% - 11.5rem);
+  top: calc(6% - 2rem);
+  width: 5.6rem;
+  height: 5.6rem;
+  rotate: -6deg;
+  stroke-width: 1.5;
 }
 
+/* Höger om texten, uppifrån: hjärtat med pilen, pratbubblan och blixten. */
 .start-doodle-heart {
-  left: calc(50% - 21rem);
-  top: calc(30% - 2rem);
-  width: 1.7rem;
-  height: 1.45rem;
+  left: calc(50% + 19rem);
+  top: calc(25% - 2rem);
+  width: 6rem;
+  height: 4.3rem;
+  rotate: -6deg;
+  stroke-width: 1.5;
+}
+
+.start-doodle-bubble {
+  left: calc(50% + 24rem);
+  top: calc(46% - 2rem);
+  width: 3.6rem;
+  height: 2.8rem;
+  rotate: 4deg;
+}
+
+.start-doodle-bolt {
+  left: calc(50% + 20rem);
+  top: calc(56% - 2rem);
+  width: 1.6rem;
+  height: 2.4rem;
+  rotate: 12deg;
+}
+
+/* Det klassiska S:et nere till höger, under kristallen och till vänster om polaroiden där. Räknat nerifrån, så att
+   det slutar i höjd med pilen ned (pilen är 3.5rem hög och 1.25rem från botten). */
+.start-doodle-cool-s {
+  left: calc(50% + 15.7rem);
+  top: calc(100% - 13rem);
+  width: 3.4rem;
+  height: 7.5rem;
+  rotate: -9deg;
+  stroke-width: 1.5;
+}
+
+/* Kristallen nere till höger under blixten. */
+.start-doodle-gem {
+  left: calc(50% + 16.5rem);
+  top: calc(70% - 2rem);
+  width: 1.8rem;
+  height: 2.3rem;
+  rotate: 14deg;
+  stroke-width: 1.1;
+}
+
+/* Den vågiga slingan uppe till höger om loggan. */
+.start-doodle-squiggle {
+  left: calc(50% + 10rem);
+  top: calc(9% - 2rem);
+  width: 5.6rem;
+  height: 2.3rem;
+  rotate: -8deg;
+  stroke-width: 1.3;
+}
+
+
+/* Musiknoten uppe till vänster vid luffarschacket. */
+.start-doodle-note {
+  left: calc(50% - 20rem);
+  top: calc(8% - 2rem);
+  width: 1.5rem;
+  height: 2.2rem;
   rotate: -10deg;
 }
 
-.start-doodle-heart path {
-  fill: rgba(231, 161, 161, 0.55);
+/* Längre ut mot kanterna, utanför polaroiderna: stjärnfallet och månen bara från 1400 px, och tärningen och bocken
+   bara från 1700 px, så att inget hamnar utanför skärmen. */
+.start-doodle-wide,
+.start-doodle-xwide {
+  display: none;
+}
+
+.start-doodle-sparkle {
+  left: calc(50% - 39rem);
+  top: calc(47% - 2rem);
+  width: 1.7rem;
+  height: 1.7rem;
+  rotate: 14deg;
+  stroke-width: 1.4;
+}
+
+.start-doodle-moon {
+  left: calc(50% + 39rem);
+  top: calc(36% - 2rem);
+  width: 3.2rem;
+  height: 3.2rem;
+  rotate: -12deg;
+  stroke-width: 1.4;
+}
+
+.start-doodle-dice {
+  left: calc(50% - 47rem);
+  top: calc(22% - 2rem);
+  width: 3.6rem;
+  height: 3.6rem;
+  rotate: -14deg;
+  stroke-width: 1.4;
+}
+
+.start-doodle-check {
+  left: calc(50% - 45rem);
+  top: calc(72% - 2rem);
+  width: 3rem;
+  height: 3rem;
+  rotate: 6deg;
+  stroke-width: 1.4;
+}
+
+@media (min-width: 1400px) {
+  .start-doodle-wide {
+    display: block;
+  }
+}
+
+@media (min-width: 1700px) {
+  .start-doodle-xwide {
+    display: block;
+  }
 }
 
 /* Lappen till vänster om knapparna, med en böjd pil som pekar på dem (StartPage). Den ligger i knappraden, så att
@@ -1114,9 +1265,37 @@
     bottom / 100% 0.35em no-repeat;
 }
 
-.auth-page .auth-form button[type='submit'] {
+.auth-note .auth-form button[type='submit'] {
   min-height: 48px;
   margin-top: 0.75rem;
+}
+
+/* På startsidan, i stället för rubriken (StartPage): ovanpå klottret och polaroiderna runt om. */
+.start-hero > .auth-note.paper-note {
+  z-index: 1;
+}
+
+/* Krysset uppe i lappens hörn, under tejpen. */
+.auth-note-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.auth-note-close:hover,
+.auth-note-close:focus-visible {
+  color: var(--color-text);
 }
 
 /* Tillbaka: den pennritade pilen, vriden så att den pekar åt vänster. */

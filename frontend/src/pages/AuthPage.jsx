@@ -16,11 +16,11 @@ import '../styles/startPage.css'
 //
 // Sidorna ser ut som den nya startsidan: anteckningsblocket i bakgrunden, formuläret på en lapp med tejp,
 // märkpennsknappen och den pennritade pilen tillbaka (se "Inloggning och registrering" i startPage.css).
+// Startsidan visar samma lapp (AuthNote) i en ruta ovanpå sidan i stället.
 function AuthPage({ mode }) {
   const { user, loading } = useAuth()
   const navigate = useNavigate()
   const justRegistered = Boolean(useLocation().state?.justRegistered)
-  const [forgot, setForgot] = useState(false)
   const goBack = useGoBack(() => navigate('/'))
 
   // Redan inloggad: inget att göra här, skicka vidare till kartan.
@@ -36,29 +36,50 @@ function AuthPage({ mode }) {
         <img src={logo} alt="Intresseklubben" className="logo-small" />
       </section>
 
-      <div className="paper-note auth-note">
-        {mode === 'register' && (
-          <RegisterFields
-            onSwitchToLogin={() => navigate('/logga-in', { replace: true })}
-            onRegistered={() => navigate('/logga-in', { replace: true, state: { justRegistered: true } })}
-          />
-        )}
+      <AuthNote
+        mode={mode}
+        justRegistered={justRegistered}
+        onSwitch={(next, state) => navigate(next === 'register' ? '/registrera' : '/logga-in', { replace: true, state })}
+      />
+    </div>
+  )
+}
 
-        {mode === 'login' &&
-          (forgot ? (
-            <ForgotPasswordFields onSwitchToLogin={() => setForgot(false)} />
-          ) : (
-            <LoginFields
-              onSwitchToRegister={() => navigate('/registrera', { replace: true })}
-              onForgotPassword={() => setForgot(true)}
-              notice={
-                justRegistered
-                  ? 'Kontot är skapat! Vi har skickat ett mejl för att bekräfta din e-post. Logga in med ditt användarnamn eller din e-post.'
-                  : null
-              }
-            />
-          ))}
-      </div>
+// Lappen med inloggningen (`mode` 'login', med "Glömt lösenord?") eller registreringen ('register'). `onSwitch(mode,
+// state)` byter mellan dem; efter en registrering byts den till inloggningen med `{ justRegistered: true }`, och
+// `justRegistered` visar då att kontot är skapat. `onClose` (valfri) ger lappen ett kryss uppe i hörnet, när den
+// visas i en ruta.
+export function AuthNote({ mode, justRegistered = false, onSwitch, onClose }) {
+  const [forgot, setForgot] = useState(false)
+
+  return (
+    <div className="paper-note auth-note">
+      {onClose && (
+        <button type="button" className="auth-note-close" aria-label="Stäng" onClick={onClose}>
+          ×
+        </button>
+      )}
+      {mode === 'register' && (
+        <RegisterFields
+          onSwitchToLogin={() => onSwitch('login')}
+          onRegistered={() => onSwitch('login', { justRegistered: true })}
+        />
+      )}
+
+      {mode === 'login' &&
+        (forgot ? (
+          <ForgotPasswordFields onSwitchToLogin={() => setForgot(false)} />
+        ) : (
+          <LoginFields
+            onSwitchToRegister={() => onSwitch('register')}
+            onForgotPassword={() => setForgot(true)}
+            notice={
+              justRegistered
+                ? 'Kontot är skapat! Vi har skickat ett mejl för att bekräfta din e-post. Logga in med ditt användarnamn eller din e-post.'
+                : null
+            }
+          />
+        ))}
     </div>
   )
 }
