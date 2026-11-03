@@ -6,7 +6,7 @@ from app.auth.security import get_current_user
 from app.main import app
 from app.models import Contact, Event, EventInvitation, GroupMember, Interest, User
 from app.models.event import EventVisibility
-from app.models.group import GroupVisibility
+from app.models.group import GroupRole, GroupVisibility
 from app.schemas.event import EVENT_MAX_DAYS_AHEAD
 from tests.event_helpers import add_contact, add_event, add_group, future, payload
 
@@ -185,6 +185,26 @@ def test_event_in_private_group_is_invite_only_when_visibility_is_left_out(
     assert response.json()["visibility"] == "invite_only"
     explicit = client.post("/events/", json=payload(group_id=group.id, visibility="invite_only"))
     assert explicit.status_code == 201
+
+
+def test_a_regular_member_cannot_create_an_event_for_the_club(client, db, user, other, interest, municipalities):
+    group = add_group(db, other.id, members=[user.id])
+    response = client.post("/events/", json=payload(group_id=group.id))
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Bara klubbens ägare och administratörer kan skapa event för klubben"
+    assert db.query(Event).count() == 0
+
+    # Ett eget event utan klubb går fortfarande bra.
+    assert client.post("/events/", json=payload()).status_code == 201
+
+
+def test_a_club_admin_can_create_an_event_for_the_club(client, db, user, other, interest, municipalities):
+    group = add_group(db, other.id, members=[user.id])
+    next(m for m in group.members if m.user_id == user.id).role = GroupRole.admin
+    db.commit()
+    response = client.post("/events/", json=payload(group_id=group.id))
+    assert response.status_code == 201
+    assert response.json()["group_id"] == group.id
 
 
 def test_cannot_create_event_in_a_group_you_are_not_in(client, db, user, other, interest, municipalities):

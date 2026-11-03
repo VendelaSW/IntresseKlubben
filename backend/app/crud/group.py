@@ -329,6 +329,11 @@ def is_moderator(group: Group, user_id: int) -> bool:
     return membership is not None and membership.role in (GroupRole.owner, GroupRole.admin)
 
 
+def is_club_owner(group: Group, user_id: int) -> bool:
+    membership = get_membership(group, user_id)
+    return membership is not None and membership.role == GroupRole.owner
+
+
 def can_invite(group: Group, user_id: int) -> bool:
     """Ägaren och administratörer får alltid bjuda in, andra medlemmar bara om ägaren har slagit på det."""
     membership = get_membership(group, user_id)
