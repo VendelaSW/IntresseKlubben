@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import DrawnArrow from '../components/DrawnArrow'
+import EmptyState from '../components/EmptyState'
 import EventList from '../components/events/EventList'
 import './eventCalendar.css'
 
@@ -12,6 +13,11 @@ import './eventCalendar.css'
 const WEEKDAYS = ['mån', 'tis', 'ons', 'tors', 'fre', 'lör', 'sön']
 const monthName = new Intl.DateTimeFormat('sv-SE', { month: 'long', year: 'numeric' })
 const dayName = new Intl.DateTimeFormat('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })
+
+// Kompisen med frågetecknet, på en dag utan event. En adress i stället för en import: en import hade tagit med bilden i en
+// vanlig build (Vite lägger med importerade bilder även när koden som använder dem aldrig körs), och kalendern ska bara
+// finnas i testläget. Dev-servern hämtar filen direkt från src/assets.
+const KOMPIS_FRAGETECKEN = '/src/assets/kompis-fragetecken.webp'
 
 // Lapparnas färger och lutning, i tur och ordning efter dagen i månaden så att de inte ser likadana ut.
 const NOTE_COLORS = [
@@ -60,7 +66,7 @@ function eventsByDay(events) {
 function EventStack({ events, myInterestIds, onSelect }) {
   const [index, setIndex] = useState(0)
   if (events.length === 0) {
-    return <EventList events={[]} emptyText="Inga events den här dagen." myInterestIds={myInterestIds} onSelect={onSelect} />
+    return <EmptyState text="Inga events den här dagen." image={KOMPIS_FRAGETECKEN} />
   }
   const count = events.length
   const top = Math.min(index, count - 1)
