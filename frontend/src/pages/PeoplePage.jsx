@@ -549,19 +549,22 @@ function PeoplePage() {
       ) : (
         <>
         {tab === 'contacts' && friendInterests.length > 1 && (
-          <select
-            className="club-filter friend-interest-filter"
-            aria-label="Visa kompisar med intresset"
-            value={friendInterest}
-            onChange={(event) => setFriendInterest(event.target.value)}
-          >
-            <option value="">Alla intressen</option>
-            {friendInterests.map((interest) => (
-              <option key={interest.id} value={interest.id}>
-                {interest.name}
-              </option>
-            ))}
-          </select>
+          <SearchToggle count={friendInterest ? 1 : 0}>
+            <div className="filter-select-row filter-select-row-compact">
+              <select
+                aria-label="Visa kompisar med intresset"
+                value={friendInterest}
+                onChange={(event) => setFriendInterest(event.target.value)}
+              >
+                <option value="">Alla intressen</option>
+                {friendInterests.map((interest) => (
+                  <option key={interest.id} value={interest.id}>
+                    {interest.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </SearchToggle>
         )}
         <div className="card-grid card-grid-compact">
           {tab === 'contacts' &&
