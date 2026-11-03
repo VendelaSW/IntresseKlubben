@@ -1,7 +1,7 @@
 /* Kartprototypen (pages/MapPrototype.jsx och dess block och lappar). Laddas
    bara med kartan, som själv laddas först när man öppnar den. */
 
-/* ---------- Kartprototyp: skattkarta på ett gult block ---------- */
+/* ---------- Kartprototyp: skattkarta på ett block i samma färg som startsidan ---------- */
 
 .map-sketch {
   position: relative;
@@ -11,7 +11,7 @@
      verkliga höjden; vh står kvar för äldre webbläsare. */
   height: 100dvh;
   overflow: hidden;
-  background-color: #fbf0a9;
+  background-color: var(--map-paper, var(--color-bg));
   /* Samma perspektiv som MapLibres kamera (synfält ca 37 grader): höjden
      delat med 2 * tan(18,4°) ≈ 1,5 * höjden. Då hamnar de lutade linjerna i
      samma plan som den lutade kartan. */
@@ -36,8 +36,9 @@
   /* Marginallinjen 64 px in från skärmens vänsterkant, som ligger
      60 / 220 ≈ 27,3 % in på ytan. */
   background-image:
-    linear-gradient(to right, transparent calc(27.27% + 64px), rgba(214, 69, 65, 0.55) calc(27.27% + 64px), rgba(214, 69, 65, 0.55) calc(27.27% + 66px), transparent calc(27.27% + 66px)),
-    repeating-linear-gradient(to bottom, transparent 0, transparent 31px, rgba(80, 140, 200, 0.35) 31px, rgba(80, 140, 200, 0.35) 32px);
+    linear-gradient(to right, transparent calc(27.27% + 64px), var(--map-margin, rgba(214, 69, 65, 0.55)) calc(27.27% + 64px), var(--map-margin, rgba(214, 69, 65, 0.55)) calc(27.27% + 66px), transparent calc(27.27% + 66px)),
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--map-gap, 32px) - 1px), var(--map-line, rgba(80, 140, 200, 0.35)) calc(var(--map-gap, 32px) - 1px), var(--map-line, rgba(80, 140, 200, 0.35)) var(--map-gap, 32px)),
+    repeating-linear-gradient(to right, transparent 0, transparent calc(var(--map-gap, 32px) - 1px), var(--map-grid-line, transparent) calc(var(--map-gap, 32px) - 1px), var(--map-grid-line, transparent) var(--map-gap, 32px));
   pointer-events: none;
 }
 
@@ -47,8 +48,8 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  box-shadow: inset 0 0 120px 20px rgba(70, 45, 20, 0.25);
-  background: linear-gradient(to bottom, rgba(70, 45, 20, 0.1), transparent 35%);
+  box-shadow: inset 0 0 140px 30px var(--map-glow, rgba(190, 120, 40, 0.28));
+  background: linear-gradient(to bottom, var(--map-glow-top, rgba(230, 160, 60, 0.12)), transparent 40%);
 }
 
 
@@ -101,8 +102,8 @@
   z-index: 3;
   overflow-y: auto;
   background-image:
-    linear-gradient(to right, transparent 64px, rgba(214, 69, 65, 0.55) 64px, rgba(214, 69, 65, 0.55) 66px, transparent 66px),
-    repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--calm-line) - 1px), rgba(80, 140, 200, 0.35) calc(var(--calm-line) - 1px), rgba(80, 140, 200, 0.35) var(--calm-line));
+    linear-gradient(to right, transparent 64px, var(--map-margin, rgba(214, 69, 65, 0.55)) 64px, var(--map-margin, rgba(214, 69, 65, 0.55)) 66px, transparent 66px),
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--calm-line) - 1px), var(--map-line, rgba(80, 140, 200, 0.35)) calc(var(--calm-line) - 1px), var(--map-line, rgba(80, 140, 200, 0.35)) var(--calm-line));
   background-attachment: local;
   color: #3a2f25;
 }
@@ -380,7 +381,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background-color: #fbf0a9;
+  background-color: var(--map-paper, var(--color-bg));
   perspective: 150vh;
   perspective: 150dvh;
   pointer-events: none;
@@ -721,7 +722,7 @@
   font-weight: 700;
   color: #3a2f25;
   white-space: nowrap;
-  text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
+  text-shadow: 0 0 3px var(--map-paper, var(--color-bg)), 0 0 3px var(--map-paper, var(--color-bg));
   /* En knapp som ser ut som text, och som släpper igenom musen till kartan (se placeLabelAt). */
   margin: 0;
   padding: 0;
@@ -853,8 +854,8 @@
   padding: 0 0.35em;
   line-height: 1.1;
   border-radius: 999px;
-  background: rgba(251, 240, 169, 0.85);
-  box-shadow: 0 0 6px 3px rgba(251, 240, 169, 0.85);
+  background: color-mix(in srgb, var(--map-paper, var(--color-bg)) 85%, transparent);
+  box-shadow: 0 0 6px 3px color-mix(in srgb, var(--map-paper, var(--color-bg)) 85%, transparent);
 }
 
 
@@ -1027,7 +1028,7 @@
   font-family: var(--font-heading);
   font-size: 1.3rem;
   line-height: 1.1;
-  text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
+  text-shadow: 0 0 3px var(--map-paper, var(--color-bg)), 0 0 3px var(--map-paper, var(--color-bg));
   pointer-events: none;
 }
 
@@ -2399,4 +2400,37 @@
 .map-pad .club-card-buttons .primary-button,
 .map-pad .club-card-buttons .secondary-button {
   padding-inline: 0.6rem;
+}
+
+/* TILLFÄLLIGT (testläget, väljaren Karta: ortnamn), se mapThemes.js. */
+.map-sketch[data-map-names='versaler'] .map-sketch-label {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.map-sketch[data-map-names='lapp'] .map-sketch-label {
+  padding: 0.05rem 0.45rem;
+  border: 1.5px solid #3a2f25;
+  background: #fffdf6;
+  box-shadow: 2px 2px 0 #3a2f25;
+  font-size: 1.05rem;
+  text-shadow: none;
+}
+
+.map-sketch[data-map-names='stora'] .map-sketch-label {
+  font-size: 1.85rem;
+}
+
+.map-sketch[data-map-names='sma'] .map-sketch-label {
+  font-size: 1.05rem;
+}
+
+.map-sketch[data-map-names='bla'] .map-sketch-label {
+  color: #1f4a94;
+}
+
+.map-sketch[data-map-names='rod'] .map-sketch-label {
+  color: #a32d2d;
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { MAP_PICKERS } from '../pages/mapThemes'
 import './padBackgrounds.css'
 import './uiStyles.css'
 import './matchCards.css'
@@ -11,6 +12,13 @@ import '../components/events/eventCardVariants.css'
 // gäller nu ("pre-dev"), som också är det enda som finns utanför testläget. Tas bort när utseendena är valda; de
 // valda flyttas då in i appen.
 const PICKERS = [
+  ...MAP_PICKERS.map(({ key, attr, label, options }) => ({
+    key,
+    attr,
+    label,
+    fallback: 'pre-dev',
+    options: options.map((option, index) => ({ id: option.id, label: `${index}. ${option.label}` })),
+  })),
   {
     key: 'testlage-klubbkort',
     attr: 'clubCard',
