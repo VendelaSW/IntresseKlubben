@@ -2077,6 +2077,100 @@ span.tag-selected:hover {
   min-height: var(--card-height);
 }
 
+/* Mobil: två kort bredvid varandra, så att det blir mindre att scrolla (SCRUM-265). */
+@media (max-width: 767px) {
+  .card-grid-compact {
+    --card-height: 260px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .card-grid-compact > .card {
+    max-width: none;
+    min-width: 0;
+    padding: 0.75rem;
+  }
+
+  /* Bilden överst och namnet och orten under, i kortets hela bredd, så att de får plats utan att brytas mitt i ord. */
+  .card-grid-compact .person-card .person-card-link {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.3rem;
+  }
+
+  .card-grid-compact .person-card .card-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 1rem;
+  }
+
+  .card-grid-compact .person-card .card-title {
+    grid-column: 1;
+    grid-row: auto;
+    font-size: 1.15rem;
+    line-height: 1.1;
+    overflow-wrap: break-word;
+  }
+
+  .card-grid-compact .person-card .card-subheading {
+    grid-column: 1;
+    grid-row: auto;
+    max-width: 100%;
+    font-size: 0.75rem;
+    overflow-wrap: break-word;
+  }
+
+  .card-grid-compact .person-card .card-avatar {
+    grid-row: auto;
+  }
+
+  /* Testlägets affischkort har namnet och orten i raka versaler, som tar mer plats. */
+  .card-grid-compact .person-card.match-card-poster .person-card-link .card-title {
+    grid-column: 1;
+    grid-row: auto;
+    font-size: 0.8rem;
+  }
+
+  .card-grid-compact .person-card.match-card-poster .person-card-link .card-subheading {
+    grid-column: 1;
+    grid-row: auto;
+    font-size: 0.6rem;
+  }
+
+  .card-grid-compact .person-card.match-card-poster .person-card-link .card-avatar {
+    grid-row: auto;
+  }
+
+  .card-grid-compact .list-card-link .card-title {
+    font-size: 1.35rem;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  .card-grid-compact .stamp,
+  .card-grid-compact .status-pill {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  /* Knapparna bryts och fyller kortets bredd, så att en lång text får plats och går att trycka på. */
+  .card-grid-compact .card-actions {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .card-grid-compact .card-actions > button.primary-button,
+  .card-grid-compact .card-actions > button.secondary-button {
+    flex: 1 1 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 2.5rem;
+    padding-inline: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.15;
+    white-space: normal;
+  }
+}
+
 /* Dator: korten fyller bredden kant i kant med rubriken och flikarna, med så
    många kolumner som får plats (tre på en vanlig skärm, färre i ett smalare
    fönster eller i kartans block). auto-fill behåller tomma kolumner, så att
