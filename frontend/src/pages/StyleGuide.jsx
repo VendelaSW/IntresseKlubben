@@ -470,7 +470,7 @@ function StyleGuide() {
           rollen och stämpeln på en rad nederst. På klubbkortet står Öppen/Privat uppe till höger, namnet kortas med
           "…" efter två rader och beskrivningen efter tre. Sökikonen flyter nere i blockets vänstra hörn och skapa-knappen
           i det högra (PadFloatAction, .map-pad-float), ovanför menyn. Öppen blir sökningen en ruta längs nederkanten.
-          I eventets egen vy står kvittot överst och "Kommer du?" stannar längst ner medan man scrollar. Klubbens egen
+          I eventets egen vy står kvittot överst, med urtagen under sig. Klubbens egen
           vy har en rad i intressets färg överst, namnet i tryckbokstäver och antalet medlemmar i en svart ruta.
         </p>
       </section>
