@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { InterestPrompt } from '../components/AddInterest'
+import boardIcon from '../assets/anslagstavla.png'
 import brevIcon from '../assets/brev.png'
 import eventIcon from '../assets/event.png'
 import hemIcon from '../assets/hem.png'
@@ -29,6 +30,7 @@ import FormField from '../components/FormField'
 import InterestPicker from '../components/InterestPicker'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
+import IconButton from '../components/IconButton'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { NotificationDetails, NotificationRow, NotificationsEmpty } from './NotificationsPage'
 
@@ -420,6 +422,56 @@ function StyleGuide() {
           (.map-nav-blob) glider till den öppna sidan och töjs ut på vägen, och runt kartans knapp blir den en ring.
           Blocken går ända ner under menyn. Med minskad rörelse byter bubblan bara plats. På surfplattan och datorn är
           lapparna som förut, och kartans knapp och bubblan syns inte.
+        </p>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Redigera och Radera (IconButton)
+        </p>
+        <p className="hint-text">
+          Den handritade pennan (assets/redigera.png) och soptunnan (assets/radera.png) i stället för text, utan ram och
+          bakgrund (.icon-button). Namnet (label) läses upp av skärmläsare och syns när musen är över. Knapparna i
+          popuperna som bekräftar en radering har kvar sin text.
+        </p>
+        <div className="swatch-grid" style={{ marginTop: '1rem' }}>
+          <div className="swatch">
+            <IconButton icon="edit" label="Redigera" />
+          </div>
+          <div className="swatch">
+            <IconButton icon="delete" label="Radera" />
+          </div>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Anslagstavlan (.club-board-link) och klubbchatten på mobil (.group-chat-dropdown)
+        </p>
+        <p className="hint-text">
+          I klubbens ruta öppnar en ljusgul rad med tavlans ikon (assets/anslagstavla.png) anslagstavlan, under
+          knapparna. På mobil ligger klubbchatten i rutan under medlemmarna, ihopfälld till en rad med "Klubbchatt" och
+          en pil, och fälls ut med ett tryck. På datorn står chatten bredvid klubben.
+        </p>
+        <div className="swatch-grid" style={{ marginTop: '1rem' }}>
+          <div className="swatch" style={{ width: '16rem' }}>
+            <button type="button" className="club-board-link">
+              <img src={boardIcon} alt="" />
+              <span>Anslagstavla</span>
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="m9 6 6 6-6 6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Events och klubbar på mobil
+        </p>
+        <p className="hint-text">
+          På telefonen (upp till 767 px) ligger korten ett per rad över hela bredden, utan lutning och utan "EVENT"
+          eller "KLUBB" överst. Eventbiljetten har kvittot (datum, tid och plats) som en flik till höger, och intresset,
+          rollen och stämpeln på en rad nederst. På klubbkortet står Öppen/Privat uppe till höger, namnet kortas med
+          "…" efter två rader och beskrivningen efter tre. Sökikonen flyter nere i blockets vänstra hörn och skapa-knappen
+          i det högra (PadFloatAction, .map-pad-float), ovanför menyn. Öppen blir sökningen en ruta längs nederkanten.
+          I eventets egen vy står kvittot överst och "Kommer du?" stannar längst ner medan man scrollar. Klubbens egen
+          vy har en rad i intressets färg överst, namnet i tryckbokstäver och antalet medlemmar i en svart ruta.
         </p>
       </section>
 
