@@ -11,6 +11,7 @@ import CreateOffer from '../CreateOffer'
 import { PadHeadAction } from '../PadHead'
 import EmptyState from '../EmptyState'
 import FilterTabs from '../FilterTabs'
+import SearchToggle from '../SearchToggle'
 import InterestPicker from '../InterestPicker'
 import EventDayFilter from './EventDayFilter'
 import EventDetails from './EventDetails'
@@ -339,51 +340,54 @@ function EventsPanel() {
               )}
               {!showCalendar && (
                 <>
-                <div className="filter-select-row filter-select-row-compact">
-                  <EventDayFilter value={dayFilter} onChange={setDayFilter} />
-                  <InterestPicker
-                    aria-label="Filtrera på intresse"
-                    placeholder="Alla intressen"
-                    myInterests={myInterests}
-                    value={interestFilter}
-                    onChange={setInterestFilter}
-                  />
-                </div>
-                {shown[tab].length === 0 && interestFilter ? (
-                  <CreateOffer
-                    text={`Det finns inga events för ${interestFilter.name}. Vill du skapa ett?`}
-                    createLabel="Skapa event"
-                    onCreate={() => openCreate(interestFilter.id)}
-                    onClear={clearFilters}
-                  />
-                ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
-                  <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
-                ) : shown[tab].length === 0 && tab === 'suggested' ? (
-                  // Inga förslag alls: Intressekompisen erbjuder att skapa ett (SCRUM-221), som de andra tomma flikarna.
-                  <EmptyState text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}>
-                    <button type="button" className="primary-button" onClick={() => openCreate()}>
-                      Skapa event
-                    </button>
-                  </EmptyState>
-                ) : (
-                  <EventList
-                    events={shown[tab]}
-                    emptyText={EMPTY_TEXT[tab]}
-                    myInterestIds={myInterestIds}
-                    onSelect={(e) => setView(e.id)}
-                  />
-                )}
-                {tab === 'invitations' && lists.declined.length > 0 && (
-                  <>
-                    <h2>Nekade ({lists.declined.length})</h2>
+                  <SearchToggle count={(interestFilter ? 1 : 0) + (dayFilter ? 1 : 0)}>
+                    <div className="filter-select-row filter-select-row-compact">
+                      <InterestPicker
+                        aria-label="Filtrera på intresse"
+                        placeholder="Alla intressen"
+                        myInterests={myInterests}
+                        value={interestFilter}
+                        onChange={setInterestFilter}
+                      />
+                      <EventDayFilter value={dayFilter} onChange={setDayFilter} />
+                    </div>
+                  </SearchToggle>
+                  {shown[tab].length === 0 && interestFilter ? (
+                    <CreateOffer
+                      text={`Det finns inga events för ${interestFilter.name}. Vill du skapa ett?`}
+                      createLabel="Skapa event"
+                      onCreate={() => openCreate(interestFilter.id)}
+                      onClear={clearFilters}
+                    />
+                  ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
+                    <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
+                  ) : shown[tab].length === 0 && tab === 'suggested' ? (
+                    // Inga förslag alls: Intressekompisen erbjuder att skapa ett (SCRUM-221), som de andra tomma
+                    // flikarna.
+                    <EmptyState text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}>
+                      <button type="button" className="primary-button" onClick={() => openCreate()}>
+                        Skapa event
+                      </button>
+                    </EmptyState>
+                  ) : (
                     <EventList
-                      events={lists.declined}
-                      emptyText=""
+                      events={shown[tab]}
+                      emptyText={EMPTY_TEXT[tab]}
                       myInterestIds={myInterestIds}
                       onSelect={(e) => setView(e.id)}
                     />
-                  </>
-                )}
+                  )}
+                  {tab === 'invitations' && lists.declined.length > 0 && (
+                    <>
+                      <h2>Nekade ({lists.declined.length})</h2>
+                      <EventList
+                        events={lists.declined}
+                        emptyText=""
+                        myInterestIds={myInterestIds}
+                        onSelect={(e) => setView(e.id)}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </>

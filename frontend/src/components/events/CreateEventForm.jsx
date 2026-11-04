@@ -11,6 +11,7 @@ import { EVENT_VISIBILITY, createEvent, inviteToEvent, updateEvent } from '../..
 import { SCOPES, SKILL_LEVELS, areaOptions, getRegions } from '../../services/groups'
 import { profileQuery } from '../../services/profile'
 import { localInputValue } from '../../utils/eventTime'
+import InfoTip from '../InfoTip'
 
 // Hur man kommer med (SCRUM-296). Öppet och Ansökan går inte i en privat klubb.
 const VISIBILITY_OPTIONS = [
@@ -229,12 +230,17 @@ function CreateEventForm({
 
   return (
     <form className="auth-form form-wide form-compact form-split" onSubmit={handleSubmit}>
-      <h2>{editing ? 'Redigera event' : 'Skapa event'}</h2>
-      {editing && (
-        <p className="hint-text">
-          Ändrar du tid eller plats får de som har svarat Ja eller Kanske en notis från Intresseklubben.
-        </p>
-      )}
+      <h2>
+        {editing ? 'Redigera event' : 'Skapa event'}
+        {editing && (
+          <>
+            {' '}
+            <InfoTip
+              text="Ändrar du tid eller plats får de som har svarat Ja eller Kanske en notis från Intresseklubben."
+            />
+          </>
+        )}
+      </h2>
 
       {/* Vad och när till vänster, var (med kartan) och vem det är till för till höger. */}
       <div className="form-columns">
@@ -438,11 +444,17 @@ function CreateEventForm({
                   Bjud in
                 </button>
                 <p className="hint-text">{inviteSummary(invites)}</p>
-                <label>
-                  <input type="checkbox" checked={guestsCanInvite} onChange={(e) => setGuestsCanInvite(e.target.checked)} /> Gäster får
-                  bjuda in
-                </label>
-                <p className="hint-text">Utan bockning kan bara du bjuda in. Du kan ändra det senare.</p>
+                <div className="with-info-tip">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={guestsCanInvite}
+                      onChange={(e) => setGuestsCanInvite(e.target.checked)}
+                    />{' '}
+                    Gäster får bjuda in
+                  </label>
+                  <InfoTip text="Utan bockning kan bara du bjuda in. Du kan ändra det senare." />
+                </div>
               </div>
               {inviteOpen && (
                 <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>

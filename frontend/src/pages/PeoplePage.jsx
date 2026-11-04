@@ -1,5 +1,6 @@
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import SearchToggle from '../components/SearchToggle'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
@@ -35,6 +36,7 @@ import { useConfirm } from '../hooks/useConfirm'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import LoadError from '../components/LoadError'
 import { MAX_AGE, MIN_AGE } from '../utils/age'
+import InfoTip from '../components/InfoTip'
 
 const TABS = [
   { id: 'match', label: 'Matcha' },
@@ -117,15 +119,15 @@ function PeoplePage() {
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [filters, setFilters] = useState(NO_FILTERS)
   useResetOnTabChange(tab, () => setFilters(NO_FILTERS))
+  // Intresset som Kompisar är filtrerad på (SCRUM-88), som ett id i text. Tomt = alla.
+  const [friendInterest, setFriendInterest] = useState('')
+  useResetOnTabChange(tab, () => setFriendInterest(''))
   const [myInterests, setMyInterests] = useState([])
   const [municipalities, setMunicipalities] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   // Den man nyss tog bort från Sök ({ id, name }), med "Ångra" en stund.
   const [removed, setRemoved] = useState(null)
-  // Filterfälten ligger bakom en Filter-knapp och är ihopfällda från början.
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const filterPanelId = useId()
   // På en smal skärm står bara "Intresse", "Kommun" och "Kön" i tomma fält, så att alla tre får plats på en rad.
   const narrow = useMediaQuery('(max-width: 767px)')
 
@@ -254,6 +256,15 @@ function PeoplePage() {
     )
   }
 
+  // Intressena som kompisarna har, för filtret under Kompisar. Bara kompisarna filtreras, och i webbläsaren: hela
+  // listan finns redan här.
+  const friendInterests = [
+    ...new Map(contactsData.contacts.flatMap((c) => c.user.interests ?? []).map((i) => [i.id, i])).values(),
+  ].sort((a, b) => a.name.localeCompare(b.name, 'sv'))
+  const shownContacts = contactsData.contacts.filter(
+    (c) => !friendInterest || (c.user.interests ?? []).some((i) => String(i.id) === friendInterest),
+  )
+
   const lists = {
     suggested,
     incoming: contactsData.incoming_requests,
@@ -371,44 +382,10 @@ function PeoplePage() {
 
       {(tab === 'suggested' || tab === 'match') && (
         <>
-          {/* Filterfälten bakom en knapp, som visar hur många filter som är på. Utfällda: intresse (i Sök), kommun och
-              kön på en rad, och åldern ensam på raden under, så att reglaget får plats att vara långt. I layouten
-              Nicklas förslag 1 är fälten papperslappar (se .filter-select-row-paper). */}
-          <button
-            type="button"
-            className={`filter-toggle${paperRow ? ' filter-toggle-paper' : ''}${filtersOpen ? ' is-open' : ''}`}
-            aria-expanded={filtersOpen}
-            aria-controls={filterPanelId}
-            onClick={() => setFiltersOpen((open) => !open)}
-          >
-            Filter{activeFilters.length > 0 ? ` · ${activeFilters.length}` : ''}
-          </button>
-          {activeFilters.length > 0 && (
-            <ul className="interest-tags filter-chips" aria-label="Valda filter">
-              {activeFilters.map((chip) => (
-                <li key={chip.key}>
-                  <span className="interest-tag">
-                    {chip.label}
-                    <button
-                      type="button"
-                      className="interest-tag-remove"
-                      aria-label={`Ta bort filtret ${chip.label}`}
-                      onClick={() => setFilters({ ...filters, ...chip.clear })}
-                    >
-                      ×
-                    </button>
-                  </span>
-                </li>
-              ))}
-              <li>
-                <button type="button" className="text-button" onClick={() => setFilters(NO_FILTERS)}>
-                  Rensa alla
-                </button>
-              </li>
-            </ul>
-          )}
-          {filtersOpen && (
-            <div id={filterPanelId} className="filter-panel">
+          {/* Samma kompakta fält som på Klubbar och Events, bakom sökikonen: intresse (i Sök), kommun och kön på en
+              rad, och åldern på raden under. De valda filtren står under, som lappar med kryss. */}
+          <SearchToggle count={activeFilters.length}>
+            <div className="filter-panel">
               <div className={`filter-select-row${paperRow ? ' filter-select-row-paper' : ''}`}>
                 {tab === 'suggested' && (
                   <InterestPicker
@@ -432,9 +409,35 @@ function PeoplePage() {
                 />
               </div>
             </div>
-          )}
-          {genders.length > 0 && (
-            <p className="hint-text">Visar bara dem som valt att synas när man filtrerar på kön.</p>
+          </SearchToggle>
+          {activeFilters.length > 0 && (
+            <ul className="interest-tags filter-chips" aria-label="Valda filter">
+              {activeFilters.map((chip) => (
+                <li key={chip.key}>
+                  <span className="interest-tag">
+                    {chip.label}
+                    <button
+                      type="button"
+                      className="interest-tag-remove"
+                      aria-label={`Ta bort filtret ${chip.label}`}
+                      onClick={() => setFilters({ ...filters, ...chip.clear })}
+                    >
+                      ×
+                    </button>
+                  </span>
+                </li>
+              ))}
+              <li>
+                <button type="button" className="text-button" onClick={() => setFilters(NO_FILTERS)}>
+                  Rensa alla
+                </button>
+              </li>
+              {genders.length > 0 && (
+                <li>
+                  <InfoTip text="Visar bara dem som valt att synas när man filtrerar på kön." />
+                </li>
+              )}
+            </ul>
           )}
           {tab === 'suggested' && dismissedCount > 0 && (
             <p className="hint-text">
@@ -530,7 +533,6 @@ function PeoplePage() {
           {others.length > 0 && (
             <>
               <h2>Fler i Intresseklubben</h2>
-              <p className="hint-text">Ni har inga intressen gemensamt än.</p>
               <div className="card-grid card-grid-compact">{others.map(suggestionCard)}</div>
             </>
           )}
@@ -546,24 +548,44 @@ function PeoplePage() {
           )}
         </>
       ) : (
-        <div className="card-grid card-grid-compact">
-          {tab === 'contacts' &&
-            contactsData.contacts.map((contact) => (
-              <PersonCard
-                key={contact.id}
-                person={contact.user}
-                sharedInterestIds={myInterestIds}
-                actions={
-                  <PersonActions
-                    userId={contact.user.id}
-                    relation="contact"
-                    busy={busy}
-                    onRemove={() => handleRemoveContact(contact)}
-                  />
-                }
-              />
-            ))}
-        </div>
+        <>
+          {tab === 'contacts' && friendInterests.length > 1 && (
+            <SearchToggle count={friendInterest ? 1 : 0}>
+              <div className="filter-select-row filter-select-row-compact">
+                <select
+                  aria-label="Visa kompisar med intresset"
+                  value={friendInterest}
+                  onChange={(event) => setFriendInterest(event.target.value)}
+                >
+                  <option value="">Alla intressen</option>
+                  {friendInterests.map((interest) => (
+                    <option key={interest.id} value={interest.id}>
+                      {interest.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </SearchToggle>
+          )}
+          <div className="card-grid card-grid-compact">
+            {tab === 'contacts' &&
+              shownContacts.map((contact) => (
+                <PersonCard
+                  key={contact.id}
+                  person={contact.user}
+                  sharedInterestIds={myInterestIds}
+                  actions={
+                    <PersonActions
+                      userId={contact.user.id}
+                      relation="contact"
+                      busy={busy}
+                      onRemove={() => handleRemoveContact(contact)}
+                    />
+                  }
+                />
+              ))}
+          </div>
+        </>
       )}
 
       {/* Ligger kvar längst ner i blocket när man scrollar (position: sticky), så
