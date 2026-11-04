@@ -61,6 +61,7 @@ EVENT_END_BEFORE_START = "Sluttiden måste vara efter starttiden"
 EVENT_TIME_NEEDS_TIMEZONE = "Ange tiden med tidszon"
 EVENT_INVITE_NOBODY = "Välj minst en person eller klubb att bjuda in"
 EVENT_GUESTS_CAN_INVITE_EMPTY = "Välj om gäster får bjuda in"
+EVENT_CREATOR_IN_MAX_EMPTY = "Välj om du räknas in i maxantalet"
 
 # ---------- Position på kartan (schemas/position.py, routes/geocode.py) ----------
 POSITION_INCOMPLETE = "Ange både latitud och longitud, eller ingen av dem"

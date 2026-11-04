@@ -63,7 +63,7 @@ def test_applying_notifies_the_owner_with_the_message(client, db, club, people):
     login(people["Sara"])
     body = _apply(client, club, "  Jag har spelat i tio år!  ").json()
     assert body["has_applied"] is True and body["is_member"] is False
-    assert _notes(db, 2) == [("group_join_request", "Sara vill gå med i Schackklubben", "Jag har spelat i tio år!")]
+    assert _notes(db, 2) == [("group_join_request", "Sara vill gå med i din klubb ”Schackklubben”", "Jag har spelat i tio år!")]
 
 
 def test_applying_twice_keeps_one_application_and_one_notification(client, db, club, people):
@@ -235,3 +235,33 @@ def test_deleting_the_account_removes_its_applications(client, db, club, people)
     delete_user(db, db.get(User, 3))
     db.commit()
     assert db.query(GroupJoinRequest).count() == 0
+
+
+# ---------- Besvarad ansökan ----------
+
+
+def _owner_unread(db):
+    return db.query(Notification).filter_by(user_id=2, kind="group_join_request", read_at=None).count()
+
+
+@pytest.mark.parametrize("answer", ["approve", "decline"])
+def test_answering_marks_the_owners_notification_read(client, db, club, people, answer):
+    # Ansökan är klar: den ska inte stå kvar som ny hos ägaren.
+    login(people["Sara"])
+    _apply(client, club)
+    assert _owner_unread(db) == 1
+    login(people["Olle"])
+    if answer == "approve":
+        assert client.put(f"/groups/{club.id}/requests/3").status_code == 204
+    else:
+        assert client.request("DELETE", f"/groups/{club.id}/requests/3", json={}).status_code == 204
+    db.expire_all()
+    assert _owner_unread(db) == 0
+
+
+def test_withdrawing_marks_the_owners_notification_read(client, db, club, people):
+    login(people["Sara"])
+    _apply(client, club)
+    client.delete(f"/groups/{club.id}/requests/me")
+    db.expire_all()
+    assert _owner_unread(db) == 0

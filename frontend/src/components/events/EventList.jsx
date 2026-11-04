@@ -34,15 +34,27 @@ export function VisibilityStamp({ event }) {
   return <span className={`stamp${open ? ' stamp-success' : ''}`}>{label}</span>
 }
 
-// "3 kommer", "3 av 10 kommer" eller "Fullt" (SCRUM-293), och området om eventet gäller ett större (SCRUM-295).
+// Hur många som kommer (har svarat Ja) och, med max antal, hur många platser som är kvar (SCRUM-293): { coming:
+// "1 kommer", spots: "5 platser kvar", "1 plats kvar" eller "Fullt" }. `spots` är null utan max antal. Platserna
+// räknas i backend (spots_left), eftersom skaparens Ja bara tar en plats när skaparen har valt det.
+export function eventCapacity(event) {
+  const coming = `${event.yes_count} kommer`
+  if (!event.max_attendees) return { coming, spots: null }
+  const left = event.spots_left ?? Math.max(0, event.max_attendees - event.yes_count)
+  if (event.is_full || left === 0) return { coming, spots: 'Fullt' }
+  return { coming, spots: `${left} ${left === 1 ? 'plats' : 'platser'} kvar` }
+}
+
+// Området, om eventet gäller ett större (SCRUM-295).
+export function eventAreaText(event) {
+  return event.scope === 'country' ? 'Hela Sverige' : event.scope_name
+}
+
+// En rad med området och, med max antal, "1 kommer, 5 platser kvar" (t.ex. på startsidan).
 export function eventExtrasText(event) {
-  const coming = event.max_attendees
-    ? event.is_full
-      ? 'Fullt'
-      : `${event.yes_count} av ${event.max_attendees} kommer`
-    : null
-  const area = event.scope === 'country' ? 'Hela Sverige' : event.scope_name
-  return [area, coming].filter(Boolean).join(' · ')
+  const { coming, spots } = eventCapacity(event)
+  const capacity = spots ? `${coming}, ${spots.toLowerCase()}` : null
+  return [eventAreaText(event), capacity].filter(Boolean).join(' · ')
 }
 
 const dayFormat = new Intl.DateTimeFormat('sv-SE', { day: 'numeric' })

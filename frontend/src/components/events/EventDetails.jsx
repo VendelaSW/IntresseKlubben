@@ -6,11 +6,12 @@ import Modal from '../Modal'
 import TextareaWithCount from '../TextareaWithCount'
 import ShowOnMapButton from '../ShowOnMapButton'
 import InvitePicker from './InvitePicker'
-import { eventExtrasText, eventWhenWhereText, VisibilityStamp } from './EventList'
+import { eventAreaText, eventCapacity, VisibilityStamp } from './EventList'
 import GroupJoinRequests from '../groups/GroupJoinRequests'
 import {
   EVENT_ANSWER,
   answerEvent,
+  removeAnswer,
   applyToEvent,
   approveEventRequest,
   declineEventRequest,
@@ -25,10 +26,11 @@ import {
 import { skillLevelLabel } from '../../services/groups'
 import LoadError, { useRetry } from '../LoadError'
 
+// `label` står på knapparna under "Kommer du?", `heading` över dem som har svarat så.
 const ANSWERS = [
-  { id: EVENT_ANSWER.yes, label: 'Ja' },
-  { id: EVENT_ANSWER.maybe, label: 'Kanske' },
-  { id: EVENT_ANSWER.no, label: 'Nej' },
+  { id: EVENT_ANSWER.yes, label: 'Ja', heading: 'Kommer' },
+  { id: EVENT_ANSWER.maybe, label: 'Kanske', heading: 'Kanske' },
+  { id: EVENT_ANSWER.no, label: 'Nej', heading: 'Kommer inte' },
 ]
 
 // Eventets egen vy: information, ens eget svar (Ja, Kanske eller Nej) och vilka
@@ -45,8 +47,8 @@ const ANSWERS = [
 // Ägaren av eventets klubb ser också Radera (`event.can_delete`, SCRUM-326).
 // Tillbaka-knappen ligger ovanför rutan, i EventsPanel.
 //
-// SCRUM-293, 295 och 296: nivån, området och "3 av 10 kommer" visas under titeln, och
-// ett fullt event tar inte emot fler Ja. På ett event man ansöker till ansöker man
+// SCRUM-293, 295 och 296: nivån står under titeln, området under platsen, "7 platser kvar" vid Kommer du? (och
+// Fullt som stämpel vid titeln), och ett fullt event tar inte emot fler Ja. På ett event man ansöker till ansöker man
 // (med ett valfritt meddelande) i stället för att svara, tills skaparen eller en
 // medarrangör har godkänt. Medarrangörer (event.is_host) får redigera, bjuda in och
 // svara på ansökningar, men bara skaparen raderar och väljer medarrangörer.
@@ -69,7 +71,11 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
   const [applyOpen, setApplyOpen] = useState(false)
   const [applyMessage, setApplyMessage] = useState('')
   const skillLevel = skillLevelLabel(event.skill_level)
-  const extras = eventExtrasText(event)
+  const area = eventAreaText(event)
+  const capacity = eventCapacity(event)
+  const full = capacity.spots === 'Fullt'
+  // Skaparen tar ingen plats när hen inte räknas in i maxantalet, och kan då svara Ja även när det är fullt.
+  const canSayYesWhenFull = event.is_owner && !event.creator_in_max
 
   useEffect(() => {
     setResponses(null)
@@ -79,11 +85,12 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
       .catch(() => setFailed(true))
   }, [event.id, responsesAttempt])
 
+  // Ett klick på det svar man redan har gett tar bort det (man har då inte svarat).
   async function handleAnswer(answer) {
     setBusy(true)
     setError('')
     try {
-      setResponses(await answerEvent(event.id, answer))
+      setResponses(await (answer === event.my_answer ? removeAnswer(event.id) : answerEvent(event.id, answer)))
       await onAnswered()
     } catch (err) {
       setError(err.message)
@@ -191,24 +198,31 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
 
   return (
     <section className="detail-view">
-      {/* Eventet till vänster, och det man gör med det (intresset, svaret, vilka som kommer) till höger,
+      {/* Eventet (med intresset) till vänster, och det man gör med det (svaret, vilka som kommer) till höger,
           så att det får plats utan att scrolla när blocket är brett. Under varandra när det är smalt. */}
       <div className="detail-main">
+        {/* Titeln med stämplarna: ett fullt event har en röd Fullt-stämpel, så att man ser det direkt. */}
         <div className="title-row">
           <p className="card-title">{event.title}</p>
-          <VisibilityStamp event={event} />
+          <span className="event-stamps">
+            {full && <span className="stamp stamp-full">Fullt</span>}
+            <VisibilityStamp event={event} />
+          </span>
         </div>
-        <p className="card-subheading">{eventWhenWhereText(event)}</p>
-        {extras && <p className="hint-text">{extras}</p>}
-        {(skillLevel || event.is_full) && (
-          <div className="card-actions">
-            {skillLevel && <span className="status-pill">Nivå: {skillLevel}</span>}
-            {event.is_full && <span className="status-pill">Fullt</span>}
-          </div>
-        )}
-        <p className="hint-text">{event.address}</p>
-        <ShowOnMapButton type="event" id={event.id} data={event} />
-        <p className="card-text">{event.description}</p>
+        {/* Vad det är och för vem: intresset och nivån direkt under titeln. */}
+        <div className="event-tags">
+          <InterestTags
+            interests={[{ id: event.interest_id, name: event.interest_name, area_slug: event.interest_area_slug }]}
+            highlight={myInterestIds}
+          />
+          {skillLevel && <span className="status-pill">Nivå: {skillLevel}</span>}
+        </div>
+        <EventWhenWhere event={event} area={area} />
+        {/* Beskrivningen har ett fast utrymme, så att Skapat av står på samma plats. */}
+        <div className="event-section">
+          <h3 className="card-subheading">Om eventet</h3>
+          <p className="card-text event-description">{event.description}</p>
+        </div>
         <p className="hint-text">
           Skapat av{' '}
           <Link to={`/anvandare/${event.creator_id}`} className="info-link">
@@ -229,21 +243,14 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
             </>
           )}
         </p>
+      </div>
 
+      <div className="detail-aside">
+        {/* Redigera och Radera överst till höger: Redigera för skaparen och medarrangörerna, Radera för skaparen och
+            klubbens ägare (event.can_delete, SCRUM-326). */}
         {(event.is_host || event.can_delete) && (
           <>
-            {event.is_host && (
-              <label>
-                <input
-                  type="checkbox"
-                  checked={event.guests_can_invite}
-                  disabled={settingBusy}
-                  onChange={(e) => handleGuestsCanInvite(e.target.checked)}
-                />{' '}
-                Gäster får bjuda in
-              </label>
-            )}
-            <div className="card-actions">
+            <div className="card-actions event-host-actions">
               {event.is_host && (
                 <button type="button" className="secondary-button button-small" onClick={onEdit} disabled={deleting}>
                   Redigera
@@ -325,53 +332,61 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
             )}
           </>
         )}
-      </div>
-
-      <div className="detail-aside">
-        <div className="detail-view-section">
-          <InterestTags
-            interests={[{ id: event.interest_id, name: event.interest_name, area_slug: event.interest_area_slug }]}
-            highlight={myInterestIds}
-          />
-        </div>
-
         <div className="detail-view-section">
           <section className="soft-box soft-box-wide">
-            <h2>Kommer du?</h2>
-            {event.can_answer ? (
+            {/* Fullt: den som inte har svarat eller ansökt kan inte göra något, så knapparna döljs. Skaparen och
+                medarrangörerna ser dem som vanligt, och den som har svarat kan ändra sig. */}
+            {event.is_full && !event.is_host && !event.my_answer && !event.has_applied ? (
               <>
-                <ul className="tags">
-                  {ANSWERS.map(({ id, label }) => (
-                    <li key={id}>
-                      <button
-                        type="button"
-                        className={`tag${event.my_answer === id ? ' tag-selected' : ''}`}
-                        // Ett fullt event tar inte emot fler Ja (men den som redan sagt Ja kan ändra sig).
-                        disabled={busy || (id === EVENT_ANSWER.yes && event.is_full && event.my_answer !== id)}
-                        onClick={() => handleAnswer(id)}
-                      >
-                        {label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                {event.is_full && event.my_answer !== EVENT_ANSWER.yes && (
-                  <p className="hint-text">Eventet är fullt, men du kan svara Kanske.</p>
-                )}
+                <h2>Eventet är fullt</h2>
+                <p className="hint-text">Alla platser är tagna.</p>
               </>
-            ) : event.has_applied ? (
-              <div className="card-actions">
-                <span className="status-pill status-pill-success">Ansökan skickad</span>
-                <button type="button" className="secondary-button button-small" disabled={busy} onClick={handleWithdraw}>
-                  Ta tillbaka
-                </button>
-              </div>
             ) : (
               <>
-                <p className="hint-text">Skaparen godkänner vem som får vara med.</p>
-                <button type="button" className="primary-button" disabled={busy} onClick={() => setApplyOpen(true)}>
-                  Ansök
-                </button>
+                {/* Med max antal står platserna som är kvar bredvid, där man svarar. Fullt står som stämpel vid titeln. */}
+                <div className="event-answer-head">
+                  <h2>Kommer du?</h2>
+                  {capacity.spots && !full && <span className="capacity-pill">{capacity.spots}</span>}
+                </div>
+                {event.can_answer ? (
+                  <>
+                    <ul className="tags">
+                      {ANSWERS.map(({ id, label }) => (
+                        <li key={id}>
+                          <button
+                            type="button"
+                            className={`tag${event.my_answer === id ? ' tag-selected' : ''}`}
+                            aria-pressed={event.my_answer === id}
+                            title={event.my_answer === id ? 'Klicka igen för att ta bort ditt svar' : undefined}
+                            // Ett fullt event tar inte emot fler Ja (men den som redan sagt Ja kan ändra sig, och en skapare som
+                            // inte räknas in i maxantalet kan alltid svara Ja).
+                            disabled={busy || (id === EVENT_ANSWER.yes && event.is_full && event.my_answer !== id && !canSayYesWhenFull)}
+                            onClick={() => handleAnswer(id)}
+                          >
+                            {label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    {event.is_full && event.my_answer !== EVENT_ANSWER.yes && !canSayYesWhenFull && (
+                      <p className="hint-text">Eventet är fullt, men du kan svara Kanske.</p>
+                    )}
+                  </>
+                ) : event.has_applied ? (
+                  <div className="card-actions">
+                    <span className="status-pill status-pill-success">Ansökan skickad</span>
+                    <button type="button" className="secondary-button button-small" disabled={busy} onClick={handleWithdraw}>
+                      Ta tillbaka
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="hint-text">Skaparen godkänner vem som får vara med.</p>
+                    <button type="button" className="primary-button" disabled={busy} onClick={() => setApplyOpen(true)}>
+                      Ansök
+                    </button>
+                  </>
+                )}
               </>
             )}
             {error && <p className="status-error">{error}</p>}
@@ -403,9 +418,10 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
           )}
         </div>
 
+        {/* Bjud in, och för skaparen och medarrangörerna (som alltid får bjuda in) valet om gästerna också får det. */}
         {event.can_invite && (
           <>
-            <div className="card-actions">
+            <div className="card-actions event-invite-actions">
               <button
                 type="button"
                 className="secondary-button button-small"
@@ -417,6 +433,17 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
               >
                 Bjud in
               </button>
+              {event.is_host && (
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={event.guests_can_invite}
+                    disabled={settingBusy}
+                    onChange={(e) => handleGuestsCanInvite(e.target.checked)}
+                  />{' '}
+                  Gäster får bjuda in
+                </label>
+              )}
               {inviteNotice && <span className="status-success">{inviteNotice}</span>}
             </div>
             {inviteOpen && (
@@ -438,11 +465,17 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
         {event.is_host && event.visibility === 'application' && (
           <GroupJoinRequests
             group={event}
-            onChanged={onAnswered}
+            // En godkänd ansökan står direkt som Kommer: hämta om eventet (antalet) och vilka som har svarat.
+            onChanged={() => {
+              retryResponses()
+              return onAnswered()
+            }}
             load={getEventRequests}
             approve={approveEventRequest}
             decline={declineEventRequest}
             declinePlaceholder="T.ex. att eventet redan är fullt"
+            full={event.is_full}
+            fullText="Eventet är fullt. Neka, eller höj maxantalet under Redigera för att kunna godkänna fler."
           />
         )}
 
@@ -458,46 +491,126 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
   )
 }
 
-// Vilka som har svarat, uppdelat på Ja, Kanske och Nej. Medarrangörerna har ett
-// märke, och skaparen (`onHost`) kan göra någon till medarrangör eller ta tillbaka det.
+// Svaren i siffror (Kommer, Kanske, Kommer inte och, om några inbjudna inte har svarat, Har inte svarat), en ruta per
+// svar. Vilka som har svarat vad syns först när man trycker på rutan, som en rad med profilbilder; trycker man igen
+// stängs den. En ruta i taget är öppen, och en ruta med 0 går inte att trycka på. Medarrangörerna har en stjärna, och
+// skaparen (`onHost`) kan göra någon till medarrangör eller ta tillbaka det med den.
 function Attendees({ responses, failed, onRetry, event, onHost }) {
+  const [open, setOpen] = useState(null) // svaret vars lista visas
   if (failed) return <LoadError text="Kunde inte hämta svaren." onRetry={onRetry} className="hint-text" />
   if (responses === null) return <p className="hint-text">Laddar svar...</p>
-  if (responses.length === 0) return <p className="hint-text">Ingen har svarat än.</p>
 
+  const groups = ANSWERS.map((answer) => ({ ...answer, people: responses.filter((r) => r.answer === answer.id) }))
+  const openGroup = groups.find((g) => g.id === open && g.people.length > 0)
   return (
-    <div className="person-list person-list-compact">
-      {ANSWERS.map(({ id, label }) => {
-        const people = responses.filter((r) => r.answer === id)
-        if (people.length === 0) return null
-        return (
-          <div key={id}>
-            <p className="hint-text">
-              {label} ({people.length})
-            </p>
-            <ul>
-              {people.map((p) => (
-                <li key={p.id}>
-                  <Link to={`/anvandare/${p.id}`} className="person-list-item">
-                    <Avatar name={p.name ?? p.username} imageUrl={p.image_url} className="person-list-avatar" />
-                    <span>{p.name ?? p.username}</span>
-                    {p.id === event.creator_id && <span className="hint-text">Skapare</span>}
-                    {event.host_ids.includes(p.id) && <span className="hint-text">Medarrangör</span>}
-                    {p.blocked_by_me && <span className="status-pill">Blockerad</span>}
-                  </Link>
-                  {onHost && p.id !== event.creator_id && !p.blocked_by_me && (
-                    <span className="group-member-actions">
-                      <button type="button" className="text-button" onClick={() => onHost(p.id, !event.host_ids.includes(p.id))}>
-                        {event.host_ids.includes(p.id) ? 'Ta bort som medarrangör' : 'Gör till medarrangör'}
-                      </button>
+    <div className="event-section">
+      <h3 className="card-subheading">Deltagare</h3>
+      <ul className="answer-summary" aria-label="Svar">
+        {groups.map(({ id, heading, people }) => (
+          <li key={id}>
+            <button
+              type="button"
+              className={`answer-summary-box${openGroup?.id === id ? ' is-open' : ''}`}
+              aria-expanded={openGroup?.id === id}
+              aria-controls="attendee-faces"
+              disabled={people.length === 0}
+              onClick={() => setOpen(openGroup?.id === id ? null : id)}
+            >
+              <span className="answer-summary-count">{people.length}</span>
+              <span className="answer-summary-label">{heading}</span>
+            </button>
+          </li>
+        ))}
+        {event.unanswered_count > 0 && (
+          <li>
+            <span className="answer-summary-box">
+              <span className="answer-summary-count">{event.unanswered_count}</span>
+              <span className="answer-summary-label">Har inte svarat</span>
+            </span>
+          </li>
+        )}
+      </ul>
+      {/* En rad med profilbilderna; namnet (och skapare, medarrangör eller blockerad) visas när man pekar eller tabbar
+          till en bild. En stjärna i hörnet är en medarrangör. Skaparen (`onHost`) har stjärnan som knapp på alla, och
+          gör någon till medarrangör eller tar tillbaka det med den. */}
+      {openGroup && (
+        <ul id="attendee-faces" className="attendee-faces" aria-label={openGroup.heading}>
+          {openGroup.people.map((p) => {
+            const name = p.name ?? p.username
+            const host = event.host_ids.includes(p.id)
+            const creator = p.id === event.creator_id
+            const label = [name, creator ? 'skapare' : host ? 'medarrangör' : null, p.blocked_by_me ? 'blockerad' : null]
+              .filter(Boolean)
+              .join(', ')
+            return (
+              <li key={p.id} className={`attendee-face${p.blocked_by_me ? ' is-blocked' : ''}`}>
+                <Link to={`/anvandare/${p.id}`} className="attendee-face-link" aria-label={label} data-tooltip={label}>
+                  <Avatar name={name} imageUrl={p.image_url} className="attendee-face-avatar" />
+                </Link>
+                {onHost && !creator && !p.blocked_by_me ? (
+                  <button
+                    type="button"
+                    className={`attendee-face-badge attendee-host-toggle${host ? ' is-host' : ''}`}
+                    aria-label={host ? `Ta bort ${name} som medarrangör` : `Gör ${name} till medarrangör`}
+                    data-tooltip={host ? 'Ta bort som medarrangör' : 'Gör till medarrangör'}
+                    onClick={() => onHost(p.id, !host)}
+                  >
+                    <StarIcon filled={host} />
+                  </button>
+                ) : (
+                  (creator || host) && (
+                    <span className={`attendee-face-badge${host ? ' is-host' : ''}`} aria-hidden="true">
+                      {creator ? '♛' : <StarIcon filled />}
                     </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )
-      })}
+                  )
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// En liten stjärna för medarrangör: ifylld för den som är det, en kontur på knappen för den som inte är det.
+function StarIcon({ filled }) {
+  return (
+    <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
+      <path
+        d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z"
+        fill={filled ? 'currentColor' : 'none'}
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+// När och var, direkt på eventet: datumet och tiden under, och efter en streckad linje platsen, adressen, området
+// (`area`, om eventet gäller ett större) och "Visa på kartan".
+const longDate = new Intl.DateTimeFormat('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })
+const clock = new Intl.DateTimeFormat('sv-SE', { hour: '2-digit', minute: '2-digit' })
+
+function EventWhenWhere({ event, area }) {
+  const start = new Date(event.starts_at)
+  const end = event.ends_at ? new Date(event.ends_at) : null
+  const date = longDate.format(start)
+  let time = clock.format(start)
+  if (end) {
+    time += start.toDateString() === end.toDateString() ? `–${clock.format(end)}` : ` till ${longDate.format(end)} ${clock.format(end)}`
+  }
+  return (
+    <div className="event-when-where">
+      <p className="event-when-date">{date.charAt(0).toUpperCase() + date.slice(1)}</p>
+      <p className="event-when-time">kl. {time}</p>
+      <div className="event-where">
+        <p className="event-where-place">{event.place_name}</p>
+        {event.address && <p className="hint-text">{event.address}</p>}
+        {area && <p className="hint-text">Gäller {area === 'Hela Sverige' ? 'hela Sverige' : area}</p>}
+        <ShowOnMapButton type="event" id={event.id} data={event} className="info-link" />
+      </div>
     </div>
   )
 }
