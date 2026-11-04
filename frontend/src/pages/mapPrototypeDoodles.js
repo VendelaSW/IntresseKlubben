@@ -29,11 +29,69 @@ function draw(size, paint, height = size) {
   return ctx.getImageData(0, 0, canvas.width, canvas.height)
 }
 
+// TILLFÄLLIGT (testläget): vattnets och granarnas färg i kartans tema, se mapThemes.js.
+let waterColor = 'rgba(52, 110, 190, 0.55)'
+let pineColor = 'rgba(30, 80, 40, 0.9)'
+let waterPattern = 'hatch'
+
+export function setDoodleTheme(map, theme) {
+  waterColor = theme.waterHatch
+  pineColor = theme.pine
+  waterPattern = theme.waterPattern
+  if (map.hasImage('water-hatch')) map.updateImage('water-hatch', waterHatch())
+  if (map.hasImage('pine-group')) map.updateImage('pine-group', pineGroup())
+}
+
 // Vatten: snedstreck med blå färgpenna, lite ojämna som när ett barn fyller i.
 function waterHatch() {
   const rand = seededRandom(7)
   return draw(24, (ctx, size) => {
-    ctx.strokeStyle = 'rgba(52, 110, 190, 0.55)'
+    ctx.strokeStyle = waterColor
+    ctx.fillStyle = waterColor
+    if (waterPattern === 'solid') {
+      ctx.fillRect(0, 0, size, size)
+      return
+    }
+    if (waterPattern === 'dots') {
+      for (let y = 3; y < size; y += 6) {
+        for (let x = (y % 12 === 3 ? 3 : 0); x < size; x += 6) {
+          ctx.beginPath()
+          ctx.arc(x, y, 0.9 + rand() * 0.4, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      }
+      return
+    }
+    if (waterPattern === 'waves') {
+      ctx.lineWidth = 1.1
+      for (let y = 4; y < size; y += 8) {
+        ctx.beginPath()
+        ctx.moveTo(0, y)
+        ctx.quadraticCurveTo(6, y - 4, 12, y)
+        ctx.quadraticCurveTo(18, y + 4, 24, y)
+        ctx.stroke()
+      }
+      return
+    }
+    if (waterPattern === 'lines') {
+      for (let y = 3; y < size; y += 6) {
+        ctx.lineWidth = 0.9 + rand() * 0.5
+        ctx.beginPath()
+        ctx.moveTo(0, y)
+        ctx.lineTo(size, y)
+        ctx.stroke()
+      }
+      return
+    }
+    if (waterPattern === 'cross') {
+      for (let i = -size; i < size * 2; i += 6) {
+        ctx.lineWidth = 0.8
+        ctx.beginPath()
+        ctx.moveTo(i, 0)
+        ctx.lineTo(i + size, size)
+        ctx.stroke()
+      }
+    }
     for (let i = -size; i < size * 2; i += 6) {
       ctx.lineWidth = 0.9 + rand() * 0.6
       ctx.beginPath()
@@ -48,7 +106,7 @@ function waterHatch() {
 // smalare uppåt. (x, y) är stammens fot.
 function drawPine(ctx, x, y, height, rand) {
   const width = height * 0.55
-  ctx.strokeStyle = 'rgba(30, 80, 40, 0.9)'
+  ctx.strokeStyle = pineColor
   ctx.lineWidth = 1.3
   ctx.beginPath()
   const tiers = 3
