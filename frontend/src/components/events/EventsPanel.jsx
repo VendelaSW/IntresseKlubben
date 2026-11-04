@@ -11,6 +11,7 @@ import CreateOffer from '../CreateOffer'
 import { PadHeadAction } from '../PadHead'
 import EmptyState from '../EmptyState'
 import FilterTabs from '../FilterTabs'
+import SearchToggle from '../SearchToggle'
 import InterestPicker from '../InterestPicker'
 import EventDayFilter from './EventDayFilter'
 import EventDetails from './EventDetails'
@@ -22,12 +23,10 @@ import { getAllInterests, getMyInterests } from '../../services/interests'
 import { useAuth } from '../../hooks/useAuth'
 import { markEventsSeen } from '../../services/eventsSeen'
 import { inDayFilter } from '../../utils/eventTime'
-import { DEV_MODE } from '../../devtools/devMode'
 import LoadError from '../LoadError'
 
-// TILLFÄLLIGT: kalendern över ens events finns bara i testläget (väljaren "Events: kalender"), och kommer inte ens med i
-// en vanlig build.
-const EventCalendar = DEV_MODE ? lazy(() => import('../../devtools/EventCalendar')) : null
+// Kalendern över ens events (se chosenDesign.js). Laddas först när man öppnar fliken.
+const EventCalendar = lazy(() => import('../../devtools/EventCalendar'))
 
 const TABS = [
   { id: 'mine', label: 'Mina events', short: 'Mina' },
@@ -73,9 +72,9 @@ function EventsPanel() {
   // ur minnet.
   const [interestsStatus, setInterestsStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
-  // TILLFÄLLIGT (testläget): en flik Kalender efter Mina events, om väljaren "Events: kalender" står på det.
+  // En flik Kalender efter Mina events, om väljaren "Events: kalender" står på det (se chosenDesign.js).
   const calendarChoice = useDesignChoice('eventCalendar')
-  const calendarOn = EventCalendar !== null && calendarChoice === 'kalender'
+  const calendarOn = calendarChoice === 'kalender'
   const tabs = calendarOn ? [TABS[0], { id: 'calendar', label: 'Kalender' }, ...TABS.slice(1)] : TABS
   const [urlTab, setTab] = useTabParam(tabs)
   const tab = urlTab ?? 'mine'
@@ -339,51 +338,54 @@ function EventsPanel() {
               )}
               {!showCalendar && (
                 <>
-                <div className="filter-select-row filter-select-row-compact">
-                  <EventDayFilter value={dayFilter} onChange={setDayFilter} />
-                  <InterestPicker
-                    aria-label="Filtrera på intresse"
-                    placeholder="Alla intressen"
-                    myInterests={myInterests}
-                    value={interestFilter}
-                    onChange={setInterestFilter}
-                  />
-                </div>
-                {shown[tab].length === 0 && interestFilter ? (
-                  <CreateOffer
-                    text={`Det finns inga events för ${interestFilter.name}. Vill du skapa ett?`}
-                    createLabel="Skapa event"
-                    onCreate={() => openCreate(interestFilter.id)}
-                    onClear={clearFilters}
-                  />
-                ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
-                  <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
-                ) : shown[tab].length === 0 && tab === 'suggested' ? (
-                  // Inga förslag alls: Intressekompisen erbjuder att skapa ett (SCRUM-221), som de andra tomma flikarna.
-                  <EmptyState text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}>
-                    <button type="button" className="primary-button" onClick={() => openCreate()}>
-                      Skapa event
-                    </button>
-                  </EmptyState>
-                ) : (
-                  <EventList
-                    events={shown[tab]}
-                    emptyText={EMPTY_TEXT[tab]}
-                    myInterestIds={myInterestIds}
-                    onSelect={(e) => setView(e.id)}
-                  />
-                )}
-                {tab === 'invitations' && lists.declined.length > 0 && (
-                  <>
-                    <h2>Nekade ({lists.declined.length})</h2>
+                  <SearchToggle count={(interestFilter ? 1 : 0) + (dayFilter ? 1 : 0)}>
+                    <div className="filter-select-row filter-select-row-compact">
+                      <InterestPicker
+                        aria-label="Filtrera på intresse"
+                        placeholder="Alla intressen"
+                        myInterests={myInterests}
+                        value={interestFilter}
+                        onChange={setInterestFilter}
+                      />
+                      <EventDayFilter value={dayFilter} onChange={setDayFilter} />
+                    </div>
+                  </SearchToggle>
+                  {shown[tab].length === 0 && interestFilter ? (
+                    <CreateOffer
+                      text={`Det finns inga events för ${interestFilter.name}. Vill du skapa ett?`}
+                      createLabel="Skapa event"
+                      onCreate={() => openCreate(interestFilter.id)}
+                      onClear={clearFilters}
+                    />
+                  ) : shown[tab].length === 0 && unfiltered[tab].length > 0 ? (
+                    <CreateOffer text="Inga events matchar ditt filter." onClear={clearFilters} />
+                  ) : shown[tab].length === 0 && tab === 'suggested' ? (
+                    // Inga förslag alls: Intressekompisen erbjuder att skapa ett (SCRUM-221), som de andra tomma
+                    // flikarna.
+                    <EmptyState text={`${EMPTY_TEXT.suggested} Vill du skapa ett?`}>
+                      <button type="button" className="primary-button" onClick={() => openCreate()}>
+                        Skapa event
+                      </button>
+                    </EmptyState>
+                  ) : (
                     <EventList
-                      events={lists.declined}
-                      emptyText=""
+                      events={shown[tab]}
+                      emptyText={EMPTY_TEXT[tab]}
                       myInterestIds={myInterestIds}
                       onSelect={(e) => setView(e.id)}
                     />
-                  </>
-                )}
+                  )}
+                  {tab === 'invitations' && lists.declined.length > 0 && (
+                    <>
+                      <h2>Nekade ({lists.declined.length})</h2>
+                      <EventList
+                        events={lists.declined}
+                        emptyText=""
+                        myInterestIds={myInterestIds}
+                        onSelect={(e) => setView(e.id)}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </>

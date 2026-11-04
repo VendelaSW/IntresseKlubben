@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { CHOSEN_DESIGN } from '../chosenDesign'
+import { MAP_PICKERS } from '../pages/mapThemes'
 import './padBackgrounds.css'
 import './uiStyles.css'
 import './matchCards.css'
@@ -11,6 +13,13 @@ import '../components/events/eventCardVariants.css'
 // gäller nu ("pre-dev"), som också är det enda som finns utanför testläget. Tas bort när utseendena är valda; de
 // valda flyttas då in i appen.
 const PICKERS = [
+  ...MAP_PICKERS.map(({ key, attr, label, options }) => ({
+    key,
+    attr,
+    label,
+    fallback: 'pre-dev',
+    options: options.map((option, index) => ({ id: option.id, label: `${index}. ${option.label}` })),
+  })),
   {
     key: 'testlage-klubbkort',
     attr: 'clubCard',
@@ -125,18 +134,6 @@ const PICKERS = [
     ],
   },
   {
-    key: 'testlage-forstasidan',
-    attr: 'homePage',
-    label: 'Förstasidan',
-    fallback: 'pre-dev',
-    options: [
-      { id: 'pre-dev', label: '0. Som nu (pre-dev)' },
-      { id: 'polaroider', label: '1. Polaroider' },
-      { id: 'utspridda', label: '2. Polaroider, utspridda' },
-      { id: 'kollage', label: '3. Kollage, tio polaroider' },
-    ],
-  },
-  {
     key: 'testlage-matchningssidan',
     attr: 'matchLayout',
     label: 'Matchningssidan',
@@ -159,11 +156,16 @@ const PICKERS = [
   },
 ]
 
-function saved({ key, fallback }) {
+// Förvalt är det valda utseendet (chosenDesign.js), så att testläget börjar med samma sak som alla andra ser.
+function fallbackFor({ attr, fallback }) {
+  return CHOSEN_DESIGN[attr] ?? fallback
+}
+
+function saved(picker) {
   try {
-    return window.localStorage.getItem(key) ?? fallback
+    return window.localStorage.getItem(picker.key) ?? fallbackFor(picker)
   } catch {
-    return fallback
+    return fallbackFor(picker)
   }
 }
 
@@ -175,7 +177,7 @@ function apply({ attr }, id) {
 PICKERS.forEach((picker) => apply(picker, saved(picker)))
 window.addEventListener('storage', (event) => {
   const picker = PICKERS.find((p) => p.key === event.key)
-  if (picker) apply(picker, event.newValue ?? picker.fallback)
+  if (picker) apply(picker, event.newValue ?? fallbackFor(picker))
 })
 
 function StylePicker({ picker }) {

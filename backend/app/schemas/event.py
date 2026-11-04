@@ -101,6 +101,8 @@ class EventCreate(BaseModel):
     scope_code: str | None = None
     skill_level: SkillLevel | None = None
     max_attendees: int | None = None
+    # Räknas skaparens Ja in i max antal (som standard), eller gäller max antal bara gästerna?
+    creator_in_max: bool = True
 
     @field_validator("max_attendees")
     @classmethod
@@ -181,11 +183,19 @@ class EventUpdate(BaseModel):
     scope_code: str | None = None
     skill_level: SkillLevel | None = None
     max_attendees: int | None = None
+    creator_in_max: bool | None = None
 
     @field_validator("max_attendees")
     @classmethod
     def max_attendees_valid(cls, v: int | None) -> int | None:
         return _max_attendees(v)
+
+    @field_validator("creator_in_max")
+    @classmethod
+    def creator_in_max_not_empty(cls, v: bool | None) -> bool:
+        if v is None:
+            raise ValueError(msg.EVENT_CREATOR_IN_MAX_EMPTY)
+        return v
 
     @model_validator(mode="after")
     def area_valid(self):
@@ -300,10 +310,15 @@ class EventOut(BaseModel):
     scope: GroupScope | None
     scope_code: str | None
     scope_name: str | None
-    # Nivå och max antal som kommer (SCRUM-293). yes_count är hur många som har svarat Ja.
+    # Nivå och max antal som kommer (SCRUM-293). yes_count är hur många som har svarat Ja, och unanswered_count
+    # hur många inbjudna som inte har svarat än. spots_left är platserna som är kvar (None utan max antal), där
+    # skaparens Ja bara räknas när creator_in_max är på.
     skill_level: SkillLevel | None
     max_attendees: int | None
+    creator_in_max: bool
     yes_count: int
+    unanswered_count: int
+    spots_left: int | None
     is_full: bool
     group_id: int | None
     group_name: str | None

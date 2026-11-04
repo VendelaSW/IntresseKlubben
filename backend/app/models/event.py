@@ -13,6 +13,7 @@ from sqlalchemy import (
     UniqueConstraint,
     false,
     func,
+    true,
 )
 from sqlalchemy.orm import relationship
 
@@ -61,6 +62,9 @@ class Event(Base):
     # Valfritt: nivå (SkillLevel i models/group.py) och max antal som kommer (svarat Ja) (SCRUM-293).
     skill_level = Column(String(15), nullable=True)
     max_attendees = Column(Integer, nullable=True)
+    # Räknas skaparens eget Ja in i max_attendees? På (som standard): skaparen tar en plats. Av: max antal gäller
+    # bara gästerna, och skaparen kan alltid svara Ja.
+    creator_in_max = Column(Boolean, nullable=False, default=True, server_default=true())
     # Tas skaparen bort försvinner eventet med. Tas klubben bort finns eventet kvar.
     created_by = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     group_id = Column(Integer, ForeignKey("groups.id", ondelete="SET NULL"), nullable=True, index=True)

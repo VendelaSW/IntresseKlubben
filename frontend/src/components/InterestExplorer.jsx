@@ -5,6 +5,9 @@ import InterestInfo from './InterestInfo'
 import InterestLibrary, { PickTag } from './InterestLibrary'
 import InterestTree, { profileTree } from './InterestTree'
 import { searchInterests } from '../services/interests'
+import InfoTip from './InfoTip'
+import SearchField from './SearchField'
+import SearchToggle from './SearchToggle'
 
 // Så länge sökningen väntar efter senaste tangenttrycket, så att inte varje
 // bokstav blir ett anrop.
@@ -122,17 +125,31 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
     )
   }
 
+  const searchField = (
+    <SearchField
+      aria-label="Lägg till ett intresse"
+      placeholder={mode === 'library' ? 'Sök bland alla intressen' : 'Lägg till ett intresse, t.ex. "foto"'}
+      maxLength={MAX_INTEREST_LENGTH}
+      value={query}
+      onChange={(e) => setQuery(e.target.value)}
+      onClear={() => setQuery('')}
+    />
+  )
+
   const search = (
     <>
-      <input
-        type="search"
-        className="explorer-search"
-        aria-label="Lägg till ett intresse"
-        placeholder={mode === 'library' ? 'Sök bland alla intressen' : 'Lägg till ett intresse, t.ex. "foto"'}
-        maxLength={MAX_INTEREST_LENGTH}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      {/* Sökikonen bara där man också kan leta för hand i biblioteket. På profilkortet är fältet sättet att lägga
+          till. */}
+      {mode === 'card' ? (
+        searchField
+      ) : (
+        <SearchToggle
+          label={mode === 'library' ? 'Sök bland alla intressen' : 'Lägg till ett intresse'}
+          count={query ? 1 : 0}
+        >
+          {searchField}
+        </SearchToggle>
+      )}
       {results && (
         <div className="explorer-box">
           {results.length === 0 ? (
@@ -179,19 +196,26 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
   const mine = (
     <div className="explorer-section">
       <div className="explorer-heading-row">
-        <h3 className="explorer-heading">Dina intressen ({selected.length})</h3>
+        <h3 className="explorer-heading">
+          Dina intressen ({selected.length})
+          {mode === 'card' && editing && (
+            <>
+              {' '}
+              <InfoTip
+                text={
+                  'Tryck på × för att ta bort ett intresse.' +
+                  (onSetPractices ? ' Välj om du själv håller på med intresset eller bara är intresserad.' : '')
+                }
+              />
+            </>
+          )}
+        </h3>
         {mode === 'card' && selected.length > 0 && (
           <button type="button" className="text-button" aria-pressed={editing} onClick={() => setEditing(!editing)}>
             {editing ? 'Klar' : 'Redigera'}
           </button>
         )}
       </div>
-      {mode === 'card' && editing && (
-        <p className="hint-text">
-          Tryck på × för att ta bort ett intresse.
-          {onSetPractices && ' Välj om du själv håller på med intresset eller bara är intresserad.'}
-        </p>
-      )}
       {selected.length === 0 ? (
         <p className="hint-text">Inga intressen än.</p>
       ) : (

@@ -11,6 +11,7 @@ import { EVENT_VISIBILITY, createEvent, inviteToEvent, updateEvent } from '../..
 import { SCOPES, SKILL_LEVELS, areaOptions, getRegions } from '../../services/groups'
 import { profileQuery } from '../../services/profile'
 import { localInputValue } from '../../utils/eventTime'
+import InfoTip from '../InfoTip'
 
 // Hur man kommer med (SCRUM-296). Öppet och Ansökan går inte i en privat klubb.
 const VISIBILITY_OPTIONS = [
@@ -47,6 +48,7 @@ function fieldsFrom(event) {
     areaCode: event.scope && event.scope !== 'country' ? event.scope_code : '',
     skillLevel: event.skill_level ?? '',
     maxAttendees: event.max_attendees ? String(event.max_attendees) : '',
+    creatorInMax: event.creator_in_max ?? true,
   }
 }
 
@@ -63,6 +65,7 @@ const EMPTY_FIELDS = {
   areaCode: '',
   skillLevel: '',
   maxAttendees: '',
+  creatorInMax: true,
 }
 
 const samePosition = (a, b) =>
@@ -122,6 +125,8 @@ function CreateEventForm({
   const [areaCode, setAreaCode] = useState(initial.areaCode)
   const [skillLevel, setSkillLevel] = useState(initial.skillLevel)
   const [maxAttendees, setMaxAttendees] = useState(initial.maxAttendees)
+  // Räknas mitt eget Ja in i maxantalet (som standard), eller gäller det bara gästerna?
+  const [creatorInMax, setCreatorInMax] = useState(initial.creatorInMax)
   const [regions, setRegions] = useState(null)
   useEffect(() => {
     getRegions()
@@ -160,6 +165,7 @@ function CreateEventForm({
     if (scope !== initial.scope || areaCode !== initial.areaCode) Object.assign(changes, areaFields())
     if (skillLevel !== initial.skillLevel) changes.skill_level = skillLevel || null
     if (maxAttendees !== initial.maxAttendees) changes.max_attendees = maxAttendees ? Number(maxAttendees) : null
+    if (creatorInMax !== initial.creatorInMax) changes.creator_in_max = creatorInMax
     return changes
   }
 
@@ -205,6 +211,7 @@ function CreateEventForm({
         ...areaFields(),
         skill_level: skillLevel || null,
         max_attendees: maxAttendees ? Number(maxAttendees) : null,
+        creator_in_max: creatorInMax,
       })
       let inviteProblem = ''
       if (invites.userIds.length + invites.groupIds.length > 0) {
@@ -223,12 +230,17 @@ function CreateEventForm({
 
   return (
     <form className="auth-form form-wide form-compact form-split" onSubmit={handleSubmit}>
-      <h2>{editing ? 'Redigera event' : 'Skapa event'}</h2>
-      {editing && (
-        <p className="hint-text">
-          Ändrar du tid eller plats får de som har svarat Ja eller Kanske en notis från Intresseklubben.
-        </p>
-      )}
+      <h2>
+        {editing ? 'Redigera event' : 'Skapa event'}
+        {editing && (
+          <>
+            {' '}
+            <InfoTip
+              text="Ändrar du tid eller plats får de som har svarat Ja eller Kanske en notis från Intresseklubben."
+            />
+          </>
+        )}
+      </h2>
 
       {/* Vad och när till vänster, var (med kartan) och vem det är till för till höger. */}
       <div className="form-columns">
@@ -379,6 +391,13 @@ function CreateEventForm({
                 placeholder="Ingen gräns"
               />
             </FormField>
+            {/* Med ett maxantal: tar skaparens eget Ja en av platserna, eller är de bara till gästerna? */}
+            {maxAttendees && (
+              <label>
+                <input type="checkbox" checked={creatorInMax} onChange={(e) => setCreatorInMax(e.target.checked)} /> Räkna
+                in mig i maxantalet
+              </label>
+            )}
           </div>
         </div>
         <div className="form-column">
@@ -425,11 +444,17 @@ function CreateEventForm({
                   Bjud in
                 </button>
                 <p className="hint-text">{inviteSummary(invites)}</p>
-                <label>
-                  <input type="checkbox" checked={guestsCanInvite} onChange={(e) => setGuestsCanInvite(e.target.checked)} /> Gäster får
-                  bjuda in
-                </label>
-                <p className="hint-text">Utan bockning kan bara du bjuda in. Du kan ändra det senare.</p>
+                <div className="with-info-tip">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={guestsCanInvite}
+                      onChange={(e) => setGuestsCanInvite(e.target.checked)}
+                    />{' '}
+                    Gäster får bjuda in
+                  </label>
+                  <InfoTip text="Utan bockning kan bara du bjuda in. Du kan ändra det senare." />
+                </div>
               </div>
               {inviteOpen && (
                 <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>

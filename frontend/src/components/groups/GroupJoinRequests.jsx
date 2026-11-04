@@ -4,14 +4,18 @@ import Avatar from '../Avatar'
 import LoadError, { useRetry } from '../LoadError'
 import Modal from '../Modal'
 import { approveJoinRequest, declineJoinRequest, getJoinRequests } from '../../services/groups'
+import InfoTip from '../InfoTip'
+import { notificationsChanged } from '../../services/notifications'
 
 // Ansökningarna till en klubb man äger (SCRUM-159), i klubbens vy: namn (länk till
-// profilen), meddelandet och Godkänn eller Neka. Neka frågar efter en valfri
+// profilen), meddelandet och Godkänn eller Neka. Utan ansökningar syns ingenting. Neka frågar efter en valfri
 // förklaring. Den som ansökt får en notis med svaret (och förklaringen), och kan
 // ansöka igen efter ett nej. `onChanged` anropas när någon
 // har godkänts (klubben har då en medlem till) eller nekats.
 // Används också för events (SCRUM-296): `group` är då eventet ({ id, request_count }),
 // och `load`, `approve` och `decline` eventets anrop (se services/events.js).
+// `full` (klubben eller eventet är fullt): Godkänn går inte att trycka på, och `fullText` säger varför och vad man
+// kan göra. Antalet står i rubriken, och ett svar räknar notisen om ansökan som läst (se notificationsChanged).
 function GroupJoinRequests({
   group,
   onChanged,
@@ -19,6 +23,8 @@ function GroupJoinRequests({
   approve = approveJoinRequest,
   decline = declineJoinRequest,
   declinePlaceholder = 'T.ex. att klubben är full till hösten',
+  full = false,
+  fullText = 'Klubben är full. Neka, eller höj maxantalet för att kunna godkänna fler.',
 }) {
   const [requests, setRequests] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
@@ -43,6 +49,7 @@ function GroupJoinRequests({
     try {
       await action(group.id, userId, ...args)
       setRequests((list) => list.filter((r) => r.user.id !== userId))
+      notificationsChanged()
       onChanged?.()
       return true
     } catch (err) {
@@ -61,15 +68,15 @@ function GroupJoinRequests({
     }
   }
 
+  // Inga ansökningar, eller medan de laddas: ingenting alls, inte ens rubriken. Gick de inte att hämta visas felet.
+  if (!failed && !requests?.length) return null
+
   return (
     <div className="person-list person-list-compact group-requests">
-      <p className="card-subheading">Ansökningar</p>
+      <p className="card-subheading">Ansökningar{requests?.length > 0 && ` (${requests.length})`}</p>
+      {full && requests?.length > 0 && <p className="hint-text group-requests-full">{fullText}</p>}
       {failed ? (
         <LoadError text="Kunde inte hämta ansökningarna." onRetry={retry} className="hint-text" />
-      ) : requests === null ? (
-        <p className="hint-text">Laddar ansökningar...</p>
-      ) : requests.length === 0 ? (
-        <p className="hint-text">Inga ansökningar just nu.</p>
       ) : (
         <ul>
           {requests.map(({ user, message }) => (
@@ -83,7 +90,8 @@ function GroupJoinRequests({
                 <button
                   type="button"
                   className="primary-button button-small"
-                  disabled={busyId !== null}
+                  disabled={busyId !== null || full}
+                  title={full ? fullText : undefined}
                   onClick={() => answer(user.id, approve)}
                 >
                   Godkänn
@@ -109,7 +117,10 @@ function GroupJoinRequests({
       {declining && (
         <Modal title={`Neka ${declining.name ?? declining.username}`} onClose={() => setDeclining(null)}>
           <form className="auth-form" onSubmit={handleDecline}>
-            <label htmlFor="decline-reason">Varför? (valfritt)</label>
+            <div className="with-info-tip">
+              <label htmlFor="decline-reason">Varför? (valfritt)</label>
+              <InfoTip text="Det du skriver följer med i notisen. Hen kan ansöka igen senare." />
+            </div>
             <textarea
               id="decline-reason"
               rows={3}
@@ -118,7 +129,6 @@ function GroupJoinRequests({
               onChange={(e) => setReason(e.target.value)}
               placeholder={declinePlaceholder}
             />
-            <p className="hint-text">Det du skriver följer med i notisen. Hen kan ansöka igen senare.</p>
             {error && <p className="status-error">{error}</p>}
             <div className="form-actions">
               <button type="submit" disabled={busyId !== null}>

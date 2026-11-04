@@ -14,6 +14,7 @@ import LocationPicker from '../components/LocationPicker'
 import BackButton from '../components/BackButton'
 import ChatSender from '../components/ChatSender'
 import ConversationCard from '../components/ConversationCard'
+import LetterFriends from '../components/LetterFriends'
 import CreateButton from '../components/CreateButton'
 import DateField from '../components/DateField'
 import EventDayFilter from '../components/events/EventDayFilter'
@@ -29,7 +30,7 @@ import InterestPicker from '../components/InterestPicker'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
 import TextareaWithCount from '../components/TextareaWithCount'
-import { NotificationDetails, NotificationRow } from './NotificationsPage'
+import { NotificationDetails, NotificationRow, NotificationsEmpty } from './NotificationsPage'
 
 const NAV_ICONS = [
   { icon: hemIcon, label: 'Hem' },
@@ -51,7 +52,16 @@ const COLORS = [
   { name: '--color-error', hex: '#a32d2d', label: 'Error (felmeddelanden)' },
   { name: '--color-paper', hex: '#f5eddc', label: 'Brevpapper (aningen mörkare än bakgrunden)' },
   { name: '--color-paper-margin', hex: '#e7a1a1', label: 'Brevpapprets röda marginal' },
-  { name: '--color-envelope-inside', hex: '#eef3f8', label: 'Kuvertets insida' },
+  { name: '--color-envelope-paper', hex: '#e8d3ad', label: 'Kuvertets papper' },
+  { name: '--color-envelope-inside', hex: '#cdb288', label: 'Kuvertets insida' },
+  { name: '--tag-ink', hex: '#3a2f25', label: 'Bläck (kanter och hårda skuggor på taggar, kuvert och anteckningsblocket)' },
+]
+
+// Exempel för Brev-avsnittet: kompisar man inte har skrivit till än.
+const EXAMPLE_FRIENDS = [
+  { id: 11, username: 'ida', name: 'Ida Sjöberg', image_url: null },
+  { id: 12, username: 'nora', name: 'Nora Lindqvist', image_url: null },
+  { id: 13, username: 'oskar', name: 'Oskar Bergman', image_url: null },
 ]
 
 // Exempel för Brev-avsnittet: ett nytt och ett öppnat kuvert.
@@ -89,21 +99,40 @@ const EXAMPLE_CONVERSATIONS = [
   { id: 2, name: 'Cecilia', username: 'cecilia', last_message_at: '2025-10-06T18:02:00Z', last_message_from_me: true, isNew: false },
 ]
 
-// Exempel för Notiser-avsnittet: en oläst och en läst notis, och en öppnad med citat och länk.
+// Exempel för Notiser-avsnittet: ett oläst inställt event med citat, en läst ansökan till en klubb (med personen)
+// och en varning.
 const EXAMPLE_NOTIFICATIONS = [
-  { id: 1, title: '«Fotbollsträffen» har ställts in', read: false, created_at: new Date().toISOString() },
-  { id: 2, title: '«Brädspelskväll» har fått ny tid', read: true, created_at: '2025-10-06T18:02:00Z' },
+  {
+    id: 1,
+    kind: 'event_cancelled',
+    title: 'Eventet ”Fotbollsträffen” har ställts in',
+    body: 'Bob har tagit bort eventet som du skulle gå på.',
+    quote: 'Inställt pga sjukdom, vi ses nästa vecka!',
+    quote_by: 'Bob',
+    link: null,
+    read: false,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    kind: 'group_join_request',
+    title: 'Cecilia vill gå med i din klubb ”Bokcirkeln Väst”',
+    body: 'Svara på ansökan i klubben.',
+    link: '/stilguide',
+    actor: { id: 7, name: 'Cecilia', profile_image_url: null },
+    read: true,
+    created_at: '2025-10-06T18:02:00Z',
+  },
+  {
+    id: 3,
+    kind: 'moderation_warning',
+    title: 'Du har fått en varning: Reklam eller spam',
+    body: 'En moderator har sett att du har brutit mot reglerna.',
+    link: null,
+    read: true,
+    created_at: '2025-10-04T09:30:00Z',
+  },
 ]
-const EXAMPLE_NOTIFICATION = {
-  id: 3,
-  title: '«Fotbollsträffen» har ställts in',
-  body: 'Bob har tagit bort eventet som du skulle gå på.',
-  quote: 'Inställt pga sjukdom, vi ses nästa vecka!',
-  quote_by: 'Bob',
-  link: '/stilguide',
-  read: true,
-  created_at: new Date().toISOString(),
-}
 
 const SIZES = [
   { name: '--text-hero', rem: '5rem', label: 'Hero', font: 'heading', weight: 700 },
@@ -472,10 +501,13 @@ function StyleGuide() {
         <h2>Brev</h2>
         <p className="swatch-label">Kuvert (.envelopes med ConversationCard)</p>
         <p className="hint-text">
-          Fem per rad på dator, från vänster i linje med rubriken och flikarna, och tre i mitten på
-          mobil. Klickbara som andra kort (.card-interactive): lyfts och
-          får gul kant vid hover. Ett öppnat kuvert öppnar fliken och visar en bit av brevpappret; ett
-          nytt (.envelope-new) förblir stängt och har ett gult sigill. Avståndet mellan raderna följer
+          Fem per rad på dator, från vänster i linje med rubriken, och tre i mitten på
+          mobil. Brunt papper (--color-envelope-paper) med bläckkant och hård bläckskugga (--tag-ink), och små
+          ojämna hörn: inte --tag-shape, eftersom kuvertets sidor måste vara raka för att möta fliken och framsidan.
+          Klickbara som andra kort (.card-interactive): lyfts och får gul kant vid hover. Ett öppnat kuvert står
+          öppet, med fliken uppvikt och en bit av brevpappret synlig, och på dator kommer brevet upp lite till vid
+          hover. Ett nytt (.envelope-new) är stängt och knutet med ett tvinnat snöre och en rosett (.envelope-bow).
+          De oöppnade står först och de öppnade efter, nyast först i båda. Avståndet mellan raderna följer
           kuvertens storlek, så att ett öppnat kuvert aldrig rör kuvertet ovanför. Personens bild står
           bredvid namnet och växer med kuvertet. Över bilden och namnet står "Från" eller "Till", efter vem som
           skrev det senaste brevet.
@@ -489,10 +521,20 @@ function StyleGuide() {
         </ul>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Kompisar man inte har skrivit till än (LetterFriends, .letter-friends)
+        </p>
+        <p className="hint-text">
+          Överst i Brev: runda bilder och förnamn på en rad, och ett klick öppnar ett nytt brev. Får de inte plats
+          tonar raden ut åt det håll där det finns fler, utan rullningslist. På dator finns en pil åt det hållet, och
+          på mobil sveper man. Raden syns inte när det inte finns någon kvar att skriva till.
+        </p>
+        <LetterFriends friends={EXAMPLE_FRIENDS} />
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Anteckningspapper (.notepad .lined-paper), för en konversation
         </p>
         <p className="hint-text">
-          Linjerat papper med röd marginal. Allt på pappret har radhöjden --line-gap, så att texten
+          Linjerat papper med röd marginal, bläckkant, frihandshörn (--tag-shape-alt) och hård bläckskugga. Allt på pappret har radhöjden --line-gap, så att texten
           står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. Någon annans bild och namn (överst och vid breven, ChatSender) är länkar till profilen. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
           ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och under på mobil: rubriken Klubbchatt, medlemmarnas bilder
           och namn vid varje meddelande, och en svarsrad. Meddelanden i följd från samma person, inom 5
@@ -561,10 +603,16 @@ function StyleGuide() {
           Listan (.notification-list med NotificationRow)
         </p>
         <p className="hint-text">
-          Som en inkorg: en kompakt rad per notis i en vit ruta, nyaste först. En oläst notis har gul prick, fet
-          rubrik och en gul kant till vänster. Långa rubriker kortas med ... på raden. Ett klick öppnar notisen och
-          först då räknas den som läst; krysset tar bort den. Ovanför listan står "Markera alla som lästa" (grå och
-          utan gul linje när allt redan är läst) och "Ta bort alla", som frågar först i en popup.
+          En rad per notis, nyaste först, uppdelade i Idag och Tidigare (rubriker i handstil med ett gult penndrag
+          under). Raden har en prick (gul när den är oläst, och då är raden ljusgul), en rund bild, rubriken och en rad
+          under i handstil, tiden och en pil. Bilden är personen notisen gäller (profilbilden eller initialen), annars en
+          symbol: eventsymbolen (med rött kryss när eventet är inställt), klubbsymbolen, ett rött utropstecken för en
+          varning eller loggan för brev från utvecklarna. Under rubriken står citatet om det finns, annars texten.
+          Raden går till det notisen gäller och räknas då som läst; utan ställe att gå till öppnar den notisen.
+          Krysset längst till höger tar bort en notis. Rubriker och text står i brödtextens font, så att de är lätta
+          att läsa; handstilen är kvar i Idag och Tidigare.
+          Ovanför står "Markera alla som lästa" (grå och utan gul linje när allt redan är läst) och "Ta bort alla",
+          som frågar först i en popup.
         </p>
         <ul className="notification-list" style={{ marginTop: '1rem' }}>
           {EXAMPLE_NOTIFICATIONS.map((n) => (
@@ -576,11 +624,22 @@ function StyleGuide() {
           En öppnad notis (NotificationDetails)
         </p>
         <p className="hint-text">
-          Ett vitt kort med avsändare och tid, rubriken, texten och ett citat (t.ex. skaparens meddelande när ett
-          event ställs in), och "Visa" om notisen har en länk. Långa ord bryts, så att inget sticker ut på mobil.
+          För notiser utan ställe att gå till (ett inställt event, en varning): bilden, avsändare och tid, rubriken,
+          hela texten och citatet, och "Ta bort". Långa ord bryts, så att inget sticker ut på mobil.
         </p>
         <div style={{ marginTop: '1rem' }}>
-          <NotificationDetails notification={EXAMPLE_NOTIFICATION} onRemove={() => {}} />
+          <NotificationDetails notification={EXAMPLE_NOTIFICATIONS[0]} onRemove={() => {}} />
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Inga notiser (NotificationsEmpty)
+        </p>
+        <p className="hint-text">
+          Kompisen säger att det inte finns några notiser än, och under står bleka, streckade exempel på vad som kan
+          dyka upp, så att sidan visar vad den är till för i stället för att se tom ut.
+        </p>
+        <div style={{ marginTop: '1rem' }}>
+          <NotificationsEmpty />
         </div>
       </section>
 

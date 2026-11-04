@@ -4,6 +4,9 @@ import '../styles/map.css'
 import { LngLat, Map as MapLibreMap, Marker, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { addMissingDoodle } from './mapPrototypeDoodles'
+import { applyMapTheme } from './mapThemeApply'
+import { composeMapTheme, MAP_PICKERS } from './mapThemes'
+import { useDesignChoice } from '../hooks/useDesignChoice'
 import { attachPlaceNotes } from './mapPrototypeNotes'
 import { attachSketchedBuildings } from './mapPrototypeBuildings'
 import { attachPinsAndThread } from './mapPrototypeRoute'
@@ -909,11 +912,15 @@ function MapPrototype() {
   useEffect(() => saveCalm(calm), [calm])
   // Adressen blocket öppnas på (se MapPagePad), t.ex. '/klubbar?klubb=3'.
   const [padStart, setPadStart] = useState(null)
+  // Räknas upp varje gång ett block öppnas, så att samma sida öppnas på nytt från början (se key nedan).
+  const [padOpenings, setPadOpenings] = useState(0)
 
-  // Öppnar ett block: en widget (start = widgetens sida) eller en viss sida.
+  // Öppnar ett block: en widget (start = widgetens sida) eller en viss sida. Är samma sida redan öppen börjar den om
+  // på startsidan, t.ex. Notiser i menyn när man har gått från en notis till eventet den gäller.
   function openPad(page, start = MAP_PAGES[page] ?? null) {
     setOpenPage(page)
     setPadStart(start)
+    setPadOpenings((n) => n + 1)
   }
 
   // En gammal adress till en av sidorna (t.ex. /klubbar?klubb=3) skickas hit
@@ -1361,6 +1368,8 @@ function MapPrototype() {
   zoomToLevelRef.current = zoomToLevel
   const stepLevelRef = useRef(stepLevel)
   stepLevelRef.current = stepLevel
+  // En väljare för varje del av kartan. Antalet är fast, så krokarna kommer alltid i samma ordning.
+  const mapChoices = MAP_PICKERS.map(({ attr }) => useDesignChoice(attr)) // eslint-disable-line react-hooks/rules-of-hooks
 
   useEffect(() => {
     // Mitt och zoom där hela Sverige ryms på skärmen, i kartans lutning.
@@ -1675,6 +1684,16 @@ function MapPrototype() {
     }
   }, [])
 
+  // Valen för kartan, se mapThemes.js och chosenDesign.js. I testläget kan de bytas medan kartan är igång.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return undefined
+    const apply = () => applyMapTheme(map, containerRef.current.closest('.map-sketch'), composeMapTheme(mapChoices))
+    if (map.getLayer('forest')) apply()
+    else map.once('load', apply)
+    return () => map.off('load', apply)
+  }, [mapChoices.join()]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div
       ref={rootRef}
@@ -1844,9 +1863,9 @@ function MapPrototype() {
       )}
       <div className="map-sketch-table" aria-hidden="true" />
       {openPage && padStart && (
-        // key: byter man sida landar ett nytt block.
+        // key: byter man sida, eller öppnar samma sida igen, landar ett nytt block.
         <MapPagePad
-          key={`${openPage} ${padStart}`}
+          key={`${openPage} ${padStart} ${padOpenings}`}
           start={padStart}
           onClose={() => setOpenPage(null)}
           mapActions={mapActions}
