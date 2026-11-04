@@ -78,9 +78,6 @@ function EventsPanel() {
   const calendarChoice = useDesignChoice('eventCalendar')
   const calendarOn = calendarChoice === 'kalender'
   const tabs = calendarOn ? [TABS[0], { id: 'calendar', label: 'Kalender' }, ...TABS.slice(1)] : TABS
-  // Eventets vy och formuläret (skapa och redigera) i samma stil som biljettkortet (se .event-ticket-sheet och
-  // .event-ticket-form i index.css).
-  const formSheet = 'card sheet sheet-form event-ticket-form'
   const [urlTab, setTab] = useTabParam(tabs)
   const tab = urlTab ?? 'mine'
   const showCalendar = calendarOn && tab === 'calendar'
@@ -274,7 +271,7 @@ function EventsPanel() {
       ) : view === 'create' ? (
         <>
           <BackButton onClick={goBack} />
-          <div className={formSheet}>
+          <div className="card sheet sheet-form">
             <CreateEventForm
               myInterests={myInterests}
               groups={myGroups}
@@ -305,7 +302,7 @@ function EventsPanel() {
           ) : selected && editing && selected.is_host ? (
             <>
               <BackButton onClick={() => setEditing(false)} />
-              <div className={formSheet}>
+              <div className="card sheet sheet-form">
                 <CreateEventForm
                   // key: ett nytt formulär (med eventets uppgifter) varje gång man börjar redigera.
                   key={selected.id}

@@ -3,8 +3,6 @@ import { CHOSEN_DESIGN } from '../chosenDesign'
 import { MAP_PICKERS } from '../pages/mapThemes'
 import './padBackgrounds.css'
 import './uiStyles.css'
-import './matchCards.css'
-import './matchLayout.css'
 
 // TILLFÄLLIGT, bara i testläget: välj utseenden att jämföra (klubbkorten, sökraden, blockets rubrik
 // och bakgrund, flikarna och Öppen/Privat-taggen). Varje val sparas i webbläsaren och läggs som ett data-attribut på
@@ -120,27 +118,6 @@ const PICKERS = [
     options: [
       { id: 'pre-dev', label: '0. Som nu (bara lista)' },
       { id: 'kalender', label: '1. Lista eller kalender på Mina events' },
-    ],
-  },
-  {
-    key: 'testlage-matchningssidan',
-    attr: 'matchLayout',
-    label: 'Matchningssidan',
-    fallback: 'nicklas-1',
-    options: [
-      { id: 'pre-dev', label: '0. Grund (som i PR:en)' },
-      { id: 'nicklas-1', label: '1. Nicklas förslag 1' },
-    ],
-  },
-  {
-    key: 'testlage-matchningskort',
-    attr: 'matchCard',
-    label: 'Matchningskortets nivå',
-    fallback: 'pre-dev',
-    options: [
-      { id: 'pre-dev', label: '0. Som nu (stämpel)' },
-      { id: 'gnistor', label: '1. Gnistor (stjärnor under namnet)' },
-      { id: 'tejp', label: '2. Tejp över kanten' },
     ],
   },
 ]

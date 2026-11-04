@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import noSoundIcon from '../assets/nosound.png'
 import soundIcon from '../assets/sound.png'
@@ -9,6 +9,7 @@ import TextareaWithCount from '../components/TextareaWithCount'
 import BirthDatePicker from '../components/BirthDatePicker'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import NewProfileImage from '../components/NewProfileImage'
+import { PlaceStamp, PosterAbout, PosterCard, PosterName } from '../components/Poster'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/api'
 import { analyzeInterests, completeInterview } from '../services/interview'
@@ -99,10 +100,6 @@ const IDLE_VIDEOS = [...new Set([...IDLE_EARLY, ...IDLE_LATE])]
 // Alla klipp ligger inladdade i sidan på en gång, staplade ovanpå varandra, så att ett klipp
 // redan är avkodat när det tar över. Då blir bytet mellan klippen utan hack.
 const CLIP_SOURCES = [...new Set([...ALL_CLIPS.map((c) => c.video), ...IDLE_VIDEOS])]
-
-// Korten här är fasta (inte klickbara), så de får den blå hårda skuggan som fasta kort har
-// i stilguiden (samma som .card-wide).
-const FIXED_CARD_SHADOW = { boxShadow: '0 6px 0 var(--color-line)' }
 
 // Åldern i hela år för ett födelsedatum på formen ÅÅÅÅ-MM-DD, eller null om datumet saknas.
 function ageFrom(birthDate) {
@@ -739,11 +736,11 @@ function ProfileInterview() {
   const age = ageFrom(answers.birthDate)
   const municipalityName = municipalities.find((m) => m.code === answers.municipality)?.name
   const place = [municipalityName, answers.district.trim()].filter(Boolean).join(', ')
-  const profileRows = [
-    ['Ålder', age !== null && age >= 0 ? `${age} år` : null],
-    ['Kön', genderLabel(answers.gender)],
-    ['Plats', place || null],
-  ].filter(([, value]) => value)
+  // Åldern och platsen i den svarta rutan, som på profilen ("34 år och bor i Majorna, Göteborg"). Kön syns inte för andra,
+  // så det står som en liten rad under.
+  const ageText = age !== null && age >= 0 ? `${age} år` : null
+  const facts = ageText && place ? `${ageText} och bor i ${place}` : place ? `Bor i ${place}` : ageText
+  const gender = genderLabel(answers.gender)
 
   return (
     <div className="page interview-page">
@@ -844,63 +841,51 @@ function ProfileInterview() {
               <p className="card-text" style={{ textAlign: 'center', margin: '0.5rem 0 1rem' }}>
                 Nu kan vi lättare matcha dig mot andra som delar dina intressen.
               </p>
-              <div className="card sheet content-stack interview-summary" style={{ ...FIXED_CARD_SHADOW, margin: '0 auto' }}>
-                <p className="card-title">Det här är din profil{answers.name.trim() && `, ${answers.name.trim()}`}</p>
-                {/* Det man svarade, bara det som är ifyllt. */}
-                <NewProfileImage name={answers.name} image={pendingImage} onChange={setPendingImage} />
-                {profileRows.length > 0 && (
-                  <dl className="profile-details">
-                    {profileRows.map(([label, value]) => (
-                      <Fragment key={label}>
-                        <dt>{label}</dt>
-                        <dd>{value}</dd>
-                      </Fragment>
-                    ))}
-                  </dl>
-                )}
+              {/* Profilen som en affisch (components/Poster.jsx), som den ser ut för andra: raden överst har färgerna på
+                  de föreslagna intressena. */}
+              <PosterCard
+                className="card sheet content-stack interview-summary"
+                style={{ margin: '0 auto' }}
+                interests={visibleProposals.map((p) => p.interest)}
+              >
+                {/* Det man svarade, bara det som är ifyllt, tätt som överst på profilen: bilden till vänster och namnet,
+                    åldern och platsen och könet till höger. */}
+                <div className="interview-summary-head">
+                  <NewProfileImage name={answers.name} image={pendingImage} onChange={setPendingImage} />
+                  <div className="interview-summary-who">
+                    <p className="hint-text">Det här är din profil</p>
+                    {answers.name.trim() && <PosterName as="h2">{answers.name.trim()}</PosterName>}
+                    {facts && <PlaceStamp>{facts}</PlaceStamp>}
+                    {gender && <p className="hint-text">Kön: {gender}</p>}
+                  </div>
+                </div>
                 {/* Förslagen från analysen. Man kan ta bort ett intresse (och det som ligger under det) med krysset och
                     lägga till ett genom att skriva det: texten tolkas på samma sätt. Det som är kvar när man sparar är
                     det som godkänns. */}
-                <div>
-                  <p className="card-subheading" style={{ textAlign: 'center' }}>
-                    Dina intressen:
-                  </p>
+                <div className="interview-summary-interests">
+                  <h2>Dina intressen</h2>
                   {analysisStatus === 'pending' ? (
-                    <p className="hint-text" style={{ marginTop: '0.75rem' }}>
+                    <p className="hint-text">
                       Läser ut dina intressen...
                     </p>
                   ) : analysisStatus === 'failed' ? (
-                    <p className="form-error" style={{ marginTop: '0.75rem' }}>
+                    <p className="form-error">
                       {analysisError} <Link to="/profil?lista=1">Välj dina intressen i listan i stället</Link>
                     </p>
                   ) : visibleProposals.length === 0 ? (
-                    <p className="hint-text" style={{ marginTop: '0.75rem' }}>
+                    <p className="hint-text">
                       {batches.length > 0
                         ? 'Du har tagit bort alla intressen. Lägg till något nedan.'
                         : 'Jag hittade inga tydliga intressen i det du skrev. Lägg till något nedan.'}
                     </p>
                   ) : (
-                    <InterestTree proposals={visibleProposals} onRemove={removeProposal} />
+                    <InterestTree proposals={visibleProposals} onRemove={removeProposal} align="start" />
                   )}
                   {analysisStatus !== 'pending' && analysisStatus !== 'failed' && (
-                    <div style={{ marginTop: '0.75rem' }}>
-                      <AddInterest selectedIds={selectedIds} onPickExisting={pickExistingInterest} onAddNew={addNewInterest} />
-                    </div>
+                    <AddInterest selectedIds={selectedIds} onPickExisting={pickExistingInterest} onAddNew={addNewInterest} />
                   )}
                 </div>
-                {answers.about.trim() && (
-                  <div style={{ width: '100%' }}>
-                    <p className="card-subheading" style={{ textAlign: 'center' }}>
-                      Det här är du:
-                    </p>
-                    <p
-                      className="card-text"
-                      style={{ whiteSpace: 'pre-line', overflowWrap: 'anywhere', textAlign: 'center' }}
-                    >
-                      {answers.about.trim()}
-                    </p>
-                  </div>
-                )}
+                <PosterAbout text={answers.about.trim()} heading="Det här är du" />
                 <p className="hint-text">Du kan ändra din profil och dina intressen senare om vi missat något!</p>
                 {saveError && <p className="form-error">{saveError}</p>}
                 {imageError && <p className="form-error">{imageError} Du kan lägga till den under Redigera profil.</p>}
@@ -936,7 +921,7 @@ function ProfileInterview() {
                     </button>
                   )}
                 </div>
-              </div>
+              </PosterCard>
             </>
           ) : (
             <>
@@ -951,7 +936,7 @@ function ProfileInterview() {
                   <span style={{ width: `${((index + 1) / STEPS.length) * 100}%` }} />
                 </div>
               </div>
-              <div className="card sheet interview-card" style={FIXED_CARD_SHADOW}>
+              <div className="card card-soft sheet interview-card">
                 <form
                   ref={formRef}
                   className="auth-form form-wide form-compact"
@@ -1002,7 +987,11 @@ function ProfileInterview() {
 
                   {step.id === 'plats' && (
                     <div className="form-row">
-                      <FormField id="interview-municipality" label="Kommun">
+                      <FormField
+                        id="interview-municipality"
+                        label="Kommun"
+                        info="Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke."
+                      >
                         <MunicipalityPicker
                           id="interview-municipality"
                           municipalities={municipalities}
@@ -1011,7 +1000,6 @@ function ProfileInterview() {
                           required
                           autoFocus={AUTO_FOCUS}
                         />
-                        <p className="hint-text">Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke.</p>
                       </FormField>
                       <FormField id="interview-district" label="Stadsdel (valfritt)">
                         <input
@@ -1043,7 +1031,7 @@ function ProfileInterview() {
                   )}
 
                   {step.id === 'person' && (
-                    <FormField id="interview-about" label={ABOUT_LABEL_SHORT}>
+                    <FormField id="interview-about" label={ABOUT_LABEL_SHORT} info={ABOUT_AI_NOTE}>
                       <TextareaWithCount
                         id="interview-about"
                         value={answers.about}
@@ -1056,7 +1044,6 @@ function ProfileInterview() {
                         placeholder={ABOUT_PLACEHOLDER}
                         required
                       />
-                      <p className="hint-text">{ABOUT_AI_NOTE}</p>
                       {aboutError && <p className="form-error">{aboutError}</p>}
                     </FormField>
                   )}
