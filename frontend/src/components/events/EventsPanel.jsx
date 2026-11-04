@@ -23,12 +23,10 @@ import { getAllInterests, getMyInterests } from '../../services/interests'
 import { useAuth } from '../../hooks/useAuth'
 import { markEventsSeen } from '../../services/eventsSeen'
 import { inDayFilter } from '../../utils/eventTime'
-import { DEV_MODE } from '../../devtools/devMode'
 import LoadError from '../LoadError'
 
-// TILLFÄLLIGT: kalendern över ens events finns bara i testläget (väljaren "Events: kalender"), och kommer inte ens med i
-// en vanlig build.
-const EventCalendar = DEV_MODE ? lazy(() => import('../../devtools/EventCalendar')) : null
+// Kalendern över ens events (se chosenDesign.js). Laddas först när man öppnar fliken.
+const EventCalendar = lazy(() => import('../../devtools/EventCalendar'))
 
 const TABS = [
   { id: 'mine', label: 'Mina events', short: 'Mina' },
@@ -74,9 +72,9 @@ function EventsPanel() {
   // ur minnet.
   const [interestsStatus, setInterestsStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
-  // TILLFÄLLIGT (testläget): en flik Kalender efter Mina events, om väljaren "Events: kalender" står på det.
+  // En flik Kalender efter Mina events, om väljaren "Events: kalender" står på det (se chosenDesign.js).
   const calendarChoice = useDesignChoice('eventCalendar')
-  const calendarOn = EventCalendar !== null && calendarChoice === 'kalender'
+  const calendarOn = calendarChoice === 'kalender'
   const tabs = calendarOn ? [TABS[0], { id: 'calendar', label: 'Kalender' }, ...TABS.slice(1)] : TABS
   const [urlTab, setTab] = useTabParam(tabs)
   const tab = urlTab ?? 'mine'

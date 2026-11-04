@@ -7,6 +7,11 @@ import { AuthProvider } from './hooks/useAuth.jsx'
 import { ConfirmProvider } from './hooks/useConfirm.jsx'
 import { queryClient } from './services/queryClient'
 import './styles/index.css'
+import { applyChosenDesign } from './chosenDesign'
+import { DEV_MODE } from './devtools/devMode'
+
+// I testläget sätter testpanelen valen (se devtools/PadBackgroundPicker.jsx).
+if (!DEV_MODE) applyChosenDesign()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

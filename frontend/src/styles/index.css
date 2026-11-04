@@ -5319,6 +5319,83 @@ button.board-note:focus-visible {
   width: 100%;
 }
 
+/* Sök och filter är lite mindre på sidorna, och ikonen, fälten och sorteringen är lika höga. Med mus och styrplatta:
+   på pekskärm gäller de större måtten ovan (se CONTRIBUTING, "Mobil"). Kartans sökikon står bland kartans andra
+   knappar och behåller sin storlek. */
+@media (pointer: fine) {
+  .search-toggle-row {
+    --search-height: 1.75rem;
+  }
+
+  .map-place-search-row .search-toggle-row {
+    --search-height: 2.1rem;
+  }
+
+  .search-toggle-row .search-toggle,
+  .search-toggle-panel .sort-menu-button {
+    width: var(--search-height);
+    height: var(--search-height);
+    min-height: 0;
+  }
+
+  .search-toggle-row .search-toggle svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .search-toggle-panel .search-field {
+    min-height: var(--search-height);
+    padding-block: 0;
+  }
+
+  .search-toggle-panel .search-field svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* .search-toggle-row också här: testlägets lappfilter (matchLayout.css) laddas senare, med lika stark regel. */
+  .search-toggle-row .search-toggle-panel .filter-select-row select,
+  .search-toggle-row .search-toggle-panel .filter-select-row input,
+  .search-toggle-row .search-toggle-panel .multi-option-picker-button {
+    height: var(--search-height);
+    min-height: var(--search-height);
+    padding-block: 0;
+  }
+
+  .search-toggle-row .search-toggle-panel .age-range {
+    height: var(--search-height);
+    min-height: var(--search-height);
+  }
+
+  /* Testlägets andra utseenden på Klubbars sökrad (väljaren Sökraden), med egna större mått. */
+  .search-toggle-row .search-toggle-panel .club-filters {
+    align-items: flex-start;
+  }
+
+  .search-toggle-row .search-toggle-panel .club-search {
+    min-height: var(--search-height);
+    padding-block: 0;
+  }
+
+  .search-toggle-row .search-toggle-panel .club-search input {
+    padding-block: 0;
+  }
+
+  .search-toggle-row .search-toggle-panel select.club-filter,
+  .search-toggle-row .search-toggle-panel .club-filter-kommun input,
+  .search-toggle-row .search-toggle-panel .club-filter-interest input {
+    height: var(--search-height);
+    min-height: var(--search-height);
+    padding-block: 0;
+  }
+
+  .search-toggle-row .search-toggle-panel .club-filters .sort-menu-button {
+    width: var(--search-height);
+    height: var(--search-height);
+    min-height: 0;
+  }
+}
+
 /* Klubbar: sök och filter på en rad (GroupsPanel). Ett brett, runt sökfält
    med förstoringsglas, och intresse, kommun och sortering som rundade knappar
    bredvid, med en liten pil. På mobil hamnar knapparna på en egen rad under. */
