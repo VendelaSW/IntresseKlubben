@@ -7,7 +7,6 @@ import { addMissingDoodle } from './mapPrototypeDoodles'
 import { applyMapTheme } from './mapThemeApply'
 import { composeMapTheme, MAP_PICKERS } from './mapThemes'
 import { useDesignChoice } from '../hooks/useDesignChoice'
-import { DEV_MODE } from '../devtools/devMode'
 import { attachPlaceNotes } from './mapPrototypeNotes'
 import { attachSketchedBuildings } from './mapPrototypeBuildings'
 import { attachPinsAndThread } from './mapPrototypeRoute'
@@ -1369,7 +1368,7 @@ function MapPrototype() {
   zoomToLevelRef.current = zoomToLevel
   const stepLevelRef = useRef(stepLevel)
   stepLevelRef.current = stepLevel
-  // TILLFÄLLIGT (testläget): en väljare för varje del av kartan. Antalet är fast, så krokarna kommer alltid i samma ordning.
+  // En väljare för varje del av kartan. Antalet är fast, så krokarna kommer alltid i samma ordning.
   const mapChoices = MAP_PICKERS.map(({ attr }) => useDesignChoice(attr)) // eslint-disable-line react-hooks/rules-of-hooks
 
   useEffect(() => {
@@ -1685,10 +1684,10 @@ function MapPrototype() {
     }
   }, [])
 
-  // TILLFÄLLIGT (testläget): valen för kartan, se mapThemes.js.
+  // Valen för kartan, se mapThemes.js och chosenDesign.js. I testläget kan de bytas medan kartan är igång.
   useEffect(() => {
     const map = mapRef.current
-    if (!DEV_MODE || !map) return undefined
+    if (!map) return undefined
     const apply = () => applyMapTheme(map, containerRef.current.closest('.map-sketch'), composeMapTheme(mapChoices))
     if (map.getLayer('forest')) apply()
     else map.once('load', apply)

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CHOSEN_DESIGN } from '../chosenDesign'
 import { MAP_PICKERS } from '../pages/mapThemes'
 import './padBackgrounds.css'
 import './uiStyles.css'
@@ -155,11 +156,16 @@ const PICKERS = [
   },
 ]
 
-function saved({ key, fallback }) {
+// Förvalt är det valda utseendet (chosenDesign.js), så att testläget börjar med samma sak som alla andra ser.
+function fallbackFor({ attr, fallback }) {
+  return CHOSEN_DESIGN[attr] ?? fallback
+}
+
+function saved(picker) {
   try {
-    return window.localStorage.getItem(key) ?? fallback
+    return window.localStorage.getItem(picker.key) ?? fallbackFor(picker)
   } catch {
-    return fallback
+    return fallbackFor(picker)
   }
 }
 
@@ -171,7 +177,7 @@ function apply({ attr }, id) {
 PICKERS.forEach((picker) => apply(picker, saved(picker)))
 window.addEventListener('storage', (event) => {
   const picker = PICKERS.find((p) => p.key === event.key)
-  if (picker) apply(picker, event.newValue ?? picker.fallback)
+  if (picker) apply(picker, event.newValue ?? fallbackFor(picker))
 })
 
 function StylePicker({ picker }) {
