@@ -2,7 +2,7 @@
 // kontur, ovansidan dragen en gång till förbi hörnen, och några snedstreck som
 // skrafferar ungefär halva pilen. Visar att något går att fälla ut:
 // intressetaggar med underintressen och kategorierna under Utforska. Färgen
-// följer texten, och `className` styr vridningen (vänds uppåt när det är öppet).
+// följer texten, och `className` styr vridningen (åt höger när det är stängt, nedåt när det är öppet).
 // Bara pynt, så den läses inte upp.
 function DrawnArrow({ className }) {
   return (

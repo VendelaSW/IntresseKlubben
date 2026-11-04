@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useDismiss } from '../hooks/useDismiss'
+import CheckMark from './CheckMark'
 
 // En egen rullista där man kryssar i flera alternativ, t.ex. kön i Medlemmars filter (en <select> kan inte visa
 // kryssrutor). Ett val stänger inte listan. En knapp med en lista under, utan att man skriver. `values` är de valda
@@ -93,7 +94,7 @@ function MultiOptionPicker({ values, onChange, options, emptyLabel, 'aria-label'
               onMouseEnter={() => setActive(index)}
             >
               <span className="multi-option-picker-box" aria-hidden="true">
-                {values.includes(option.value) ? '✓' : ''}
+                {values.includes(option.value) && <CheckMark />}
               </span>
               {option.label}
             </li>

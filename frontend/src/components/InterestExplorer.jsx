@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { DidYouMean, MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest'
+import CheckMark from './CheckMark'
 import InterestLibrary, { PickTag } from './InterestLibrary'
 import InterestTree, { profileTree } from './InterestTree'
 import { searchInterests } from '../services/interests'
@@ -111,7 +112,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
         disabled={busyId === interest.id}
         onClick={() => toggle(interest)}
       >
-        {isSelected ? '✓' : '+'}
+        {isSelected ? <CheckMark /> : '+'}
       </button>
     )
   }

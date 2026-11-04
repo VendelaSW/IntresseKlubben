@@ -374,7 +374,7 @@ function PeoplePage() {
 
       {/* Antalet bara på Kompisförfrågningar, där det finns något att svara på (SCRUM-321). */}
       <FilterTabs
-        tabs={TABS.map((t) => ({ ...t, count: t.id === 'incoming' ? lists.incoming.length : undefined }))}
+        tabs={TABS.map((t) => ({ ...t, count: t.id === 'incoming' || t.id === 'contacts' ? lists[t.id].length : undefined }))}
         active={tab}
         onChange={setTab}
       />
