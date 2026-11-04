@@ -10,6 +10,7 @@ import InterestExplorer from '../components/InterestExplorer'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import NewProfileImage from '../components/NewProfileImage'
 import ProfileAbout from '../components/ProfileAbout'
+import { PosterCard } from '../components/Poster'
 import ProfileHeader, { profileFacts } from '../components/ProfileHeader'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { useAuth } from '../hooks/useAuth'
@@ -641,20 +642,27 @@ function ProfilePage() {
 
   return (
     <div className="profile-layout">
-    <div className="card card-wide content-stack profile-own">
+    {/* Profilen som en affisch (components/Poster.jsx), som andras profiler: raden överst har färgerna på ens områden. */}
+    <PosterCard className="card card-wide content-stack profile-own profile-poster" interests={myInterests}>
       <h1 className="app-title">Min profil</h1>
       {imageNotice && (
         <p className="form-error">{withPeriod(imageNotice)} Försök igen under Redigera profil.</p>
       )}
       {/* Överst bild, namn och det viktigaste på en rad (tomma uppgifter syns inte, bara under Redigera profil). */}
-      <ProfileHeader name={profile.name ?? account?.username} imageUrl={profile.image_url} facts={profileFacts(profile)}>
+      <ProfileHeader
+        name={profile.name ?? account?.username}
+        imageUrl={profile.image_url}
+        facts={profileFacts(profile)}
+        maxLetters={2}
+        poster
+      >
         <button type="button" className="secondary-button button-small" onClick={() => startEditing()}>
           Redigera profil
         </button>
       </ProfileHeader>
       {/* En obekräftad e-post syns direkt, så att man inte missar att bekräfta den. */}
       {account?.email && !account.email_verified && <EmailVerification account={account} />}
-      <ProfileAbout text={profile.profile_text} />
+      <ProfileAbout text={profile.profile_text} poster />
       {/* Kontot och inställningarna behövs sällan, så de är ihopfällda, för att slippa scrolla förbi dem. */}
       <details className="profile-account">
         <summary>Konto och inställningar</summary>
@@ -681,7 +689,7 @@ function ProfilePage() {
         {account?.email_verified && <EmailVerification account={account} />}
         <BlockedUsers />
       </details>
-    </div>
+    </PosterCard>
     {/* Intressena som ett eget vitt kort bredvid profilen (under på mobil).
         Ändringar sparas direkt. */}
     <InterestExplorer

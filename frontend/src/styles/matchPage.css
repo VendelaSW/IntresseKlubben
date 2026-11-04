@@ -327,11 +327,11 @@
 }
 
 
-/* ---------- Andras profil (pages/UserProfilePage.jsx) ----------
-   Ett stort affischkort (PosterCard), som personkorten i Sök men utan matchningsdetaljerna: en bredare färgad rad och
-   större rasterprickar, namnet stort (PosterName), åldern och orten i den svarta rutan (PlaceStamp) och Om mig med det
-   gula strecket (PosterAbout). */
-.profile-card.poster-card {
+/* ---------- Profilerna (pages/UserProfilePage.jsx och ProfilePage.jsx) ----------
+   Ett stort affischkort (PosterCard med .profile-poster), som personkorten i Sök men utan matchningsdetaljerna: en bredare
+   färgad rad och större rasterprickar, namnet stort (PosterName), åldern och orten i den svarta rutan (PlaceStamp) och Om
+   mig med det gula strecket (PosterAbout). Samma för andras profiler och den egna. */
+.poster-card.profile-poster {
   --poster-strip-height: 9px;
   --poster-dots-width: 45%;
   --poster-dots-height: 10rem;
@@ -341,18 +341,96 @@
   transform: rotate(-0.3deg);
 }
 
-.profile-card.poster-card .profile-header-avatar.profile-avatar-empty {
+/* Initialerna som på personkorten, utan kant. Också i sammanfattningen efter intervjun. */
+.poster-card .profile-avatar.profile-avatar-empty {
   border: 0;
   font-family: var(--font-body);
+}
+
+.poster-card.profile-poster .profile-header-avatar.profile-avatar-empty {
   font-size: 2.1rem;
 }
 
 @media (max-width: 480px) {
-  .profile-card.poster-card {
+  .poster-card.profile-poster {
     padding: 1.3rem 1rem 1.1rem;
   }
 
-  .profile-card.poster-card .profile-header-avatar.profile-avatar-empty {
+  .poster-card.profile-poster .profile-header-avatar.profile-avatar-empty {
     font-size: 1.6rem;
+  }
+}
+
+/* ---------- Sammanfattningen efter intervjun (pages/ProfileInterview.jsx) ----------
+   Samma affisch, tät och vänsterställd: överst bilden till vänster och namnet i tryckbokstäver, åldern och orten i den svarta
+   rutan och könet till höger, sedan intressena och "Det här är du" med det gula strecket. Knapparna längst ner på mobil har
+   pappret som bakgrund. */
+.interview-summary.poster-card {
+  align-items: stretch;
+  gap: 1rem;
+  text-align: left;
+}
+
+.interview-summary-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.interview-summary-head .profile-image {
+  flex: none;
+  gap: 0.4rem;
+}
+
+.interview-summary-head .profile-avatar {
+  width: 76px;
+  height: 76px;
+}
+
+.interview-summary-head .profile-avatar.profile-avatar-empty {
+  font-size: 1.8rem;
+}
+
+.interview-summary-head .profile-image .hint-text {
+  max-width: 7rem;
+  margin: 0;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.interview-summary-who {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.interview-summary-who .hint-text {
+  margin: 0;
+}
+
+.interview-summary-interests {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.interview-summary h2,
+.interview-summary .poster-about-section h2 {
+  font-size: 1rem;
+}
+
+.interview-summary .poster-name {
+  font-size: 1.5rem;
+}
+
+.interview-summary > .hint-text {
+  margin: 0;
+}
+
+@media (max-width: 767px) {
+  .interview-summary.poster-card .interview-save-buttons {
+    background: #fffdf7;
   }
 }

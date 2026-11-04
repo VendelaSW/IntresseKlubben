@@ -5,20 +5,16 @@ import { sendContactRequest } from '../services/contacts'
 import { getMatches } from '../services/matches'
 import { dismissSuggestion, undoDismissSuggestion } from '../services/people'
 import DrawnArrow from './DrawnArrow'
-import Avatar from './Avatar'
 import EmptyState from './EmptyState'
 import LoadError from './LoadError'
 import MatchCard from './MatchCard'
-import MatchThumb from './MatchThumb'
+import MatchUpNext from './MatchUpNext'
 
 // Så länge beskedet ("Ångra") syns efter att man skickat eller tagit bort någon.
 const NOTICE_MS = 8000
 
-// Så många små kort syns under det stora, och när så få finns kvar hämtas nästa sida i förväg.
-const UP_NEXT = 4
+// När så få förslag finns kvar hämtas nästa sida i förväg, så att Näst på tur aldrig tar slut mitt i.
 const PREFETCH_AT = 5
-// Så många syns som små avatarer i den tunna raden (när det är trångt, se .match-upnext-strip).
-const STRIP_COUNT = 5
 
 // Under så här många pixlar kvar i blocket får fliken scrolla som vanligt, i stället för att kortet trycks ihop.
 const MIN_ROOM = 320
@@ -84,8 +80,8 @@ function useFitToPad(panelRef) {
   }, [panelRef])
 }
 
-// Matcha-fliken under Medlemmar: det bästa förslaget som ett stort kort överst och de närmast på tur som små kort under
-// (så att det syns att det finns fler), bäst först (GET /matches). Skickar eller tar man bort någon växer nästa kort fram. På kortet kan man skicka en
+// Matcha-fliken under Medlemmar: det bästa förslaget som ett stort kort överst och de närmast på tur som små avatarer under
+// (MatchUpNext, så att det syns att det finns fler), bäst först (GET /matches). Skickar eller tar man bort någon växer nästa kort fram. På kortet kan man skicka en
 // kompisförfrågan eller ta bort förslaget för gott (med Ångra). Med pilarna vid kortets sidor går man vidare till nästa (utan
 // att ta bort något, personen kan dyka upp igen nästa gång fliken öppnas) eller tillbaka till den man nyss gick förbi.
 //
@@ -302,37 +298,7 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
   } else if (!current) {
     body = <p className="hint-text">Laddar...</p>
   } else {
-    const upcoming = state.items.slice(1, 1 + UP_NEXT)
     const sharedProps = { sharedInterestIds: myInterestIds }
-    // Näst på tur: små kort när det finns plats, annars (CSS:en väljer, se .match-upnext-strip) en tunn rad med avatarer
-    // och "+ fler", så att det ändå syns att det finns fler förslag.
-    const waiting = state.items.slice(1)
-    const stripItems = waiting.slice(0, STRIP_COUNT)
-    const moreCount = waiting.length - stripItems.length
-    const upNext = (items, title) =>
-      items.length > 0 && (
-        <section className="match-upnext" aria-label={title}>
-          <h2 className="match-upnext-title">{title}</h2>
-          <ul className="match-thumbs">
-            {items.map((match, i) => (
-              <MatchThumb key={match.id} match={match} place={i + 1} {...sharedProps} />
-            ))}
-          </ul>
-          <div className="match-upnext-strip">
-            <ul className="match-strip-people">
-              {stripItems.map((match) => (
-                <li key={match.id} title={nameOf(match)}>
-                  <Avatar name={nameOf(match)} imageUrl={match.image_url} className="match-strip-avatar" />
-                  <span className="visually-hidden">{nameOf(match)}</span>
-                </li>
-              ))}
-            </ul>
-            {(moreCount > 0 || state.hasMore) && (
-              <span className="match-strip-more">{moreCount > 0 ? `+${moreCount}` : '+'} fler</span>
-            )}
-          </div>
-        </section>
-      )
 
     body = (
       <div className="match-stack">
@@ -358,7 +324,7 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
             <DrawnArrow className="match-arrow-next" />
           </button>
         </div>
-        {upNext(upcoming, 'Näst på tur')}
+        <MatchUpNext matches={state.items.slice(1)} hasMore={state.hasMore} />
       </div>
     )
   }

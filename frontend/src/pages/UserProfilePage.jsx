@@ -391,7 +391,7 @@ function UserProfilePage() {
       {status === 'error' && <LoadError text="Kunde inte hämta profilen." onRetry={retry} className="form-error" />}
 
       {status === 'ready' && (
-        <Card className="card card-wide content-stack profile-card" {...cardProps}>
+        <Card className={`card card-wide content-stack profile-card${poster ? ' profile-poster' : ''}`} {...cardProps}>
           {/* Överst bild, namn och det viktigaste på en rad (tomma uppgifter syns inte). */}
           <ProfileHeader
             name={profile.name ?? 'Profil'}

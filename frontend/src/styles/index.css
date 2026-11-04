@@ -750,10 +750,6 @@ button.banner-button {
   text-align: left;
 }
 
-.profile-own > .soft-box {
-  max-width: none;
-}
-
 .profile-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1817,10 +1813,6 @@ span.tag-selected:hover {
     padding: 1rem;
   }
 
-  .interview-summary .card-title {
-    font-size: 1.75rem;
-  }
-
   .interview-summary .interview-save-buttons {
     position: sticky;
     bottom: 0;
@@ -2600,9 +2592,8 @@ button.answer-summary-box:disabled {
   }
 }
 
-/* Det stora kortet med de närmast på tur som små kort under (components/MatchPanel.jsx och MatchThumb.jsx). Kortet är
-   centrerat, och när nästa kort blir stort växer det fram (inte för den som har stängt av animationer). Korten under blir
-   successivt mindre och svagare, så att det syns att det är en kö. */
+/* Det stora kortet med de närmast på tur under (components/MatchPanel.jsx och MatchUpNext.jsx). Kortet är centrerat, och
+   när nästa kort blir stort växer det fram (inte för den som har stängt av animationer). */
 .match-stack {
   display: flex;
   flex-direction: column;
@@ -2646,7 +2637,6 @@ button.answer-summary-box:disabled {
   flex: 1 1 auto;
   min-height: 0;
   gap: 1rem;
-  container-type: size;
 }
 
 .match-panel.is-fitted .match-stage {
@@ -2669,28 +2659,22 @@ button.answer-summary-box:disabled {
   overflow-y: auto;
 }
 
-/* Näst på tur när det är trångt: i stället för de små korten en tunn rad, rubriken och avatarerna på en rad, som en kö
-   där de överlappar lite och den första står närmast. Visas bara när panelen är för låg för korten. */
-.match-upnext-strip {
-  display: none;
+/* Näst på tur (components/MatchUpNext.jsx): en tunn rad under kortet med rubriken, de närmast på tur som små avatarer
+   som överlappar lite, som en kö där den första står närmast, och "+3 fler". */
+.match-upnext {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
 }
 
-@container (max-height: 40rem) {
-  .match-panel.is-fitted .match-upnext {
-    flex-direction: row;
-    justify-content: center;
-    gap: 0.6rem;
-  }
-
-  .match-panel.is-fitted .match-thumbs {
-    display: none;
-  }
-
-  .match-panel.is-fitted .match-upnext-strip {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
+.match-upnext-title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 700;
+  color: var(--color-muted);
 }
 
 .match-strip-people {
@@ -2722,116 +2706,6 @@ button.answer-summary-box:disabled {
   font-weight: 700;
   color: var(--color-muted);
   white-space: nowrap;
-}
-
-.match-upnext {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  width: 100%;
-}
-
-.match-upnext-title {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: var(--text-small);
-  font-weight: 700;
-  color: var(--color-muted);
-}
-
-.match-thumbs {
-  display: flex;
-  align-items: flex-start;
-  justify-content: safe center;
-  gap: 0.75rem;
-  max-width: 100%;
-  margin: 0;
-  padding: 0.4rem 0.5rem 0.6rem;
-  overflow-x: auto;
-  list-style: none;
-}
-
-/* Samma affischstil som det stora kortet (.poster-card): vitt papper utan kant, en färgad rad överst i färgerna på
-   personens områden (MatchThumb sätter --poster-strip), mjuk skugga och en lätt lutning, åt olika håll varannan gång. */
-.match-thumb {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  width: var(--w);
-  padding: 0.85rem 0.4rem 0.5rem;
-  border: 0;
-  border-radius: 2px;
-  background:
-    linear-gradient(to right, var(--poster-strip)) top / 100% 5px no-repeat,
-    #fffdf7;
-  box-shadow: 1px 3px 6px rgba(58, 47, 37, 0.32);
-  opacity: var(--o);
-  text-align: center;
-  transform: rotate(-1deg);
-}
-
-.match-thumb:nth-child(even) {
-  transform: rotate(1deg);
-}
-
-.match-thumb-1 {
-  --w: 118px;
-  --o: 1;
-}
-
-.match-thumb-2 {
-  --w: 104px;
-  --o: 0.92;
-}
-
-.match-thumb-3 {
-  --w: 92px;
-  --o: 0.82;
-}
-
-.match-thumb-4 {
-  --w: 82px;
-  --o: 0.72;
-}
-
-.match-thumb .match-thumb-avatar {
-  width: calc(var(--w) * 0.42);
-  height: calc(var(--w) * 0.42);
-  border-radius: 50%;
-  background: var(--color-line);
-  object-fit: cover;
-  font-family: var(--font-heading);
-  font-size: calc(var(--w) * 0.24);
-}
-
-.match-thumb-name {
-  font-family: var(--font-body);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.05;
-  text-transform: uppercase;
-  overflow-wrap: anywhere;
-  hyphens: auto;
-}
-
-.match-thumb-place {
-  font-size: 0.7rem;
-  line-height: 1.1;
-  color: var(--color-muted);
-}
-
-/* Nivån som en liten stämpel i flödet (på de små korten), utan lutning, skugga eller vickning. */
-.match-level.match-level-inline {
-  position: static;
-  padding: 0 0.4rem 0.05rem;
-  rotate: 0deg;
-  animation: none;
-  box-shadow: none;
-  font-size: 0.95rem;
 }
 
 /* Intressena och knapparna ligger i botten av kortet. Korten i en rad är lika
