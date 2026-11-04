@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core import error_messages as msg
 from app.crud.contact import accepted_contact_ids, blocked_user_ids
 from app.crud.interest import related_interests
-from app.crud.notification import notify
+from app.crud.notification import delete_link_notifications, mark_request_answered, notify
 from app.crud.text_search import escape_like, swedish_key
 from app.models.group import (
     Group,
@@ -314,7 +314,17 @@ def leave_group(db: Session, group: Group, user: User) -> None:
     db.commit()
 
 
-def delete_group(db: Session, group: Group) -> None:
+def delete_group(db: Session, group: Group, by_id: int) -> None:
+    """Tar bort klubben (ägaren, `by_id`). Notiserna som leder till klubben tas bort (se delete_link_notifications),
+    och de andra medlemmarna får en notis om att den är borttagen, utan länk eftersom klubben inte finns kvar."""
+    delete_link_notifications(db, f"/klubbar?klubb={group.id}")
+    notify(
+        db,
+        [m.user_id for m in group.members if m.user_id != by_id],
+        NotificationKind.group_deleted,
+        title=f"Klubben ”{group.name}” har tagits bort",
+        body="Ägaren har tagit bort klubben som du var med i.",
+    )
     db.delete(group)
     db.commit()
 
@@ -459,11 +469,12 @@ def apply_to_group(db: Session, group: Group, user: User, message: str | None) -
         db,
         owners,
         NotificationKind.group_join_request,
-        title=f"{name} vill gå med i {group.name}",
+        title=f"{name} vill gå med i din klubb ”{group.name}”",
         body="Svara på ansökan på klubbens sida.",
         quote=message,
         quote_by=name if message else None,
         link=f"/klubbar?klubb={group.id}",
+        actor_id=user.id,
     )
     try:
         db.commit()
@@ -476,7 +487,13 @@ def withdraw_request(db: Session, group: Group, user_id: int) -> None:
     db.query(GroupJoinRequest).filter(
         GroupJoinRequest.group_id == group.id, GroupJoinRequest.user_id == user_id
     ).delete(synchronize_session=False)
+    _request_answered(db, group, user_id)
     db.commit()
+
+
+def _request_answered(db: Session, group: Group, user_id: int) -> None:
+    """Notiserna om ansökan räknas som lästa hos ägaren och administratörerna (se mark_request_answered)."""
+    mark_request_answered(db, NotificationKind.group_join_request, f"/klubbar?klubb={group.id}", user_id)
 
 
 def list_join_requests(db: Session, group: Group, owner_id: int) -> list[tuple[GroupJoinRequest, User]]:
@@ -498,14 +515,15 @@ def _pending_request(group: Group, user_id: int) -> GroupJoinRequest:
     return request
 
 
-def approve_request(db: Session, group: Group, user_id: int) -> None:
-    """Godkänner ansökan: personen blir medlem och får en notis. Går inte om klubben är full eller om personen
+def approve_request(db: Session, group: Group, user_id: int, by_id: int) -> None:
+    """Godkänner ansökan: personen blir medlem och får en notis från `by_id`, som godkände. Går inte om klubben är full eller om personen
     redan är med i så många klubbar som går."""
     _pending_request(group, user_id)
     if is_full(group):
         raise GroupRuleError(msg.GROUP_FULL)
     _check_can_join(db, user_id, msg.GROUP_APPLICANT_TOO_MANY_GROUPS)
     _add_member(db, group, user_id)
+    _request_answered(db, group, user_id)
     notify(
         db,
         [user_id],
@@ -513,6 +531,7 @@ def approve_request(db: Session, group: Group, user_id: int) -> None:
         title=f"Du är med i {group.name}!",
         body="Din ansökan är godkänd.",
         link=f"/klubbar?klubb={group.id}",
+        actor_id=by_id,
     )
     db.commit()
 
@@ -521,6 +540,7 @@ def decline_request(db: Session, group: Group, user_id: int, owner: User, messag
     """Nekar ansökan: den tas bort, så att personen kan ansöka igen, och personen får en notis, med ägarens
     förklaring om hen skrev en."""
     db.delete(_pending_request(group, user_id))
+    _request_answered(db, group, user_id)
     owner_name = _display_name(owner)
     notify(
         db,
@@ -531,6 +551,7 @@ def decline_request(db: Session, group: Group, user_id: int, owner: User, messag
         quote=message,
         quote_by=owner_name if message else None,
         link="/klubbar",
+        actor_id=owner.id,
     )
     db.commit()
 
@@ -538,9 +559,9 @@ def decline_request(db: Session, group: Group, user_id: int, owner: User, messag
 # ---------- Roller och att ta bort medlemmar (SCRUM-160) ----------
 
 
-def set_member_role(db: Session, group: Group, user_id: int, role: GroupRole) -> None:
-    """Gör en medlem till administratör eller vanlig medlem igen, och säger till personen. Att den som anropar
-    är ägaren kontrolleras i routen. Ägarens egen roll går inte att ändra."""
+def set_member_role(db: Session, group: Group, user_id: int, role: GroupRole, by_id: int) -> None:
+    """Gör en medlem till administratör eller vanlig medlem igen, och säger till personen (notisen är från `by_id`,
+    ägaren). Att den som anropar är ägaren kontrolleras i routen. Ägarens egen roll går inte att ändra."""
     membership = get_membership(group, user_id)
     if membership is None:
         raise GroupRuleError(msg.GROUP_NOT_A_MEMBER)
@@ -560,6 +581,7 @@ def set_member_role(db: Session, group: Group, user_id: int, role: GroupRole) ->
             else "Ägaren har ändrat din roll till medlem."
         ),
         link=f"/klubbar?klubb={group.id}",
+        actor_id=by_id,
     )
     db.commit()
 

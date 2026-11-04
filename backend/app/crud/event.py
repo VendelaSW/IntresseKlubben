@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core import error_messages as msg
 from app.crud.contact import accepted_contact_ids, blocked_by_me_ids, blocked_user_ids
 from app.crud.group import get_group, get_membership
-from app.crud.notification import notify
+from app.crud.notification import delete_link_notifications, mark_request_answered, notify
 from app.models.contact import Contact
 from app.models.event import Event, EventAnswer, EventHost, EventInvitation, EventJoinRequest, EventResponse, EventVisibility
 from app.models.notification import NotificationKind
@@ -61,6 +61,7 @@ def create_event(db: Session, user_id: int, data: EventCreate) -> Event:
         scope_code=data.scope_code,
         skill_level=data.skill_level.value if data.skill_level else None,
         max_attendees=data.max_attendees,
+        creator_in_max=data.creator_in_max,
     )
     db.add(event)
     db.commit()
@@ -86,7 +87,9 @@ def update_event(db: Session, event: Event, data: EventUpdate) -> Event:
 
 
 def delete_event(db: Session, event: Event) -> None:
-    """Tar bort eventet och dess inbjudningar och svar."""
+    """Tar bort eventet och dess inbjudningar och svar, och notiserna som leder till eventet (se
+    delete_link_notifications)."""
+    delete_link_notifications(db, f"/events?event={event.id}")
     db.delete(event)
     db.commit()
 
@@ -106,9 +109,33 @@ def yes_count(event: Event) -> int:
     return sum(1 for r in event.responses if r.answer == EventAnswer.yes)
 
 
+def unanswered_count(event: Event) -> int:
+    """Hur många inbjudna (även godkända ansökningar) som inte har svarat än, så att eventsidan kan visa det bredvid
+    dem som kommer, kanske kommer och inte kommer."""
+    answered = {r.user_id for r in event.responses}
+    return sum(1 for i in event.invitations if i.user_id not in answered)
+
+
+def _takes_spot(event: Event, user_id: int) -> bool:
+    """Tar personens Ja en plats? Alla utom skaparen, när skaparen inte räknas in (creator_in_max av)."""
+    return event.creator_in_max or user_id != event.created_by
+
+
+def taken_spots(event: Event) -> int:
+    """Platserna som är tagna: alla Ja, även dolda, utom skaparens när skaparen inte räknas in."""
+    return sum(1 for r in event.responses if r.answer == EventAnswer.yes and _takes_spot(event, r.user_id))
+
+
+def spots_left(event: Event) -> int | None:
+    """Hur många platser som är kvar, eller None utan max antal."""
+    if event.max_attendees is None:
+        return None
+    return max(0, event.max_attendees - taken_spots(event))
+
+
 def is_full(event: Event) -> bool:
-    """Har eventet nått sitt max antal som kommer (SCRUM-293)? Alla Ja räknas, även dolda."""
-    return event.max_attendees is not None and yes_count(event) >= event.max_attendees
+    """Har eventet nått sitt max antal som kommer (SCRUM-293)? Se taken_spots."""
+    return event.max_attendees is not None and taken_spots(event) >= event.max_attendees
 
 
 def can_answer(event: Event, user_id: int) -> bool:
@@ -305,7 +332,7 @@ def set_answer(db: Session, event: Event, user_id: int, answer: EventAnswer) -> 
     if not can_answer(event, user_id):
         raise EventRuleError(409, msg.EVENT_MUST_APPLY)
     already_yes = any(r.user_id == user_id and r.answer == EventAnswer.yes for r in event.responses)
-    if answer == EventAnswer.yes and not already_yes and is_full(event):
+    if answer == EventAnswer.yes and not already_yes and _takes_spot(event, user_id) and is_full(event):
         raise EventRuleError(409, msg.EVENT_FULL)
     response = (
         db.query(EventResponse)
@@ -316,6 +343,15 @@ def set_answer(db: Session, event: Event, user_id: int, answer: EventAnswer) -> 
         db.add(EventResponse(event_id=event.id, user_id=user_id, answer=answer))
     else:
         response.answer = answer
+    db.commit()
+
+
+def remove_answer(db: Session, event: Event, user_id: int) -> None:
+    """Tar bort användarens svar, så att hen inte längre har svarat (t.ex. ett Kanske som klickas av). Går att
+    upprepa utan fel."""
+    db.query(EventResponse).filter(EventResponse.event_id == event.id, EventResponse.user_id == user_id).delete(
+        synchronize_session=False
+    )
     db.commit()
 
 
@@ -386,11 +422,12 @@ def apply_to_event(db: Session, event: Event, user: User, message: str | None) -
         db,
         [host_id for host_id in _host_ids(event) if host_id not in hidden],
         NotificationKind.event_join_request,
-        title=f"{name} vill vara med på «{event.title}»",
+        title=f"{name} vill vara med på ditt event ”{event.title}”",
         body="Svara på ansökan på eventets sida.",
         quote=message,
         quote_by=name if message else None,
         link=f"/events?event={event.id}",
+        actor_id=user.id,
     )
     try:
         db.commit()
@@ -402,7 +439,13 @@ def withdraw_event_request(db: Session, event: Event, user_id: int) -> None:
     db.query(EventJoinRequest).filter(
         EventJoinRequest.event_id == event.id, EventJoinRequest.user_id == user_id
     ).delete(synchronize_session=False)
+    _request_answered(db, event, user_id)
     db.commit()
+
+
+def _request_answered(db: Session, event: Event, user_id: int) -> None:
+    """Notiserna om ansökan räknas som lästa hos skaparen och medarrangörerna (se mark_request_answered)."""
+    mark_request_answered(db, NotificationKind.event_join_request, f"/events?event={event.id}", user_id)
 
 
 def list_event_requests(db: Session, event: Event, host_id: int) -> list[tuple[EventJoinRequest, User]]:
@@ -422,18 +465,30 @@ def _pending_request(event: Event, user_id: int) -> EventJoinRequest:
     return request
 
 
-def approve_event_request(db: Session, event: Event, user_id: int) -> None:
-    """Godkänner ansökan: personen blir inbjuden (och kan svara) och får en notis."""
-    db.delete(_pending_request(event, user_id))
+def approve_event_request(db: Session, event: Event, user_id: int, by_id: int) -> None:
+    """Godkänner ansökan: personen har ju ansökt för att komma, så hen blir inbjuden och står direkt som Kommer (Ja)
+    och räknas bland dem som kommer. Hen kan ändra svaret själv. Ett fullt event tar inte emot fler (SCRUM-293).
+    Personen får en notis från `by_id`, som godkände."""
+    request = _pending_request(event, user_id)
+    if is_full(event):
+        raise EventRuleError(409, msg.EVENT_FULL)
+    db.delete(request)
+    _request_answered(db, event, user_id)
     if not any(i.user_id == user_id for i in event.invitations):
         db.add(EventInvitation(event_id=event.id, user_id=user_id))
+    response = next((r for r in event.responses if r.user_id == user_id), None)
+    if response is None:
+        db.add(EventResponse(event_id=event.id, user_id=user_id, answer=EventAnswer.yes))
+    else:
+        response.answer = EventAnswer.yes
     notify(
         db,
         [user_id],
         NotificationKind.event_request_approved,
-        title=f"Du får vara med på «{event.title}»!",
-        body="Din ansökan är godkänd. Svara Ja eller Kanske på eventets sida.",
+        title=f"Du får vara med på ”{event.title}”!",
+        body="Din ansökan är godkänd och du står som Kommer. Kan du inte komma ändrar du svaret på eventets sida.",
         link=f"/events?event={event.id}",
+        actor_id=by_id,
     )
     db.commit()
 
@@ -441,16 +496,18 @@ def approve_event_request(db: Session, event: Event, user_id: int) -> None:
 def decline_event_request(db: Session, event: Event, user_id: int, by: User, message: str | None = None) -> None:
     """Nekar ansökan: den tas bort, så att personen kan ansöka igen, och personen får en notis med förklaringen."""
     db.delete(_pending_request(event, user_id))
+    _request_answered(db, event, user_id)
     by_name = _display_name(by)
     notify(
         db,
         [user_id],
         NotificationKind.event_request_declined,
-        title=f"Din ansökan till «{event.title}» fick nej",
+        title=f"Din ansökan till ”{event.title}” fick nej",
         body="Du kan ansöka igen senare, eller hitta ett annat event.",
         quote=message,
         quote_by=by_name if message else None,
         link="/events",
+        actor_id=by.id,
     )
     db.commit()
 
@@ -474,12 +531,13 @@ def set_host(db: Session, event: Event, user_id: int, host: bool) -> None:
         db,
         [user_id],
         NotificationKind.event_host_changed,
-        title=f"Du är medarrangör för «{event.title}»" if host else f"Du är inte längre medarrangör för «{event.title}»",
+        title=f"Du är medarrangör för ”{event.title}”" if host else f"Du är inte längre medarrangör för ”{event.title}”",
         body=(
             "Du kan nu ändra eventet, bjuda in och svara på ansökningar."
             if host
             else "Skaparen har tagit tillbaka rollen."
         ),
         link=f"/events?event={event.id}",
+        actor_id=event.created_by,
     )
     db.commit()
