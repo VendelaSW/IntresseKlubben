@@ -25,7 +25,6 @@ import FilterTabs from '../components/FilterTabs'
 import MatchCard from '../components/MatchCard'
 import MatchThumb from '../components/MatchThumb'
 import FormField from '../components/FormField'
-import { PickTag } from '../components/InterestLibrary'
 import InterestPicker from '../components/InterestPicker'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
@@ -315,39 +314,20 @@ function StyleGuide() {
           highlight={new Set(['id:2', 'id:8'])}
         />
 
-        <h3>Underintressen och intressets sida (components/InterestTagPanel.jsx, pages/InterestPage.jsx)</h3>
+        <h3>Underintressen och rutan om ett intresse (components/InterestTagPanel.jsx, components/InterestInfo.jsx)</h3>
         <p className="hint-text">
-          Rutan med underintressen (.interest-tag-panel) ligger under taggen på bred skärm. Under 768 px är den ett ark
-          nedifrån (.interest-sheet, ett &lt;dialog&gt;) som ligger över allt annat, tar högst 70 % av skärmen och
-          scrollar själv, så att den aldrig täcks av taggarna under eller klipps av kanten. Gör fönstret smalt och tryck
-          på Historia ovan för att se arket. Varje intresse har en egen sida, /intressen/:id, ett block på kartan med
-          antal i landet och i ens kommun (.interest-page-count) och över- och underintressen som länkar
-          (.interest-page-link). Dit kommer man på tre sätt: namnen på profilens taggar (.interest-tag-link), "Om … ›"
-          överst i rutan (.interest-tag-panel-about), och den lilla runda › i bibliotekets taggar (.interest-pick-page),
-          där resten av taggen väljer som vanligt:
+          Rutan med underintressen (.interest-tag-panel) ligger rak över taggarna under, samma på mobil och dator, och
+          flyttas åt vänster om den annars skulle gå utanför raden. Den scrollar själv när listan är lång. Tryck på
+          Historia ovan. I Intressebiblioteket öppnar ett tryck på ett intresse som man inte har valt en ruta (en Modal
+          med × i stället för Stäng): var i biblioteket det ligger, antalet i landet och i ens kommun
+          (.interest-info-count) och "Lägg till på min profil". Ett tryck på ett valt intresse tar bort det, utan rutan:
         </p>
-        <ul className="interest-tags">
-          <PickTag
-            interest={{ id: 9, name: 'Fotografering' }}
-            areaSlug="skapande"
-            on={false}
-            onToggle={() => {}}
-            linkPage
-          />
-          <PickTag
-            interest={{ id: 8, name: 'Löpning' }}
-            areaSlug="sport-och-traning"
-            on
-            onToggle={() => {}}
-            linkPage
-          />
-        </ul>
-        <div className="interest-page-counts" style={{ marginTop: '1rem', maxWidth: '24rem' }}>
-          <p className="interest-page-count">
-            <span className="interest-page-number">148</span> i hela Sverige
+        <div className="interest-info-counts" style={{ maxWidth: '24rem' }}>
+          <p className="interest-info-count">
+            <span className="interest-info-number">148</span> i Sverige
           </p>
-          <p className="interest-page-count">
-            <span className="interest-page-number">12</span> i Göteborg
+          <p className="interest-info-count">
+            <span className="interest-info-number">12</span> i Göteborg, där du bor
           </p>
         </div>
 

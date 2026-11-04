@@ -6,9 +6,6 @@
 // blir egna taggar (de är inte fler än tre som är kvar under Gaming).
 const GROUP_AFTER = 3
 
-// Adressen till ett intresses sida (SCRUM-306), ett block på kartan som de andra sidorna (se MapPagePad).
-export const interestPageHref = (id) => `/intressen/${id}`
-
 // Första bokstaven stor, så att egna intressen ("fyrmodeller") ser ut som bibliotekets.
 export const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 

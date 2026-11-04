@@ -28,11 +28,11 @@ export function getChildInterests(id) {
   return cached(['interests', 'children', id], () => apiGet(`/interests/${id}/children`), HOUR)
 }
 
-// Intressesidan (/intressen/:id): intresset med path, hur många som har det eller något under det i landet och i
-// kommunen, överintressena och ett steg ner, var och en med antal (GET /interests/{id}/people). Personerna behövs inte,
-// så bara en hämtas. Utan kommun är municipality null. 404 betyder att intresset inte finns eller inte syns för en.
-export const interestPageQuery = (id, municipalityCode) => ({
-  queryKey: ['interests', 'page', id, municipalityCode ?? null],
+// Antalet till rutan om ett intresse i biblioteket (SCRUM-306, InterestInfo): hur många som har det eller något under
+// det, i landet och i kommunen (GET /interests/{id}/people). Personerna behövs inte, så bara en hämtas. Utan kommun är
+// municipality null. 404 betyder att intresset inte finns eller inte syns för en.
+export const interestCountsQuery = (id, municipalityCode) => ({
+  queryKey: ['interests', 'counts', id, municipalityCode ?? null],
   queryFn: () => {
     const params = new URLSearchParams({ limit: '1' })
     if (municipalityCode) params.set('municipality_code', municipalityCode)

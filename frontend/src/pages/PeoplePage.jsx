@@ -1,6 +1,5 @@
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import PersonActions from '../components/PersonActions'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
@@ -22,7 +21,7 @@ import {
   removeContactConfirm,
   sendContactRequest,
 } from '../services/contacts'
-import { getAllInterests, getMyInterests } from '../services/interests'
+import { getMyInterests } from '../services/interests'
 import { GENDER_OPTIONS, genderLabel, getMunicipalities } from '../services/profile'
 import {
   dismissSuggestion,
@@ -103,19 +102,6 @@ const NO_FILTERS = {
   maxAge: null,
 }
 
-// Filtren som en länk kan välja från början, t.ex. från ett intresses sida (SCRUM-306):
-// /personer?flik=sok&intresse=12&kommun=1480. Intressets namn fylls i när intressena är hämtade.
-function filtersFromAddress(searchParams) {
-  const interestId = Number(searchParams.get('intresse'))
-  const municipalityCode = searchParams.get('kommun')
-  return {
-    ...NO_FILTERS,
-    interests: Number.isInteger(interestId) && interestId > 0 ? [{ id: interestId, name: '' }] : [],
-    // En kommunkod är fyra siffror; något annat skulle bara ge ett fel från backend.
-    municipalityCodes: /^\d{4}$/.test(municipalityCode ?? '') ? [municipalityCode] : [],
-  }
-}
-
 function PeoplePage() {
   const confirm = useConfirm()
   // TILLFÄLLIGT (testläget): matchningssidans layout (väljaren "Matchningssidan"), se MatchPanel.
@@ -129,8 +115,7 @@ function PeoplePage() {
   // Filterraderna som papperslappar: i Matcha och Sök, i layouten Nicklas förslag 1 (se .filter-select-row-paper).
   const paperRow = (tab === 'match' || tab === 'suggested') && matchLayout === 'nicklas-1'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
-  const [searchParams] = useSearchParams()
-  const [filters, setFilters] = useState(() => filtersFromAddress(searchParams))
+  const [filters, setFilters] = useState(NO_FILTERS)
   useResetOnTabChange(tab, () => setFilters(NO_FILTERS))
   const [myInterests, setMyInterests] = useState([])
   const [municipalities, setMunicipalities] = useState([])
@@ -164,23 +149,6 @@ function PeoplePage() {
   useEffect(() => loadFilterData(), [loadFilterData])
 
   const { interests, municipalityCodes, genders, minAge, maxAge } = filters
-
-  // Ett intresse från adressen (se filtersFromAddress) har bara id: namnet behövs till lappen under Filter.
-  const unnamed = interests.some((interest) => !interest.name)
-  useEffect(() => {
-    if (!unnamed) return
-    getAllInterests()
-      .then((all) =>
-        setFilters((current) => ({
-          ...current,
-          interests: current.interests.map((interest) =>
-            interest.name ? interest : { ...interest, name: all.find((i) => i.id === interest.id)?.name ?? 'Intresse' },
-          ),
-        })),
-      )
-      .catch(() => {})
-  }, [unnamed])
-
   const query = useMemo(
     () => ({ interestIds: interests.map((i) => i.id), municipalityCodes, genders, minAge, maxAge }),
     [interests, municipalityCodes, genders, minAge, maxAge],

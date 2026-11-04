@@ -12,7 +12,9 @@ import { createPortal } from 'react-dom'
 // <dialog> av sig själv, utan att fråga onClose, och då skulle popupen försvinna
 // medan sidan tror att den är öppen (ett fel visas inte, och knappen som öppnar
 // den slutar fungera).
-function Modal({ title, onClose, locked = false, children }) {
+//
+// `closeIcon`: ett × i stället för texten Stäng (t.ex. rutan om ett intresse, SCRUM-306).
+function Modal({ title, onClose, locked = false, closeIcon = false, children }) {
   const dialogRef = useRef(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
@@ -57,9 +59,21 @@ function Modal({ title, onClose, locked = false, children }) {
       <div className="modal-content">
         <div className="modal-header">
           <h2>{title}</h2>
-          <button type="button" className="text-button" onClick={requestClose} disabled={locked}>
-            Stäng
-          </button>
+          {closeIcon ? (
+            <button
+              type="button"
+              className="modal-close-icon"
+              aria-label="Stäng"
+              onClick={requestClose}
+              disabled={locked}
+            >
+              ×
+            </button>
+          ) : (
+            <button type="button" className="text-button" onClick={requestClose} disabled={locked}>
+              Stäng
+            </button>
+          )}
         </div>
         {children}
       </div>

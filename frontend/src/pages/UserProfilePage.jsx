@@ -424,7 +424,6 @@ function UserProfilePage() {
                   <InterestTree
                     proposals={profileTree(profile.interests)}
                     align="start"
-                    linkPages
                     highlight={isMe ? undefined : new Set([...(myInterestIds ?? [])].map((id) => `id:${id}`))}
                   />
                 ) : (

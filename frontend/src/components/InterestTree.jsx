@@ -1,4 +1,4 @@
-import { groupTags, interestPageHref } from '../utils/interestGroups'
+import { groupTags } from '../utils/interestGroups'
 import InterestTagGroup from './InterestTagGroup'
 
 // Intressen som taggar, samlade per kategori när de är många (se utils/interestGroups.js och InterestTagGroup). Används för förslagen på
@@ -77,8 +77,7 @@ export function descendantKeys(proposals, key) {
 // - `highlight`: nycklarna som är gemensamma med en själv (fetstil och bock); utan den markeras inga
 // - `busyKey`: taggen vars borttagning pågår, så att den inte går att trycka på igen
 // - `align`: 'center' (intervjun) eller 'start' (profilen)
-// - `linkPages`: namnen på intressen som finns (nyckeln id:...) är länkar till intressets sida (SCRUM-306)
-function InterestTree({ proposals, onRemove, highlight, busyKey, align = 'center', linkPages = false }) {
+function InterestTree({ proposals, onRemove, highlight, busyKey, align = 'center' }) {
   const byKey = new Map(proposals.map((p) => [p.key, p]))
   const pathOf = (p) => {
     const parent = p.interest.parent_key && byKey.get(p.interest.parent_key)
@@ -96,7 +95,6 @@ function InterestTree({ proposals, onRemove, highlight, busyKey, align = 'center
           isShared={highlight && ((k) => highlight.has(k))}
           onRemove={onRemove}
           busyKey={busyKey}
-          pageHref={linkPages ? (k) => (k.startsWith('id:') ? interestPageHref(k.slice(3)) : null) : undefined}
         />
       ))}
     </ul>
