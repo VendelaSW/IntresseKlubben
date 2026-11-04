@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { DidYouMean, MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest'
 import CheckMark from './CheckMark'
+import InterestInfo from './InterestInfo'
 import InterestLibrary, { PickTag } from './InterestLibrary'
 import InterestTree, { profileTree } from './InterestTree'
 import { searchInterests } from '../services/interests'
@@ -42,6 +43,10 @@ const PRACTICE_CHOICES = [
 // - 'library': Intressebiblioteket över hela blocket, med sökrutan och alla områden.
 // - 'form' (när profilen skapas): allt direkt i formuläret, eftersom man måste
 //   välja minst ett intresse där. Taggarna har alltid kryss.
+//
+// Utom i 'form' öppnar ett tryck på en sökträff eller ett intresse i biblioteket som man inte har valt en ruta om det
+// (InterestInfo, SCRUM-306) med antal och "Lägg till på min profil". Ett tryck på ett valt intresse tar bort det, utan
+// rutan (`onRemove`, som på profilen frågar först).
 function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices, mode = 'card', onOpenLibrary }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null) // null = ingen sökning
@@ -50,6 +55,9 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
   const removable = mode === 'form' || editing
+  // Intresset vars ruta är öppen (InterestInfo), eller null. Rutans antal kräver en klar profil, så inte i 'form'.
+  const [info, setInfo] = useState(null)
+  const onInfo = mode === 'form' ? undefined : setInfo
   const searchRequest = useRef(0)
 
   // Sökningen, en kort stund efter senaste tangenttrycket. Ett svar på en
@@ -176,6 +184,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
                   on={selectedIds.has(item.id)}
                   busy={busyId === item.id}
                   onToggle={toggle}
+                  onInfo={onInfo}
                 />
               ))}
             </ul>
@@ -255,8 +264,25 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
   const library = (
     <div className="explorer-section">
       <h3 className="explorer-heading">{mode === 'library' ? 'Områden' : 'Utforska'}</h3>
-      <InterestLibrary selectedIds={selectedIds} busyId={busyId} onToggle={toggle} onError={setError} />
+      <InterestLibrary
+        selectedIds={selectedIds}
+        busyId={busyId}
+        onToggle={toggle}
+        onError={setError}
+        onInfo={onInfo}
+      />
     </div>
+  )
+  // Rutan stängs först, så att ett fel när intresset sparas syns här under den.
+  const infoBox = info && (
+    <InterestInfo
+      interest={info}
+      onClose={() => setInfo(null)}
+      onAdd={() => {
+        setInfo(null)
+        toggle(info)
+      }}
+    />
   )
 
   if (mode === 'library') {
@@ -267,6 +293,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
         {errorText}
         {mine}
         {library}
+        {infoBox}
       </section>
     )
   }
@@ -289,6 +316,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
       {mine}
       {search}
       {errorText}
+      {infoBox}
       <button type="button" className="secondary-button explorer-open-library" onClick={onOpenLibrary}>
         Intressebiblioteket <span aria-hidden="true">→</span>
       </button>
