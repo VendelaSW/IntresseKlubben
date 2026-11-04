@@ -357,7 +357,7 @@ def approve(group_id: int, user_id: int, current_user=Depends(get_current_user),
     if is_blocked(db, current_user.id, user_id):
         raise HTTPException(status_code=409, detail=msg.GROUP_REQUEST_NOT_FOUND)
     try:
-        approve_request(db, group, user_id)
+        approve_request(db, group, user_id, current_user.id)
     except GroupRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=str(err))
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -402,7 +402,7 @@ def change_role(
     if membership is None or membership.role != GroupRole.owner:
         raise HTTPException(status_code=403, detail=msg.GROUP_ONLY_OWNER_SETS_ROLES)
     try:
-        set_member_role(db, group, user_id, GroupRole(data.role))
+        set_member_role(db, group, user_id, GroupRole(data.role), current_user.id)
     except GroupRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=str(err))
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -558,5 +558,5 @@ def delete(group_id: int, current_user=Depends(get_current_user), db: Session = 
     membership = get_membership(group, current_user.id)
     if membership is None or membership.role != GroupRole.owner:
         raise HTTPException(status_code=403, detail="Bara ägaren kan radera klubben")
-    delete_group(db, group)
+    delete_group(db, group, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

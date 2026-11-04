@@ -52,7 +52,7 @@ function MapProfileWidget({ onOpen, notifications = 0 }) {
   function handleLogout() {
     logout()
     // Den nya startsidan säger "Ha det!" (se StartPage), bara när man själv har loggat ut.
-    navigate('/ny-start', { state: { loggedOut: true } })
+    navigate('/', { state: { loggedOut: true } })
   }
 
   const name = profile?.name ?? user.username
