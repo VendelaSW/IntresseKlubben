@@ -26,7 +26,7 @@ function AppShell() {
 
   function handleLogout() {
     logout()
-    // Startsidan säger "Ha det!" (se Home), bara när man själv har loggat ut.
+    // Den nya startsidan säger "Ha det!" (se StartPage), bara när man själv har loggat ut.
     navigate('/', { state: { loggedOut: true } })
   }
 
