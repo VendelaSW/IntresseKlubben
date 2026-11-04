@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import Home from './pages/Home'
 import AuthPage from './pages/AuthPage'
 import ServiceInfo from './pages/ServiceInfo'
 import StyleGuide from './pages/StyleGuide'
@@ -24,7 +23,7 @@ import { DEV_MODE } from './devtools/devMode'
 
 // Kartbiblioteket är stort, så kartan laddas först när den behövs.
 const MapPrototype = lazy(() => import('./pages/MapPrototype'))
-// TILLFÄLLIGT: den nya startsidan laddas för sig, så att kartans stilar (map.css) inte följer med på alla sidor.
+// Startsidan laddas för sig, så att kartans stilar (map.css) inte följer med på alla sidor.
 const StartPage = lazy(() => import('./pages/StartPage'))
 
 // Testpanelen finns bara i testläget (npm run dev:test), och kommer inte ens med i en vanlig build.
@@ -61,23 +60,22 @@ function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/om" element={<ServiceInfo />} />
-        {/* Länkarna i mejlen. Utanför inloggningen: de ska fungera även utloggad. */}
-        <Route path="/verifiera" element={<VerifyEmailPage />} />
-        <Route path="/aterstall" element={<ResetPasswordPage />} />
-        <Route path="/bekrafta-losenord" element={<ConfirmPasswordPage />} />
-        {/* TILLFÄLLIGT: den nya startsidan, tills den ersätter Home. Ingen länk pekar hit än. */}
         <Route
-          path="/ny-start"
+          path="/"
           element={
             <Suspense fallback={null}>
               <StartPage />
             </Suspense>
           }
         />
-        {/* Inloggning och registrering på egna sidor, för den nya startsidan. Home visar dem
-            fortfarande inuti sidan. */}
+        <Route path="/om" element={<ServiceInfo />} />
+        {/* Länkarna i mejlen. Utanför inloggningen: de ska fungera även utloggad. */}
+        <Route path="/verifiera" element={<VerifyEmailPage />} />
+        <Route path="/aterstall" element={<ResetPasswordPage />} />
+        <Route path="/bekrafta-losenord" element={<ConfirmPasswordPage />} />
+        {/* Startsidans adress medan den testades, kvar ifall någon har sparat länken. */}
+        <Route path="/ny-start" element={<Navigate to="/" replace />} />
+        {/* Inloggning och registrering på egna sidor, som startsidan länkar till. */}
         <Route path="/logga-in" element={<AuthPage key="login" mode="login" />} />
         <Route path="/registrera" element={<AuthPage key="register" mode="register" />} />
         {/* Ersatt av inloggning/registrering inline på /, kvar som omdirigering

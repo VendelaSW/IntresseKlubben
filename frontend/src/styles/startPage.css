@@ -1,4 +1,4 @@
-/* TILLFÄLLIGT: den nya startsidan (pages/StartPage.jsx, på /ny-start), huvudrubriken som skrivs för hand
+/* Startsidan (pages/StartPage.jsx), huvudrubriken som skrivs för hand
    (components/HandwrittenHeadline.jsx) och inloggningen och registreringen i samma stil (pages/AuthPage.jsx, längst
    ned). Bara appens färger och typsnitt; kartbilden har kartans egna färger. */
 
@@ -243,6 +243,42 @@
 .auth-page .auth-form button[type='submit']:active::before {
   scale: 0.98;
   filter: brightness(0.9);
+}
+
+/* "Ha det!" efter utloggning: kompisen bredvid lappen, så att knapparna ändå syns direkt. */
+.start-page .start-farewell {
+  flex-direction: row;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.75rem 1rem 0;
+}
+
+.start-page .start-farewell .empty-state-kompis {
+  width: 92px;
+}
+
+.start-page .start-farewell .empty-state-note {
+  padding: 0.8rem 0.9rem 0.7rem;
+}
+
+.start-page .start-farewell .empty-state-title {
+  font-size: 1.4rem;
+}
+
+.start-page .start-farewell .empty-state-note::after {
+  left: -9px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.start-farewell + .start-hero {
+  min-height: 0;
+  padding-top: 1rem;
+}
+
+/* "Logga in som ..." i testläget, mitt på sidan under första skärmen. */
+.start-page .dev-login {
+  margin: 2rem auto;
 }
 
 .start-hero {
