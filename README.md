@@ -91,7 +91,12 @@ Backend är uppdelad i routes, scheman, modeller, CRUD och tjänster. Frontend s
 │   ├── alembic/versions/     # Databasmigrationer
 │   └── tests/                # pytest
 ├── frontend/
+│   ├── public/             # Statiska filer som nås via URL
+│   │   ├── fonts/          # Caveat och Inter
+│   │   └── video/intervju/ # Intressekompisens intervjusekvenser
 │   ├── src/
+│   │   ├── assets/         # Importerade bilder, ikoner och animationer
+│   │   │   └── startsida/  # Bilder och videoloopar på startsidan
 │   │   ├── pages/            # Sidvyer
 │   │   ├── components/       # Återanvändbara komponenter
 │   │   ├── services/         # API-klienter
@@ -101,6 +106,13 @@ Backend är uppdelad i routes, scheman, modeller, CRUD och tjänster. Frontend s
 ├── CONTRIBUTING.md           # Arbetsflöde och kodkonventioner
 └── projektstruktur.md        # Infrastruktur och deployment
 ```
+
+### Frontendens statiska resurser
+
+- **`frontend/public/`** innehåller filer som serveras direkt från webbplatsens rot, bland annat typsnitten **Caveat** och **Inter** samt MP4-klipp i `video/intervju/` för Intressekompisens intervjuflöde.
+- **`frontend/src/assets/`** innehåller resurser som används från React-koden, till exempel handritade navigationsikoner, illustrationer av Intressekompisen, ögon/pupiller och bilder. Under `startsida/` finns även bilder och korta videoloopar för olika intressen.
+
+I Vite används filer i `public/` normalt med absoluta sökvägar från roten, medan resurser under `src/assets/` kan importeras i komponenter och hanteras av byggprocessen.
 
 ## Kom igång lokalt
 
