@@ -338,7 +338,7 @@ function EventsPanel() {
               )}
               {!showCalendar && (
                 <>
-                  <SearchToggle count={(interestFilter ? 1 : 0) + (dayFilter ? 1 : 0)}>
+                  <SearchToggle count={(interestFilter ? 1 : 0) + (dayFilter ? 1 : 0)} defaultOpen>
                     <div className="filter-select-row filter-select-row-compact">
                       <InterestPicker
                         aria-label="Filtrera på intresse"

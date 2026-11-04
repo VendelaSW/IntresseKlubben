@@ -13,12 +13,6 @@ import SearchToggle from './SearchToggle'
 // bokstav blir ett anrop.
 const SEARCH_DELAY_MS = 300
 
-// Växeln under "Redigera" (SCRUM-271): håller man själv på med intresset, eller är man bara intresserad?
-const PRACTICE_CHOICES = [
-  { value: true, label: 'Utövar' },
-  { value: false, label: 'Intresserad' },
-]
-
 // "Vad gillar du?": de valda intressena, en sökruta för att lägga till fler och
 // Intressebiblioteket (InterestLibrary) att leta runt i. Biblioteket är ett träd
 // (huvudområde › intresse › mer specifikt), och varje nivå går att välja, även
@@ -31,9 +25,7 @@ const PRACTICE_CHOICES = [
 // sökningen och biblioteket när profilen skapas), som visas som taggar
 // (InterestTree, se utils/interestGroups.js). Med `onAddNew(result)` erbjuds man
 // att lägga till ett intresse som inte finns när sökningen inte ger någon träff
-// (se AddInterest.jsx); utan den visas bara att inget matchar. Med
-// `onSetPractices(interest, practices)` får varje intresse under "Redigera" en
-// rad med Utövar och Intresserad (SCRUM-271), efter intressets `practices`.
+// (se AddInterest.jsx); utan den visas bara att inget matchar.
 //
 // `mode`:
 // - 'card' (profilen): ett eget vitt kort med intressena, sökrutan direkt och en
@@ -46,7 +38,7 @@ const PRACTICE_CHOICES = [
 // Utom i 'form' öppnar ett tryck på en sökträff eller ett intresse i biblioteket som man inte har valt en ruta om det
 // (InterestInfo, SCRUM-306) med antal och "Lägg till på min profil". Ett tryck på ett valt intresse tar bort det, utan
 // rutan (`onRemove`, som på profilen frågar först).
-function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices, mode = 'card', onOpenLibrary }) {
+function InterestExplorer({ selected, onAdd, onRemove, onAddNew, mode = 'card', onOpenLibrary }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null) // null = ingen sökning
   const [resultsFor, setResultsFor] = useState('') // texten som träfflistan gäller
@@ -95,19 +87,6 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
     }
   }
 
-  async function setPractices(interest, practices) {
-    if (Boolean(interest.practices) === practices) return
-    setBusyId(interest.id)
-    setError('')
-    try {
-      await onSetPractices(interest, practices)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusyId(null)
-    }
-  }
-
   // Knappen vid "Menade du" (en rad med namnet bredvid, se AddInterest.jsx).
   function addButton(interest) {
     const isSelected = selectedIds.has(interest.id)
@@ -146,6 +125,8 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
         <SearchToggle
           label={mode === 'library' ? 'Sök bland alla intressen' : 'Lägg till ett intresse'}
           count={query ? 1 : 0}
+          // Sökfältet öppet från början; sökglaset stänger det.
+          defaultOpen
         >
           {searchField}
         </SearchToggle>
@@ -201,12 +182,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
           {mode === 'card' && editing && (
             <>
               {' '}
-              <InfoTip
-                text={
-                  'Tryck på × för att ta bort ett intresse.' +
-                  (onSetPractices ? ' Välj om du själv håller på med intresset eller bara är intresserad.' : '')
-                }
-              />
+              <InfoTip text="Tryck på × för att ta bort ett intresse." />
             </>
           )}
         </h3>
@@ -225,32 +201,6 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
           busyKey={busyId === null ? null : `id:${busyId}`}
           onRemove={removable ? (key) => toggle(selected.find((i) => `id:${i.id}` === key)) : undefined}
         />
-      )}
-      {mode === 'card' && editing && onSetPractices && selected.length > 0 && (
-        <ul className="practices-list">
-          {selected.map((interest) => (
-            <li key={interest.id} className="practices-row">
-              <span>{interest.name}</span>
-              <div className="filter-tabs filter-tabs-small" role="group" aria-label={interest.name}>
-                {PRACTICE_CHOICES.map(({ value, label }) => {
-                  const on = Boolean(interest.practices) === value
-                  return (
-                    <button
-                      key={label}
-                      type="button"
-                      className={`tag${on ? ' tag-selected' : ''}`}
-                      aria-pressed={on}
-                      disabled={busyId !== null}
-                      onClick={() => setPractices(interest, value)}
-                    >
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
-            </li>
-          ))}
-        </ul>
       )}
     </div>
   )
@@ -282,7 +232,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
 
   if (mode === 'library') {
     return (
-      <section className="card card-wide explorer explorer-library">
+      <section className="card card-wide card-soft explorer explorer-library">
         <h2 className="card-title">Intressebiblioteket</h2>
         {search}
         {errorText}

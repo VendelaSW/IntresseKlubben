@@ -313,15 +313,10 @@
     linear-gradient(var(--poster), var(--poster)) top / 100% 7px no-repeat,
     linear-gradient(#fffdf7, #fffdf7) top / 100% calc(100% - var(--tabs-height)) no-repeat;
   box-shadow: 1px 3px 5px rgba(58, 47, 37, 0.18);
-  transform: rotate(-0.6deg);
 }
 
 .club-grid.club-style-5 .card.club-card {
   padding-bottom: calc(var(--tabs-height) + 0.9rem);
-}
-
-.club-style-5 .card.club-card:nth-child(even) {
-  transform: rotate(0.7deg);
 }
 
 /* Tryckfärgen: en stark ton av kortets färg. */
@@ -425,7 +420,6 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transform: rotate(-1.5deg);
 }
 
 .club-style-5 .club-card .card-text {

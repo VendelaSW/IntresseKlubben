@@ -548,6 +548,8 @@ function GroupsPanel() {
               {searchStyle === PRE_DEV ? (
                 <SearchToggle
                   count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
+                  // Sök och filter öppna från början; sökglaset stänger dem.
+                  defaultOpen
                 >
                   <div className="search-row">
                     <SearchField
@@ -580,6 +582,8 @@ function GroupsPanel() {
               ) : (
                 <SearchToggle
                   count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
+                  // Sök och filter öppna från början; sökglaset stänger dem.
+                  defaultOpen
                 >
                   <div className="club-filters">
                     <SearchField

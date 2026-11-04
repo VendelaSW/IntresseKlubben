@@ -8,12 +8,7 @@
 .event-ticket-wrap {
   display: flex;
   filter: drop-shadow(1px 3px 5px rgba(58, 47, 37, 0.3));
-  transform: rotate(-0.5deg);
   transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.event-ticket-wrap:nth-child(even) {
-  transform: rotate(0.6deg);
 }
 
 .event-ticket-wrap:hover,
@@ -106,7 +101,6 @@
   align-items: center;
   min-width: 3.1rem;
   line-height: 1;
-  transform: rotate(-3deg);
 }
 
 .event-ticket-day {
@@ -146,7 +140,6 @@
   line-height: 1.1;
   text-transform: uppercase;
   white-space: nowrap;
-  transform: rotate(-1.5deg);
 }
 
 .event-ticket-place {

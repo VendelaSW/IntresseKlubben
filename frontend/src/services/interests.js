@@ -80,14 +80,6 @@ export async function removeInterest(id) {
   return queryClient.setQueryData(MY_INTERESTS_KEY, await apiDelete(`/profile/interests/${id}`))
 }
 
-// Om man själv håller på med intresset (utövar) eller bara är intresserad (SCRUM-271).
-export async function setPractices(id, practices) {
-  return queryClient.setQueryData(
-    MY_INTERESTS_KEY,
-    await apiPut(`/profile/interests/${id}/practices`, { practices }),
-  )
-}
-
 // Ett enda intresse med egna ord (högst 40 tecken) som inte finns i biblioteket. Backend kontrollerar det (ordfilter,
 // moderation, granskning), kopplar det till ett intresse som finns eller väljer en förälder, och svarar med
 // { token, proposals, followups }, där token är sigillet (skickas oförändrat till confirmInterests eller intervjun).

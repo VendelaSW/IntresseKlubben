@@ -3,7 +3,7 @@
    på varje ställe står i matchPage.css. */
 
 /* Pappret (PosterCard), som klubbkortet Affisch (Nicklas variant): vitt utan kant, en färgad rad överst, ett rasterhörn,
-   en mörkare mjuk skugga och en lätt lutning. Raden är delad i en färg per huvudområde som personens intressen ligger i, de
+   en mörkare mjuk skugga. Rakt, inte lutat: text på ett lutat kort blir suddig. Raden är delad i en färg per huvudområde som personens intressen ligger i, de
    ni har gemensamt först (PosterCard sätter --poster, första färgen, och --poster-strip, raden som färgstopp). Radens höjd
    och prickarnas storlek går att ändra med variablerna, som på profilen. */
 .poster-card {
@@ -16,44 +16,35 @@
     linear-gradient(to right, var(--poster-strip)) top / 100% var(--poster-strip-height, 7px) no-repeat,
     #fffdf7;
   box-shadow: 1px 3px 6px rgba(58, 47, 37, 0.32);
-  transform: rotate(-0.6deg);
-  /* Kortet flyttas och rätas upp som en enda bild vid hovring, annars ritas varje del om för sig och bockarna på
-     taggarna ser ut att hoppa. */
-  will-change: transform;
 }
 
 .poster-card.card-interactive:hover,
 .poster-card.card-interactive:focus-within {
   border: 0;
   box-shadow: 2px 8px 12px rgba(58, 47, 37, 0.38);
-  transform: translateY(var(--hover-lift, -3px)) rotate(var(--hover-turn, 0deg));
+  transform: translateY(var(--hover-lift, -3px));
 }
 
-/* Korten lyfts och rätas upp lite olika vid hovring, som papper man plockar upp. Fem varianter som går runt, efter
-   kortets plats i listan. */
+/* Korten lyfts lite olika högt vid hovring, som papper man plockar upp. Fem varianter som går runt, efter kortets
+   plats i listan. */
 .poster-card:nth-child(5n + 1) {
   --hover-lift: -3px;
-  --hover-turn: 0.3deg;
 }
 
 .poster-card:nth-child(5n + 2) {
   --hover-lift: -4px;
-  --hover-turn: -0.2deg;
 }
 
 .poster-card:nth-child(5n + 3) {
   --hover-lift: -2px;
-  --hover-turn: 0.1deg;
 }
 
 .poster-card:nth-child(5n + 4) {
   --hover-lift: -4px;
-  --hover-turn: 0.4deg;
 }
 
 .poster-card:nth-child(5n) {
   --hover-lift: -3px;
-  --hover-turn: -0.3deg;
 }
 
 /* Rasterhörnet uppe till höger, som tryckta prickar som tonar bort, bakom texten (kortet är vridet, så z-index -1 hamnar
@@ -104,7 +95,8 @@
   }
 }
 
-/* En kort uppgift i en svart ruta (PlaceStamp), som antalet på klubbkorten (.club-card-meta i Affisch). */
+/* En kort uppgift i en svart ruta (PlaceStamp), som antalet på klubbkorten (.club-card-meta i Affisch). Rak, så att
+   texten blir skarp. */
 .poster-card .poster-stamp {
   margin: 0;
   padding: 0.2rem 0.5rem;
@@ -114,7 +106,6 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transform: rotate(-1.5deg);
 }
 
 /* Om mig (PosterAbout) med det gula strecket till vänster. Med en rubrik står strecket bredvid både rubriken och texten. */
