@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { lazy, Suspense, useMemo, useState } from 'react'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import logo from '../assets/intresseklubben.png'
 import eventIcon from '../assets/event.png'
+import kompisHaDet from '../assets/kompis-ha-det.webp'
 import karta from '../assets/startsida/karta.jpg'
 import dans from '../assets/startsida/dans.jpg'
 import dansClip from '../assets/startsida/dans.mp4'
@@ -11,6 +12,7 @@ import mat from '../assets/startsida/mat.jpg'
 import matClip from '../assets/startsida/mat.mp4'
 import spel from '../assets/startsida/spel.jpg'
 import spelClip from '../assets/startsida/spel.mp4'
+import EmptyState from '../components/EmptyState'
 import HandwrittenHeadline, { alreadyWritten } from '../components/HandwrittenHeadline'
 import InterestTags from '../components/InterestTags'
 import Intressekompis from '../components/Intressekompis'
@@ -23,15 +25,16 @@ import MapPad from './MapPad'
 import '../styles/map.css'
 import '../styles/startPage.css'
 
-// TILLFÄLLIGT: den nya startsidan, på /ny-start tills den ersätter Home. Ingen länk pekar hit än.
-//
-// En lång sida: rubriken skrivs för hand (se HandwrittenHeadline) med polaroider runt, "Så funkar det" i tre steg,
-// kartan med påhittade events, intressena och en sista uppmaning med Intressekompisen. Knapparna leder till
+// "Logga in som ..." finns bara i testläget (npm run dev:test), och kommer inte ens med i en vanlig build.
+const DevLogin = DEV_MODE ? lazy(() => import('../devtools/DevLogin')) : null
+
+// Startsidan. En lång sida: rubriken skrivs för hand (se HandwrittenHeadline) med polaroider runt, "Så funkar det" i
+// tre steg, kartan med påhittade events, intressena och en sista uppmaning med Intressekompisen. Knapparna leder till
 // /logga-in och /registrera (AuthPage). Rubrikerna skrivs bara första gången per session.
 
 const WRITTEN_KEY = 'intresseklubben.startsida-skriven'
 
-// Testläget: /ny-start?skriv låter sidan röra sig också med "minska rörelse" påslaget i datorn. Rubriken skrivs och
+// Testläget: /?skriv låter sidan röra sig också med "minska rörelse" påslaget i datorn. Rubriken skrivs och
 // polaroiderna faller ändå bara första gången per session; för att se det igen, öppna sidan i en ny flik.
 const alwaysWrite = () => DEV_MODE && new URLSearchParams(window.location.search).has('skriv')
 
@@ -254,6 +257,8 @@ function StartPage() {
   const [animated] = useState(() => alwaysWrite() || !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [intro] = useState(() => animated && !alreadyWritten(WRITTEN_KEY))
   const events = useMemo(demoEvents, [])
+  // Precis utloggad (Logga ut i menyn skickar med det): kompisen säger "Ha det!" överst på startsidan.
+  const loggedOut = Boolean(useLocation().state?.loggedOut)
 
   // Redan inloggad: inget att göra här, skicka vidare till kartan.
   if (loading) return null
@@ -261,6 +266,14 @@ function StartPage() {
 
   return (
     <div className={`start-page${animated ? ' is-animated' : ''}${intro ? ' is-intro' : ''}`}>
+      {loggedOut && (
+        <EmptyState
+          className="start-farewell"
+          image={kompisHaDet}
+          title="Du är utloggad"
+          text="Välkommen tillbaka när du vill!"
+        />
+      )}
       <section className="start-hero start-lined">
         <img src={logo} alt="Intresseklubben" className="start-logo" />
         <HandwrittenHeadline
@@ -315,6 +328,12 @@ function StartPage() {
           <PenArrow className="start-scroll-arrow" />
         </a>
       </section>
+
+      {DevLogin && (
+        <Suspense fallback={null}>
+          <DevLogin />
+        </Suspense>
+      )}
 
       <section className="start-section" id="sa-funkar-det">
         <h2 className="start-heading">Så funkar det</h2>
