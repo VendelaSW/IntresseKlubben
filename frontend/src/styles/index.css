@@ -4182,6 +4182,149 @@ button.answer-summary-box:disabled {
   box-sizing: content-box;
 }
 
+/* Klubbens ruta på mobil, som klubbkorten: en rad i intressets färg överst (--poster sätts i GroupsPanel), namnet i
+   raka tryckbokstäver och antalet medlemmar i en svart ruta. */
+@media (max-width: 767px) {
+  .detail-sheet:has(> .club-detail) {
+    background:
+      linear-gradient(var(--poster, var(--color-accent)), var(--poster, var(--color-accent))) top / 100% 7px no-repeat,
+      #fffdf7;
+  }
+
+  .club-detail .detail-main > .card-title {
+    font-family: var(--font-body);
+    font-size: 1.45rem;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    overflow-wrap: break-word;
+  }
+
+  .club-detail .detail-main > .card-subheading {
+    width: fit-content;
+    padding: 0.2rem 0.5rem;
+    background: var(--color-ink);
+    color: #fffdf7;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+/* Anslagstavlan i klubbens ruta (GroupDetails): en ljusgul rad med tavlans ikon (assets/anslagstavla.png), som
+   öppnar tavlan. Bläckkant och hård skugga som skapa-knapparna, och skuggan trycks ner vid hover och fokus. */
+.club-board-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3.4rem;
+  padding: 0.45rem 0.8rem;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 8px;
+  background: var(--color-accent-soft);
+  box-shadow: 2px 2px 0 var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.club-board-link:hover,
+.club-board-link:focus-visible {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.club-board-link img {
+  flex: none;
+  width: 2.6rem;
+  height: 2.6rem;
+  object-fit: contain;
+}
+
+.club-board-link svg {
+  margin-left: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Klubbchatten på mobil, i klubbens ruta under medlemmarna (GroupsPanel): ihopfälld till en rad med "Klubbchatt",
+   som fälls ut med ett tryck (details). Chattens egen rubrik behövs inte då. */
+.group-chat-dropdown {
+  border: 1.5px solid var(--color-ink);
+  border-radius: 8px;
+  background: var(--color-paper);
+}
+
+.group-chat-dropdown > summary {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0.3rem 0.9rem;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+
+.group-chat-dropdown > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Pilen till höger, som vänds när chatten är utfälld. */
+.group-chat-dropdown > summary::after {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-left: auto;
+  border-right: 2.4px solid currentColor;
+  border-bottom: 2.4px solid currentColor;
+  transform: translateY(-25%) rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.group-chat-dropdown[open] > summary::after {
+  transform: translateY(25%) rotate(-135deg);
+}
+
+.group-chat-dropdown > summary:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.group-chat-dropdown .notepad {
+  margin: 0;
+  border-top: 1.5px dashed rgba(58, 47, 37, 0.35);
+  border-radius: 0 0 8px 8px;
+  box-shadow: none;
+}
+
+.group-chat-dropdown .notepad-title {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .club-board-link,
+  .group-chat-dropdown > summary::after {
+    transition: none;
+  }
+
+  .club-board-link:hover,
+  .club-board-link:focus-visible {
+    transform: none;
+  }
+}
+
 /* En handritad lapp: vit (stilguidens färg för kort och boxar) med ojämna
    hörn, bläckkant, en hård bläckskugga och en gul tejpbit överst, så att den
    ser ritad ut och inte fotograferad. Delas av kartans platslappar (.map-note)
@@ -7646,4 +7789,50 @@ label.person-list-item {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+/* Eventets egen vy på mobil: kvittot (datum, tid, plats och Skapat av) överst, så att det viktigaste syns direkt,
+   avdelat med en perforerad linje och urtagen under sig. "Kommer du?" ligger kvar längst ner ovanför menyn medan
+   man scrollar (sticky), så att man alltid kan svara. */
+@media (max-width: 767px) {
+  .event-ticket-sheet.card {
+    background: #fffdf7;
+    mask:
+      radial-gradient(circle at left var(--stub-h), #0000 var(--notch), #000 calc(var(--notch) + 0.5px)) left / 51%
+        100% no-repeat,
+      radial-gradient(circle at right var(--stub-h), #0000 var(--notch), #000 calc(var(--notch) + 0.5px)) right / 51%
+        100% no-repeat;
+  }
+
+  .event-ticket-sheet .detail-view {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .event-ticket-sheet-stub {
+    order: -1;
+    margin: -1.1rem -1.5rem 0.9rem;
+    border-top: 0;
+    border-bottom: 2px dashed rgba(58, 47, 37, 0.4);
+    background:
+      linear-gradient(var(--poster), var(--poster)) top / 100% 8px no-repeat,
+      var(--poster-soft);
+  }
+
+  /* Högerspalten upplöses i sidan, så att "Kommer du?" kan stanna längst ner redan från början (ett sticky-element
+     kan inte flytta upp ovanför sin egen spalt, som annars börjar under skärmens nederkant). */
+  .event-ticket-sheet .detail-aside {
+    display: contents;
+  }
+
+  .event-ticket-sheet .detail-aside > .detail-view-section:has(.event-answer-head) {
+    position: sticky;
+    bottom: 84px;
+    z-index: 2;
+  }
+
+  .event-ticket-sheet .detail-view-section:has(.event-answer-head) > .soft-box {
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--color-ink) 22%, transparent);
+  }
 }

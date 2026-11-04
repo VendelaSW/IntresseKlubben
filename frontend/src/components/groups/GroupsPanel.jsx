@@ -11,6 +11,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery'
 import CreateGroupForm from './CreateGroupForm'
 import CreateOffer from '../CreateOffer'
 import { PadFloatAction } from '../PadHead'
+import { areaColors } from '../../utils/interestColors'
 import FilterTabs from '../FilterTabs'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
@@ -515,10 +516,15 @@ function GroupsPanel() {
             <>
               <BackButton onClick={goBack} />
               {/* Klubben till vänster och för medlemmar chatten till höger på dator, lika höga (chatten scrollar
-                  i sin ruta). Under varandra på mobil. Anslagstavlan öppnas med en knapp i klubbens ruta. Den som
-                  inte är med ser bara klubben, i hela bredden med events och medlemmar i en egen spalt. */}
+                  i sin ruta). På mobil ligger chatten i klubbens ruta (se GroupDetails). Anslagstavlan öppnas med en
+                  rad i klubbens ruta. Den som inte är med ser bara klubben, i hela bredden med events och medlemmar
+                  i en egen spalt. */}
               <div className="group-layout">
-                <div className="card sheet detail-sheet">
+                {/* Intressets färg som en rad överst på rutan, som på klubbkorten (används på mobil, se .club-detail). */}
+                <div
+                  className="card sheet detail-sheet"
+                  style={{ '--poster': areaColors(selected.interest_area_slug)['--tag-fill'] }}
+                >
                   <GroupDetails
                     group={selected}
                     contacts={contacts ?? []}
@@ -531,9 +537,22 @@ function GroupsPanel() {
                     onDelete={handleDelete}
                     onDecline={handleDecline}
                     onOpenBoard={() => setBoardOpen(true)}
+                    // På mobil ligger chatten i klubbens ruta, under medlemmarna, och fälls ut med ett tryck.
+                    chat={
+                      mobile && selected.is_member ? (
+                        <details className="group-chat-dropdown">
+                          <summary>Klubbchatt</summary>
+                          <GroupChat
+                            key={selected.id}
+                            groupId={selected.id}
+                            canModerate={selected.is_owner || selected.is_admin}
+                          />
+                        </details>
+                      ) : null
+                    }
                   />
                 </div>
-                {selected.is_member && (
+                {!mobile && selected.is_member && (
                   <div className="group-chat-slot">
                     <GroupChat
                       key={selected.id}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import boardIcon from '../../assets/anslagstavla.png'
 import InvitePicker from '../events/InvitePicker'
 import InterestTags from '../InterestTags'
 import Modal from '../Modal'
@@ -13,8 +14,9 @@ import InfoTip from '../InfoTip'
 import IconButton from '../IconButton'
 
 // Mer information om en grupp, med knapparna som passar ens roll. Medlemmar kan
-// öppna anslagstavlan (`onOpenBoard`) och skapa ett event i klubben (öppnar
-// eventformuläret med klubben vald), och "Gå ur"
+// öppna anslagstavlan (`onOpenBoard`, en rad med dess ikon under knapparna), läsa
+// klubbchatten (`chat`, på mobil under medlemmarna) och skapa ett event i klubben
+// (öppnar eventformuläret med klubben vald), och "Gå ur"
 // och "Radera" (för ägaren) ligger längst ner i kortet. "Bjud in" syns för den som
 // får bjuda in (group.can_invite: ägaren, eller alla medlemmar om ägaren har slagit
 // på det) och öppnar en popup med ens kompisar (`contacts`). Den som är inbjuden kan
@@ -36,6 +38,7 @@ function GroupDetails({
   onDelete,
   onDecline,
   onOpenBoard,
+  chat,
 }) {
   const navigate = useNavigate()
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -74,7 +77,7 @@ function GroupDetails({
   }
 
   return (
-    <section className="detail-view">
+    <section className="detail-view club-detail">
       {/* Klubben till vänster, events och medlemmar till höger när rutan är bred (se .detail-sheet). */}
       <div className="detail-main">
         <p className="card-title">{group.name}</p>
@@ -156,6 +159,15 @@ function GroupDetails({
           )}
           {inviteNotice && <span className="status-success">{inviteNotice}</span>}
         </div>
+        {group.is_member && (
+          <button type="button" className="club-board-link" onClick={onOpenBoard}>
+            <img src={boardIcon} alt="" />
+            <span>Anslagstavla</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="m9 6 6 6-6 6" />
+            </svg>
+          </button>
+        )}
         {applyOpen && (
           <Modal title={`Ansök till ${group.name}`} onClose={() => setApplyOpen(false)}>
             <form className="auth-form" onSubmit={handleApply}>
@@ -202,14 +214,7 @@ function GroupDetails({
         )}
         <GroupEvents groupId={group.id} />
         <GroupMembers group={group} onChanged={onMembersChanged} />
-        {/* Anslagstavlan står under events och medlemmar, så att det viktigaste om klubben syns först (SCRUM-280). */}
-        {group.is_member && (
-          <div className="card-actions">
-            <button type="button" className="secondary-button button-small" onClick={onOpenBoard}>
-              Anslagstavla
-            </button>
-          </div>
-        )}
+        {chat}
         {group.is_member && (
           <div className="card-actions">
             <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onLeave(group)}>
