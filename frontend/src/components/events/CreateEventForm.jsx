@@ -20,6 +20,7 @@ import { SCOPES, SKILL_LEVELS, areaOptions, getRegions } from '../../services/gr
 import { profileQuery } from '../../services/profile'
 import { localInputValue } from '../../utils/eventTime'
 import InfoTip from '../InfoTip'
+import IconButton from '../IconButton'
 
 // Ett litet hänglås, öppet eller låst, som Öppen och Privat på klubbkorten (GroupList).
 function LockIcon({ open }) {
@@ -158,6 +159,7 @@ function CreateEventForm({
   onCreated,
   onSaved,
   onCancel,
+  onDelete,
 }) {
   const editing = event !== null
   const initial = useMemo(
@@ -570,6 +572,10 @@ function CreateEventForm({
         <button type="button" className="button-secondary" onClick={onCancel}>
           Avbryt
         </button>
+        {/* Radera i redigeringsläget, som soptunnan längst till höger (se DeleteEventDialog). */}
+        {editing && onDelete && (
+          <IconButton icon="delete" label="Radera eventet" className="event-form-delete" onClick={onDelete} />
+        )}
       </div>
     </form>
   )

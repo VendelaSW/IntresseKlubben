@@ -7,9 +7,11 @@ import SearchField from '../SearchField'
 import SearchToggle from '../SearchToggle'
 import { useConfirm } from '../../hooks/useConfirm'
 import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import CreateGroupForm from './CreateGroupForm'
 import CreateOffer from '../CreateOffer'
 import { PadFloatAction } from '../PadHead'
+import { areaColors } from '../../utils/interestColors'
 import FilterTabs from '../FilterTabs'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
@@ -80,6 +82,8 @@ function GroupsPanel() {
   const confirm = useConfirm()
   const searchStyle = useDesignChoice('searchStyle')
   const newPadHead = useDesignChoice('padHead') !== PRE_DEV
+  // På mobil flyter sökikonen nere i blockets vänstra hörn, mitt emot skapa-knappen (se .map-pad-float i map.css).
+  const mobile = useMediaQuery('(max-width: 767px)')
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
@@ -512,10 +516,15 @@ function GroupsPanel() {
             <>
               <BackButton onClick={goBack} />
               {/* Klubben till vänster och för medlemmar chatten till höger på dator, lika höga (chatten scrollar
-                  i sin ruta). Under varandra på mobil. Anslagstavlan öppnas med en knapp i klubbens ruta. Den som
-                  inte är med ser bara klubben, i hela bredden med events och medlemmar i en egen spalt. */}
+                  i sin ruta). På mobil ligger chatten i klubbens ruta (se GroupDetails). Anslagstavlan öppnas med en
+                  rad i klubbens ruta. Den som inte är med ser bara klubben, i hela bredden med events och medlemmar
+                  i en egen spalt. */}
               <div className="group-layout">
-                <div className="card sheet detail-sheet">
+                {/* Intressets färg som en rad överst på rutan, som på klubbkorten (används på mobil, se .club-detail). */}
+                <div
+                  className="card sheet detail-sheet"
+                  style={{ '--poster': areaColors(selected.interest_area_slug)['--tag-fill'] }}
+                >
                   <GroupDetails
                     group={selected}
                     contacts={contacts ?? []}
@@ -528,9 +537,22 @@ function GroupsPanel() {
                     onDelete={handleDelete}
                     onDecline={handleDecline}
                     onOpenBoard={() => setBoardOpen(true)}
+                    // På mobil ligger chatten i klubbens ruta, under medlemmarna, och fälls ut med ett tryck.
+                    chat={
+                      mobile && selected.is_member ? (
+                        <details className="group-chat-dropdown">
+                          <summary>Klubbchatt</summary>
+                          <GroupChat
+                            key={selected.id}
+                            groupId={selected.id}
+                            canModerate={selected.is_owner || selected.is_admin}
+                          />
+                        </details>
+                      ) : null
+                    }
                   />
                 </div>
-                {selected.is_member && (
+                {!mobile && selected.is_member && (
                   <div className="group-chat-slot">
                     <GroupChat
                       key={selected.id}
@@ -545,80 +567,82 @@ function GroupsPanel() {
             <>
               {/* TILLFÄLLIGT: i testläget kan sökraden bytas mot ett runt sökfält med intresse, kommun och sortering
                   som rundade knappar bredvid (useDesignChoice('searchStyle')). På mobil hamnar filtren under. */}
-              {searchStyle === PRE_DEV ? (
-                <SearchToggle
-                  count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
-                  // Sök och filter öppna från början; sökglaset stänger dem.
-                  defaultOpen
-                >
-                  <div className="search-row">
-                    <SearchField
-                      aria-label="Sök klubbar"
-                      placeholder="Sök på namn eller beskrivning"
-                      maxLength={100}
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      onClear={() => setSearch('')}
-                    />
-                    <GroupSortMenu {...sortMenu} />
-                  </div>
-                  <div className="filter-select-row filter-select-row-compact">
-                    <InterestPicker
-                      aria-label="Filtrera på intresse"
-                      placeholder="Alla intressen"
-                      myInterests={myInterests}
-                      value={filters.interest}
-                      onChange={(interest) => setFilters({ ...filters, interest })}
-                    />
-                    <MunicipalityPicker
-                      aria-label="Filtrera på kommun"
-                      municipalities={municipalities}
-                      value={filters.municipalityCode}
-                      onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
-                      emptyLabel="Alla kommuner"
-                    />
-                  </div>
-                </SearchToggle>
-              ) : (
-                <SearchToggle
-                  count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
-                  // Sök och filter öppna från början; sökglaset stänger dem.
-                  defaultOpen
-                >
-                  <div className="club-filters">
-                    <SearchField
-                      className="club-search"
-                      aria-label="Sök klubbar"
-                      placeholder="Sök på namn eller beskrivning"
-                      maxLength={100}
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      onClear={() => setSearch('')}
-                    />
-                    <div className="club-filter-pills">
-                      <div className="club-filter club-filter-interest">
-                        <InterestPicker
-                          aria-label="Filtrera på intresse"
-                          placeholder="Alla intressen"
-                          myInterests={myInterests}
-                          value={filters.interest}
-                          onChange={(interest) => setFilters({ ...filters, interest })}
-                        />
-                      </div>
-                      <div className="club-filter club-filter-kommun">
-                        <MunicipalityPicker
-                          aria-label="Filtrera på kommun"
-                          municipalities={municipalities}
-                          value={filters.municipalityCode}
-                          onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
-                          emptyLabel="Alla kommuner"
-                        />
-                      </div>
+              <PadFloatAction start when={mobile}>
+                {searchStyle === PRE_DEV ? (
+                  <SearchToggle
+                    count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
+                    // Sök och filter öppna från början på dator; på mobil flyter de över listan, så där bara ikonen.
+                    defaultOpen={!mobile}
+                  >
+                    <div className="search-row">
+                      <SearchField
+                        aria-label="Sök klubbar"
+                        placeholder="Sök på namn eller beskrivning"
+                        maxLength={100}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onClear={() => setSearch('')}
+                      />
                       <GroupSortMenu {...sortMenu} />
                     </div>
-                  </div>
-                </SearchToggle>
-              )}
+                    <div className="filter-select-row filter-select-row-compact">
+                      <InterestPicker
+                        aria-label="Filtrera på intresse"
+                        placeholder="Alla intressen"
+                        myInterests={myInterests}
+                        value={filters.interest}
+                        onChange={(interest) => setFilters({ ...filters, interest })}
+                      />
+                      <MunicipalityPicker
+                        aria-label="Filtrera på kommun"
+                        municipalities={municipalities}
+                        value={filters.municipalityCode}
+                        onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                        emptyLabel="Alla kommuner"
+                      />
+                    </div>
+                  </SearchToggle>
+                ) : (
+                  <SearchToggle
+                    count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
+                    // Sök och filter öppna från början på dator; på mobil flyter de över listan, så där bara ikonen.
+                    defaultOpen={!mobile}
+                  >
+                    <div className="club-filters">
+                      <SearchField
+                        className="club-search"
+                        aria-label="Sök klubbar"
+                        placeholder="Sök på namn eller beskrivning"
+                        maxLength={100}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onClear={() => setSearch('')}
+                      />
+                      <div className="club-filter-pills">
+                        <div className="club-filter club-filter-interest">
+                          <InterestPicker
+                            aria-label="Filtrera på intresse"
+                            placeholder="Alla intressen"
+                            myInterests={myInterests}
+                            value={filters.interest}
+                            onChange={(interest) => setFilters({ ...filters, interest })}
+                          />
+                        </div>
+                        <div className="club-filter club-filter-kommun">
+                          <MunicipalityPicker
+                            aria-label="Filtrera på kommun"
+                            municipalities={municipalities}
+                            value={filters.municipalityCode}
+                            onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                            emptyLabel="Alla kommuner"
+                          />
+                        </div>
+                        <GroupSortMenu {...sortMenu} />
+                      </div>
+                    </div>
+                  </SearchToggle>
+                )}
+              </PadFloatAction>
               {shown[tab].length === 0 && offerToCreate && tab !== 'invitations' ? (
                 <CreateOffer
                   text={`Det finns inga klubbar för ${searchedFor}. Vill du skapa en?`}

@@ -30,6 +30,7 @@ på nya hex-koder eller pixelvärden.
 | Datum för events | `DateField` (från i dag till ett år framåt, som backend), med tid i Skapa event. I filtret `EventDayFilter`: Idag, I helgen, Denna vecka eller en dag ur kalendern | `<DateField id="event-starts-at" withTime value={startsAt} onChange={setStartsAt} required />` |
 | Flera val i en lista | `MultiOptionPicker` (kryssrutor, t.ex. kön i Medlemmars filter), `values` är en lista | `<MultiOptionPicker aria-label="Filtrera på kön" values={genders} onChange={setGenders} options={options} emptyLabel="Alla kön" />` |
 | Ålder i filter | `AgeRangeSlider` (två handtag mellan 13 och 100 år, se `utils/age.js`), `null` = ingen gräns | `<AgeRangeSlider value={{ min: minAge, max: maxAge }} onChange={({ min, max }) => …} />` |
+| Redigera och Radera | `IconButton` (den handritade pennan eller soptunnan, utan text; `label` blir namnet för skärmläsare och syns när musen är över) | `<IconButton icon="edit" label="Redigera eventet" onClick={onEdit} />` |
 | Stämplar | `.stamp` (mörk), `.stamp-success` (grön), flera i rad i `.trust-stamps` | `<span className="stamp stamp-success">E-post bekräftad</span>` |
 | Länkar | `.info-link` (fungerar även på en `<button>`, t.ex. något som fälls ut) | `<a className="info-link">` |
 | Brev | `.envelopes` + `ConversationCard` (kuvert, nytt med `.envelope-new` och rosetten `.envelope-bow`), `LetterFriends` (kompisar man inte har skrivit till än), `.lined-paper` (linjerat papper), `.notepad` (konversationen) | Se Brev-exemplet i stilguiden |

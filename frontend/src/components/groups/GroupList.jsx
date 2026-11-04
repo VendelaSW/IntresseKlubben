@@ -139,7 +139,8 @@ function ClubCards({ style, groups, myInterestIds, busy, onSelect, onJoin, onDec
           // Variant 7: den färgade raden överst har intressets färg (samma som taggen).
           style={style === '7' ? { '--poster': areaColors(group.interest_area_slug)['--tag-fill'] } : undefined}
         >
-          {/* Variant 7: "KLUBB" uppe till vänster i små tryckta versaler, som "EVENT" på eventbiljetten (eventCardVariants.css). */}
+          {/* Variant 7: "KLUBB" uppe till vänster i små tryckta versaler, som "EVENT" på eventbiljetten
+              (.event-ticket-head i index.css). */}
           {style === '7' && (
             <span className="club-card-kind" aria-hidden="true">
               Klubb
