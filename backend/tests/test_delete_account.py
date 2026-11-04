@@ -244,6 +244,7 @@ def test_every_column_pointing_at_users_is_handled():
         "interests.created_by_user_id",  # sätts till tomt: ett eget intresse finns kvar för andra
         "messages.recipient_id",
         "messages.sender_id",
+        "notifications.actor_id",  # sätts till tomt: andras notiser finns kvar, med bilden för sin sort
         "notifications.user_id",
         "profiles.user_id",
         "reports.handled_by",  # sätts till tomt: moderatorn som hanterade anmälan

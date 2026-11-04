@@ -75,7 +75,7 @@ function App() {
         <Route path="/bekrafta-losenord" element={<ConfirmPasswordPage />} />
         {/* Startsidans adress medan den testades, kvar ifall någon har sparat länken. */}
         <Route path="/ny-start" element={<Navigate to="/" replace />} />
-        {/* Inloggning och registrering på egna sidor, som startsidan länkar till. */}
+        {/* Inloggning och registrering på egna sidor, med samma lapp som på startsidan. */}
         <Route path="/logga-in" element={<AuthPage key="login" mode="login" />} />
         <Route path="/registrera" element={<AuthPage key="register" mode="register" />} />
         {/* Ersatt av inloggning/registrering inline på /, kvar som omdirigering
