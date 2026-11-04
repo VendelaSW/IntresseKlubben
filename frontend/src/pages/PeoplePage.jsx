@@ -256,7 +256,8 @@ function PeoplePage() {
     )
   }
 
-  // Intressena som kompisarna har, för filtret under Kompisar. Bara kompisarna filtreras, och i webbläsaren: hela listan finns redan här.
+  // Intressena som kompisarna har, för filtret under Kompisar. Bara kompisarna filtreras, och i webbläsaren: hela
+  // listan finns redan här.
   const friendInterests = [
     ...new Map(contactsData.contacts.flatMap((c) => c.user.interests ?? []).map((i) => [i.id, i])).values(),
   ].sort((a, b) => a.name.localeCompare(b.name, 'sv'))
@@ -381,33 +382,33 @@ function PeoplePage() {
 
       {(tab === 'suggested' || tab === 'match') && (
         <>
-          {/* Samma kompakta fält som på Klubbar och Events, alltid synliga: intresse (i Sök), kommun och kön på en rad, och åldern
-              på raden under. De valda filtren står under, som lappar med kryss. */}
+          {/* Samma kompakta fält som på Klubbar och Events, bakom sökikonen: intresse (i Sök), kommun och kön på en
+              rad, och åldern på raden under. De valda filtren står under, som lappar med kryss. */}
           <SearchToggle count={activeFilters.length}>
-          <div className="filter-panel">
-            <div className={`filter-select-row${paperRow ? ' filter-select-row-paper' : ''}`}>
-              {tab === 'suggested' && (
-                <InterestPicker
-                  aria-label="Lägg till ett intresse"
-                  placeholder={narrow ? 'Intresse' : interests.length > 0 ? 'Lägg till intresse' : 'Alla intressen'}
-                  myInterests={myInterests}
-                  value={null}
-                  onChange={(interest) =>
-                    interest &&
-                    !interests.some((i) => i.id === interest.id) &&
-                    setFilters({ ...filters, interests: [...interests, interest] })
-                  }
+            <div className="filter-panel">
+              <div className={`filter-select-row${paperRow ? ' filter-select-row-paper' : ''}`}>
+                {tab === 'suggested' && (
+                  <InterestPicker
+                    aria-label="Lägg till ett intresse"
+                    placeholder={narrow ? 'Intresse' : interests.length > 0 ? 'Lägg till intresse' : 'Alla intressen'}
+                    myInterests={myInterests}
+                    value={null}
+                    onChange={(interest) =>
+                      interest &&
+                      !interests.some((i) => i.id === interest.id) &&
+                      setFilters({ ...filters, interests: [...interests, interest] })
+                    }
+                  />
+                )}
+                {demographics}
+              </div>
+              <div className={`filter-age-row${paperRow ? ' filter-select-row-paper' : ''}`}>
+                <AgeRangeSlider
+                  value={{ min: filters.minAge, max: filters.maxAge }}
+                  onChange={({ min, max }) => setFilters({ ...filters, minAge: min, maxAge: max })}
                 />
-              )}
-              {demographics}
+              </div>
             </div>
-            <div className={`filter-age-row${paperRow ? ' filter-select-row-paper' : ''}`}>
-              <AgeRangeSlider
-                value={{ min: filters.minAge, max: filters.maxAge }}
-                onChange={({ min, max }) => setFilters({ ...filters, minAge: min, maxAge: max })}
-              />
-            </div>
-          </div>
           </SearchToggle>
           {activeFilters.length > 0 && (
             <ul className="interest-tags filter-chips" aria-label="Valda filter">
@@ -548,42 +549,42 @@ function PeoplePage() {
         </>
       ) : (
         <>
-        {tab === 'contacts' && friendInterests.length > 1 && (
-          <SearchToggle count={friendInterest ? 1 : 0}>
-            <div className="filter-select-row filter-select-row-compact">
-              <select
-                aria-label="Visa kompisar med intresset"
-                value={friendInterest}
-                onChange={(event) => setFriendInterest(event.target.value)}
-              >
-                <option value="">Alla intressen</option>
-                {friendInterests.map((interest) => (
-                  <option key={interest.id} value={interest.id}>
-                    {interest.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </SearchToggle>
-        )}
-        <div className="card-grid card-grid-compact">
-          {tab === 'contacts' &&
-            shownContacts.map((contact) => (
-              <PersonCard
-                key={contact.id}
-                person={contact.user}
-                sharedInterestIds={myInterestIds}
-                actions={
-                  <PersonActions
-                    userId={contact.user.id}
-                    relation="contact"
-                    busy={busy}
-                    onRemove={() => handleRemoveContact(contact)}
-                  />
-                }
-              />
-            ))}
-        </div>
+          {tab === 'contacts' && friendInterests.length > 1 && (
+            <SearchToggle count={friendInterest ? 1 : 0}>
+              <div className="filter-select-row filter-select-row-compact">
+                <select
+                  aria-label="Visa kompisar med intresset"
+                  value={friendInterest}
+                  onChange={(event) => setFriendInterest(event.target.value)}
+                >
+                  <option value="">Alla intressen</option>
+                  {friendInterests.map((interest) => (
+                    <option key={interest.id} value={interest.id}>
+                      {interest.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </SearchToggle>
+          )}
+          <div className="card-grid card-grid-compact">
+            {tab === 'contacts' &&
+              shownContacts.map((contact) => (
+                <PersonCard
+                  key={contact.id}
+                  person={contact.user}
+                  sharedInterestIds={myInterestIds}
+                  actions={
+                    <PersonActions
+                      userId={contact.user.id}
+                      relation="contact"
+                      busy={busy}
+                      onRemove={() => handleRemoveContact(contact)}
+                    />
+                  }
+                />
+              ))}
+          </div>
         </>
       )}
 

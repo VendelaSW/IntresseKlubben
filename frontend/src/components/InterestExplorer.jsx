@@ -130,11 +130,15 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
 
   const search = (
     <>
-      {/* Sökikonen bara där man också kan leta för hand i biblioteket. På profilkortet är fältet sättet att lägga till. */}
+      {/* Sökikonen bara där man också kan leta för hand i biblioteket. På profilkortet är fältet sättet att lägga
+          till. */}
       {mode === 'card' ? (
         searchField
       ) : (
-        <SearchToggle label={mode === 'library' ? 'Sök bland alla intressen' : 'Lägg till ett intresse'} count={query ? 1 : 0}>
+        <SearchToggle
+          label={mode === 'library' ? 'Sök bland alla intressen' : 'Lägg till ett intresse'}
+          count={query ? 1 : 0}
+        >
           {searchField}
         </SearchToggle>
       )}
@@ -189,7 +193,10 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
             <>
               {' '}
               <InfoTip
-                text={`Tryck på × för att ta bort ett intresse.${onSetPractices ? ' Välj om du själv håller på med intresset eller bara är intresserad.' : ''}`}
+                text={
+                  'Tryck på × för att ta bort ett intresse.' +
+                  (onSetPractices ? ' Välj om du själv håller på med intresset eller bara är intresserad.' : '')
+                }
               />
             </>
           )}

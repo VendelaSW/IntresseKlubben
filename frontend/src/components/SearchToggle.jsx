@@ -1,9 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 
-// Sök och filter bakom en sökikon (SCRUM-310), där man kan välja mellan att leta för hand och att skriva. Där skrivandet
-// är själva uppgiften står sökfältet (SearchField) öppet i stället. Ikonen står till vänster, och ett tryck öppnar fälten
-// bredvid den, med markören i sökfältet om det finns ett. `count` är hur många sökningar och filter som är på, och syns
-// på ikonen också när fälten är stängda. `label` är ikonens namn för skärmläsare.
+// Sök och filter bakom en sökikon (SCRUM-310), där man kan välja mellan att leta för hand och att skriva. Där
+// skrivandet är själva uppgiften står sökfältet (SearchField) öppet i stället. Ikonen står till vänster, och ett tryck
+// öppnar fälten bredvid den, med markören i sökfältet om det finns ett. `count` är hur många sökningar och filter som
+// är på, och syns på ikonen också när fälten är stängda. `label` är ikonens namn för skärmläsare.
 function SearchToggle({ count = 0, label = 'Sök och filtrera', children }) {
   const [open, setOpen] = useState(false)
   const panelId = useId()

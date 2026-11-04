@@ -217,7 +217,11 @@ function CreateGroupForm({
 
           <div className="with-info-tip">
             <label>
-              <input type="checkbox" checked={membersCanInvite} onChange={(e) => setMembersCanInvite(e.target.checked)} />{' '}
+              <input
+                type="checkbox"
+                checked={membersCanInvite}
+                onChange={(e) => setMembersCanInvite(e.target.checked)}
+              />{' '}
               Medlemmar får bjuda in
             </label>
             <InfoTip text="Utan bockning kan bara du bjuda in." />

@@ -229,7 +229,9 @@ function CreateEventForm({
         {editing && (
           <>
             {' '}
-            <InfoTip text="Ändrar du tid eller plats får de som har svarat Ja eller Kanske en notis från Intresseklubben." />
+            <InfoTip
+              text="Ändrar du tid eller plats får de som har svarat Ja eller Kanske en notis från Intresseklubben."
+            />
           </>
         )}
       </h2>
@@ -431,8 +433,12 @@ function CreateEventForm({
                 <p className="hint-text">{inviteSummary(invites)}</p>
                 <div className="with-info-tip">
                   <label>
-                    <input type="checkbox" checked={guestsCanInvite} onChange={(e) => setGuestsCanInvite(e.target.checked)} /> Gäster får
-                    bjuda in
+                    <input
+                      type="checkbox"
+                      checked={guestsCanInvite}
+                      onChange={(e) => setGuestsCanInvite(e.target.checked)}
+                    />{' '}
+                    Gäster får bjuda in
                   </label>
                   <InfoTip text="Utan bockning kan bara du bjuda in. Du kan ändra det senare." />
                 </div>

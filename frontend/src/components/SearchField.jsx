@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 
-// Sökfältet, samma i hela appen (SCRUM-310): förstoringsglas, platshållartext och ett kryss som tömmer fältet när det
-// står något i det. Allt utom `onClear` och `className` går vidare till <input>. `aria-label` behövs, eftersom
+// Sökfältet, samma i hela appen (SCRUM-310): förstoringsglas, platshållartext och ett kryss som tömmer fältet när
+// det står något i det. Allt utom `onClear` och `className` går vidare till <input>. `aria-label` behövs, eftersom
 // platshållartexten inte läses upp överallt.
 function SearchField({ value, onClear, className = '', ...inputProps }) {
   const inputRef = useRef(null)

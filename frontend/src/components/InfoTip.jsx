@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-// En liten i-ikon med en förklaring (SCRUM-315), i stället för en hjälptext som alltid tar plats. Förklaringen syns när
-// man håller muspekaren över ikonen, när man tabbar till den och när man trycker på den, och den läses upp av
-// skärmläsare. Rutan ligger i webbläsarens översta lager (popover), så att den inte klipps av blocket eller en popup.
+// En liten i-ikon med en förklaring (SCRUM-315), i stället för en hjälptext som alltid tar plats. Förklaringen syns
+// när man håller muspekaren över ikonen, när man tabbar till den och när man trycker på den, och den läses upp av
+// skärmläsare. Rutan ligger i webbläsarens översta lager (popover), så att den inte klipps av blocket eller en
+// popup.
 function InfoTip({ text }) {
   const [open, setOpen] = useState(false)
   // Tryckt på (inte bara muspekaren över): då stängs den inte när pekaren lämnar ikonen.
@@ -25,14 +26,27 @@ function InfoTip({ text }) {
     const below = icon.bottom + 6
     const top = below + height > window.innerHeight - margin ? icon.top - height - 6 : below
     bubble.style.top = `${Math.max(margin, top)}px`
-    bubble.style.left = `${Math.max(margin, Math.min(icon.left + icon.width / 2 - width / 2, window.innerWidth - width - margin))}px`
+    const centered = icon.left + icon.width / 2 - width / 2
+    bubble.style.left = `${Math.max(margin, Math.min(centered, window.innerWidth - width - margin))}px`
   }, [open])
 
-  // Rutan står still medan sidan rör sig, så den stängs när man scrollar.
+  // Rutan står still medan sidan rör sig, så den stängs när man scrollar. Esc stänger bara förklaringen, inte ett öppet
+  // block eller en popup: lyssnaren ligger på hela sidan (rutan kan vara öppnad med muspekaren, utan fokus på knappen)
+  // och i capture, så att den hinner före de andra.
   useEffect(() => {
     if (!open) return undefined
+    function onKeyDown(event) {
+      if (event.key !== 'Escape') return
+      event.stopPropagation()
+      event.preventDefault()
+      close()
+    }
     window.addEventListener('scroll', close, true)
-    return () => window.removeEventListener('scroll', close, true)
+    document.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      document.removeEventListener('keydown', onKeyDown, true)
+    }
   }, [open])
 
   return (
@@ -49,14 +63,6 @@ function InfoTip({ text }) {
         onClick={() => {
           pinned.current = !pinned.current
           setOpen(pinned.current)
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape' && open) {
-            // Bara förklaringen, inte vidare till ett öppet block eller en popup.
-            event.stopPropagation()
-            event.preventDefault()
-            close()
-          }
         }}
       >
         {/* Ett ritat litet i, så att det inte ser ut som ett I eller ett snedstreck i något typsnitt. */}

@@ -488,7 +488,9 @@ function ProfilePage() {
                   <input type="checkbox" checked={ageHidden} onChange={(e) => setAgeHidden(e.target.checked)} /> Dölj
                   min ålder för andra
                 </label>
-                <InfoTip text="Du syns då inte när andra filtrerar på ålder. Intresseklubbens moderatorer ser alltid åldern." />
+                <InfoTip
+                  text="Du syns då inte när andra filtrerar på ålder. Intresseklubbens moderatorer ser alltid åldern."
+                />
               </div>
 
               <label htmlFor="profile-gender">Kön</label>
