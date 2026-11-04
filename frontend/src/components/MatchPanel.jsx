@@ -296,7 +296,7 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
           <div className="match-stage">
             <button
               type="button"
-              className="match-arrow"
+              className={`match-arrow${history.length === 0 ? ' is-hidden' : ''}`}
               aria-label="Förra förslaget"
               disabled={busy || history.length === 0}
               onClick={handleBack}

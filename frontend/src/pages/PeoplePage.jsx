@@ -116,6 +116,8 @@ function PeoplePage() {
   const tab = urlTab ?? 'match'
   // Filterraderna som papperslappar: i Matcha och Sök, i layouten Nicklas förslag 1 (se .filter-select-row-paper).
   const paperRow = (tab === 'match' || tab === 'suggested') && matchLayout === 'nicklas-1'
+  // I Matcha står åldern på samma rad som kommun och kön, så att filtren tar så lite höjd som möjligt från kortet.
+  const ageInRow = tab === 'match' && paperRow
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [filters, setFilters] = useState(NO_FILTERS)
   useResetOnTabChange(tab, () => setFilters(NO_FILTERS))
@@ -344,6 +346,13 @@ function PeoplePage() {
       : []),
   ]
 
+  // Åldern, på egen rad eller (i Matcha) på samma rad som kommun och kön.
+  const ageSlider = (
+    <AgeRangeSlider
+      value={{ min: filters.minAge, max: filters.maxAge }}
+      onChange={({ min, max }) => setFilters({ ...filters, minAge: min, maxAge: max })}
+    />
+  )
   // Kommun och kön. I Sök står intressefiltret först på samma rad. Intresse och kommun fylls på: varje val blir en
   // lapp under Filter-knappen, och fältet står kvar tomt för nästa. Kön kryssas i, flera på en gång.
   const demographics = (
@@ -383,10 +392,14 @@ function PeoplePage() {
       {(tab === 'suggested' || tab === 'match') && (
         <>
           {/* Samma kompakta fält som på Klubbar och Events, bakom sökikonen: intresse (i Sök), kommun och kön på en
-              rad, och åldern på raden under. De valda filtren står under, som lappar med kryss. */}
-          <SearchToggle count={activeFilters.length}>
+              rad, och åldern på raden under. I Matcha står åldern på samma rad som kommun och kön (på en smal skärm
+              bryts den till raden under). De valda filtren står under, som lappar med kryss. */}
+          {/* I Matcha är filtren öppna från början (sökglaset stänger dem), i Sök stängda. */}
+          <SearchToggle key={tab} count={activeFilters.length} defaultOpen={tab === 'match'}>
             <div className="filter-panel">
-              <div className={`filter-select-row${paperRow ? ' filter-select-row-paper' : ''}`}>
+              <div
+                className={`filter-select-row${paperRow ? ' filter-select-row-paper' : ''}${ageInRow ? ' has-age' : ''}`}
+              >
                 {tab === 'suggested' && (
                   <InterestPicker
                     aria-label="Lägg till ett intresse"
@@ -401,13 +414,11 @@ function PeoplePage() {
                   />
                 )}
                 {demographics}
+                {ageInRow && ageSlider}
               </div>
-              <div className={`filter-age-row${paperRow ? ' filter-select-row-paper' : ''}`}>
-                <AgeRangeSlider
-                  value={{ min: filters.minAge, max: filters.maxAge }}
-                  onChange={({ min, max }) => setFilters({ ...filters, minAge: min, maxAge: max })}
-                />
-              </div>
+              {!ageInRow && (
+                <div className={`filter-age-row${paperRow ? ' filter-select-row-paper' : ''}`}>{ageSlider}</div>
+              )}
             </div>
           </SearchToggle>
           {activeFilters.length > 0 && (

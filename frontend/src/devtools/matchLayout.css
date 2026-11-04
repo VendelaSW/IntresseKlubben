@@ -181,6 +181,11 @@
   cursor: pointer;
 }
 
+/* Pilen tillbaka syns inte när det inte finns någon att gå tillbaka till, men tar sin plats så att kortet står kvar. */
+.match-arrow.is-hidden {
+  visibility: hidden;
+}
+
 .match-arrow:disabled {
   opacity: 0.3;
   cursor: default;
@@ -342,6 +347,27 @@
   border: 1.25px solid rgba(58, 47, 37, 0.3);
   background-color: #fffdf8;
   box-shadow: 0 2px 0 rgba(58, 47, 37, 0.08);
+}
+
+/* På samma rad som kommun och kön (Matcha): lika lång som på en egen rad i Sök. På en smal skärm bryts den till hela
+   raden under. */
+.filter-select-row-paper.has-age > .age-range {
+  width: 16.4rem;
+}
+
+.filter-select-row-paper.has-age .age-range-slider {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 767px) {
+  .filter-panel .filter-select-row.filter-select-row-paper.has-age {
+    flex-wrap: wrap;
+  }
+
+  .filter-panel .filter-select-row-paper.has-age > .age-range {
+    flex: 1 1 100%;
+    width: 100%;
+  }
 }
 
 /* På egen rad i Medlemmars filter: lika lång som raden i Matcha, kommunfältet (9.5rem), mellanrummet (0.4rem) och
