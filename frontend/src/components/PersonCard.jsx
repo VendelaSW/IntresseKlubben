@@ -1,10 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from './Avatar'
-import { useDesignChoice } from '../hooks/useDesignChoice'
 import { groupInterests } from '../utils/interestGroups'
-import { posterStrip } from '../utils/matchPoster'
 import InterestTags from './InterestTags'
+import { PlaceStamp, PosterCard, PosterName } from './Poster'
 
 // Så många rader intressetaggar syns på kortet. Fler fälls ut med ⋯.
 const MAX_ROWS = 2
@@ -94,12 +93,10 @@ function CardInterests({ interests, sharedIds }) {
 // till på kortet, `style` är CSS-variabler på kortet, `badge` är något som sitter på kortets kant
 // (t.ex. nivån), `intro` står mellan namnet och intressena och `place` är en annan text än stadsdel och kommun
 // (null döljer raden).
-// TILLFÄLLIGT (testläget): i layouten Nicklas förslag 1 (väljaren "Matchningssidan") har alla personkort samma affischstil som
-// matchningskortet (.match-card-poster): vitt papper utan kant, en färgad rad överst, namnet i tryckbokstäver och orten i en
-// svart ruta. `poster` tvingar den på eller av (MatchCard stänger av den, eftersom den har sin egen).
+// Alla personkort är affischer (components/Poster.jsx): vitt papper utan kant, en färgad rad överst, namnet i
+// tryckbokstäver (högst två rader) och orten i en svart ruta. `poster={false}` ger det vanliga kortet.
 function PersonCard({ person, sharedInterestIds, reason, actions, className, style, badge, intro, place: placeText, poster }) {
-  const layout = useDesignChoice('matchLayout')
-  const isPoster = poster ?? layout === 'nicklas-1'
+  const isPoster = poster ?? true
   // Kompisar/förfrågningar har bara username garanterat (inget namn valt än).
   const displayName = person.name ?? person.username
   const place =
@@ -108,29 +105,47 @@ function PersonCard({ person, sharedInterestIds, reason, actions, className, sty
       : isPoster
         ? person.municipality_name // affischen visar bara staden
         : [person.district, person.municipality_name].filter(Boolean).join(', ')
-  const [posterColor, posterStops] = isPoster ? posterStrip(person.interests, sharedInterestIds) : []
-
-  return (
-    <article
-      className={`card card-interactive person-card${isPoster ? ' match-card-poster person-card-poster' : ''}${className ? ` ${className}` : ''}`}
-      style={isPoster ? { '--poster': posterColor, '--poster-strip': posterStops, ...style } : style}
-    >
+  const cardClass = `card card-interactive person-card${className ? ` ${className}` : ''}`
+  const title = (
+    <>
+      {displayName}
+      {person.age ? `, ${person.age}` : ''}
+      {/* Bara moderatorer ser en dold ålder (SCRUM-134), och då med en markering. */}
+      {person.age && person.age_hidden ? <span className="hint-text"> (dold för andra)</span> : null}
+    </>
+  )
+  const content = (
+    <>
       {badge}
       <Link to={`/anvandare/${person.id}`} className="person-card-link">
         <Avatar name={displayName} imageUrl={person.image_url} className="card-avatar" maxLetters={2} />
-        <p className="card-title">
-          {displayName}
-          {person.age ? `, ${person.age}` : ''}
-          {/* Bara moderatorer ser en dold ålder (SCRUM-134), och då med en markering. */}
-          {person.age && person.age_hidden ? <span className="hint-text"> (dold för andra)</span> : null}
-        </p>
-        {place && <p className="card-subheading">{place}</p>}
+        {isPoster ? (
+          <PosterName className="card-title" lines={2}>
+            {title}
+          </PosterName>
+        ) : (
+          <p className="card-title">{title}</p>
+        )}
+        {place && (isPoster ? <PlaceStamp className="card-subheading">{place}</PlaceStamp> : <p className="card-subheading">{place}</p>)}
       </Link>
       {intro}
       {reason && <p className="hint-text">{reason}</p>}
       {person.interests?.length > 0 && <CardInterests interests={person.interests} sharedIds={sharedInterestIds} />}
       {actions}
-    </article>
+    </>
+  )
+
+  if (!isPoster) {
+    return (
+      <article className={cardClass} style={style}>
+        {content}
+      </article>
+    )
+  }
+  return (
+    <PosterCard as="article" className={cardClass} style={style} interests={person.interests} sharedIds={sharedInterestIds}>
+      {content}
+    </PosterCard>
   )
 }
 

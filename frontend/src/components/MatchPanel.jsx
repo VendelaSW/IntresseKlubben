@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
-import { useDesignChoice } from '../hooks/useDesignChoice'
 import { sendContactRequest } from '../services/contacts'
 import { getMatches } from '../services/matches'
 import { dismissSuggestion, undoDismissSuggestion } from '../services/people'
@@ -9,18 +8,80 @@ import DrawnArrow from './DrawnArrow'
 import EmptyState from './EmptyState'
 import LoadError from './LoadError'
 import MatchCard from './MatchCard'
-import MatchOverlay from './MatchOverlay'
-import MatchThumb from './MatchThumb'
+import MatchUpNext from './MatchUpNext'
 
 // Så länge beskedet ("Ångra") syns efter att man skickat eller tagit bort någon.
 const NOTICE_MS = 8000
 
-// Så många små kort syns under det stora, och när så få finns kvar hämtas nästa sida i förväg.
-const UP_NEXT = 4
+// När så få förslag finns kvar hämtas nästa sida i förväg, så att Näst på tur aldrig tar slut mitt i.
 const PREFETCH_AT = 5
 
-// Matcha-fliken under Medlemmar: det bästa förslaget som ett stort kort överst och de närmast på tur som små kort under
-// (så att det syns att det finns fler), bäst först (GET /matches). Skickar eller tar man bort någon växer nästa kort fram. På kortet kan man skicka en
+// Under så här många pixlar kvar i blocket får fliken scrolla som vanligt, i stället för att kortet trycks ihop.
+const MIN_ROOM = 320
+
+// Avståndet från elementets överkant till `ancestor`s, i layouten (offset-mått: blocken på kartan lutar lite, och då stämmer
+// inte getBoundingClientRect). Ligger `ancestor` inte i kedjan av offsetParent räknas båda från sidans överkant.
+function offsetTopIn(element, ancestor) {
+  let top = 0
+  for (let e = element; e; e = e.offsetParent) {
+    if (e === ancestor) return top
+    top += e.offsetTop
+  }
+  for (let e = ancestor; e; e = e.offsetParent) top -= e.offsetTop
+  return top
+}
+
+// Om mig-texten på kortet kortas med "…" så att kortet håller sig inom sin höjd utan scroll: först högst 8 rader (se
+// .poster-about-clamped), och sticker kortet ändå ut så många rader färre som behövs, men minst två. Utan scroll-läget
+// (.is-fitted) gäller bara de 8 raderna. Mätt med offset-mått, som i offsetTopIn.
+const MIN_ABOUT_LINES = 2
+
+function fitAboutText(panel) {
+  const card = panel?.querySelector('.match-card')
+  const about = card?.querySelector('.poster-about')
+  if (!about) return
+  about.style.removeProperty('--about-lines')
+  if (!panel.classList.contains('is-fitted')) return
+  const overflow = () => {
+    const last = card.lastElementChild
+    return last.offsetTop + last.offsetHeight - (card.clientHeight - (parseFloat(getComputedStyle(card).paddingBottom) || 0))
+  }
+  const tooMuch = overflow()
+  if (tooMuch <= 0) return
+  const lineHeight = parseFloat(getComputedStyle(about).lineHeight) || 20
+  const lines = Math.max(MIN_ABOUT_LINES, Math.floor((about.clientHeight - tooMuch) / lineHeight))
+  about.style.setProperty('--about-lines', String(lines))
+}
+
+// Matcha-fliken ska inte scrolla: panelen får höjden som är kvar i blocket (.map-pad-page) under filtren, och CSS:en
+// (.match-panel.is-fitted) får kortet att hålla sig inom den. Mäts om när blocket eller innehållet ovanför ändrar storlek,
+// t.ex. när filtren öppnas eller fönstret ändras.
+function useFitToPad(panelRef) {
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    const pad = panel?.closest('.map-pad-page')
+    if (!pad) return undefined
+    const measure = () => {
+      const padBottom = parseFloat(getComputedStyle(pad).paddingBottom) || 0
+      const room = Math.floor(pad.clientHeight - padBottom - offsetTopIn(panel, pad))
+      const fits = room >= MIN_ROOM
+      panel.classList.toggle('is-fitted', fits)
+      if (fits) panel.style.setProperty('--match-room', `${room}px`)
+      else panel.style.removeProperty('--match-room')
+      fitAboutText(panel)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(pad)
+    if (panel.parentElement) observer.observe(panel.parentElement)
+    // Typsnitten kan komma efter första mätningen, och då ändras radernas höjd.
+    document.fonts?.ready.then(measure)
+    return () => observer.disconnect()
+  }, [panelRef])
+}
+
+// Matcha-fliken under Medlemmar: det bästa förslaget som ett stort kort överst och de närmast på tur som små avatarer under
+// (MatchUpNext, så att det syns att det finns fler), bäst först (GET /matches). Skickar eller tar man bort någon växer nästa kort fram. På kortet kan man skicka en
 // kompisförfrågan eller ta bort förslaget för gott (med Ångra). Med pilarna vid kortets sidor går man vidare till nästa (utan
 // att ta bort något, personen kan dyka upp igen nästa gång fliken öppnas) eller tillbaka till den man nyss gick förbi.
 //
@@ -36,14 +97,11 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
   const [error, setError] = useState('')
   const [notice, setNotice] = useState(null) // { text, undo? }
   const [history, setHistory] = useState([]) // de man gått förbi med pilen, den senaste sist: pilen åt vänster tar tillbaka den
+  const panelRef = useRef(null)
+  useFitToPad(panelRef)
   const skipped = useRef(0)
   const request = useRef(0)
   const appending = useRef(false)
-  // TILLFÄLLIGT (testläget): matchningssidans layout (väljaren "Matchningssidan"). "Nicklas förslag 1": sidan har filtren och en
-  // knapp, Börja matcha, som öppnar kortet som en ruta ovanpå allt, med pilar vid sidorna (nästa och tillbaka). Grunden har
-  // kortet direkt på sidan, med knappen Gå vidare.
-  const proposal1 = useDesignChoice('matchLayout') === 'nicklas-1'
-  const [open, setOpen] = useState(false) // rutan (Nicklas förslag 1) är öppen
 
   // Hämtar en sida. Ett svar på en äldre hämtning (filtret har ändrats sedan dess) kastas.
   const load = useCallback(
@@ -105,11 +163,6 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
       })
   }, [state, municipalityCodes, genders, minAge, maxAge])
 
-  // Rutan stängs av sig själv när det inte finns något mer att visa i den.
-  useEffect(() => {
-    if (open && ['done', 'not_ready', 'error'].includes(state.phase)) setOpen(false)
-  }, [open, state.phase])
-
   useEffect(() => {
     if (!notice) return undefined
     const timer = setTimeout(() => setNotice(null), NOTICE_MS)
@@ -133,6 +186,8 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
   }
 
   const current = state.phase === 'ready' ? state.items[0] : null
+  // Ett nytt kort: Om mig kortas om efter den nya texten.
+  useLayoutEffect(() => fitAboutText(panelRef.current), [current])
   const nameOf = (match) => match.name ?? match.username
 
   function handleSend(match) {
@@ -243,87 +298,43 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
   } else if (!current) {
     body = <p className="hint-text">Laddar...</p>
   } else {
-    const upcoming = state.items.slice(1, 1 + UP_NEXT)
     const sharedProps = { sharedInterestIds: myInterestIds }
-    const upNext = (items, title) =>
-      items.length > 0 && (
-        <section className="match-upnext" aria-label={title}>
-          <h2 className="match-upnext-title">{title}</h2>
-          <ul className="match-thumbs">
-            {items.map((match, i) => (
-              <MatchThumb key={match.id} match={match} place={i + 1} {...sharedProps} />
-            ))}
-          </ul>
-        </section>
-      )
 
-    if (proposal1) {
-      // Sidan: filtren (i PeoplePage) och Börja matcha. Själva matchningen sker i rutan ovanpå allt, så att inget behöver
-      // scrollas.
-      body = (
-        <>
-          <div className="match-start">
-            <p className="match-start-text">Ställ in filtren först om du vill, och tryck sedan på Börja matcha.</p>
-            <button type="button" className="primary-button" onClick={() => setOpen(true)}>
-              Börja matcha
-            </button>
-          </div>
-          {open && (
-            <MatchOverlay onClose={() => setOpen(false)}>
-              <div className="match-stage">
-                <button
-                  type="button"
-                  className="match-arrow"
-                  aria-label="Förra förslaget"
-                  disabled={busy || history.length === 0}
-                  onClick={handleBack}
-                >
-                  <DrawnArrow className="match-arrow-prev" />
-                </button>
-                <MatchCard
-                  key={current.id}
-                  match={current}
-                  {...sharedProps}
-                  busy={busy}
-                  onSend={() => handleSend(current)}
-                  onDismiss={() => handleDismiss(current)}
-                />
-                <button type="button" className="match-arrow" aria-label="Nästa förslag" disabled={busy} onClick={handleSkip}>
-                  <DrawnArrow className="match-arrow-next" />
-                </button>
-              </div>
-              {upNext(upcoming, 'Näst på tur')}
-              {error && <p className="status-error">{error}</p>}
-              {noticeElement}
-            </MatchOverlay>
-          )}
-        </>
-      )
-    } else {
-      body = (
-        <div className="match-stack">
+    body = (
+      <div className="match-stack">
+        <div className="match-stage">
+          <button
+            type="button"
+            className={`match-arrow${history.length === 0 ? ' is-hidden' : ''}`}
+            aria-label="Förra förslaget"
+            disabled={busy || history.length === 0}
+            onClick={handleBack}
+          >
+            <DrawnArrow className="match-arrow-prev" />
+          </button>
           <MatchCard
             key={current.id}
             match={current}
             {...sharedProps}
             busy={busy}
             onSend={() => handleSend(current)}
-            onSkip={handleSkip}
             onDismiss={() => handleDismiss(current)}
           />
-          {upNext(upcoming, 'Näst på tur')}
+          <button type="button" className="match-arrow" aria-label="Nästa förslag" disabled={busy} onClick={handleSkip}>
+            <DrawnArrow className="match-arrow-next" />
+          </button>
         </div>
-      )
-    }
+        <MatchUpNext matches={state.items.slice(1)} hasMore={state.hasMore} />
+      </div>
+    )
   }
 
-  // "Ångra" efter att man skickat eller tagit bort någon. Ligger i rutan när den är öppen, annars på sidan.
-  const showingOverlay = proposal1 && open && current
+  // "Ångra" efter att man skickat eller tagit bort någon.
   return (
-    <div className="match-panel">
+    <div ref={panelRef} className="match-panel">
       {body}
-      {!showingOverlay && error && <p className="status-error">{error}</p>}
-      {!showingOverlay && noticeElement}
+      {error && <p className="status-error">{error}</p>}
+      {noticeElement}
     </div>
   )
 }

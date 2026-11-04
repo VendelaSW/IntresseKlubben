@@ -3,8 +3,6 @@
 // Väljare som inte står här använder 'pre-dev'. Stilarna bor kvar i devtools tills de andra utseendena städas bort.
 import './devtools/padBackgrounds.css'
 import './devtools/uiStyles.css'
-import './devtools/matchCards.css'
-import './devtools/matchLayout.css'
 import './components/events/eventCardVariants.css'
 
 export const CHOSEN_DESIGN = {
@@ -19,8 +17,6 @@ export const CHOSEN_DESIGN = {
   // Events
   eventCard: 'biljett',
   eventCalendar: 'kalender',
-  // Medlemmar
-  matchLayout: 'nicklas-1',
   // Kartan (se mapThemes.js)
   mapGround: 'kaffe',
   mapLines: 'stora-rutor',

@@ -24,7 +24,7 @@ import MunicipalityPicker from '../components/MunicipalityPicker'
 import BirthDatePicker from '../components/BirthDatePicker'
 import FilterTabs from '../components/FilterTabs'
 import MatchCard from '../components/MatchCard'
-import MatchThumb from '../components/MatchThumb'
+import MatchUpNext from '../components/MatchUpNext'
 import FormField from '../components/FormField'
 import InterestPicker from '../components/InterestPicker'
 import InterestTree, { profileTree } from '../components/InterestTree'
@@ -754,28 +754,25 @@ function StyleGuide() {
           intressen. Nivån (.match-level-okay, -good, -strong och -super) syns i text och form, inte bara i färg: Okej är
           streckad, Bra och Stark har skugga, och SUPERmatch är störst och vickar svagt (inte för den som har stängt av
           animationer). Ingen siffra visas. I Matcha-fliken visas det bästa förslaget som ett stort kort, centrerat, med
-          de närmast på tur som små kort under (.match-thumb, se nedan).
+          de närmast på tur som små avatarer under (MatchUpNext, se nedan).
         </p>
         <div className="card-grid" style={{ marginTop: '1.75rem', gap: '2rem 1rem' }}>
           {EXAMPLE_MATCHES.map((match) => (
-            <MatchCard key={match.id} match={match} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onSkip={() => {}} onDismiss={() => {}} />
+            <MatchCard key={match.id} match={match} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onDismiss={() => {}} />
           ))}
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Små kort för de närmast på tur (MatchThumb, .match-thumb i .match-thumbs)
+          Näst på tur (MatchUpNext, .match-upnext)
         </p>
         <p className="hint-text">
-          Under det stora kortet, under rubriken "Näst på tur" (.match-upnext). Avatar, namn, ort och nivån som en liten
-          stämpel (.match-level-inline). De blir successivt mindre och svagare (.match-thumb-1 till -4), så att det syns att
-          det är en kö. De är bara en förhandsvisning av ordningen och inte klickbara. När det stora kortet har
-          besvarats växer nästa fram. Raden scrollar i sidled på en smal skärm.
+          En tunn rad under det stora kortet: de närmast på tur som små avatarer som överlappar lite, som en kö, och "+3
+          fler" (.match-strip-more), så att det syns att det finns fler utan att det tar plats från kortet. Bara en
+          förhandsvisning av ordningen, inte klickbar. När det stora kortet har besvarats växer nästa fram.
         </p>
-        <ul className="match-thumbs" style={{ marginTop: '0.75rem' }}>
-          {EXAMPLE_MATCHES.map((match, i) => (
-            <MatchThumb key={match.id} match={match} place={i + 1} />
-          ))}
-        </ul>
+        <div style={{ marginTop: '0.75rem' }}>
+          <MatchUpNext matches={EXAMPLE_MATCHES} hasMore />
+        </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Listkort (.list-card) i ett rutnät (.card-grid .card-grid-compact)

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { resizeProfileImage } from '../services/resizeProfileImage'
+import { initials } from './Avatar'
 
 // Bildväljare när profilen inte finns än ("Skapa din profil" och intervjun). Bilden skalas
-// om direkt men laddas upp först när profilen sparas.
+// om direkt men laddas upp först när profilen sparas. Utan bild står två initialer i cirkeln, som på personkorten.
 export default function NewProfileImage({ name, image, onChange }) {
   const [preview, setPreview] = useState(null)
   const [error, setError] = useState('')
@@ -26,7 +27,7 @@ export default function NewProfileImage({ name, image, onChange }) {
     }
   }
 
-  const initial = name.trim()[0]?.toUpperCase() ?? '?'
+  const initial = initials(name, 2)
   return (
     <div className="profile-image">
       {image && preview ? (
