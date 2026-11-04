@@ -1347,7 +1347,8 @@ span.tag-selected:hover {
   visibility: hidden;
 }
 
-/* Rutan med underintressen: taggens färg, mörk kant och lite snett, som en lapp. */
+/* Rutan med underintressen (InterestTagPanel): taggens färg och mörk kant, rak och över taggarna under, samma på mobil
+   och dator (SCRUM-306). Den flyttas åt vänster i koden om den annars skulle gå utanför raden. */
 .interest-tag-panel {
   position: absolute;
   top: calc(100% + 0.4rem);
@@ -1356,15 +1357,18 @@ span.tag-selected:hover {
   flex-wrap: wrap;
   gap: 0.55rem 0.4rem;
   width: max-content;
-  max-width: min(16rem, 80vw);
+  /* Bred nog för att en lång lista (t.ex. ett tjugotal spel) inte ska bli en hög smal pelare, och högst så hög att den
+     inte går ut under blocket: annars scrollar den (SCRUM-306). */
+  max-width: min(28rem, 80vw);
+  max-height: min(22rem, 60vh);
+  overflow-y: auto;
   margin: 0;
   padding: 0.75rem 0.7rem 0.65rem;
   list-style: none;
   background: var(--tag-fill, var(--color-white));
   border: 1.5px solid var(--tag-ink);
-  border-radius: var(--tag-shape-alt);
+  border-radius: 10px;
   box-shadow: 3px 3px 0 var(--tag-ink);
-  rotate: -0.6deg;
 }
 
 .interest-tag-sub {
@@ -6212,6 +6216,25 @@ select.club-filter:focus-visible,
   gap: 1rem;
 }
 
+/* × i stället för Stäng (Modal med closeIcon). */
+.modal-close-icon {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: -0.5rem -0.5rem -0.5rem 0;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-close-icon:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
 .modal-scroll {
   overflow-y: auto;
   min-height: 0;
@@ -6492,6 +6515,39 @@ label.person-list-item {
 
 .interest-pick-toggle:disabled {
   cursor: progress;
+}
+
+/* Rutan om ett intresse i biblioteket (InterestInfo, SCRUM-306): var det ligger, och antalet i landet och i ens kommun
+   som två lappar. */
+.interest-info-path {
+  margin: 0;
+}
+
+.interest-info-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.75rem;
+}
+
+.interest-info-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 10px 14px 9px 12px;
+  background: var(--color-white);
+  box-shadow: 2px 2px 0 var(--color-ink);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.interest-info-number {
+  font-family: var(--font-heading);
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -343,6 +343,23 @@ function StyleGuide() {
           highlight={new Set(['id:2', 'id:8'])}
         />
 
+        <h3>Underintressen och rutan om ett intresse (components/InterestTagPanel.jsx, components/InterestInfo.jsx)</h3>
+        <p className="hint-text">
+          Rutan med underintressen (.interest-tag-panel) ligger rak över taggarna under, samma på mobil och dator, och
+          flyttas åt vänster om den annars skulle gå utanför raden. Den scrollar själv när listan är lång. Tryck på
+          Historia ovan. I Intressebiblioteket öppnar ett tryck på ett intresse som man inte har valt en ruta (en Modal
+          med × i stället för Stäng): var i biblioteket det ligger, antalet i landet och i ens kommun
+          (.interest-info-count) och "Lägg till på min profil". Ett tryck på ett valt intresse tar bort det, utan rutan:
+        </p>
+        <div className="interest-info-counts" style={{ maxWidth: '24rem' }}>
+          <p className="interest-info-count">
+            <span className="interest-info-number">148</span> i Sverige
+          </p>
+          <p className="interest-info-count">
+            <span className="interest-info-number">12</span> i Göteborg, där du bor
+          </p>
+        </div>
+
         <h3>Lägg till ett intresse (components/AddInterest.jsx)</h3>
         <p className="hint-text">
           Finns intresset inte i biblioteket erbjuds man att lägga till det med egna ord (högst 40 tecken). Backend
