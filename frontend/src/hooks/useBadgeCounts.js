@@ -19,7 +19,7 @@ const POLL_MS = 60000
 //     services/eventsSeen.js). Ens egna och de som redan är slut räknas inte.
 //     (Events)
 //   unseenMessages: konversationer med brev man inte har läst, samma som
-//     fliken Nya på Brev (Brev). Räknas på servern, så siffran är densamma på
+//     de oöppnade breven på Brev. Räknas på servern, så siffran är densamma på
 //     alla enheter.
 //   notifications: olästa notiser från Intresseklubben, t.ex. att ett event man
 //     skulle gå på har ställts in (Notiser).
