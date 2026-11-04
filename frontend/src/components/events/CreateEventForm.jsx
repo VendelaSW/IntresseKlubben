@@ -8,6 +8,7 @@ import Modal from '../Modal'
 import TextareaWithCount from '../TextareaWithCount'
 import InvitePicker from './InvitePicker'
 import { EVENT_VISIBILITY, createEvent, inviteToEvent, updateEvent } from '../../services/events'
+import { addressAt } from '../../services/geocode'
 import { SCOPES, SKILL_LEVELS, areaOptions, getRegions } from '../../services/groups'
 import { profileQuery } from '../../services/profile'
 import { localInputValue } from '../../utils/eventTime'
@@ -81,7 +82,8 @@ const samePosition = (a, b) =>
 // starttid som har passerat, och ett event som redan har börjat ska ändå kunna
 // få t.ex. en ny beskrivning.
 // Ett nytt event kan ha intresset förvalt (`initialInterest`, { id, name }, från "Det finns inga events för … Vill du
-// skapa ett?"). `myInterests` är snabbvalen i intresseväljaren.
+// skapa ett?") och platsen ifylld (`initialPlace`, { placeName, address, position }, från "Skapa event här" på en
+// platslapp på kartan; saknas gatuadressen slås den upp från nålen). `myInterests` är snabbvalen i intresseväljaren.
 function CreateEventForm({
   event = null,
   myInterests,
@@ -89,14 +91,15 @@ function CreateEventForm({
   contacts,
   initialGroupId = null,
   initialInterest = null,
+  initialPlace = null,
   onCreated,
   onSaved,
   onCancel,
 }) {
   const editing = event !== null
   const initial = useMemo(
-    () => (event ? fieldsFrom(event) : { ...EMPTY_FIELDS, interest: initialInterest }),
-    [event, initialInterest],
+    () => (event ? fieldsFrom(event) : { ...EMPTY_FIELDS, interest: initialInterest, ...initialPlace }),
+    [event, initialInterest, initialPlace],
   )
   const [title, setTitle] = useState(initial.title)
   const [description, setDescription] = useState(initial.description)
@@ -132,6 +135,21 @@ function CreateEventForm({
   const [invites, setInvites] = useState({ userIds: [], groupIds: [] })
   const [inviteOpen, setInviteOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Platsen från en lapp på kartan men utan gatuadress (OpenStreetMap saknade den): den närmaste adressen till nålen
+  // slås upp och fylls i, som när man flyttar nålen (se LocationPicker), om man inte redan har skrivit något.
+  useEffect(() => {
+    if (editing || !initialPlace?.position || initialPlace.address) return undefined
+    let cancelled = false
+    addressAt(initialPlace.position.latitude, initialPlace.position.longitude)
+      .then((found) => {
+        if (!cancelled && found) setAddress((current) => current || found)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [editing, initialPlace])
   const [error, setError] = useState('')
 
   const group = groups.find((g) => String(g.id) === groupId)

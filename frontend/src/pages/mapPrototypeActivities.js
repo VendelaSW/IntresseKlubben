@@ -11,14 +11,43 @@
 // hela lappen. Lappar som skulle krocka knuffas isär i höjdled, så att de på
 // samma ställe hamnar i en kolumn.
 //
-// Klubbar är vita och events rosa. Ens bokade events (samma som "Mina events"
-// i appen: de man skapat eller svarat Ja eller Kanske på) är det viktigaste
-// kartan visar, så de är starkt rosa, lite större och ligger överst. Utzoomat
-// blir de en ikon som alla andra lappar.
+// Klubbar är vita och events rosa. Ens egna events är det viktigaste kartan
+// visar, så de är lite större och ligger överst: de man arrangerar (skapat
+// eller är medarrangör för) är gula, appens färg, och de man ska gå på (Ja
+// eller Kanske) starkt rosa. Utzoomat blir klubbarna en ikon, och eventen en
+// platsnål i samma färg med eventloggan i en vit cirkel (spetsen på platsen).
 
 import eventIcon from '../assets/event.png'
 import klubbarIcon from '../assets/klubbar.png'
 import { isInside, lanCodeAt } from './mapPrototypeZoomLevels'
+
+// Hur långt fram events visas på kartan (väljaren i kartans översta rad, se MapPrototype). `days` räknas i hela
+// dagar från i dag: "Idag" är resten av dagen, "3 dagar" i dag och de två nästa, och så vidare.
+export const EVENT_RANGES = [
+  { id: 'idag', label: 'Idag', days: 1 },
+  { id: '3', label: '3 dagar', days: 3 },
+  { id: '7', label: '1 vecka', days: 7 },
+  { id: '14', label: '14 dagar', days: 14 },
+  { id: '30', label: '1 månad', days: 30 },
+]
+export const DEFAULT_EVENT_RANGE = '14'
+
+// De events som börjar inom intervallet (eller redan har börjat). Ens egna (som arrangör, med Ja eller Kanske, eller
+// med en ansökan) syns alltid, hur långt fram de än ligger, så att det man själv bryr sig om inte försvinner.
+export function eventsWithin(events, rangeId, now = new Date()) {
+  const days = (EVENT_RANGES.find((r) => r.id === rangeId) ?? EVENT_RANGES.find((r) => r.id === DEFAULT_EVENT_RANGE)).days
+  const end = new Date(now)
+  end.setHours(0, 0, 0, 0)
+  end.setDate(end.getDate() + days)
+  return events.filter(
+    (event) =>
+      event.is_host ||
+      event.my_answer === 'yes' ||
+      event.my_answer === 'maybe' ||
+      event.has_applied ||
+      new Date(event.starts_at) < end,
+  )
+}
 
 // Längre ut än så här blir lapparna för många och för små.
 const MIN_ZOOM = 6
@@ -95,7 +124,8 @@ export function activitiesFrom({ groups, events, kommuner }) {
       lngLat: position ?? kommun.label,
       exact: Boolean(position),
       kommun: kommun.kod,
-      booked: event.is_owner || event.my_answer === 'yes' || event.my_answer === 'maybe',
+      mine: event.is_host,
+      booked: !event.is_host && (event.my_answer === 'yes' || event.my_answer === 'maybe'),
     })
   }
   for (const item of items) item.lan = lanCodeAt(item.lngLat)
@@ -144,6 +174,8 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
     for (const p of placed) {
       p.w = p.el.offsetWidth
       p.h = p.el.offsetHeight
+      // En nål står med spetsen på platsen, inte mitten.
+      if (p.el.classList.contains('is-pin')) p.y -= p.h / 2
     }
     const fixed = getFixed()
     for (let pass = 0; pass < 8; pass++) {
@@ -184,9 +216,11 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
   function markerEl(item, compact) {
     const el = document.createElement('button')
     el.type = 'button'
-    el.className = `map-activity is-${item.type}${item.booked ? ' is-booked' : ''}${compact ? ' is-compact' : ''}`
+    // Utzoomat är ett event en platsnål (se .is-pin i map.css), med ikonen i nålens vita cirkel.
+    const pin = compact && item.type === 'event'
+    el.className = `map-activity is-${item.type}${item.mine ? ' is-mine' : ''}${item.booked ? ' is-booked' : ''}${compact ? ' is-compact' : ''}${pin ? ' is-pin' : ''}`
     el.dataset.key = `${item.type}:${item.id}`
-    el.title = `${item.name} (${item.sub}${item.booked ? ', du är anmäld' : ''})`
+    el.title = `${item.name} (${item.sub}${item.mine ? ', ditt event' : item.booked ? ', du är anmäld' : ''})`
     const icon = document.createElement('img')
     icon.src = item.type === 'klubb' ? klubbarIcon : eventIcon
     icon.alt = ''
@@ -199,8 +233,28 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
     sub.className = 'map-activity-sub'
     sub.textContent = item.sub
     text.append(title, sub)
+    if (pin) el.append(pinShape())
     el.append(icon, text)
     return el
+  }
+
+  // Nålen: en droppe med bläckkant och en vit cirkel för ikonen, ritad som de andra figurerna på kartan.
+  function pinShape() {
+    const ns = 'http://www.w3.org/2000/svg'
+    const svg = document.createElementNS(ns, 'svg')
+    svg.setAttribute('class', 'map-activity-pin')
+    svg.setAttribute('viewBox', '0 0 32 42')
+    svg.setAttribute('aria-hidden', 'true')
+    const drop = document.createElementNS(ns, 'path')
+    drop.setAttribute('class', 'map-activity-pin-drop')
+    drop.setAttribute('d', 'M16 40.4 C10.6 32 2.4 24.6 2.4 15.6 A13.6 13.6 0 1 1 29.6 15.6 C29.6 24.6 21.4 32 16 40.4 Z')
+    const hole = document.createElementNS(ns, 'circle')
+    hole.setAttribute('class', 'map-activity-pin-hole')
+    hole.setAttribute('cx', '16')
+    hole.setAttribute('cy', '15.6')
+    hole.setAttribute('r', '9.4')
+    svg.append(drop, hole)
+    return svg
   }
 
   layer.addEventListener('click', (event) => {

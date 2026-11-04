@@ -13,6 +13,7 @@ import Intressekompis from '../components/Intressekompis'
 import MapCalmPage from './MapCalmPage'
 import MapPagePad, { MAP_PAGES, widgetFor } from './MapPagePad'
 import MapPageWidgets from './MapPageWidgets'
+import MapEventRange from './MapEventRange'
 import MapPlaceSearch from './MapPlaceSearch'
 import MapProfileWidget from './MapProfileWidget'
 import { useBadgeCounts } from '../hooks/useBadgeCounts'
@@ -23,7 +24,14 @@ import { getAllGroups, getMyGroups } from '../services/groups'
 import { getAreaCounts } from '../services/people'
 import { getProfile } from '../services/profile'
 import { HOUR, cachedInBrowser } from '../services/queryClient'
-import { FULL_ZOOM, activitiesFrom, attachActivityMarkers } from './mapPrototypeActivities'
+import {
+  DEFAULT_EVENT_RANGE,
+  EVENT_RANGES,
+  FULL_ZOOM,
+  activitiesFrom,
+  attachActivityMarkers,
+  eventsWithin,
+} from './mapPrototypeActivities'
 import { areasFrom, attachAreaSymbols } from './mapPrototypeAreaSymbols'
 import { attachNearbyArrows } from './mapPrototypeNearby'
 import {
@@ -862,6 +870,27 @@ function syncPlaceLabels(
   return { render }
 }
 
+// Hur långt fram events visas på kartan (se EVENT_RANGES) sparas i webbläsaren, som Att göra-läget nedan. Går det
+// inte gäller standardvalet (14 dagar).
+const EVENT_RANGE_KEY = 'karta-event-intervall'
+
+function readEventRange() {
+  try {
+    const saved = window.localStorage.getItem(EVENT_RANGE_KEY)
+    return EVENT_RANGES.some((r) => r.id === saved) ? saved : DEFAULT_EVENT_RANGE
+  } catch {
+    return DEFAULT_EVENT_RANGE
+  }
+}
+
+function saveEventRange(range) {
+  try {
+    window.localStorage.setItem(EVENT_RANGE_KEY, range)
+  } catch {
+    // Valet gäller då bara tills sidan laddas om.
+  }
+}
+
 // Att göra-läget (växeln Karta | Att göra) sparas i webbläsaren. Går det inte
 // (t.ex. privat läge) visas kartan som vanligt.
 const CALM_KEY = 'karta-lugnt-lage'
@@ -907,6 +936,9 @@ function MapPrototype() {
   // växeln Karta | Att göra, och valet sparas i webbläsaren.
   const [calm, setCalm] = useState(readCalm)
   useEffect(() => saveCalm(calm), [calm])
+  // Hur långt fram events visas på kartan (väljaren bredvid Hitta mig, se EVENT_RANGES).
+  const [eventRange, setEventRange] = useState(readEventRange)
+  useEffect(() => saveEventRange(eventRange), [eventRange])
   // Adressen blocket öppnas på (se MapPagePad), t.ex. '/klubbar?klubb=3'.
   const [padStart, setPadStart] = useState(null)
 
@@ -914,6 +946,16 @@ function MapPrototype() {
   function openPad(page, start = MAP_PAGES[page] ?? null) {
     setOpenPage(page)
     setPadStart(start)
+  }
+
+  // "Skapa event här" på en platslapp (se attachPlaceNotes): eventformuläret i Events-blocket, med platsen, adressen,
+  // nålen och ett intresse som passar ifyllda (se EventsPanel).
+  const createEventAtRef = useRef(null)
+  createEventAtRef.current = ({ name, address, lngLat, interest }) => {
+    const params = new URLSearchParams({ skapa: '1', plats: name, lat: lngLat[1].toFixed(6), lng: lngLat[0].toFixed(6) })
+    if (address) params.set('adress', address)
+    if (interest) params.set('intressenamn', interest)
+    openPad('events', `/events?${params}`)
   }
 
   // En gammal adress till en av sidorna (t.ex. /klubbar?klubb=3) skickas hit
@@ -978,17 +1020,33 @@ function MapPrototype() {
       ])
       const groups = [...new Map([...publicGroups, ...myGroups].map((g) => [g.id, g])).values()]
       kommunerRef.current = kommuner
-      const items = activitiesFrom({ groups, events, kommuner })
-      // Symbolerna först, så att lapparna kan flytta sig undan för dem.
-      areaClubsRef.current?.setAreas(areasFrom({ groups, events, eventItems: items, kommuner }))
-      activitiesRef.current?.setItems(items)
-      nearbyRef.current?.setItems(items)
-      // Samma klubbar och events går att söka fram i sökrutan (se MapPlaceSearch).
-      setActivityItems(items)
+      activityDataRef.current = { groups, events, kommuner }
+      showActivities()
+      // Sökrutan hittar alla klubbar och events, också de som ligger längre fram än kartans intervall (se MapPlaceSearch).
+      setActivityItems(activitiesFrom({ groups, events, kommuner }))
     } catch {
       // Kartan fungerar utan lapparna.
     }
   }
+
+  // Klubbarna och de events som börjar inom det valda intervallet (eventRange) på kartan: som lappar, i områdenas
+  // symboler och i pilarna mot det som ligger utanför.
+  const activityDataRef = useRef(null)
+  const eventRangeRef = useRef(eventRange)
+  eventRangeRef.current = eventRange
+  function showActivities() {
+    if (!activityDataRef.current) return
+    const { groups, events: allEvents, kommuner } = activityDataRef.current
+    const events = eventsWithin(allEvents, eventRangeRef.current)
+    const items = activitiesFrom({ groups, events, kommuner })
+    // Symbolerna först, så att lapparna kan flytta sig undan för dem.
+    areaClubsRef.current?.setAreas(areasFrom({ groups, events, eventItems: items, kommuner }))
+    activitiesRef.current?.setItems(items)
+    nearbyRef.current?.setItems(items)
+  }
+  useEffect(() => {
+    showActivities()
+  }, [eventRange])
 
   // Klick på en lapp: öppna klubben eller eventet i sitt block.
   function openActivity(item) {
@@ -1621,7 +1679,9 @@ function MapPrototype() {
     loadAreaCounts()
     // Mätt innan Caveat hann laddas blir listans bredd fel: räkna om då.
     document.fonts?.ready.then(() => mapRef.current === map && fitSweden())
-    placeNotesRef.current = attachPlaceNotes(map, 'places', notesRef.current)
+    placeNotesRef.current = attachPlaceNotes(map, 'places', notesRef.current, {
+      onCreateEvent: (place) => createEventAtRef.current(place),
+    })
     // Efter lapparna, så att hovringen redan är markerad när skyltarna ritas om.
     attachPlaceSigns(map, 'places', signsRef.current)
     routeRef.current = attachPinsAndThread(map, threadRef.current, setRoute)
@@ -1768,6 +1828,8 @@ function MapPrototype() {
                   ))}
                 </svg>
               </button>
+              {/* Hur långt fram events visas på kartan: idag, 3 dagar, en vecka, 14 dagar eller en månad. */}
+              <MapEventRange value={eventRange} onChange={setEventRange} />
             </div>
           </div>
           <MapPlaceSearch

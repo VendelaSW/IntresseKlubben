@@ -434,8 +434,9 @@
   pointer-events: auto;
 }
 
-/* Bokade events ovanpå de andra (se nedan). En egen, enkel regel före
-   :hover och .is-highlighted, så att de fortfarande vinner. */
+/* Ens egna och bokade events ovanpå de andra (se nedan). En egen, enkel regel
+   före :hover och .is-highlighted, så att de fortfarande vinner. */
+.map-activity.is-mine,
 .map-activity.is-booked {
   z-index: 1;
 }
@@ -457,26 +458,38 @@
   color: #3a2f25;
 }
 
-/* Ens bokade events (se mapPrototypeActivities.js): starkt rosa, lite större
-   och ovanpå de andra (z-index ovan), så att de syns direkt. */
+/* Ens egna events (se mapPrototypeActivities.js): lite större och ovanpå de
+   andra (z-index ovan), så att de syns direkt. De man arrangerar är gula,
+   appens färg, och de man ska gå på starkt rosa. */
+.map-activity.is-event.is-mine,
 .map-activity.is-event.is-booked {
   padding: 0.3rem 0.65rem 0.3rem 0.35rem;
-  background: #ff6fae;
   border-width: 2px;
   box-shadow: 3px 3px 0 #3a2f25;
 }
 
+.map-activity.is-event.is-mine {
+  background: var(--color-accent);
+}
+
+.map-activity.is-event.is-booked {
+  background: #ff6fae;
+}
+
+.map-activity.is-mine img,
 .map-activity.is-booked img {
   width: 26px;
   height: 26px;
 }
 
-/* Utzoomat är även bokade events bara ikonen (se is-compact), med samma luft
+/* Utzoomat är även ens egna events bara ikonen (se is-compact), med samma luft
    runt om som de andra. */
+.map-activity.is-event.is-mine.is-compact,
 .map-activity.is-event.is-booked.is-compact {
   padding: 0.25rem;
 }
 
+.map-activity.is-mine .map-activity-sub,
 .map-activity.is-booked .map-activity-sub {
   color: #3a2f25;
   font-weight: 700;
@@ -574,9 +587,14 @@
   color: #3a2f25;
 }
 
-/* Ens bokade events i listan står i fetstil rosa. */
+/* Ens bokade events i listan står i fetstil rosa, och de man arrangerar i fetstil med en gul markering. */
 .map-area-list-club.is-booked span {
   color: #b0306e;
+  font-weight: 700;
+}
+
+.map-area-list-club.is-mine span {
+  background: var(--color-accent-soft);
   font-weight: 700;
 }
 
@@ -689,6 +707,82 @@
 /* Utzoomat bara ikonen; namnet finns i title och syns när man hovrar. */
 .map-activity.is-compact {
   padding: 0.2rem;
+}
+
+/* Utzoomat är ett event en platsnål (mapPrototypeActivities.js): droppen i eventets färg (ljusrosa, gul för ens
+   egna, starkt rosa för dem man ska gå på), med bläckkant och hård skugga som lapparna, och eventloggan i den vita
+   cirkeln. Spetsen står på platsen. Namnet syns i en lapp bredvid när man hovrar. */
+.map-activity.is-event.is-pin,
+.map-activity.is-event.is-pin.is-mine,
+.map-activity.is-event.is-pin.is-booked {
+  width: 32px;
+  height: 42px;
+  padding: 0;
+  overflow: visible;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.map-activity.is-event.is-pin.is-mine,
+.map-activity.is-event.is-pin.is-booked {
+  width: 38px;
+  height: 50px;
+}
+
+.map-activity-pin {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(2px 2px 0 #3a2f25);
+}
+
+.map-activity-pin-drop {
+  fill: #ffd6e7;
+  stroke: #3a2f25;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.is-mine > .map-activity-pin .map-activity-pin-drop {
+  fill: var(--color-accent);
+}
+
+.is-booked > .map-activity-pin .map-activity-pin-drop {
+  fill: #ff6fae;
+}
+
+.map-activity-pin-hole {
+  fill: var(--color-white);
+  stroke: #3a2f25;
+  stroke-width: 1.2;
+}
+
+/* Ikonen mitt i den vita cirkeln (som ligger 15.6 av 42 ned i nålen). */
+.map-activity.is-pin img {
+  position: absolute;
+  left: 50%;
+  top: 37%;
+  width: 56%;
+  height: auto;
+  translate: -50% -50%;
+}
+
+.map-activity.is-pin:hover {
+  translate: none;
+}
+
+.map-activity.is-pin:hover .map-activity-text {
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 0;
+  padding: 0.2rem 0.5rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #3a2f25;
 }
 
 .map-activity.is-compact .map-activity-text {
@@ -957,6 +1051,17 @@
   color: inherit;
 }
 
+/* Tipset om vad man kan göra på platsen, när OpenStreetMap inte har några uppgifter (se TIPS). */
+.map-note-tip {
+  margin-top: 0.2rem !important;
+}
+
+/* "Skapa event här" längst ned på den fastklistrade lappen. */
+.map-note-create {
+  display: block;
+  margin-top: 0.6rem;
+}
+
 .map-note-hint,
 .map-note-source {
   color: rgba(58, 47, 37, 0.7);
@@ -1088,6 +1193,11 @@
   gap: 0.4rem;
 }
 
+/* Med listan för events öppen (MapEventRange) ligger raden ovanför sökrutan, så att listan inte hamnar under den. */
+.map-view-row:has(.map-event-range-menu) {
+  z-index: 5;
+}
+
 .map-sketch-tools {
   position: relative;
   z-index: 3;
@@ -1109,13 +1219,15 @@
 }
 
 /* Sökrutan "Sök en ort" (MapPlaceSearch, SCRUM-220): under växeln
-   Karta | Att göra, med samma bläckkant och hårda skugga som knapparna.
-   Förslagen fälls ut under rutan. */
+   Karta | Att göra, med samma bläckkant och hårda skugga som knapparna, och
+   lika bred som knappraden ovanför (bredden 0 och minst hela kolumnen: den tar
+   kolumnens bredd utan att själv göra den bredare). Förslagen fälls ut under
+   rutan. */
 .map-place-search {
   position: relative;
   z-index: 4;
-  width: 18rem;
-  max-width: 100%;
+  width: 0;
+  min-width: 100%;
   pointer-events: auto;
 }
 
@@ -1303,6 +1415,95 @@
 }
 
 /* Knappar med bara en ritad ikon: växeln Karta | Att göra och Min kommun (SCRUM-330, SCRUM-331). */
+/* Knappen för hur långt fram events visas (MapEventRange): kalendern, det valda och en liten ritad pil, som de
+   andra knapparna i raden. Listan med valen fälls ut under, på samma papper med bläckkant och hård skugga. */
+.map-event-range {
+  position: relative;
+}
+
+.map-event-range-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* "14 dagar", inte "14 DAGAR" som de andra knapparnas text (.map-tool, längre ned): det är ett val, inte en
+   uppmaning. */
+.map-tool.map-event-range-button {
+  text-transform: none;
+}
+
+/* Alla val på samma plats (rutnät), bara det valda syns: knappen blir lika bred som det längsta. */
+.map-event-range-label {
+  display: grid;
+  text-align: left;
+}
+
+.map-event-range-label > span {
+  grid-area: 1 / 1;
+  visibility: hidden;
+}
+
+.map-event-range-label > .is-current {
+  visibility: visible;
+}
+
+.map-event-range-chevron {
+  flex: none;
+  width: 0.6rem;
+  height: 0.4rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: rotate 0.15s ease;
+}
+
+.map-event-range-button[aria-expanded='true'] .map-event-range-chevron {
+  rotate: 180deg;
+}
+
+.map-event-range-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 6;
+  min-width: 100%;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #3a2f25;
+}
+
+.map-event-range-option {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.map-event-range-option:hover,
+.map-event-range-option:focus-visible {
+  background: var(--color-accent-soft);
+}
+
+.map-event-range-option.is-on {
+  background: var(--color-accent);
+  font-weight: 700;
+}
+
 .map-tool-icon-only {
   padding: 0.2rem 0.45rem;
 }
@@ -2038,7 +2239,19 @@
     left: calc(0.6rem + env(safe-area-inset-left));
     right: calc(3.4rem + 54px);
     width: auto;
+    min-width: 0;
     max-width: 22rem;
+  }
+
+  /* Knappen för hur långt fram events visas: bara kalendern, som de andra ikonknapparna i raden, så att raden får
+     plats bredvid profilbilden. Valet står i knappens namn och i listan som fälls ut. */
+  .map-event-range-button {
+    padding: 0.2rem 0.45rem;
+  }
+
+  .map-event-range-label,
+  .map-event-range-chevron {
+    display: none;
   }
 
   /* Bara profilbilden på smala skärmar; namnet finns för skärmläsare i aria-label. */
