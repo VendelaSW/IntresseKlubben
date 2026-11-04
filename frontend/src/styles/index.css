@@ -41,6 +41,9 @@
   --color-accent: #f4c430;
   --color-accent-soft: #fdf6e0;
   --color-line: #bfd7ed;
+  /* Ramar runt fält, knappar, kort och popups: en svag varm brun, som pappret, i stället för den blå --color-line
+     (som finns kvar för ljusblå bakgrunder, t.ex. tomma profilbilder, och linjerna på det linjerade papperet). */
+  --color-border: rgba(58, 47, 37, 0.2);
   --color-white: #ffffff;
   --color-muted: #6b6b6b;
   --color-ink: #3a2f25;
@@ -374,7 +377,7 @@ button.info-link {
   font-size: var(--text-body);
   padding: 0.6rem 0.75rem;
   /* Ramen och hörnen går att byta för ett helt formulär (t.ex. .form-poster). */
-  border: 2px solid var(--field-border, var(--color-line));
+  border: 2px solid var(--field-border, var(--color-border));
   border-radius: var(--field-radius, 8px);
   background: var(--color-white);
   color: var(--color-text);
@@ -443,7 +446,7 @@ button.info-link {
 
 .auth-form .button-secondary {
   background: transparent;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   margin-top: 0;
 }
 
@@ -774,7 +777,7 @@ span.tag {
 
 span.tag:hover {
   opacity: 1;
-  border-color: var(--color-line);
+  border-color: var(--color-border);
 }
 
 span.tag-selected:hover {
@@ -837,7 +840,7 @@ span.tag-selected:hover {
   width: 100%;
   aspect-ratio: 1;
   border-radius: 8px;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
 }
 
 .swatch-label {
@@ -854,7 +857,7 @@ span.tag-selected:hover {
 
 .card {
   background: var(--color-white);
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 4px;
   padding: 1.5rem;
   max-width: 320px;
@@ -868,7 +871,7 @@ span.tag-selected:hover {
   max-width: 480px;
   margin: 0 auto;
   padding: 1rem;
-  box-shadow: 0 6px 0 var(--color-line);
+  box-shadow: 0 6px 0 var(--color-border);
 }
 
 /* Registreringens fält och knappar med samma varma ramar som Redigera profil
@@ -891,6 +894,11 @@ span.tag-selected:hover {
 .interview-card .auth-form :is(input, textarea)::placeholder {
   color: var(--color-muted);
   opacity: 0.55;
+}
+
+/* Sökikonen i ett mjukt kort (t.ex. Intressebiblioteket) med samma varma ram som kortet, i stället för den blå. */
+.card-soft .search-toggle-row .search-toggle {
+  border-color: rgba(58, 47, 37, 0.18);
 }
 
 /* Ett mjukt kort, som ett medlemskort: krämvitt papper med rundade hörn, en tunn
@@ -1026,7 +1034,7 @@ span.tag-selected:hover {
 }
 
 .group-request + .group-request {
-  border-top: 1px dashed var(--color-line);
+  border-top: 1px dashed var(--color-border);
 }
 
 .group-request-message {
@@ -1079,7 +1087,7 @@ span.tag-selected:hover {
   font-weight: 400;
   font-size: var(--text-small);
   padding: 0.3rem 0.8rem;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 999px;
   background: transparent;
   color: var(--color-text);
@@ -1454,7 +1462,7 @@ span.tag-selected:hover {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   padding: 0.4rem 0.8rem;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 4px;
   background: transparent;
   color: var(--color-text);
@@ -1650,7 +1658,7 @@ span.tag-selected:hover {
     min-height: 0;
     margin: 0;
     padding: 0.5rem 0.75rem;
-    border: 2px solid var(--color-line);
+    border: 2px solid var(--color-border);
     border-radius: 12px;
     background: var(--color-white);
     font-size: 1rem;
@@ -1666,8 +1674,8 @@ span.tag-selected:hover {
     top: 50%;
     width: 12px;
     height: 12px;
-    border-left: 2px solid var(--color-line);
-    border-bottom: 2px solid var(--color-line);
+    border-left: 2px solid var(--color-border);
+    border-bottom: 2px solid var(--color-border);
     background: var(--color-white);
     transform: translateY(-50%) rotate(45deg);
   }
@@ -1697,7 +1705,7 @@ span.tag-selected:hover {
     height: 6px;
     border-radius: 3px;
     background: var(--color-white);
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-border);
     overflow: hidden;
   }
 
@@ -1777,7 +1785,7 @@ span.tag-selected:hover {
     margin: 0 -1rem -1rem;
     padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
     background: var(--color-white);
-    border-top: 1px solid var(--color-line);
+    border-top: 1px solid var(--color-border);
   }
 
   .interview-summary .interview-save-buttons .button-large {
@@ -1816,7 +1824,7 @@ span.tag-selected:hover {
 .create-button:focus-visible {
   opacity: 1;
   transform: translateY(-2px);
-  box-shadow: 0 3px 0 var(--color-line);
+  box-shadow: 0 3px 0 var(--color-border);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1893,7 +1901,7 @@ label:has(> input[type='radio']:not(:disabled)) {
 }
 
 .tag-static:hover {
-  border-color: var(--color-line);
+  border-color: var(--color-border);
 }
 
 .tag-static.tag-selected:hover {
@@ -1908,7 +1916,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   letter-spacing: 0;
   padding: 0.3rem 0.8rem;
   margin-top: 0;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 999px;
   background: transparent;
 }
@@ -1945,7 +1953,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   padding: 0.15rem 0.6rem;
   border-radius: 999px;
   background: var(--color-bg);
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
 }
 
 /* Eventets sida (EventDetails) i sektioner: titeln med stämplarna, intresset
@@ -2018,7 +2026,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   height: 100%;
   margin: 0;
   padding: 0.4rem 0.3rem;
-  border: 1.5px solid var(--color-line);
+  border: 1.5px solid var(--color-border);
   border-radius: 10px;
   background: var(--color-white);
   color: var(--color-ink);
@@ -2094,7 +2102,7 @@ button.answer-summary-box:disabled {
   height: 2.6rem;
   border: 2px solid var(--color-white);
   border-radius: 50%;
-  box-shadow: 0 0 0 1.5px var(--color-line);
+  box-shadow: 0 0 0 1.5px var(--color-border);
   background: var(--color-line);
   object-fit: cover;
   font-size: 1rem;
@@ -2457,9 +2465,9 @@ button.answer-summary-box:disabled {
   overflow-y: auto;
   padding: 0.6rem;
   background: var(--color-white);
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 4px;
-  box-shadow: 2px 3px 0 var(--color-line);
+  box-shadow: 2px 3px 0 var(--color-border);
 }
 
 /* Kortet med en utfälld ruta ligger ovanpå korten under. */
@@ -3698,7 +3706,7 @@ button.answer-summary-box:disabled {
   background-position: 0 -0.28rem;
   background-attachment: local;
   scrollbar-width: thin;
-  scrollbar-color: var(--color-line) transparent;
+  scrollbar-color: var(--color-border) transparent;
 }
 
 .notepad-messages::-webkit-scrollbar {
@@ -3706,7 +3714,7 @@ button.answer-summary-box:disabled {
 }
 
 .notepad-messages::-webkit-scrollbar-thumb {
-  background: var(--color-line);
+  background: var(--color-border);
   border-radius: 3px;
 }
 
@@ -3972,7 +3980,7 @@ button.answer-summary-box:disabled {
   height: 128px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   background: var(--color-white);
 }
 
@@ -4377,7 +4385,6 @@ button.answer-summary-box:disabled {
   max-width: 22rem;
   padding: 1.2rem 1.1rem 1rem;
   font-size: var(--text-small);
-  transform: rotate(-1deg);
 }
 
 /* Spetsen mot kompisen. */
@@ -4456,7 +4463,7 @@ button.answer-summary-box:disabled {
     radial-gradient(rgba(255, 250, 235, 0.5) 1px, transparent 1.4px);
   background-size: 9px 9px, 13px 13px;
   background-position: 0 0, 4px 6px;
-  box-shadow: 0 4px 0 var(--color-line);
+  box-shadow: 0 4px 0 var(--color-border);
   text-align: left;
 }
 
@@ -4480,7 +4487,6 @@ button.answer-summary-box:disabled {
   border: 1.5px solid #3a2f25;
   border-radius: 4px;
   box-shadow: 2px 2px 0 #3a2f25;
-  transform: rotate(-1.5deg);
 }
 
 .board-actions {
@@ -4672,7 +4678,7 @@ button.board-note:focus-visible {
 .report-quote {
   margin: 0;
   padding: 0.4rem 0.75rem;
-  border-left: 3px solid var(--color-line);
+  border-left: 3px solid var(--color-border);
   background: var(--color-accent-soft);
   font-style: italic;
   white-space: pre-line;
@@ -4751,7 +4757,7 @@ button.board-note:focus-visible {
   overflow-y: auto;
   padding-right: 0.3rem;
   scrollbar-width: thin;
-  scrollbar-color: var(--color-line) transparent;
+  scrollbar-color: var(--color-border) transparent;
 }
 
 .person-list.group-members .person-list-item {
@@ -4800,7 +4806,7 @@ button.board-note:focus-visible {
   font-family: var(--font-body);
   font-size: var(--text-small);
   padding: 0.4rem 0.5rem;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-white);
   color: var(--color-text);
@@ -4843,7 +4849,7 @@ button.board-note:focus-visible {
   padding: 0.25rem 0;
   list-style: none;
   background: var(--color-white);
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   font-family: var(--font-body);
@@ -4884,7 +4890,7 @@ button.board-note:focus-visible {
   align-items: center;
   width: 100%;
   padding: 0.4rem 1.8rem 0.4rem 0.5rem;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5 L5 6.5 L8 3.5' fill='none' stroke='%233a2f25' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.6rem center / 0.65rem;
   color: var(--color-text);
@@ -4922,7 +4928,7 @@ button.board-note:focus-visible {
   padding: 0.25rem 0;
   list-style: none;
   background: var(--color-white);
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   font-family: var(--font-body);
@@ -5088,7 +5094,7 @@ button.board-note:focus-visible {
   width: fit-content;
   min-width: 0;
   padding: 0.3rem 0.6rem;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-white);
   font-family: var(--font-body);
@@ -5353,7 +5359,7 @@ button.board-note:focus-visible {
   min-width: 0;
   min-height: 2.1rem;
   padding: 0.1rem 0.5rem;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-white);
   color: var(--color-muted);
@@ -5444,7 +5450,7 @@ button.board-note:focus-visible {
   width: 2.1rem;
   height: 2.1rem;
   padding: 0;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-white);
   color: var(--color-text);
@@ -5583,7 +5589,7 @@ button.board-note:focus-visible {
   min-width: 0;
   min-height: 2.9rem;
   padding: 0 1.1rem;
-  border: 1.5px solid var(--color-line);
+  border: 1.5px solid var(--color-border);
   border-radius: 999px;
   background: var(--color-white);
   color: var(--color-muted);
@@ -5617,7 +5623,7 @@ select.club-filter,
 .club-filter-interest input {
   min-height: 2.9rem;
   padding: 0 2.1rem 0 1.1rem;
-  border: 1.5px solid var(--color-line);
+  border: 1.5px solid var(--color-border);
   border-radius: 999px;
   background: var(--color-white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M3.5 2 L6.5 5 L3.5 8' fill='none' stroke='%233a2f25' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.9rem center / 0.7rem;
   color: var(--color-text);
@@ -5706,7 +5712,7 @@ select.club-filter:focus-visible,
   height: 100%;
   min-height: 2rem;
   padding: 0;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-white);
   color: var(--color-text);
@@ -5726,7 +5732,7 @@ select.club-filter:focus-visible,
   z-index: 10;
   min-width: 11rem;
   padding: 0.4rem;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-white);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -5735,7 +5741,7 @@ select.club-filter:focus-visible,
 .sort-menu-group + .sort-menu-group {
   margin-top: 0.3rem;
   padding-top: 0.3rem;
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--color-border);
 }
 
 .sort-menu-heading {
@@ -6104,7 +6110,7 @@ select.club-filter:focus-visible,
 
   .detail-sheet .detail-aside {
     padding-left: 2rem;
-    border-left: 1px dashed var(--color-line);
+    border-left: 1px dashed var(--color-border);
   }
 
   .detail-sheet .detail-aside > .detail-view-section:first-child {
@@ -6270,7 +6276,7 @@ select.club-filter:focus-visible,
   min-height: 1.9rem;
   margin: 0;
   padding: 0;
-  border: 2px solid var(--field-border, var(--color-line));
+  border: 2px solid var(--field-border, var(--color-border));
   border-radius: var(--field-radius, 8px);
   background: var(--color-white);
   color: var(--color-text);
@@ -6417,7 +6423,7 @@ select.club-filter:focus-visible,
   display: inline-flex;
   box-sizing: border-box;
   max-width: 100%;
-  border: 2px solid var(--field-border, var(--color-line));
+  border: 2px solid var(--field-border, var(--color-border));
   border-radius: var(--field-radius, 8px);
   background: var(--color-white);
   overflow: hidden;
@@ -6434,7 +6440,7 @@ select.club-filter:focus-visible,
 }
 
 .choice-toggle label + label {
-  border-left: 1.5px solid var(--field-border, var(--color-line));
+  border-left: 1.5px solid var(--field-border, var(--color-border));
 }
 
 .choice-toggle label:hover {
@@ -6527,7 +6533,7 @@ select.club-filter:focus-visible,
   display: inline-flex;
   box-sizing: border-box;
   width: max-content;
-  border: 2px solid var(--field-border, var(--color-line));
+  border: 2px solid var(--field-border, var(--color-border));
   border-radius: var(--field-radius, 8px);
   background: var(--color-white);
   overflow: hidden;
@@ -6584,7 +6590,7 @@ select.club-filter:focus-visible,
   gap: 0.6rem;
   /* Luft mellan den streckade linjen och det som står under. */
   padding-top: 0.75rem;
-  border-top: 1.5px dashed var(--color-line);
+  border-top: 1.5px dashed var(--color-border);
 }
 
 .form-section-head h3 {
@@ -7057,6 +7063,24 @@ select.club-filter:focus-visible,
   background: rgba(26, 26, 26, 0.45);
 }
 
+/* "Är du säker?" (useConfirm): de två knapparna lika stora, sida vid sida på samma höjd. */
+.confirm-dialog .form-actions button {
+  flex: 1 1 0;
+  box-sizing: border-box;
+  min-height: 2.6rem;
+  margin: 0;
+}
+
+/* Den gula knappen har ingen ram: en osynlig lika tjock som Avbryts, så att de blir exakt lika breda. */
+.confirm-dialog .form-actions button:not(.button-secondary):not(.button-danger) {
+  border: 2px solid transparent;
+}
+
+/* Popupen är ett mjukt kort (.card-soft, se Modal), och knapparna i den har samma varma ram i stället för den blå. */
+.modal :is(.secondary-button, .button-secondary):not(.button-danger) {
+  border-color: rgba(58, 47, 37, 0.2);
+}
+
 .modal-content {
   display: flex;
   flex-direction: column;
@@ -7163,7 +7187,7 @@ label.person-list-item {
   flex-direction: column;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 4px;
 }
 
@@ -7200,7 +7224,7 @@ label.person-list-item {
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 2px solid var(--color-line);
+  border: 2px solid var(--color-border);
   border-radius: 999px;
   background: var(--color-white);
   color: var(--color-text);
@@ -7865,12 +7889,7 @@ label.person-list-item {
 .event-ticket-wrap {
   display: flex;
   filter: drop-shadow(1px 3px 5px rgba(58, 47, 37, 0.3));
-  transform: rotate(-0.5deg);
   transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.event-ticket-wrap:nth-child(even) {
-  transform: rotate(0.6deg);
 }
 
 .event-ticket-wrap:hover,
@@ -7968,7 +7987,6 @@ label.person-list-item {
   align-items: center;
   min-width: 3.1rem;
   line-height: 1;
-  transform: rotate(-3deg);
 }
 
 .event-ticket-day {
@@ -8008,7 +8026,6 @@ label.person-list-item {
   line-height: 1.1;
   text-transform: uppercase;
   white-space: nowrap;
-  transform: rotate(-1.5deg);
 }
 
 .event-ticket-when strong.is-range {

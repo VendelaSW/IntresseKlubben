@@ -389,8 +389,8 @@ function PeoplePage() {
           {/* Samma kompakta fält som på Klubbar och Events, bakom sökikonen: intresse (i Sök), kommun och kön på en
               rad, och åldern på raden under. I Matcha står åldern på samma rad som kommun och kön (på en smal skärm
               bryts den till raden under). De valda filtren står under, som lappar med kryss. */}
-          {/* I Matcha är filtren öppna från början (sökglaset stänger dem), i Sök stängda. */}
-          <SearchToggle key={tab} count={activeFilters.length} defaultOpen={tab === 'match'}>
+          {/* Filtren är öppna från början (sökglaset stänger dem), som på Klubbar och Events. */}
+          <SearchToggle key={tab} count={activeFilters.length} defaultOpen>
             <div className="filter-panel">
               <div
                 className={`filter-select-row filter-select-row-paper${ageInRow ? ' has-age' : ''}`}
@@ -556,7 +556,7 @@ function PeoplePage() {
       ) : (
         <>
           {tab === 'contacts' && friendInterests.length > 1 && (
-            <SearchToggle count={friendInterest ? 1 : 0}>
+            <SearchToggle count={friendInterest ? 1 : 0} defaultOpen>
               <div className="filter-select-row filter-select-row-compact">
                 <select
                   aria-label="Visa kompisar med intresset"

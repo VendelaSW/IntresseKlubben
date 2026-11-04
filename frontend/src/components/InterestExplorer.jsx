@@ -126,6 +126,8 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, mode = 'card', 
         <SearchToggle
           label={mode === 'library' ? 'Sök bland alla intressen' : 'Lägg till ett intresse'}
           count={query ? 1 : 0}
+          // Sökfältet öppet från början; sökglaset stänger det.
+          defaultOpen
         >
           {searchField}
         </SearchToggle>
@@ -235,7 +237,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, mode = 'card', 
 
   if (mode === 'library') {
     return (
-      <section className="card card-wide explorer explorer-library">
+      <section className="card card-wide card-soft explorer explorer-library">
         <h2 className="card-title">Intressebiblioteket</h2>
         {search}
         {errorText}

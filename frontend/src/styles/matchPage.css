@@ -338,7 +338,6 @@
   --poster-dots-gap: 9px;
   padding: 1.6rem 1.5rem 1.4rem;
   box-shadow: 1px 3px 8px rgba(58, 47, 37, 0.32);
-  transform: rotate(-0.3deg);
 }
 
 /* Initialerna som på personkorten, utan kant. Också i sammanfattningen efter intervjun. */
