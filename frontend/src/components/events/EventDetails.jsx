@@ -5,8 +5,9 @@ import InterestTags from '../InterestTags'
 import Modal from '../Modal'
 import TextareaWithCount from '../TextareaWithCount'
 import ShowOnMapButton from '../ShowOnMapButton'
+import DeleteEventDialog from './DeleteEventDialog'
 import InvitePicker from './InvitePicker'
-import { eventAreaText, eventCapacity, VisibilityStamp } from './EventList'
+import { eventAreaText, eventCapacity, TicketDate, ticketTimeText, VisibilityStamp } from './EventList'
 import GroupJoinRequests from '../groups/GroupJoinRequests'
 import {
   EVENT_ANSWER,
@@ -15,7 +16,6 @@ import {
   applyToEvent,
   approveEventRequest,
   declineEventRequest,
-  deleteEvent,
   getEventRequests,
   getEventResponses,
   inviteToEvent,
@@ -26,6 +26,7 @@ import {
 import { skillLevelLabel } from '../../services/groups'
 import LoadError, { useRetry } from '../LoadError'
 import InfoTip from '../InfoTip'
+import IconButton from '../IconButton'
 
 // `label` står på knapparna under "Kommer du?", `heading` över dem som har svarat så.
 const ANSWERS = [
@@ -41,18 +42,20 @@ const ANSWERS = [
 // "Bjud in" syns för den som får bjuda in (event.can_invite: skaparen, eller alla
 // om skaparen har slagit på "Gäster får bjuda in") och öppnar en popup med ens
 // kompisar och klubbar (`contacts`, `groups`). Skaparen kan slå på och av valet här.
-// Skaparen ser också Redigera (`onEdit`, formuläret visas av EventsPanel) och Radera,
-// som öppnar en ruta där man kan skriva ett meddelande till dem som har svarat Ja
-// eller Kanske (de får en notis från Intresseklubben), och sedan anropar
-// `onDeleted`. Andra ser inte knapparna (och backend låter bara skaparen ändra och radera).
-// Ägaren av eventets klubb ser också Radera (`event.can_delete`, SCRUM-326).
+// Skaparen och medarrangörerna ser också Redigera (`onEdit`, formuläret visas av EventsPanel). Radera finns i
+// formuläret. Ägaren av eventets klubb, som får radera men inte redigera andras event (`event.can_delete`,
+// SCRUM-326), ser Radera här, som öppnar DeleteEventDialog och sedan anropar `onDeleted`.
 // Tillbaka-knappen ligger ovanför rutan, i EventsPanel.
 //
-// SCRUM-293, 295 och 296: nivån står under titeln, området under platsen, "7 platser kvar" vid Kommer du? (och
-// Fullt som stämpel vid titeln), och ett fullt event tar inte emot fler Ja. På ett event man ansöker till ansöker man
+// SCRUM-293, 295 och 296: nivån står under titeln, området under adressen, Fullt som stämpel vid titeln, och ett
+// fullt event tar inte emot fler Ja. På ett event man ansöker till ansöker man
 // (med ett valfritt meddelande) i stället för att svara, tills skaparen eller en
 // medarrangör har godkänt. Medarrangörer (event.is_host) får redigera, bjuda in och
 // svara på ansökningar, men bara skaparen raderar och väljer medarrangörer.
+//
+// Eventet ser ut som biljettkortet (Nicklas förslag, .event-ticket-sheet i index.css): titeln i tryckbokstäver,
+// stämpeln (vem eventet är till för) uppe till höger, och datumet, tiden och platsen i ett kvitto längst ner.
+// Adressen står under Om eventet.
 function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEdit, onDeleted }) {
   const [responses, setResponses] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
@@ -64,11 +67,10 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
   const [inviteError, setInviteError] = useState('')
   const [inviteNotice, setInviteNotice] = useState('')
   const [settingBusy, setSettingBusy] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState('')
-  // Rutan "Ställ in eventet", med skaparens valfria meddelande till deltagarna.
+  // Rutan "Radera eventet" (DeleteEventDialog), för klubbens ägare.
   const [cancelOpen, setCancelOpen] = useState(false)
-  const [cancelMessage, setCancelMessage] = useState('')
+  // Popupen med ansökningarna (för skaparen och medarrangörerna på ett event man ansöker till).
+  const [requestsOpen, setRequestsOpen] = useState(false)
   const [applyOpen, setApplyOpen] = useState(false)
   const [applyMessage, setApplyMessage] = useState('')
   const skillLevel = skillLevelLabel(event.skill_level)
@@ -175,26 +177,6 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
     }
   }
 
-  // De som har svarat Ja eller Kanske (utom skaparen) får en notis när eventet
-  // ställs in, med skaparens meddelande om det finns ett.
-  const coming = (responses ?? []).filter(
-    (r) => r.id !== event.creator_id && (r.answer === EVENT_ANSWER.yes || r.answer === EVENT_ANSWER.maybe),
-  ).length
-
-  async function handleDelete(submitEvent) {
-    submitEvent.preventDefault()
-    setDeleting(true)
-    setDeleteError('')
-    try {
-      await deleteEvent(event.id, cancelMessage)
-      setCancelOpen(false)
-      onDeleted()
-    } catch (err) {
-      setDeleteError(err.message)
-      setDeleting(false)
-    }
-  }
-
   const creatorName = event.creator_name ?? event.creator_username
 
   return (
@@ -202,9 +184,13 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
       {/* Eventet (med intresset) till vänster, och det man gör med det (svaret, vilka som kommer) till höger,
           så att det får plats utan att scrolla när blocket är brett. Under varandra när det är smalt. */}
       <div className="detail-main">
-        {/* Titeln med stämplarna: ett fullt event har en röd Fullt-stämpel, så att man ser det direkt. */}
+        {/* Titeln med stämplarna: ett fullt event har en röd Fullt-stämpel, så att man ser det direkt. Redigera
+            (pennan) direkt till höger om titeln, för skaparen och medarrangörerna. */}
         <div className="title-row">
           <p className="card-title">{event.title}</p>
+          {event.is_host && (
+            <IconButton icon="edit" label="Redigera eventet" className="event-title-edit" onClick={onEdit} />
+          )}
           <span className="event-stamps">
             {full && <span className="stamp stamp-full">Fullt</span>}
             <VisibilityStamp event={event} />
@@ -218,121 +204,16 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
           />
           {skillLevel && <span className="status-pill">Nivå: {skillLevel}</span>}
         </div>
-        <EventWhenWhere event={event} area={area} />
-        {/* Beskrivningen har ett fast utrymme, så att Skapat av står på samma plats. */}
+        {/* Beskrivningen har ett fast utrymme, så att adressen står på samma plats. */}
         <div className="event-section">
           <h3 className="card-subheading">Om eventet</h3>
           <p className="card-text event-description">{event.description}</p>
         </div>
-        <p className="hint-text">
-          Skapat av{' '}
-          <Link to={`/anvandare/${event.creator_id}`} className="info-link">
-            {creatorName}
-          </Link>
-          {event.group_name && (
-            <>
-              {' i '}
-              {/* Klubbens namn går till klubben, där man kan gå med. En privat klubb man inte är
-                  med eller inbjuden i går inte att öppna, så då är det bara text. */}
-              {event.group_visible ? (
-                <Link to={`/klubbar?klubb=${event.group_id}`} className="info-link">
-                  {event.group_name}
-                </Link>
-              ) : (
-                event.group_name
-              )}
-            </>
-          )}
-        </p>
+        <EventAddress event={event} area={area} />
       </div>
 
       <div className="detail-aside">
-        {/* Redigera och Radera överst till höger: Redigera för skaparen och medarrangörerna, Radera för skaparen och
-            klubbens ägare (event.can_delete, SCRUM-326). */}
-        {(event.is_host || event.can_delete) && (
-          <>
-            <div className="card-actions event-host-actions">
-              {event.is_host && (
-                <button type="button" className="secondary-button button-small" onClick={onEdit} disabled={deleting}>
-                  Redigera
-                </button>
-              )}
-              {event.can_delete && (
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => {
-                    setDeleteError('')
-                    setCancelOpen(true)
-                  }}
-                >
-                  Radera
-                </button>
-              )}
-            </div>
-            {cancelOpen && (
-              <Modal title="Radera eventet" onClose={() => setCancelOpen(false)} locked={deleting}>
-                <form className="auth-form form-compact" onSubmit={handleDelete}>
-                  <p className="card-text">
-                    «{event.title}» tas bort, med inbjudningar och svar. Det går inte att ångra.
-                  </p>
-                  {/* Medan svaren laddas sägs inget om vilka som får en notis. Gick de inte att hämta vet vi
-                      inte, men backend skickar notiserna ändå, så meddelandefältet visas. */}
-                  {responses === null && !failed && <p className="hint-text">Hämtar vilka som har svarat...</p>}
-                  {failed && (
-                    <p className="hint-text">
-                      Kunde inte hämta vilka som har svarat. De som har svarat Ja eller Kanske får ändå en notis från
-                      Intresseklubben om att eventet är inställt.
-                    </p>
-                  )}
-                  {responses !== null && coming > 0 && (
-                    <p className="hint-text">
-                      {coming === 1 ? '1 medlem har' : `${coming} medlemmar har`} svarat Ja eller Kanske och får en notis
-                      från Intresseklubben om att eventet är inställt.
-                    </p>
-                  )}
-                  {responses !== null && coming === 0 && event.is_owner && (
-                    <p className="hint-text">Ingen har svarat Ja eller Kanske, så ingen får någon notis.</p>
-                  )}
-                  {/* Klubbens ägare tar bort någon annans event: skaparen får också veta det. */}
-                  {!event.is_owner && (
-                    <p className="hint-text">
-                      {event.creator_name ?? event.creator_username}, som skapade eventet, får en notis om att du har
-                      tagit bort det.
-                    </p>
-                  )}
-                  {(failed || coming > 0 || !event.is_owner) && (
-                    <>
-                      <label htmlFor={`cancel-message-${event.id}`}>
-                        {/* Klubbens ägare och ingen som ska komma: bara skaparen får meddelandet. */}
-                        Meddelande till {!event.is_owner && responses !== null && coming === 0 ? (event.creator_name ?? event.creator_username) : 'dem'}{' '}
-                        (valfritt)
-                      </label>
-                      <TextareaWithCount
-                        id={`cancel-message-${event.id}`}
-                        value={cancelMessage}
-                        onChange={(e) => setCancelMessage(e.target.value)}
-                        maxLength={300}
-                        rows={3}
-                        placeholder="T.ex. Inställt pga sjukdom, vi ses nästa vecka!"
-                      />
-                    </>
-                  )}
-                  {deleteError && <p className="status-error">{deleteError}</p>}
-                  {/* Det säkra valet är den gula knappen, raderingen har en egen röd stil (.button-danger). */}
-                  <div className="form-actions">
-                    <button type="button" onClick={() => setCancelOpen(false)} disabled={deleting}>
-                      Behåll eventet
-                    </button>
-                    <button type="submit" className="button-danger" disabled={deleting || (responses === null && !failed)}>
-                      {deleting ? 'Raderar...' : 'Radera eventet'}
-                    </button>
-                  </div>
-                </form>
-              </Modal>
-            )}
-          </>
-        )}
+        {cancelOpen && <DeleteEventDialog event={event} onClose={() => setCancelOpen(false)} onDeleted={onDeleted} />}
         <div className="detail-view-section">
           <section className="soft-box soft-box-wide">
             {/* Fullt: den som inte har svarat eller ansökt kan inte göra något, så knapparna döljs. Skaparen och
@@ -344,10 +225,9 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
               </>
             ) : (
               <>
-                {/* Med max antal står platserna som är kvar bredvid, där man svarar. Fullt står som stämpel vid titeln. */}
+                {/* Fullt står som stämpel vid titeln. */}
                 <div className="event-answer-head">
                   <h2>Kommer du?</h2>
-                  {capacity.spots && !full && <span className="capacity-pill">{capacity.spots}</span>}
                 </div>
                 {event.can_answer ? (
                   <>
@@ -472,21 +352,39 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
           </>
         )}
 
-        {event.is_host && event.visibility === 'application' && (
-          <GroupJoinRequests
-            group={event}
-            // En godkänd ansökan står direkt som Kommer: hämta om eventet (antalet) och vilka som har svarat.
-            onChanged={() => {
-              retryResponses()
-              return onAnswered()
-            }}
-            load={getEventRequests}
-            approve={approveEventRequest}
-            decline={declineEventRequest}
-            declinePlaceholder="T.ex. att eventet redan är fullt"
-            full={event.is_full}
-            fullText="Eventet är fullt. Neka, eller höj maxantalet under Redigera för att kunna godkänna fler."
-          />
+        {/* Ansökningarna som ett antal ("3 personer vill vara med"). Ett tryck öppnar en popup där man släpper in eller
+            nekar var och en, med antalet platser kvar överst. */}
+        {event.is_host && event.visibility === 'application' && event.request_count > 0 && (
+          <div className="event-section">
+            <h3 className="card-subheading">Ansökningar</h3>
+            <button
+              type="button"
+              className="secondary-button button-small event-requests-button"
+              onClick={() => setRequestsOpen(true)}
+            >
+              {event.request_count === 1 ? '1 person' : `${event.request_count} personer`} vill vara med
+            </button>
+          </div>
+        )}
+        {requestsOpen && (
+          <Modal title="Vilka vill vara med?" onClose={() => setRequestsOpen(false)}>
+            {capacity.spots && <p className="hint-text">{capacity.spots}.</p>}
+            {event.request_count === 0 && <p className="hint-text">Inga ansökningar kvar att svara på.</p>}
+            <GroupJoinRequests
+              group={event}
+              // En godkänd ansökan står direkt som Kommer: hämta om eventet (antalet) och vilka som har svarat.
+              onChanged={() => {
+                retryResponses()
+                return onAnswered()
+              }}
+              load={getEventRequests}
+              approve={approveEventRequest}
+              decline={declineEventRequest}
+              declinePlaceholder="T.ex. att eventet redan är fullt"
+              full={event.is_full}
+              fullText="Eventet är fullt. Neka, eller höj maxantalet under Redigera för att kunna godkänna fler."
+            />
+          </Modal>
         )}
 
         <Attendees
@@ -496,6 +394,44 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
           event={event}
           onHost={event.is_owner ? handleHost : null}
         />
+        {/* Längst ner i högerspalten, till höger: Radera (soptunnan) för klubbens ägare (event.can_delete,
+            SCRUM-326), som får radera men inte redigera andras event. Skaparen raderar i redigeringsläget. */}
+        {event.can_delete && !event.is_host && (
+          <div className="event-ticket-owner">
+            <div className="card-actions event-host-actions">
+              <IconButton icon="delete" label="Radera eventet" onClick={() => setCancelOpen(true)} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Kvittot: datumet, tiden och platsen, som längst ner på biljettkortet, med urtagen i kanterna (se
+          .event-ticket-sheet). */}
+      <div className="event-ticket-sheet-stub">
+        <TicketDate start={new Date(event.starts_at)} />
+        <span className="event-ticket-box">{ticketTimeText(event)}</span>
+        {event.place_name && <span className="event-ticket-box">{event.place_name}</span>}
+        {/* Skapat av längst ner till höger i kvittot, i den minsta texten. */}
+        <p className="hint-text event-created-by">
+          Skapat av{' '}
+          <Link to={`/anvandare/${event.creator_id}`} className="info-link">
+            {creatorName}
+          </Link>
+          {event.group_name && (
+            <>
+              {' i '}
+              {/* Klubbens namn går till klubben, där man kan gå med. En privat klubb man inte är
+                  med eller inbjuden i går inte att öppna, så då är det bara text. */}
+              {event.group_visible ? (
+                <Link to={`/klubbar?klubb=${event.group_id}`} className="info-link">
+                  {event.group_name}
+                </Link>
+              ) : (
+                event.group_name
+              )}
+            </>
+          )}
+        </p>
       </div>
     </section>
   )
@@ -598,29 +534,19 @@ function StarIcon({ filled }) {
   )
 }
 
-// När och var, direkt på eventet: datumet och tiden under, och efter en streckad linje platsen, adressen, området
-// (`area`, om eventet gäller ett större) och "Visa på kartan".
-const longDate = new Intl.DateTimeFormat('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })
-const clock = new Intl.DateTimeFormat('sv-SE', { hour: '2-digit', minute: '2-digit' })
-
-function EventWhenWhere({ event, area }) {
-  const start = new Date(event.starts_at)
-  const end = event.ends_at ? new Date(event.ends_at) : null
-  const date = longDate.format(start)
-  let time = clock.format(start)
-  if (end) {
-    time += start.toDateString() === end.toDateString() ? `–${clock.format(end)}` : ` till ${longDate.format(end)} ${clock.format(end)}`
-  }
+// Adressen, området (`area`, om eventet gäller ett större) och "Visa på kartan" under Om eventet. Platsens namn står
+// i kvittot längst ner.
+function EventAddress({ event, area }) {
   return (
-    <div className="event-when-where">
-      <p className="event-when-date">{date.charAt(0).toUpperCase() + date.slice(1)}</p>
-      <p className="event-when-time">kl. {time}</p>
-      <div className="event-where">
-        <p className="event-where-place">{event.place_name}</p>
-        {event.address && <p className="hint-text">{event.address}</p>}
-        {area && <p className="hint-text">Gäller {area === 'Hela Sverige' ? 'hela Sverige' : area}</p>}
-        <ShowOnMapButton type="event" id={event.id} data={event} className="info-link" />
-      </div>
+    <div className="event-section event-ticket-address">
+      {event.address && (
+        <>
+          <h3 className="card-subheading">Adress</h3>
+          <p className="card-text">{event.address}</p>
+        </>
+      )}
+      {area && <p className="hint-text">Gäller {area === 'Hela Sverige' ? 'hela Sverige' : area}</p>}
+      <ShowOnMapButton type="event" id={event.id} data={event} className="info-link" />
     </div>
   )
 }

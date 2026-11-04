@@ -3,7 +3,6 @@ import { CHOSEN_DESIGN } from '../chosenDesign'
 import { MAP_PICKERS } from '../pages/mapThemes'
 import './padBackgrounds.css'
 import './uiStyles.css'
-import '../components/events/eventCardVariants.css'
 
 // TILLFÄLLIGT, bara i testläget: välj utseenden att jämföra (klubbkorten, sökraden, blockets rubrik
 // och bakgrund, flikarna och Öppen/Privat-taggen). Varje val sparas i webbläsaren och läggs som ett data-attribut på
@@ -109,16 +108,6 @@ const PICKERS = [
       { id: 'stark', label: '6. Stark färg' },
       { id: 'nu', label: '7. Som förut (utan ikon)' },
       { id: 'stampel', label: '8. Stämpel (som på eventen)' },
-    ],
-  },
-  {
-    key: 'testlage-eventkort',
-    attr: 'eventCard',
-    label: 'Eventkort',
-    fallback: 'pre-dev',
-    options: [
-      { id: 'pre-dev', label: '0. Som nu (pre-dev)' },
-      { id: 'biljett', label: '1. Biljett' },
     ],
   },
   {

@@ -44,6 +44,7 @@ import {
 import { useConfirm } from '../hooks/useConfirm'
 import LoadError, { useRetry } from '../components/LoadError'
 import InfoTip from '../components/InfoTip'
+import IconButton from '../components/IconButton'
 
 // Så länge kontrollen av användarnamn/e-post väntar efter senaste
 // tangenttrycket, så att inte varje bokstav blir ett anrop.
@@ -681,9 +682,7 @@ function ProfilePage() {
         maxLetters={2}
         poster
       >
-        <button type="button" className="secondary-button button-small" onClick={() => startEditing()}>
-          Redigera profil
-        </button>
+        <IconButton icon="edit" label="Redigera profil" onClick={() => startEditing()} />
       </ProfileHeader>
       {/* En obekräftad e-post syns direkt, så att man inte missar att bekräfta den. */}
       {account?.email && !account.email_verified && <EmailVerification account={account} />}

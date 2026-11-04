@@ -3,7 +3,6 @@
 // Väljare som inte står här använder 'pre-dev'. Stilarna bor kvar i devtools tills de andra utseendena städas bort.
 import './devtools/padBackgrounds.css'
 import './devtools/uiStyles.css'
-import './components/events/eventCardVariants.css'
 
 export const CHOSEN_DESIGN = {
   // Blocket och flikarna
@@ -14,8 +13,7 @@ export const CHOSEN_DESIGN = {
   clubCard: '7',
   searchStyle: 'mjuk',
   visStyle: 'mjuk',
-  // Events
-  eventCard: 'biljett',
+  // Events (biljetten är inget val längre, utan alltid utseendet, se EventList)
   eventCalendar: 'kalender',
   // Kartan (se mapThemes.js)
   mapGround: 'kaffe',
