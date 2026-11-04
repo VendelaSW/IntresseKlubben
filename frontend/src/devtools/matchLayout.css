@@ -181,6 +181,71 @@
   cursor: pointer;
 }
 
+/* På en smal skärm utan scroll (.match-panel.is-fitted, se MatchPanel): kortet får hela bredden, och pilarna står på
+   raden under, på var sin sida om Näst på tur. Med pilarna bredvid blir kortet så smalt att namnet och taggarna bryts
+   till flera rader och knapparna inte får plats. Lite mindre luft i kortet, och rubriken "Därför matchar ni" döljs (skälen
+   börjar med "Ni delar ..."). */
+@media (max-width: 767px) {
+  .match-panel.is-fitted > .match-stack {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-items: center;
+    justify-items: center;
+    gap: 0.6rem 0.25rem;
+  }
+
+  .match-panel.is-fitted .match-stage {
+    display: contents;
+  }
+
+  .match-panel.is-fitted .match-stage .match-card {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    align-self: start;
+    width: 100%;
+    padding: 1rem 1rem 0.9rem;
+    gap: 0.35rem;
+  }
+
+  .match-panel.is-fitted .match-stage .match-arrow {
+    grid-row: 2;
+    width: 2.2rem;
+  }
+
+  .match-panel.is-fitted .match-stage .match-arrow:first-child {
+    grid-column: 1;
+  }
+
+  .match-panel.is-fitted .match-stage .match-arrow:last-child {
+    grid-column: 3;
+  }
+
+  .match-panel.is-fitted .match-stack > .match-upnext {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+  }
+
+  .match-panel.is-fitted .match-upnext-title {
+    white-space: nowrap;
+  }
+
+  .match-panel.is-fitted .match-strip-avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.65rem;
+  }
+
+  .match-panel.is-fitted .match-strip-people > li + li {
+    margin-left: -0.6rem;
+  }
+
+  .match-panel.is-fitted .match-why-title {
+    display: none;
+  }
+}
+
 /* Pilen tillbaka syns inte när det inte finns någon att gå tillbaka till, men tar sin plats så att kortet står kvar. */
 .match-arrow.is-hidden {
   visibility: hidden;

@@ -6,6 +6,7 @@ import { sendContactRequest } from '../services/contacts'
 import { getMatches } from '../services/matches'
 import { dismissSuggestion, undoDismissSuggestion } from '../services/people'
 import DrawnArrow from './DrawnArrow'
+import Avatar from './Avatar'
 import EmptyState from './EmptyState'
 import LoadError from './LoadError'
 import MatchCard from './MatchCard'
@@ -17,6 +18,8 @@ const NOTICE_MS = 8000
 // Så många små kort syns under det stora, och när så få finns kvar hämtas nästa sida i förväg.
 const UP_NEXT = 4
 const PREFETCH_AT = 5
+// Så många syns som små avatarer i den tunna raden (när det är trångt, se .match-upnext-strip).
+const STRIP_COUNT = 5
 
 // Under så här många pixlar kvar i blocket får fliken scrolla som vanligt, i stället för att kortet trycks ihop.
 const MIN_ROOM = 320
@@ -278,6 +281,11 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
   } else {
     const upcoming = state.items.slice(1, 1 + UP_NEXT)
     const sharedProps = { sharedInterestIds: myInterestIds }
+    // Näst på tur: små kort när det finns plats, annars (CSS:en väljer, se .match-upnext-strip) en tunn rad med avatarer
+    // och "+ fler", så att det ändå syns att det finns fler förslag.
+    const waiting = state.items.slice(1)
+    const stripItems = waiting.slice(0, STRIP_COUNT)
+    const moreCount = waiting.length - stripItems.length
     const upNext = (items, title) =>
       items.length > 0 && (
         <section className="match-upnext" aria-label={title}>
@@ -287,6 +295,19 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
               <MatchThumb key={match.id} match={match} place={i + 1} {...sharedProps} />
             ))}
           </ul>
+          <div className="match-upnext-strip">
+            <ul className="match-strip-people">
+              {stripItems.map((match) => (
+                <li key={match.id} title={nameOf(match)}>
+                  <Avatar name={nameOf(match)} imageUrl={match.image_url} className="match-strip-avatar" />
+                  <span className="visually-hidden">{nameOf(match)}</span>
+                </li>
+              ))}
+            </ul>
+            {(moreCount > 0 || state.hasMore) && (
+              <span className="match-strip-more">{moreCount > 0 ? `+${moreCount}` : '+'} fler</span>
+            )}
+          </div>
         </section>
       )
 

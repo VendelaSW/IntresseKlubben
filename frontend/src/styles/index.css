@@ -2676,10 +2676,59 @@ button.answer-summary-box:disabled {
   overflow-y: auto;
 }
 
+/* Näst på tur när det är trångt: i stället för de små korten en tunn rad, rubriken och avatarerna på en rad, som en kö
+   där de överlappar lite och den första står närmast. Visas bara när panelen är för låg för korten. */
+.match-upnext-strip {
+  display: none;
+}
+
 @container (max-height: 40rem) {
   .match-panel.is-fitted .match-upnext {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.6rem;
+  }
+
+  .match-panel.is-fitted .match-thumbs {
     display: none;
   }
+
+  .match-panel.is-fitted .match-upnext-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+.match-strip-people {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.match-strip-people > li + li {
+  margin-left: -0.45rem;
+}
+
+.match-strip-avatar {
+  box-sizing: border-box;
+  display: flex;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 2px solid var(--color-white);
+  border-radius: 50%;
+  background: var(--color-line);
+  object-fit: cover;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+}
+
+.match-strip-more {
+  font-size: var(--text-small);
+  font-weight: 700;
+  color: var(--color-muted);
+  white-space: nowrap;
 }
 
 .match-upnext {
