@@ -2,10 +2,6 @@ import { Link } from 'react-router-dom'
 import Avatar from './Avatar'
 import { formatSentAt } from '../utils/formatSentAt'
 
-// En konversation i inkorgen, som ett kuvert med personens bild, namn och när
-// det senaste brevet kom. Över namnet står "Från" eller "Till" (vem som skrev
-// det senaste brevet), så att ett brev man själv har skickat inte ser ut att
-// vara till en själv. Hela kuvertet länkar till tråden (ConversationPage).
 // Snörets banor: bandet runt kuvertet, rosetten och de två ändarna (den vänstra kortare).
 const TWINE = [
   'M1 30 C20 28 35 31 50 30 C65 29 80 32 99 30',
@@ -15,6 +11,10 @@ const TWINE = [
   'M50 30 C54 35 60 39 67 43',
 ]
 
+// En konversation i inkorgen, som ett kuvert med personens bild, namn och när
+// det senaste brevet kom. Över namnet står "Från" eller "Till" (vem som skrev
+// det senaste brevet), så att ett brev man själv har skickat inte ser ut att
+// vara till en själv. Hela kuvertet länkar till tråden (ConversationPage).
 // Klickbart som andra kort (.card-interactive): lyfts och får gul kant vid hover.
 // Ett öppnat kuvert står öppet, med fliken uppvikt och en bit av brevpappret synlig;
 // ett nytt (`isNew`) är stängt och knutet med ett snöre. Se Brev i stilguiden.

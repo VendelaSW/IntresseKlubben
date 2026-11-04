@@ -38,7 +38,12 @@ function LetterFriends({ friends }) {
             const name = friend.name ?? friend.username
             return (
               <li key={friend.id}>
-                <Link to={`/meddelanden/${friend.id}`} className="letter-friend" aria-label={`Skriv till ${name}`} title={name}>
+                <Link
+                  to={`/meddelanden/${friend.id}`}
+                  className="letter-friend"
+                  aria-label={`Skriv till ${name}`}
+                  title={name}
+                >
                   <Avatar name={name} imageUrl={friend.image_url} className="person-list-avatar letter-friend-avatar" />
                   <span className="letter-friend-name">{names.get(friend.id)}</span>
                 </Link>
@@ -47,12 +52,22 @@ function LetterFriends({ friends }) {
           })}
         </ul>
         {more.left && (
-          <button type="button" className="letter-friends-arrow is-left" aria-label="Visa tidigare kompisar" onClick={() => scroll(-1)}>
+          <button
+            type="button"
+            className="letter-friends-arrow is-left"
+            aria-label="Visa tidigare kompisar"
+            onClick={() => scroll(-1)}
+          >
             <DrawnArrow />
           </button>
         )}
         {more.right && (
-          <button type="button" className="letter-friends-arrow is-right" aria-label="Visa fler kompisar" onClick={() => scroll(1)}>
+          <button
+            type="button"
+            className="letter-friends-arrow is-right"
+            aria-label="Visa fler kompisar"
+            onClick={() => scroll(1)}
+          >
             <DrawnArrow />
           </button>
         )}

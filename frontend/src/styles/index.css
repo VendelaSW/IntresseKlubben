@@ -63,7 +63,7 @@
   --color-envelope-paper: #e8d3ad;
   --color-envelope-inside: #cdb288;
   /* Det handritade: bläck och ojämna frihandshörn, på taggar, kuvert och anteckningsblocket. */
-  --tag-ink: #3a2f25;
+  --tag-ink: var(--color-ink);
   --tag-shape: 12px 225px 12px 255px / 255px 12px 225px 12px;
   --tag-shape-alt: 225px 12px 255px 12px / 12px 255px 12px 225px;
 
