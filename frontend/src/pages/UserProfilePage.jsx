@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
+import { PosterCard } from '../components/Poster'
 import ProfileHeader, { profileFacts } from '../components/ProfileHeader'
 import ReportButton from '../components/ReportButton'
 import { eventWhenWhereText } from '../components/events/EventList'
@@ -374,6 +375,13 @@ function UserProfilePage() {
     }
   }
 
+  // Andras profil är ett stort affischkort (PosterCard, se components/Poster.jsx), som personkorten i Sök: raden överst
+  // har färgerna på personens områden, de ni har gemensamt först. Den egna profilen (öppnad via adressen) ser ut som Min
+  // profil.
+  const poster = !isMe
+  const Card = poster ? PosterCard : 'div'
+  const cardProps = poster && profile ? { interests: profile.interests, sharedIds: myInterestIds } : {}
+
   return (
     <div className="content-stack">
       {/* Ovanför kortet, som i Klubbar och Events. */}
@@ -383,13 +391,15 @@ function UserProfilePage() {
       {status === 'error' && <LoadError text="Kunde inte hämta profilen." onRetry={retry} className="form-error" />}
 
       {status === 'ready' && (
-        <div className="card card-wide content-stack profile-card">
+        <Card className="card card-wide content-stack profile-card" {...cardProps}>
           {/* Överst bild, namn och det viktigaste på en rad (tomma uppgifter syns inte). */}
           <ProfileHeader
             name={profile.name ?? 'Profil'}
             imageUrl={profile.image_url}
             facts={profileFacts(profile)}
             heading="h1"
+            maxLetters={poster ? 2 : 1}
+            poster={poster}
           >
             {!isMe && <TrustSignals profile={profile} />}
           </ProfileHeader>
@@ -397,7 +407,7 @@ function UserProfilePage() {
               vänster, intressen, events och klubbar till höger. Under varandra på mobil. */}
           <div className="profile-columns">
             <div className="profile-column">
-              <ProfileAbout text={profile.profile_text} />
+              <ProfileAbout text={profile.profile_text} poster={poster} />
               {!isMe && (
                 <div className="profile-actions">
                   {/* Tydligast: att man kan skriva till personen, även innan ni är
@@ -434,7 +444,7 @@ function UserProfilePage() {
               <MemberClubs userId={userId} isMe={isMe} />
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
     </div>

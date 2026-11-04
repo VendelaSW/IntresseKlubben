@@ -1,69 +1,20 @@
-/* Matchningssidan under Medlemmar (Matcha och Sök): affischkorten, pilarna, Näst på tur och filterraden som lappar. Laddas
-   efter index.css (se main.jsx), så att reglerna här vinner över de lika starka i index.css. */
+/* Matchningssidan under Medlemmar (Matcha och Sök) och andras profiler: hur affischen (styles/poster.css,
+   components/Poster.jsx) sitter på korten, pilarna, Näst på tur och filterraden som lappar. Laddas efter index.css (se
+   main.jsx), så att reglerna här vinner över de lika starka i index.css. */
 
-/* Matchningskortet (se MatchCard): kortet som klubbkortet Affisch (Nicklas variant): vitt papper
-   utan kant, en färgad rad överst, ett rasterhörn, namnet i tryckbokstäver, en mörkare mjuk skugga och en lätt lutning. Raden
-   är delad i en färg per huvudområde som personens intressen ligger i, de ni har gemensamt först (MatchCard sätter --poster,
-   första färgen, och --poster-strip, raden som färgstopp). Kortet visas ensamt, så det är bredare än ett vanligt personkort. */
-.match-card-poster {
-  --poster: #b0ebd9;
-  --poster-strip: var(--poster) 0% 100%;
-  position: relative;
-  max-width: 460px;
-  border: 0;
-  border-radius: 2px;
-  background:
-    linear-gradient(to right, var(--poster-strip)) top / 100% 7px no-repeat,
-    #fffdf7;
-  box-shadow: 1px 3px 6px rgba(58, 47, 37, 0.32);
-  transform: rotate(-0.6deg);
-  /* Kortet flyttas och rätas upp som en enda bild vid hovring, annars ritas varje del om för sig och bockarna på
-     taggarna ser ut att hoppa. */
-  will-change: transform;
-}
-
-.match-card-poster.card-interactive:hover,
-.match-card-poster.card-interactive:focus-within {
-  border: 0;
-  box-shadow: 2px 8px 12px rgba(58, 47, 37, 0.38);
-  transform: translateY(var(--hover-lift, -3px)) rotate(var(--hover-turn, 0deg));
-}
-
-/* Korten lyfts och rätas upp lite olika vid hovring, som papper man plockar upp. Fem varianter som går runt, efter
-   kortets plats i listan. */
-.match-card-poster:nth-child(5n + 1) {
-  --hover-lift: -3px;
-  --hover-turn: 0.3deg;
-}
-
-.match-card-poster:nth-child(5n + 2) {
-  --hover-lift: -4px;
-  --hover-turn: -0.2deg;
-}
-
-.match-card-poster:nth-child(5n + 3) {
-  --hover-lift: -2px;
-  --hover-turn: 0.1deg;
-}
-
-.match-card-poster:nth-child(5n + 4) {
-  --hover-lift: -4px;
-  --hover-turn: 0.4deg;
-}
-
-.match-card-poster:nth-child(5n) {
-  --hover-lift: -3px;
-  --hover-turn: -0.3deg;
-}
-
-/* Personkorten i Sök, Förfrågningar och Kompisar (PersonCard) har affischstilen i rutnät: kortens vanliga bredd, inte matchningskortets. */
-.person-card-poster {
+/* Personkorten i Sök, Förfrågningar och Kompisar (PersonCard) har kortens vanliga bredd (en klass, så att rutnätet kan
+   ändra den), matchningskortet (som visas ensamt) är bredare. */
+.poster-card:where(.person-card) {
   max-width: 320px;
+}
+
+.match-card.poster-card {
+  max-width: 460px;
 }
 
 /* "Kompis" på affischkorten: bara grön text, i handstil (Caveat) och lite sned, utan runden runt (ingen kant, bakgrund eller
    luft), som rollstämpeln på klubbkorten. */
-.person-card-poster .status-pill {
+.person-card.poster-card .status-pill {
   padding: 0;
   border: 0;
   background: none;
@@ -73,69 +24,31 @@
   transform: rotate(-4deg);
 }
 
-/* Rasterhörnet uppe till höger, som tryckta prickar som tonar bort, bakom texten (kortet är vridet, så z-index -1 hamnar
-   ovanför pappret). */
-.match-card-poster .person-card-link::after {
-  content: '';
-  position: absolute;
-  top: 7px;
-  right: 0;
-  z-index: -1;
-  width: 55%;
-  height: 7rem;
-  background: radial-gradient(circle, color-mix(in srgb, var(--poster) 55%, transparent) 0 1.4px, transparent 1.9px) 0 0 / 8px 8px;
-  mask: radial-gradient(farthest-side at 100% 0, #000, transparent);
-  pointer-events: none;
-}
-
 /* Orten direkt under namnet, bredvid bilden (annars ligger den på en egen rad under bilden och tar plats), i en svart ruta
    med ljus text som antalet på klubbkorten (.club-card-meta i Affisch). */
-.match-card-poster .person-card-link {
+.poster-card .person-card-link {
   row-gap: 0.1rem;
 }
 
-.match-card-poster .person-card-link .card-avatar {
+.poster-card .person-card-link .card-avatar {
   grid-row: 1 / span 2;
 }
 
-.match-card-poster .person-card-link .card-title {
+.poster-card .person-card-link .poster-name {
   grid-column: 2;
   grid-row: 1;
   align-self: end;
 }
 
-.match-card-poster .person-card-link .card-subheading {
+.poster-card .person-card-link .poster-stamp {
   grid-column: 2;
   grid-row: 2;
   align-self: start;
   justify-self: start;
-  margin: 0;
-  padding: 0.2rem 0.5rem;
-  background: var(--color-ink);
-  color: #fffdf7;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transform: rotate(-1.5deg);
 }
-
-/* Namnet i raka tryckbokstäver, med luft över prickarna på Ö, Å och Ä (annars klipps de). */
-.match-card-poster .card-title {
-  padding-block: 0.25em;
-  margin-block: -0.25em;
-  font-family: var(--font-body);
-  font-size: 1.3rem;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  hyphens: auto;
-  overflow-wrap: break-word;
-}
-
 
 /* "Ta bort förslag" på en egen vit bakgrund med en tunn kant, så att texten syns var kortet än ligger. */
-.match-card-poster .match-actions .text-button {
+.match-card .match-actions .text-button {
   padding: 0.3rem 0.9rem;
   border: 1.5px solid var(--color-ink);
   border-radius: 4px;
@@ -411,4 +324,35 @@
   background: none;
   box-shadow: none;
   outline: none;
+}
+
+
+/* ---------- Andras profil (pages/UserProfilePage.jsx) ----------
+   Ett stort affischkort (PosterCard), som personkorten i Sök men utan matchningsdetaljerna: en bredare färgad rad och
+   större rasterprickar, namnet stort (PosterName), åldern och orten i den svarta rutan (PlaceStamp) och Om mig med det
+   gula strecket (PosterAbout). */
+.profile-card.poster-card {
+  --poster-strip-height: 9px;
+  --poster-dots-width: 45%;
+  --poster-dots-height: 10rem;
+  --poster-dots-gap: 9px;
+  padding: 1.6rem 1.5rem 1.4rem;
+  box-shadow: 1px 3px 8px rgba(58, 47, 37, 0.32);
+  transform: rotate(-0.3deg);
+}
+
+.profile-card.poster-card .profile-header-avatar.profile-avatar-empty {
+  border: 0;
+  font-family: var(--font-body);
+  font-size: 2.1rem;
+}
+
+@media (max-width: 480px) {
+  .profile-card.poster-card {
+    padding: 1.3rem 1rem 1.1rem;
+  }
+
+  .profile-card.poster-card .profile-header-avatar.profile-avatar-empty {
+    font-size: 1.6rem;
+  }
 }

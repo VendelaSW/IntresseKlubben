@@ -2332,20 +2332,20 @@ button.answer-summary-box:disabled {
     grid-row: auto;
   }
 
-  /* Testlägets affischkort har namnet och orten i raka versaler, som tar mer plats. */
-  .card-grid-compact .person-card.match-card-poster .person-card-link .card-title {
+  /* Affischkorten har namnet och orten i raka versaler, som tar mer plats. */
+  .card-grid-compact .person-card.poster-card .person-card-link .poster-name {
     grid-column: 1;
     grid-row: auto;
     font-size: 0.8rem;
   }
 
-  .card-grid-compact .person-card.match-card-poster .person-card-link .card-subheading {
+  .card-grid-compact .person-card.poster-card .person-card-link .poster-stamp {
     grid-column: 1;
     grid-row: auto;
     font-size: 0.6rem;
   }
 
-  .card-grid-compact .person-card.match-card-poster .person-card-link .card-avatar {
+  .card-grid-compact .person-card.poster-card .person-card-link .card-avatar {
     grid-row: auto;
   }
 
@@ -2482,16 +2482,6 @@ button.answer-summary-box:disabled {
   width: 100%;
 }
 
-.match-about {
-  margin: 0;
-  padding-left: 0.7rem;
-  border-left: 3px solid var(--color-accent);
-  font-size: 0.9rem;
-  line-height: 1.4;
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-}
-
 .match-why-title {
   margin: 0.25rem 0 0;
   font-family: var(--font-body);
@@ -2513,6 +2503,11 @@ button.answer-summary-box:disabled {
   padding-left: 1.2rem;
   font-size: 0.95rem;
   line-height: 1.35;
+  /* Ett skäl med många intressen får högst två rader, sedan "…". */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .match-reasons li::before {
@@ -2530,7 +2525,6 @@ button.answer-summary-box:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-top: -0.45rem;
 }
 
 /* "Ta bort förslag" ensam och centrerad (pilarna vid kortet går vidare och tillbaka). */
@@ -2668,7 +2662,7 @@ button.answer-summary-box:disabled {
   flex-shrink: 0;
 }
 
-.match-panel.is-fitted .match-card > .match-about,
+/* Om mig kortas i stället med "…" (se fitAboutText). Får kortet ändå inte plats krymper skälen och scrollar. */
 .match-panel.is-fitted .match-card > .match-reasons {
   flex: 0 1 auto;
   min-height: 2.6rem;
@@ -2758,7 +2752,7 @@ button.answer-summary-box:disabled {
   list-style: none;
 }
 
-/* Samma affischstil som det stora kortet (.match-card-poster): vitt papper utan kant, en färgad rad överst i färgerna på
+/* Samma affischstil som det stora kortet (.poster-card): vitt papper utan kant, en färgad rad överst i färgerna på
    personens områden (MatchThumb sätter --poster-strip), mjuk skugga och en lätt lutning, åt olika håll varannan gång. */
 .match-thumb {
   flex: none;

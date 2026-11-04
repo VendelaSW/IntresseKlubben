@@ -35,6 +35,28 @@ function offsetTopIn(element, ancestor) {
   return top
 }
 
+// Om mig-texten på kortet kortas med "…" så att kortet håller sig inom sin höjd utan scroll: först högst 8 rader (se
+// .poster-about-clamped), och sticker kortet ändå ut så många rader färre som behövs, men minst två. Utan scroll-läget
+// (.is-fitted) gäller bara de 8 raderna. Mätt med offset-mått, som i offsetTopIn.
+const MIN_ABOUT_LINES = 2
+
+function fitAboutText(panel) {
+  const card = panel?.querySelector('.match-card')
+  const about = card?.querySelector('.poster-about')
+  if (!about) return
+  about.style.removeProperty('--about-lines')
+  if (!panel.classList.contains('is-fitted')) return
+  const overflow = () => {
+    const last = card.lastElementChild
+    return last.offsetTop + last.offsetHeight - (card.clientHeight - (parseFloat(getComputedStyle(card).paddingBottom) || 0))
+  }
+  const tooMuch = overflow()
+  if (tooMuch <= 0) return
+  const lineHeight = parseFloat(getComputedStyle(about).lineHeight) || 20
+  const lines = Math.max(MIN_ABOUT_LINES, Math.floor((about.clientHeight - tooMuch) / lineHeight))
+  about.style.setProperty('--about-lines', String(lines))
+}
+
 // Matcha-fliken ska inte scrolla: panelen får höjden som är kvar i blocket (.map-pad-page) under filtren, och CSS:en
 // (.match-panel.is-fitted) får kortet att hålla sig inom den. Mäts om när blocket eller innehållet ovanför ändrar storlek,
 // t.ex. när filtren öppnas eller fönstret ändras.
@@ -50,11 +72,14 @@ function useFitToPad(panelRef) {
       panel.classList.toggle('is-fitted', fits)
       if (fits) panel.style.setProperty('--match-room', `${room}px`)
       else panel.style.removeProperty('--match-room')
+      fitAboutText(panel)
     }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(pad)
     if (panel.parentElement) observer.observe(panel.parentElement)
+    // Typsnitten kan komma efter första mätningen, och då ändras radernas höjd.
+    document.fonts?.ready.then(measure)
     return () => observer.disconnect()
   }, [panelRef])
 }
@@ -165,6 +190,8 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
   }
 
   const current = state.phase === 'ready' ? state.items[0] : null
+  // Ett nytt kort: Om mig kortas om efter den nya texten.
+  useLayoutEffect(() => fitAboutText(panelRef.current), [current])
   const nameOf = (match) => match.name ?? match.username
 
   function handleSend(match) {

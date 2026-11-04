@@ -1,7 +1,7 @@
 import { joinNames } from '../utils/joinNames'
-import { posterStrip } from '../utils/matchPoster'
 import MatchLevel from './MatchLevel'
 import PersonCard from './PersonCard'
+import { PosterAbout } from './Poster'
 
 // Skälen till förslaget (`reasons` från GET /matches) som meningar. Backend skickar vad, den här skriver meningen. Bara det
 // som kortet visar redan: inga siffror. "practices" (intressen ni båda utövar) visas inte, utövar är inte avgjort.
@@ -19,28 +19,22 @@ function reasonLines(reasons) {
 }
 
 // Ett förslag i Matcha-fliken: personkortet (PersonCard) med nivån i hörnet, personens Om mig-text i sin helhet och
-// "Därför matchar ni" med skälen som punkter, som en affisch (.match-card-poster). `match` är ett förslag från GET /matches.
+// "Därför matchar ni" med skälen som punkter, som en affisch (components/Poster.jsx). `match` är ett förslag från GET /matches.
 // Knapparna är Skicka kompisförfrågan och Ta bort förslag (försvinner för gott, med Ångra); vidare och tillbaka går man
 // med pilarna vid kortet (MatchPanel). `sharedInterestIds` (en Set) markerar gemensamma intressen med en bock, och bara de:
 // skälen har egna punkter.
 function MatchCard({ match, sharedInterestIds, busy, onSend, onDismiss }) {
   const reasons = reasonLines(match.reasons)
-  // Raden överst på kortet har färgerna på personens områden, de ni har gemensamt först (se posterStrip).
-  const [posterColor, posterStops] = posterStrip(match.interests, sharedInterestIds)
 
   return (
     <PersonCard
-      className="match-card match-card-poster"
-      poster={false}
-      style={{ '--poster': posterColor, '--poster-strip': posterStops }}
+      className="match-card"
       person={match}
-      // Affischen visar bara staden (kommunen), i en svart ruta under namnet.
-      place={match.municipality_name}
       sharedInterestIds={sharedInterestIds}
       badge={<MatchLevel level={match.level} />}
       intro={
         <>
-          {match.profile_text && <p className="match-about">{match.profile_text}</p>}
+          <PosterAbout text={match.profile_text} clamp />
           {reasons.length > 0 && (
             <>
               <p className="match-why-title">Därför matchar ni</p>
