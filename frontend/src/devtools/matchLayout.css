@@ -417,20 +417,6 @@
   border-radius: 5px;
 }
 
-/* Filter-knappen (PeoplePage) som en lapp, som de andra fälten. */
-.filter-toggle.filter-toggle-paper {
-  height: 2.25rem;
-  padding: 0 0.75rem;
-  border: 1.25px solid rgba(58, 47, 37, 0.3);
-  background: #fffdf8;
-  box-shadow: 0 2px 0 rgba(58, 47, 37, 0.08);
-}
-
-.filter-toggle.filter-toggle-paper:hover,
-.filter-toggle.filter-toggle-paper:focus-visible {
-  border-color: rgba(58, 47, 37, 0.65);
-}
-
 /* Åldersreglaget (AgeRangeSlider) som en lapp bland de andra. Reglagen själva ska inte se ut som fält. */
 .filter-select-row-paper .age-range {
   height: 2.25rem;

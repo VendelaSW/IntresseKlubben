@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useResetOnTabChange, useTabParam } from '../../hooks/useTabParam'
+import SearchField from '../SearchField'
+import SearchToggle from '../SearchToggle'
 import { useConfirm } from '../../hooks/useConfirm'
 import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
 import CreateGroupForm from './CreateGroupForm'
@@ -544,16 +546,17 @@ function GroupsPanel() {
               {/* TILLFÄLLIGT: i testläget kan sökraden bytas mot ett runt sökfält med intresse, kommun och sortering
                   som rundade knappar bredvid (useDesignChoice('searchStyle')). På mobil hamnar filtren under. */}
               {searchStyle === PRE_DEV ? (
-                <>
+                <SearchToggle
+                  count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
+                >
                   <div className="search-row">
-                    <input
-                      type="search"
-                      className="filter-search"
+                    <SearchField
                       aria-label="Sök klubbar"
                       placeholder="Sök på namn eller beskrivning"
                       maxLength={100}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
+                      onClear={() => setSearch('')}
                     />
                     <GroupSortMenu {...sortMenu} />
                   </div>
@@ -573,45 +576,44 @@ function GroupsPanel() {
                       emptyLabel="Alla kommuner"
                     />
                   </div>
-                </>
+                </SearchToggle>
               ) : (
-                <div className="club-filters">
-                  <label className="club-search">
-                    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-                      <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                      <path d="M13 13 L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    </svg>
-                    <input
-                      type="search"
+                <SearchToggle
+                  count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
+                >
+                  <div className="club-filters">
+                    <SearchField
+                      className="club-search"
                       aria-label="Sök klubbar"
                       placeholder="Sök på namn eller beskrivning"
                       maxLength={100}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
+                      onClear={() => setSearch('')}
                     />
-                  </label>
-                  <div className="club-filter-pills">
-                    <div className="club-filter club-filter-interest">
-                      <InterestPicker
-                        aria-label="Filtrera på intresse"
-                        placeholder="Alla intressen"
-                        myInterests={myInterests}
-                        value={filters.interest}
-                        onChange={(interest) => setFilters({ ...filters, interest })}
-                      />
+                    <div className="club-filter-pills">
+                      <div className="club-filter club-filter-interest">
+                        <InterestPicker
+                          aria-label="Filtrera på intresse"
+                          placeholder="Alla intressen"
+                          myInterests={myInterests}
+                          value={filters.interest}
+                          onChange={(interest) => setFilters({ ...filters, interest })}
+                        />
+                      </div>
+                      <div className="club-filter club-filter-kommun">
+                        <MunicipalityPicker
+                          aria-label="Filtrera på kommun"
+                          municipalities={municipalities}
+                          value={filters.municipalityCode}
+                          onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                          emptyLabel="Alla kommuner"
+                        />
+                      </div>
+                      <GroupSortMenu {...sortMenu} />
                     </div>
-                    <div className="club-filter club-filter-kommun">
-                      <MunicipalityPicker
-                        aria-label="Filtrera på kommun"
-                        municipalities={municipalities}
-                        value={filters.municipalityCode}
-                        onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
-                        emptyLabel="Alla kommuner"
-                      />
-                    </div>
-                    <GroupSortMenu {...sortMenu} />
                   </div>
-                </div>
+                </SearchToggle>
               )}
               {shown[tab].length === 0 && offerToCreate && tab !== 'invitations' ? (
                 <CreateOffer

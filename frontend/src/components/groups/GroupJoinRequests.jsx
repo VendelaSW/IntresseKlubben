@@ -4,6 +4,7 @@ import Avatar from '../Avatar'
 import LoadError, { useRetry } from '../LoadError'
 import Modal from '../Modal'
 import { approveJoinRequest, declineJoinRequest, getJoinRequests } from '../../services/groups'
+import InfoTip from '../InfoTip'
 import { notificationsChanged } from '../../services/notifications'
 
 // Ansökningarna till en klubb man äger (SCRUM-159), i klubbens vy: namn (länk till
@@ -116,7 +117,10 @@ function GroupJoinRequests({
       {declining && (
         <Modal title={`Neka ${declining.name ?? declining.username}`} onClose={() => setDeclining(null)}>
           <form className="auth-form" onSubmit={handleDecline}>
-            <label htmlFor="decline-reason">Varför? (valfritt)</label>
+            <div className="with-info-tip">
+              <label htmlFor="decline-reason">Varför? (valfritt)</label>
+              <InfoTip text="Det du skriver följer med i notisen. Hen kan ansöka igen senare." />
+            </div>
             <textarea
               id="decline-reason"
               rows={3}
@@ -125,7 +129,6 @@ function GroupJoinRequests({
               onChange={(e) => setReason(e.target.value)}
               placeholder={declinePlaceholder}
             />
-            <p className="hint-text">Det du skriver följer med i notisen. Hen kan ansöka igen senare.</p>
             {error && <p className="status-error">{error}</p>}
             <div className="form-actions">
               <button type="submit" disabled={busyId !== null}>
