@@ -242,90 +242,9 @@
   hyphens: auto;
 }
 
-/* Nicklas förslag 1: sidan med Börja matcha (components/MatchPanel.jsx), och rutan ovanpå allt (MatchOverlay.jsx). */
-.match-start {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
-  width: 100%;
-  padding-top: 0.5rem;
-  text-align: center;
-}
-
-.match-start-text {
-  max-width: 28rem;
-  margin: 0;
-  color: var(--color-muted);
-  font-size: var(--text-small);
-}
-
-/* Rutan fyller hela skärmen över sidan, med en mörk bakgrund. Kortet får aldrig bli högre än skärmen: bara Om mig-texten
-   inuti kortet scrollar om den är lång, så att knapparna alltid syns. Gäller små skärmar också (hela skärmen). */
-.match-overlay {
-  width: 100vw;
-  max-width: none;
-  height: 100dvh;
-  max-height: none;
-  margin: 0;
-  padding: 0.75rem 1rem 1rem;
-  overflow: auto;
-  border: 0;
-  background: transparent;
-  color: var(--color-text);
-}
-
-.match-overlay[open] {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.match-overlay::backdrop {
-  background: rgba(26, 26, 26, 0.6);
-}
-
-.match-overlay-close {
-  flex: none;
-  align-self: flex-end;
-  width: 2.4rem;
-  height: 2.4rem;
-  padding: 0;
-  border: 2px solid var(--color-ink);
-  border-radius: 50%;
-  background: var(--color-accent);
-  color: var(--color-ink);
-  font-size: 1.5rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.match-overlay .match-stage {
-  flex: 1 1 auto;
-  min-height: 0;
+/* Nicklas förslag 1: kortet med pilarna direkt på sidan under filtren (components/MatchPanel.jsx). */
+.match-stack .match-stage {
   max-width: 40rem;
-}
-
-/* Kortet får aldrig bli högre än utrymmet i rutan (skärmen minus krysset, de små korten och luften), annars hamnar knapparna
-   utanför kortets nederkant. Allt i kortet behåller sin storlek utom Om mig-texten, som krymper och scrollar. */
-.match-overlay .match-card {
-  max-height: calc(100dvh - 14rem);
-}
-
-.match-overlay .match-card > * {
-  flex-shrink: 0;
-}
-
-.match-overlay .match-card > .match-about {
-  flex: 0 1 auto;
-  min-height: 2.6rem;
-  overflow-y: auto;
-}
-
-.match-overlay .match-upnext,
-.match-overlay .undo-notice {
-  flex: none;
 }
 
 
@@ -443,10 +362,3 @@
 }
 
 
-/* Kortet i rutan växer fram som i den vanliga kön. */
-@media (prefers-reduced-motion: no-preference) {
-  .match-overlay .match-card {
-    animation: match-card-grow 0.4s ease;
-    transform-origin: top center;
-  }
-}

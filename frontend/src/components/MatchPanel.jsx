@@ -9,7 +9,6 @@ import DrawnArrow from './DrawnArrow'
 import EmptyState from './EmptyState'
 import LoadError from './LoadError'
 import MatchCard from './MatchCard'
-import MatchOverlay from './MatchOverlay'
 import MatchThumb from './MatchThumb'
 
 // Så länge beskedet ("Ångra") syns efter att man skickat eller tagit bort någon.
@@ -39,11 +38,9 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
   const skipped = useRef(0)
   const request = useRef(0)
   const appending = useRef(false)
-  // TILLFÄLLIGT (testläget): matchningssidans layout (väljaren "Matchningssidan"). "Nicklas förslag 1": sidan har filtren och en
-  // knapp, Börja matcha, som öppnar kortet som en ruta ovanpå allt, med pilar vid sidorna (nästa och tillbaka). Grunden har
-  // kortet direkt på sidan, med knappen Gå vidare.
+  // TILLFÄLLIGT (testläget): matchningssidans layout (väljaren "Matchningssidan"). "Nicklas förslag 1": kortet direkt på
+  // sidan under filtren, med pilar vid sidorna (nästa och tillbaka). Grunden har kortet med knappen Gå vidare.
   const proposal1 = useDesignChoice('matchLayout') === 'nicklas-1'
-  const [open, setOpen] = useState(false) // rutan (Nicklas förslag 1) är öppen
 
   // Hämtar en sida. Ett svar på en äldre hämtning (filtret har ändrats sedan dess) kastas.
   const load = useCallback(
@@ -104,11 +101,6 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
         appending.current = false
       })
   }, [state, municipalityCodes, genders, minAge, maxAge])
-
-  // Rutan stängs av sig själv när det inte finns något mer att visa i den.
-  useEffect(() => {
-    if (open && ['done', 'not_ready', 'error'].includes(state.phase)) setOpen(false)
-  }, [open, state.phase])
 
   useEffect(() => {
     if (!notice) return undefined
@@ -258,46 +250,32 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
       )
 
     if (proposal1) {
-      // Sidan: filtren (i PeoplePage) och Börja matcha. Själva matchningen sker i rutan ovanpå allt, så att inget behöver
-      // scrollas.
       body = (
-        <>
-          <div className="match-start">
-            <p className="match-start-text">Ställ in filtren först om du vill, och tryck sedan på Börja matcha.</p>
-            <button type="button" className="primary-button" onClick={() => setOpen(true)}>
-              Börja matcha
+        <div className="match-stack">
+          <div className="match-stage">
+            <button
+              type="button"
+              className="match-arrow"
+              aria-label="Förra förslaget"
+              disabled={busy || history.length === 0}
+              onClick={handleBack}
+            >
+              <DrawnArrow className="match-arrow-prev" />
+            </button>
+            <MatchCard
+              key={current.id}
+              match={current}
+              {...sharedProps}
+              busy={busy}
+              onSend={() => handleSend(current)}
+              onDismiss={() => handleDismiss(current)}
+            />
+            <button type="button" className="match-arrow" aria-label="Nästa förslag" disabled={busy} onClick={handleSkip}>
+              <DrawnArrow className="match-arrow-next" />
             </button>
           </div>
-          {open && (
-            <MatchOverlay onClose={() => setOpen(false)}>
-              <div className="match-stage">
-                <button
-                  type="button"
-                  className="match-arrow"
-                  aria-label="Förra förslaget"
-                  disabled={busy || history.length === 0}
-                  onClick={handleBack}
-                >
-                  <DrawnArrow className="match-arrow-prev" />
-                </button>
-                <MatchCard
-                  key={current.id}
-                  match={current}
-                  {...sharedProps}
-                  busy={busy}
-                  onSend={() => handleSend(current)}
-                  onDismiss={() => handleDismiss(current)}
-                />
-                <button type="button" className="match-arrow" aria-label="Nästa förslag" disabled={busy} onClick={handleSkip}>
-                  <DrawnArrow className="match-arrow-next" />
-                </button>
-              </div>
-              {upNext(upcoming, 'Näst på tur')}
-              {error && <p className="status-error">{error}</p>}
-              {noticeElement}
-            </MatchOverlay>
-          )}
-        </>
+          {upNext(upcoming, 'Näst på tur')}
+        </div>
       )
     } else {
       body = (
@@ -317,13 +295,12 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
     }
   }
 
-  // "Ångra" efter att man skickat eller tagit bort någon. Ligger i rutan när den är öppen, annars på sidan.
-  const showingOverlay = proposal1 && open && current
+  // "Ångra" efter att man skickat eller tagit bort någon.
   return (
     <div className="match-panel">
       {body}
-      {!showingOverlay && error && <p className="status-error">{error}</p>}
-      {!showingOverlay && noticeElement}
+      {error && <p className="status-error">{error}</p>}
+      {noticeElement}
     </div>
   )
 }
