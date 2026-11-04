@@ -96,8 +96,11 @@
 }
 
 /* En kort uppgift i en svart ruta (PlaceStamp), som antalet på klubbkorten (.club-card-meta i Affisch). Rak, så att
-   texten blir skarp. */
+   texten blir skarp. Högst kortets bredd, och långa ord (t.ex. en lång stadsdel) bryts i stället för att sticka ut. */
 .poster-card .poster-stamp {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
   margin: 0;
   padding: 0.2rem 0.5rem;
   background: var(--color-ink);

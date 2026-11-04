@@ -622,11 +622,12 @@
 }
 
 /* Prickarna över Ö, Å och Ä klipps annars: titeln har overflow: hidden (för "…" efter två rader) och line-height: 1 i
-   Affisch (5), så versalerna med prickar går över radens överkant. Luft ovanför och under inuti klippet, och lika mycket
-   negativ marginal, så att kortet inte blir högre (samma knep som .list-card-link .card-title i index.css). */
+   Affisch (5), så versalerna med prickar går över radens överkant. Luft ovanför inuti klippet, och lika mycket negativ
+   marginal, så att kortet inte blir högre (samma knep som .list-card-link .card-title i index.css). Inte under: där
+   skulle en bit av en tredje rad synas under de två som visas. */
 .club-style-7 .club-card .card-title {
-  padding-block: 0.25em;
-  margin-block: -0.25em;
+  padding-top: 0.25em;
+  margin-top: -0.25em;
 }
 
 /* Ingen häftstift. */

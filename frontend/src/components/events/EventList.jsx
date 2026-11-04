@@ -112,7 +112,8 @@ function EventTicket({ event, myInterestIds, onSelect }) {
         <div className="event-ticket-stub">
           <TicketDate start={start} />
           <span className="event-ticket-when">
-            <strong>{ticketTimeText(event)}</strong>
+            {/* Med en sluttid ("lör 17:00 – 19:00") är tiden mindre, så att den inte täcker datumet. */}
+            <strong className={event.ends_at ? 'is-range' : undefined}>{ticketTimeText(event)}</strong>
             {event.place_name && <span className="event-ticket-place">{event.place_name}</span>}
           </span>
         </div>
