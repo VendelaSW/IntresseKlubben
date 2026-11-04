@@ -5671,8 +5671,11 @@ select.club-filter:focus-visible,
 }
 
 /* Långa namn kortas med "…" efter två rader, som beskrivningen nedan, så att
-   alla kort blir lika höga. Hela namnet syns i postens egen vy. */
+   alla kort blir lika höga. Hela namnet syns i postens egen vy. Högst kortets
+   bredd: som flexobjekt blir titeln annars minst så bred som sitt längsta ord
+   (t.ex. "BRÄDSPELSKLUBBEN" i ett smalt kort) och sticker ut. */
 .list-card-link .card-title {
+  max-width: 100%;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

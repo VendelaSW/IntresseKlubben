@@ -2606,8 +2606,22 @@
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
 
+  /* Raka hörn nertill: det handritade, snedställda hörnet nere till vänster (se .map-pad-page) ser avklippt ut när
+     blocket går ner under menyn. */
   .map-pad-page {
     padding-bottom: 6.5rem;
+    border-radius: 6px 6px 0 0;
+  }
+
+  /* Sökikonen och skapa-knappen (se .map-pad-float) ovanför menyn: menyns överkant ligger 86px över skärmens
+     nederkant och blockets nederkant 12px över den. Sidan får plats att scrolla fram det sista ovanför båda. */
+  .map-pad-float,
+  .map-pad-float-start {
+    bottom: 84px;
+  }
+
+  .map-pad:has(.map-pad-float:not(:empty)) .map-pad-page {
+    padding-bottom: 9.5rem;
   }
 
   .map-sketch-compass {
