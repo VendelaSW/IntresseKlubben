@@ -4,6 +4,7 @@ import InterestPicker from '../InterestPicker'
 import LocationPicker from '../LocationPicker'
 import MunicipalityPicker from '../MunicipalityPicker'
 import { SCOPES, SKILL_LEVELS, VISIBILITY, areaOptions, createGroup, getRegions } from '../../services/groups'
+import InfoTip from '../InfoTip'
 
 // Hur nya medlemmar kommer in (SCRUM-159).
 const VISIBILITY_OPTIONS = [
@@ -214,11 +215,17 @@ function CreateGroupForm({
             </FormField>
           </div>
 
-          <label>
-            <input type="checkbox" checked={membersCanInvite} onChange={(e) => setMembersCanInvite(e.target.checked)} />{' '}
-            Medlemmar får bjuda in
-          </label>
-          <p className="hint-text">Utan bockning kan bara du bjuda in.</p>
+          <div className="with-info-tip">
+            <label>
+              <input
+                type="checkbox"
+                checked={membersCanInvite}
+                onChange={(e) => setMembersCanInvite(e.target.checked)}
+              />{' '}
+              Medlemmar får bjuda in
+            </label>
+            <InfoTip text="Utan bockning kan bara du bjuda in." />
+          </div>
         </div>
         <div className="form-column">
           <div className="form-row">
