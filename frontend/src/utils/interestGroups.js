@@ -6,6 +6,9 @@
 // blir egna taggar (de är inte fler än tre som är kvar under Gaming).
 const GROUP_AFTER = 3
 
+// Första bokstaven stor, så att egna intressen ("fyrmodeller") ser ut som bibliotekets.
+export const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
+
 // `items` är [{ key, name, path, areaSlug }], där path är namnen ovanför
 // intresset i trädet, uppifrån ([] för ett huvudområde), och areaSlug är
 // huvudområdets slug, som färgen slås upp på (se utils/interestColors.js). Ger

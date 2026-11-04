@@ -343,6 +343,23 @@ function StyleGuide() {
           highlight={new Set(['id:2', 'id:8'])}
         />
 
+        <h3>Underintressen och rutan om ett intresse (components/InterestTagPanel.jsx, components/InterestInfo.jsx)</h3>
+        <p className="hint-text">
+          Rutan med underintressen (.interest-tag-panel) ligger rak över taggarna under, samma på mobil och dator, och
+          flyttas åt vänster om den annars skulle gå utanför raden. Den scrollar själv när listan är lång. Tryck på
+          Historia ovan. I Intressebiblioteket öppnar ett tryck på ett intresse som man inte har valt en ruta (en Modal
+          med × i stället för Stäng): var i biblioteket det ligger, antalet i landet och i ens kommun
+          (.interest-info-count) och "Lägg till på min profil". Ett tryck på ett valt intresse tar bort det, utan rutan:
+        </p>
+        <div className="interest-info-counts" style={{ maxWidth: '24rem' }}>
+          <p className="interest-info-count">
+            <span className="interest-info-number">148</span> i Sverige
+          </p>
+          <p className="interest-info-count">
+            <span className="interest-info-number">12</span> i Göteborg, där du bor
+          </p>
+        </div>
+
         <h3>Lägg till ett intresse (components/AddInterest.jsx)</h3>
         <p className="hint-text">
           Finns intresset inte i biblioteket erbjuds man att lägga till det med egna ord (högst 40 tecken). Backend
@@ -392,6 +409,18 @@ function StyleGuide() {
             </div>
           ))}
         </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Mobilens meny (.map-page-widgets i map.css)
+        </p>
+        <p className="hint-text">
+          På telefonen (upp till 767 px) är sidornas lappar på kartan en flytande, halvgenomskinlig och rundad meny
+          längst ned, med bara ikonerna: Brev, Medlemmar, kartan, Klubbar och Events. Namnen finns för skärmläsare.
+          Kartan (inget block öppet) är en större gul knapp i mitten (.map-page-widget-home). En gul bubbla
+          (.map-nav-blob) glider till den öppna sidan och töjs ut på vägen, och runt kartans knapp blir den en ring.
+          Blocken går ända ner under menyn. Med minskad rörelse byter bubblan bara plats. På surfplattan och datorn är
+          lapparna som förut, och kartans knapp och bubblan syns inte.
+        </p>
       </section>
 
       <section className="style-section">

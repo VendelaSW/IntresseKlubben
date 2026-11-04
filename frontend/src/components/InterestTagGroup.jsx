@@ -1,16 +1,15 @@
 import { useCallback, useId, useRef, useState } from 'react'
 import { useDismiss } from '../hooks/useDismiss'
 import { areaColors } from '../utils/interestColors'
+import { capitalize } from '../utils/interestGroups'
 import DrawnArrow from './DrawnArrow'
-
-// Första bokstaven stor, så att egna intressen ("fyrmodeller") ser ut som bibliotekets.
-const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
+import InterestTagPanel from './InterestTagPanel'
 
 // En intressetagg med sina underintressen. Taggen har huvudområdets färg (se
 // utils/interestColors.js) och ser ut som kartans lappar: handritad form och en
 // hård skugga. Har intresset underintressen visar en ritad pil det, och ett tryck lägger
-// dem i en ruta i samma färg över taggarna under (inget flyttar sig). Rutan
-// stängs med ett nytt tryck, ett tryck utanför eller Esc. Utan underintressen
+// dem i en ruta i samma färg över taggarna under (inget flyttar sig, se InterestTagPanel).
+// Rutan stängs med ett nytt tryck, ett tryck utanför eller Esc. Utan underintressen
 // händer inget när man trycker; taggen är bara till för att visa.
 //
 // - `group`: { key, name, areaSlug, subs: [{ key, name }], removable } (se utils/interestGroups.js)
@@ -63,7 +62,7 @@ function InterestTagGroup({ group, isShared, onRemove, busyKey }) {
         {group.removable !== false && remove(key, name)}
       </span>
       {open && (
-        <ul id={panelId} className="interest-tag-panel">
+        <InterestTagPanel id={panelId}>
           {subs.map((sub) => (
             <li key={sub.key}>
               <span className={`interest-tag interest-tag-sub${shared(sub.key) ? ' is-shared' : ''}`}>
@@ -72,7 +71,7 @@ function InterestTagGroup({ group, isShared, onRemove, busyKey }) {
               </span>
             </li>
           ))}
-        </ul>
+        </InterestTagPanel>
       )}
     </li>
   )
