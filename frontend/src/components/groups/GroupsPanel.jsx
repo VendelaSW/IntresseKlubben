@@ -571,6 +571,8 @@ function GroupsPanel() {
                 {searchStyle === PRE_DEV ? (
                   <SearchToggle
                     count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
+                    // Sök och filter öppna från början på dator; på mobil flyter de över listan, så där bara ikonen.
+                    defaultOpen={!mobile}
                   >
                     <div className="search-row">
                       <SearchField
@@ -603,6 +605,8 @@ function GroupsPanel() {
                 ) : (
                   <SearchToggle
                     count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
+                    // Sök och filter öppna från början på dator; på mobil flyter de över listan, så där bara ikonen.
+                    defaultOpen={!mobile}
                   >
                     <div className="club-filters">
                       <SearchField

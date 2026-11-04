@@ -26,7 +26,6 @@ import {
   getMyInterests,
   getTopInterests,
   removeInterest,
-  setPractices,
 } from '../services/interests'
 import {
   ABOUT_AI_NOTE,
@@ -296,11 +295,6 @@ function ProfilePage() {
     )
       return false
     setMyInterests(await removeInterest(interest.id))
-  }
-
-  // Utövar eller intresserad (SCRUM-271), under "Redigera".
-  async function setSavedPractices(interest, practices) {
-    setMyInterests(await setPractices(interest.id, practices))
   }
 
   async function handleSubmit(event) {
@@ -721,7 +715,6 @@ function ProfilePage() {
       onAdd={addSavedInterest}
       onRemove={removeSavedInterest}
       onAddNew={addNewInterest}
-      onSetPractices={setSavedPractices}
       onOpenLibrary={() => setSearchParams({ bibliotek: '1' })}
     />
     </div>
