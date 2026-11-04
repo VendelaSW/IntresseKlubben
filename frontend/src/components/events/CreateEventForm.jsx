@@ -12,6 +12,7 @@ import { SCOPES, SKILL_LEVELS, areaOptions, getRegions } from '../../services/gr
 import { profileQuery } from '../../services/profile'
 import { localInputValue } from '../../utils/eventTime'
 import InfoTip from '../InfoTip'
+import IconButton from '../IconButton'
 
 // Hur man kommer med (SCRUM-296). Öppet och Ansökan går inte i en privat klubb.
 const VISIBILITY_OPTIONS = [
@@ -85,6 +86,7 @@ const samePosition = (a, b) =>
 // få t.ex. en ny beskrivning.
 // Ett nytt event kan ha intresset förvalt (`initialInterest`, { id, name }, från "Det finns inga events för … Vill du
 // skapa ett?"). `myInterests` är snabbvalen i intresseväljaren.
+// Med `onDelete` har formuläret vid redigering en Radera-knapp (för den som får radera, event.can_delete).
 function CreateEventForm({
   event = null,
   myInterests,
@@ -95,6 +97,7 @@ function CreateEventForm({
   onCreated,
   onSaved,
   onCancel,
+  onDelete,
 }) {
   const editing = event !== null
   const initial = useMemo(
@@ -242,7 +245,8 @@ function CreateEventForm({
         )}
       </h2>
 
-      {/* Vad och när till vänster, var (med kartan) och vem det är till för till höger. */}
+      {/* Tre spalter på en bred skärm (se .event-ticket-form i index.css), så att allt får plats utan att scrolla: vad
+          och när, vem det är till för, och var (med kartan). Två spalter eller en när det är smalare. */}
       <div className="form-columns">
         <div className="form-column">
           <FormField id="event-title" label="Titel">
@@ -263,7 +267,7 @@ function CreateEventForm({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={800}
-              rows={4}
+              rows={3}
               required
             />
           </FormField>
@@ -301,6 +305,8 @@ function CreateEventForm({
               />
             </FormField>
           </div>
+        </div>
+        <div className="form-column">
           {!editing && (
             <>
               {clubsToCreateFor.length > 0 && (
@@ -336,38 +342,7 @@ function CreateEventForm({
             </>
           )}
 
-          {/* Valfritt område, nivå och max antal (SCRUM-293, SCRUM-295). Går att ändra senare. */}
-          <div className="form-row">
-            <FormField id="event-scope" label="Gäller ett större område (valfritt)">
-              <select
-                id="event-scope"
-                value={scope}
-                onChange={(e) => {
-                  setScope(e.target.value)
-                  setAreaCode('')
-                }}
-              >
-                <option value="">Nej, platsen räcker</option>
-                {EVENT_SCOPES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            {scope && scope !== 'country' && (
-              <FormField id="event-area" label={SCOPES.find((s) => s.value === scope)?.label}>
-                <select id="event-area" value={areaCode} onChange={(e) => setAreaCode(e.target.value)} required>
-                  <option value="">Välj...</option>
-                  {areaOptions(scope, regions).map((a) => (
-                    <option key={a.kod} value={a.kod}>
-                      {a.namn}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
-            )}
-          </div>
+          {/* Valfri nivå och max antal (SCRUM-293). Går att ändra senare. */}
           <div className="form-row">
             <FormField id="event-skill-level" label="Nivå (valfritt)">
               <select id="event-skill-level" value={skillLevel} onChange={(e) => setSkillLevel(e.target.value)}>
@@ -399,44 +374,6 @@ function CreateEventForm({
               </label>
             )}
           </div>
-        </div>
-        <div className="form-column">
-          <div className="form-row">
-            <FormField id="event-place" label="Plats">
-              <input
-                id="event-place"
-                type="text"
-                value={placeName}
-                onChange={(e) => setPlaceName(e.target.value)}
-                placeholder="T.ex. Slottsskogen"
-                maxLength={100}
-                required
-              />
-            </FormField>
-  
-            <FormField id="event-address" label="Gatuadress">
-              <input
-                id="event-address"
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="T.ex. Slottsskogsvallen 1"
-                maxLength={100}
-                required
-              />
-            </FormField>
-          </div>
-          <LocationPicker
-            id="event-position"
-            // Adressen först, sedan platsens namn (t.ex. "Slottsskogen").
-            queries={[address, placeName]}
-            value={position}
-            onChange={setPosition}
-            // Nålen bestämmer adressen: den närmaste gatuadressen skrivs i fältet.
-            onAddressFound={setAddress}
-            saveLabel={editing ? 'Spara' : 'Skapa event'}
-            kommunCode={profile?.municipality_code}
-          />
           {!editing && (
             <>
               <div className="detail-view-section">
@@ -474,6 +411,76 @@ function CreateEventForm({
             </>
           )}
         </div>
+        <div className="form-column">
+          <div className="form-row">
+            <FormField id="event-place" label="Plats">
+              <input
+                id="event-place"
+                type="text"
+                value={placeName}
+                onChange={(e) => setPlaceName(e.target.value)}
+                placeholder="T.ex. Slottsskogen"
+                maxLength={100}
+                required
+              />
+            </FormField>
+  
+            <FormField id="event-address" label="Gatuadress">
+              <input
+                id="event-address"
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="T.ex. Slottsskogsvallen 1"
+                maxLength={100}
+                required
+              />
+            </FormField>
+          </div>
+          {/* Valfritt område (SCRUM-295). Går att ändra senare. */}
+          <div className="form-row">
+            <FormField id="event-scope" label="Gäller ett större område (valfritt)">
+              <select
+                id="event-scope"
+                value={scope}
+                onChange={(e) => {
+                  setScope(e.target.value)
+                  setAreaCode('')
+                }}
+              >
+                <option value="">Nej, platsen räcker</option>
+                {EVENT_SCOPES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            {scope && scope !== 'country' && (
+              <FormField id="event-area" label={SCOPES.find((s) => s.value === scope)?.label}>
+                <select id="event-area" value={areaCode} onChange={(e) => setAreaCode(e.target.value)} required>
+                  <option value="">Välj...</option>
+                  {areaOptions(scope, regions).map((a) => (
+                    <option key={a.kod} value={a.kod}>
+                      {a.namn}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            )}
+          </div>
+          <LocationPicker
+            id="event-position"
+            // Adressen först, sedan platsens namn (t.ex. "Slottsskogen").
+            queries={[address, placeName]}
+            value={position}
+            onChange={setPosition}
+            // Nålen bestämmer adressen: den närmaste gatuadressen skrivs i fältet.
+            onAddressFound={setAddress}
+            saveLabel={editing ? 'Spara' : 'Skapa event'}
+            kommunCode={profile?.municipality_code}
+          />
+        </div>
       </div>
 
       {error && <p className="status-error">{error}</p>}
@@ -485,6 +492,10 @@ function CreateEventForm({
         <button type="button" className="button-secondary" onClick={onCancel}>
           Avbryt
         </button>
+        {/* Radera i redigeringsläget, som soptunnan längst till höger (se DeleteEventDialog). */}
+        {editing && onDelete && (
+          <IconButton icon="delete" label="Radera eventet" className="event-form-delete" onClick={onDelete} />
+        )}
       </div>
     </form>
   )

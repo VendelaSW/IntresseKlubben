@@ -5,7 +5,6 @@ import './devtools/padBackgrounds.css'
 import './devtools/uiStyles.css'
 import './devtools/matchCards.css'
 import './devtools/matchLayout.css'
-import './components/events/eventCardVariants.css'
 
 export const CHOSEN_DESIGN = {
   // Blocket och flikarna
@@ -16,8 +15,7 @@ export const CHOSEN_DESIGN = {
   clubCard: '7',
   searchStyle: 'mjuk',
   visStyle: 'mjuk',
-  // Events
-  eventCard: 'biljett',
+  // Events (biljetten är inget val längre, utan alltid utseendet, se EventList)
   eventCalendar: 'kalender',
   // Medlemmar
   matchLayout: 'nicklas-1',

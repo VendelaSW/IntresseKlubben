@@ -7,6 +7,7 @@ import { searchInterests } from '../services/interests'
 import InfoTip from './InfoTip'
 import SearchField from './SearchField'
 import SearchToggle from './SearchToggle'
+import IconButton from './IconButton'
 
 // Så länge sökningen väntar efter senaste tangenttrycket, så att inte varje
 // bokstav blir ett anrop.
@@ -202,9 +203,13 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
           )}
         </h3>
         {mode === 'card' && selected.length > 0 && (
-          <button type="button" className="text-button" aria-pressed={editing} onClick={() => setEditing(!editing)}>
-            {editing ? 'Klar' : 'Redigera'}
-          </button>
+          editing ? (
+            <button type="button" className="text-button" onClick={() => setEditing(false)}>
+              Klar
+            </button>
+          ) : (
+            <IconButton icon="edit" label="Redigera intressena" onClick={() => setEditing(true)} />
+          )
         )}
       </div>
       {selected.length === 0 ? (

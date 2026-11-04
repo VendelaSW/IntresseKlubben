@@ -1,4 +1,3 @@
-import { useDesignChoice } from '../../hooks/useDesignChoice'
 import { areaColors } from '../../utils/interestColors'
 import EmptyState from '../EmptyState'
 import InterestTags from '../InterestTags'
@@ -61,19 +60,38 @@ const dayFormat = new Intl.DateTimeFormat('sv-SE', { day: 'numeric' })
 const monthFormat = new Intl.DateTimeFormat('sv-SE', { month: 'short' })
 const weekdayFormat = new Intl.DateTimeFormat('sv-SE', { weekday: 'short' })
 
-// TILLFÄLLIGT (testläget, väljaren "Eventkort"): eventet som en biljett för att komma in, i pappersstilen som klubbkorten. Ett
-// stående kort med titeln och beskrivningen överst och ett avrivbart kvitto längst ner, avdelat med en perforerad linje och två urtag
-// i kanterna: datumet stort, klockslaget och platsen. Raden överst är i intressets färg, som på klubbkorten.
-// Se eventCardVariants.css. Exporterad för stilguiden.
-export function EventTicket({ event, myInterestIds, onSelect }) {
+// Biljettens datum, stort och lite snett ("7" över "NOV"), på kortet och i eventets egen vy (EventDetails).
+export function TicketDate({ start }) {
+  return (
+    <span className="event-ticket-date">
+      <span className="event-ticket-day">{dayFormat.format(start)}</span>
+      <span className="event-ticket-month">{monthFormat.format(start).replace('.', '')}</span>
+    </span>
+  )
+}
+
+// Biljettens tid: "lör 17:00", och "lör 17:00 – 19:00" med en sluttid.
+export function ticketTimeText(event) {
   const start = new Date(event.starts_at)
+  const end = event.ends_at && ` – ${timeFormat.format(new Date(event.ends_at))}`
+  return `${weekdayFormat.format(start).replace('.', '')} ${timeFormat.format(start)}${end || ''}`
+}
+
+// Biljettens färger efter eventets intresse: raden överst (--poster) och kvittot (--poster-soft).
+export function ticketColors(event) {
   const colors = areaColors(event.interest_area_slug)
+  return { '--poster': colors['--tag-fill'], '--poster-soft': colors['--tag-sub'] }
+}
+
+// Ett event som en biljett för att komma in, i pappersstilen som klubbkorten (Nicklas förslag): ett stående kort med
+// titeln och beskrivningen överst och ett avrivbart kvitto längst ner, avdelat med en perforerad linje och två urtag i
+// kanterna: datumet stort, klockslaget och platsen. Raden överst är i intressets färg, som på klubbkorten. Klick på
+// kortet öppnar eventets egen vy. Märkena ligger utanför den klickbara delen (samma upplägg som GroupList).
+function EventTicket({ event, myInterestIds, onSelect }) {
+  const start = new Date(event.starts_at)
   return (
     <div className="event-ticket-wrap">
-      <article
-        className="card card-interactive list-card event-ticket"
-        style={{ '--poster': colors['--tag-fill'], '--poster-soft': colors['--tag-sub'] }}
-      >
+      <article className="card card-interactive list-card event-ticket" style={ticketColors(event)}>
         <div className="event-ticket-head" aria-hidden="true">
           Event
         </div>
@@ -92,15 +110,9 @@ export function EventTicket({ event, myInterestIds, onSelect }) {
           <VisibilityStamp event={event} />
         </div>
         <div className="event-ticket-stub">
-          <span className="event-ticket-date">
-            <span className="event-ticket-day">{dayFormat.format(start)}</span>
-            <span className="event-ticket-month">{monthFormat.format(start).replace('.', '')}</span>
-          </span>
+          <TicketDate start={start} />
           <span className="event-ticket-when">
-            <strong>
-              {weekdayFormat.format(start).replace('.', '')} {timeFormat.format(start)}
-              {event.ends_at && ` – ${timeFormat.format(new Date(event.ends_at))}`}
-            </strong>
+            <strong>{ticketTimeText(event)}</strong>
             {event.place_name && <span className="event-ticket-place">{event.place_name}</span>}
           </span>
         </div>
@@ -109,48 +121,14 @@ export function EventTicket({ event, myInterestIds, onSelect }) {
   )
 }
 
-// Ett kort per event, i samma rutnät som klubbkorten. Klick på kortet öppnar
-// eventets egen vy. Märkena ligger utanför den klickbara delen (samma upplägg
-// som GroupList). `myInterestIds` (en Set) markerar intresset om det är ett av
-// ens egna.
+// Ett kort (en biljett) per event, i samma rutnät som klubbkorten. `myInterestIds` (en Set) markerar intresset om det
+// är ett av ens egna.
 function EventList({ events, emptyText, myInterestIds, onSelect }) {
-  const cardStyle = useDesignChoice('eventCard')
   if (events.length === 0) return emptyText ? <EmptyState text={emptyText} /> : null
-
-  if (cardStyle === 'biljett') {
-    return (
-      <div className="card-grid card-grid-compact">
-        {events.map((event) => (
-          <EventTicket key={event.id} event={event} myInterestIds={myInterestIds} onSelect={onSelect} />
-        ))}
-      </div>
-    )
-  }
-
   return (
     <div className="card-grid card-grid-compact">
       {events.map((event) => (
-        <article key={event.id} className="card card-interactive list-card">
-          <button type="button" className="list-card-link" onClick={() => onSelect(event)}>
-            <span className="card-title">{event.title}</span>
-            {/* Alltid två rader: tiden och platsen under, var och en kortad med "…" (se .list-card-meta). */}
-            <span className="card-subheading list-card-meta">
-              <span>{eventTimeText(event)}</span>
-              <span>{event.place_name}</span>
-            </span>
-            <span className="card-text list-card-description">{event.description}</span>
-          </button>
-          <InterestTags
-            interests={[{ id: event.interest_id, name: event.interest_name, area_slug: event.interest_area_slug }]}
-            highlight={myInterestIds}
-          />
-          <div className="card-actions">
-            {event.is_owner && <span className="status-pill status-pill-owner">Skapare</span>}
-            {!event.is_owner && event.is_host && <span className="status-pill status-pill-owner">Medarrangör</span>}
-            {event.is_full && <span className="status-pill">Fullt</span>}
-            <VisibilityStamp event={event} />
-          </div>
-        </article>
+        <EventTicket key={event.id} event={event} myInterestIds={myInterestIds} onSelect={onSelect} />
       ))}
     </div>
   )

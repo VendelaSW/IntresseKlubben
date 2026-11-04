@@ -10,6 +10,7 @@ import GroupMembers from './GroupMembers'
 import { RoleBadge, groupMembersText } from './GroupList'
 import { inviteToGroup, skillLevelLabel } from '../../services/groups'
 import InfoTip from '../InfoTip'
+import IconButton from '../IconButton'
 
 // Mer information om en grupp, med knapparna som passar ens roll. Medlemmar kan
 // öppna anslagstavlan (`onOpenBoard`) och skapa ett event i klubben (öppnar
@@ -215,9 +216,7 @@ function GroupDetails({
               Gå ur
             </button>
             {group.is_owner && (
-              <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onDelete(group)}>
-                Radera
-              </button>
+              <IconButton icon="delete" label="Radera klubben" disabled={busy} onClick={() => onDelete(group)} />
             )}
           </div>
         )}

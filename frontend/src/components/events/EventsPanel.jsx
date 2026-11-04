@@ -13,9 +13,10 @@ import EmptyState from '../EmptyState'
 import FilterTabs from '../FilterTabs'
 import SearchToggle from '../SearchToggle'
 import InterestPicker from '../InterestPicker'
+import DeleteEventDialog from './DeleteEventDialog'
 import EventDayFilter from './EventDayFilter'
 import EventDetails from './EventDetails'
-import EventList from './EventList'
+import EventList, { ticketColors } from './EventList'
 import { contactsQuery } from '../../services/contacts'
 import { eventsQuery } from '../../services/events'
 import { myGroupsQuery } from '../../services/groups'
@@ -76,6 +77,9 @@ function EventsPanel() {
   const calendarChoice = useDesignChoice('eventCalendar')
   const calendarOn = calendarChoice === 'kalender'
   const tabs = calendarOn ? [TABS[0], { id: 'calendar', label: 'Kalender' }, ...TABS.slice(1)] : TABS
+  // Eventets vy och formuläret (skapa och redigera) i samma stil som biljettkortet (se .event-ticket-sheet och
+  // .event-ticket-form i index.css).
+  const formSheet = 'card sheet sheet-form event-ticket-form'
   const [urlTab, setTab] = useTabParam(tabs)
   const tab = urlTab ?? 'mine'
   const showCalendar = calendarOn && tab === 'calendar'
@@ -138,6 +142,8 @@ function EventsPanel() {
   const [inviteProblem, setInviteProblem] = useState('')
   // Visas formuläret för att redigera eventet som är öppet? Stängs när man byter vy.
   const [editing, setEditing] = useState(false)
+  // Rutan "Radera eventet" i redigeringsläget (se DeleteEventDialog).
+  const [deleteOpen, setDeleteOpen] = useState(false)
   // "Eventet är raderat." ovanför listan, tills man öppnar något annat.
   const [notice, setNotice] = useState('')
   useEffect(() => {
@@ -259,7 +265,7 @@ function EventsPanel() {
       ) : view === 'create' ? (
         <>
           <BackButton onClick={goBack} />
-          <div className="card sheet sheet-form">
+          <div className={formSheet}>
             <CreateEventForm
               myInterests={myInterests}
               groups={myGroups}
@@ -290,7 +296,7 @@ function EventsPanel() {
           ) : selected && editing && selected.is_host ? (
             <>
               <BackButton onClick={() => setEditing(false)} />
-              <div className="card sheet sheet-form">
+              <div className={formSheet}>
                 <CreateEventForm
                   // key: ett nytt formulär (med eventets uppgifter) varje gång man börjar redigera.
                   key={selected.id}
@@ -303,8 +309,20 @@ function EventsPanel() {
                     setEditing(false)
                   }}
                   onCancel={() => setEditing(false)}
+                  onDelete={selected.can_delete ? () => setDeleteOpen(true) : undefined}
                 />
               </div>
+              {deleteOpen && (
+                <DeleteEventDialog
+                  event={selected}
+                  onClose={() => setDeleteOpen(false)}
+                  onDeleted={async () => {
+                    setDeleteOpen(false)
+                    setEditing(false)
+                    await handleDeleted()
+                  }}
+                />
+              )}
             </>
           ) : missing ? (
             <>
@@ -316,7 +334,7 @@ function EventsPanel() {
           ) : selected ? (
             <>
               <BackButton onClick={goBack} />
-              <div className="card sheet detail-sheet">
+              <div className="card sheet detail-sheet event-ticket-sheet" style={ticketColors(selected)}>
                 <EventDetails
                   event={selected}
                   myInterestIds={myInterestIds}

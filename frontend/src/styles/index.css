@@ -454,20 +454,6 @@ button.info-link {
   margin-top: 0;
 }
 
-/* Samma röda stil på en knapp utanför ett formulär, t.ex. den lilla "Radera
-   konto" under Redigera profil (DeleteAccount, SCRUM-255). */
-.secondary-button.button-danger {
-  border-color: var(--color-error);
-  color: var(--color-error);
-}
-
-.secondary-button.button-danger:hover,
-.secondary-button.button-danger:focus-visible {
-  border-color: var(--color-error);
-  background: var(--color-error);
-  color: var(--color-white);
-}
-
 /* Raderingen i popupen (DeleteAccount): en liten knapp i mitten i stället för
    hela formulärets bredd, så att den inte blir det mest framträdande på sidan. */
 .auth-form .delete-account-confirm {
@@ -1876,6 +1862,64 @@ span.tag-selected:hover {
   }
 }
 
+/* Pekfingret på kryssrutor, radioknappar och rullistor, och på etiketten runt
+   kryssrutor och radioknappar (som också går att klicka på). */
+select:not(:disabled),
+input[type='checkbox']:not(:disabled),
+input[type='radio']:not(:disabled),
+label:has(> input[type='checkbox']:not(:disabled)),
+label:has(> input[type='radio']:not(:disabled)) {
+  cursor: pointer;
+}
+
+/* Redigera och Radera (components/IconButton.jsx): bara den handritade pennan
+   eller soptunnan, utan ram och bakgrund. Lyfts vid hover och fokus, som
+   .create-button. Också i formulär, där .auth-form button och .map-pad
+   .form-actions button annars gör den till en gul knapp. */
+.icon-button,
+.auth-form .icon-button,
+.map-pad .form-actions .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0.15rem;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.icon-button:disabled {
+  cursor: default;
+}
+
+.icon-button img {
+  width: 1.6rem;
+  height: 1.6rem;
+  object-fit: contain;
+}
+
+.icon-button:hover:not(:disabled),
+.icon-button:focus-visible,
+.auth-form .icon-button:hover:not(:disabled),
+.map-pad .form-actions .icon-button:hover:not(:disabled) {
+  background: none;
+  transform: translateY(-2px) rotate(-4deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-button {
+    transition: none;
+  }
+
+  .icon-button:hover:not(:disabled),
+  .icon-button:focus-visible {
+    transform: none;
+  }
+}
+
 .tag-static {
   cursor: default;
 }
@@ -1984,16 +2028,6 @@ span.tag-selected:hover {
 
 .event-answer-head h2 {
   margin: 0;
-}
-
-/* Platserna som är kvar: en mjuk gul etikett. */
-.capacity-pill {
-  padding: 0.1rem 0.6rem;
-  border-radius: 999px;
-  background: var(--color-accent-soft);
-  border: 1.5px solid var(--color-accent);
-  font-size: var(--text-small);
-  font-weight: 600;
 }
 
 /* Svaren på ett event i siffror: en ruta per svar med siffran stor och vad den
@@ -6944,45 +6978,508 @@ label.person-list-item {
   font-size: var(--text-small);
 }
 
-/* När och var på eventets sida (EventWhenWhere), direkt på eventet utan ruta.
-   Datumet och tiden i fetstil, och efter en streckad linje platsen, adressen
-   och "Visa på kartan" som länk. */
-.event-when-where {
+/* Eventkortet som en biljett (EventTicket i EventList, Nicklas förslag): ett stående kort i pappersstilen som
+   klubbkorten: vitt papper, en färgad rad överst i intressets färg (--poster), och längst ner ett kvitto
+   (.event-ticket-stub) med en perforerad linje ovanför och ett urtag i vardera kanten. Urtagen är en mask
+   (kvittot har en fast höjd, --stub-h, så att de hamnar på rätt ställe), och skuggan ligger på omslaget
+   (.event-ticket-wrap) som en drop-shadow, eftersom en mask annars klipper bort kortets egen skugga. */
+.event-ticket-wrap {
+  display: flex;
+  filter: drop-shadow(1px 3px 5px rgba(58, 47, 37, 0.3));
+  transform: rotate(-0.5deg);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.event-ticket-wrap:nth-child(even) {
+  transform: rotate(0.6deg);
+}
+
+.event-ticket-wrap:hover,
+.event-ticket-wrap:focus-within {
+  filter: drop-shadow(2px 7px 8px rgba(58, 47, 37, 0.36));
+  transform: translateY(-3px);
+}
+
+.event-ticket.card {
+  --stub-h: 6.2rem;
+  --notch: 0.6rem;
+  --poster: var(--color-accent);
+  --poster-soft: #fdf6e0;
+  position: relative;
+  flex: 1;
+  gap: 0.55rem;
+  min-height: 0;
+  padding: 1.05rem 1.05rem 0;
+  border: 0;
+  border-radius: 3px;
+  background:
+    linear-gradient(var(--poster), var(--poster)) top / 100% 7px no-repeat,
+    #fffdf7;
+  box-shadow: none;
+  mask:
+    radial-gradient(circle at left calc(100% - var(--stub-h)), #0000 var(--notch), #000 calc(var(--notch) + 0.5px)) left / 51% 100% no-repeat,
+    radial-gradient(circle at right calc(100% - var(--stub-h)), #0000 var(--notch), #000 calc(var(--notch) + 0.5px)) right / 51% 100% no-repeat;
+}
+
+/* Hovern ligger på omslaget (se ovan), inte på kortet. */
+.event-ticket.card.card-interactive:hover,
+.event-ticket.card.card-interactive:focus-within {
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+/* "EVENT" överst, som tryckt på en biljett. */
+.event-ticket-head {
+  display: flex;
+  margin-top: 0.15rem;
+  color: #5a5148;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Titeln i raka tryckbokstäver, som affischen, med luft över prickarna på Ö, Å och Ä. */
+.event-ticket .card-title {
+  padding-block: 0.25em;
+  margin-block: -0.25em;
+  font-family: var(--font-body);
+  font-size: 1.25rem;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+.event-ticket .list-card-description {
+  color: #4a4038;
+  -webkit-line-clamp: 2;
+}
+
+.event-ticket .card-actions {
+  margin-top: auto;
+  padding-bottom: 0.7rem;
+}
+
+/* Kvittot: en perforerad linje ovanför (med urtagen i kanterna), intressets ljusa färg som bakgrund och datumet
+   stort. */
+.event-ticket-stub {
+  flex: none;
+  display: grid;
+  /* Lika breda kolumner på sidorna (datumet till vänster, en tom till höger), så att tiden och platsen ligger mitt
+     på kortet. */
+  grid-template-columns: 3.4rem 1fr 3.4rem;
+  gap: 0.15rem 0.5rem;
+  align-items: center;
+  height: var(--stub-h);
+  margin: 0 -1.05rem;
+  padding: 0.6rem 1.05rem 0.7rem;
+  border-top: 2px dashed rgba(58, 47, 37, 0.4);
+  background: var(--poster-soft);
+}
+
+.event-ticket-date {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  width: 100%;
-  margin: 0.4rem 0 0.25rem;
-  font-size: var(--text-body);
+  align-items: center;
+  min-width: 3.1rem;
+  line-height: 1;
+  transform: rotate(-3deg);
 }
 
-.event-when-where p {
-  margin: 0;
-}
-
-.event-when-date,
-.event-when-time {
+.event-ticket-day {
+  font-family: var(--font-heading);
+  font-size: 2.7rem;
   font-weight: 700;
 }
 
-.event-where {
+.event-ticket-month {
+  margin-top: -0.1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.event-ticket-when {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  text-align: center;
+}
+
+/* Tiden större, i en svart ruta med ljus text, som antalet på klubbkorten. */
+.event-ticket-when strong {
+  align-self: center;
+  margin-bottom: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  background: var(--color-ink);
+  color: #fffdf7;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: rotate(-1.5deg);
+}
+
+.event-ticket-place {
+  max-width: 100%;
+  overflow: hidden;
+  color: #4a4038;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Eventets egen vy som en biljett (EventDetails med `ticket`, i .event-ticket-sheet): samma vita papper med en rad i
+   intressets färg överst, titeln i tryckbokstäver, stämpeln (Endast inbjudna, Öppet för alla eller Ansökan) uppe till
+   höger, och ett kvitto längst ner med datumet, tiden och platsen, de två sista i svarta rutor. */
+.event-ticket-sheet.card {
+  --poster: var(--color-accent);
+  --poster-soft: #fdf6e0;
+  /* Kvittots höjd och urtagens storlek, som på biljettkortet (.event-ticket.card): ett halvrunt urtag i vardera
+     kanten vid den perforerade linjen, så att det ser ut som att man kan riva av biljetten. */
+  --stub-h: 7.8rem;
+  --notch: 0.75rem;
+  /* Lite mindre luft överst än på andra kort, så att eventet får plats utan att scrolla också på en låg skärm. */
+  padding-top: 1.1rem;
+  border: 0;
+  border-radius: 2px;
+  background:
+    linear-gradient(var(--poster), var(--poster)) top / 100% 8px no-repeat,
+    #fffdf7;
+  box-shadow: none;
+  mask:
+    radial-gradient(circle at left calc(100% - var(--stub-h)), #0000 var(--notch), #000 calc(var(--notch) + 0.5px))
+      left / 51% 100% no-repeat,
+    radial-gradient(circle at right calc(100% - var(--stub-h)), #0000 var(--notch), #000 calc(var(--notch) + 0.5px))
+      right / 51% 100% no-repeat;
+}
+
+/* Lägre kvitto på en bred skärm, där tiden, platsen och Skapat av står på en rad. Skärmens bredd i stället för
+   kortets (container query), eftersom höjden behövs på själva kortet (masken), och ett kort inte kan fråga om sin
+   egen bredd. */
+@media (min-width: 768px) {
+  .event-ticket-sheet.card {
+    --stub-h: 4.9rem;
+  }
+}
+
+/* Skuggan på biljettens omslag, eftersom masken annars klipper bort kortets egen skugga (som .event-ticket-wrap). */
+.app-section:has(> .event-ticket-sheet) {
+  filter: drop-shadow(0 6px 10px rgba(58, 47, 37, 0.18));
+}
+
+.event-ticket-sheet .detail-main {
+  position: relative;
+}
+
+/* Stämpeln i hörnet, och plats för den till höger om titeln. Högre upp när rutan är smal, så att den inte hamnar
+   ovanpå titeln. */
+.event-ticket-sheet .event-stamps {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.4rem;
+}
+
+.event-ticket-sheet .event-stamps .stamp {
+  padding: 0 0.4rem;
+  font-size: 0.9rem;
+  transform: rotate(-6deg);
+}
+
+/* Titeln och pennan (Redigera) bredvid varandra, med plats för stämpeln till höger. */
+.event-ticket-sheet .title-row {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  padding-right: 6.5rem;
+}
+
+.event-ticket-sheet .event-title-edit {
+  flex-shrink: 0;
+  margin-left: 0.6rem;
+}
+
+/* Lika stor som på biljettkortet när rutan är smal, så att ett långt ord får plats bredvid stämpeln. */
+.event-ticket-sheet .title-row .card-title {
+  padding: 0.25em 0;
+  margin-block: -0.25em;
+  font-family: var(--font-body);
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+/* Nivån i en svart ruta, som antalet på klubbkorten. */
+.event-ticket-sheet .event-tags .status-pill {
+  padding: 0.2rem 0.55rem;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-ink);
+  color: #fffdf7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Rubrikerna (Om eventet, Adress, Deltagare) små och tryckta, som "EVENT" på kortet. */
+.event-ticket-sheet h3.card-subheading {
+  color: #5a5148;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Adressen under Om eventet: "Visa på kartan" bara så bred som texten, med lite luft ovanför. */
+.event-ticket-address {
   align-items: flex-start;
-  gap: 0.1rem;
-  margin-top: 0.55rem;
-  padding-top: 0.55rem;
-  border-top: 1.5px dashed rgba(58, 47, 37, 0.35);
+  gap: 0.15rem;
 }
 
-.event-where-place {
-  font-weight: 600;
+.event-ticket-address .card-text {
+  margin: 0;
 }
 
-.event-where .info-link {
+.event-ticket-address .info-link {
   margin-top: 0.35rem;
-  padding: 0 0 2px;
-  border-width: 0 0 2px;
-  background: none;
-  cursor: pointer;
+}
+
+/* Redigera längst ner i högerspalten, till höger (.event-ticket-owner). Spalterna är lika höga, och den trycks ner
+   till botten. */
+.event-ticket-owner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  margin-top: auto;
+}
+
+/* Bjud in direkt under Kommer du? (inte nertryckt som annars, se .event-invite-actions), så att all ledig plats
+   hamnar ovanför Redigera. */
+.event-ticket-sheet .event-invite-actions {
+  margin-top: 0;
+}
+
+/* Biljetten fyller blocket ända ner när innehållet är kortare, med kvittot längst ner, så att kortet blir så långt
+   som det får plats utan att scrolla. */
+.map-pad-page:has(.event-ticket-sheet) {
+  display: flex;
+  flex-direction: column;
+}
+
+.map-pad-page:has(.event-ticket-sheet) > .map-pad-app-page,
+.map-pad-app-page > .app-section:has(.event-ticket-sheet) {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.event-ticket-sheet.card {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.event-ticket-sheet .detail-view {
+  flex: 1 0 auto;
+}
+
+/* Luften ovanför kvittot står under spalterna, eftersom kvittot trycks ner till botten (margin-top: auto). */
+.event-ticket-sheet .detail-main,
+.event-ticket-sheet .detail-aside {
+  padding-bottom: 0.6rem;
+}
+
+/* Högerspalten lite tätare (Kommer du?, Bjud in, ansökningarna och deltagarna), så att också ett event med
+   ansökningar får plats utan att scrolla. */
+.event-ticket-sheet .detail-aside {
+  gap: 0.35rem;
+}
+
+.event-ticket-sheet .detail-aside > .person-list {
+  margin-top: 0.4rem;
+}
+
+/* Skapat av i den minsta texten (--text-small), också namnet och klubben (inte länkarnas större storlek, se
+   .map-pad .info-link). */
+.event-ticket-sheet .event-created-by {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--text-small);
+  text-align: right;
+}
+
+.event-created-by .info-link,
+.map-pad .event-created-by .info-link {
+  font-size: inherit;
+}
+
+/* Redigera och Radera (ikonerna) längst till höger. */
+.event-ticket-sheet .event-host-actions {
+  justify-content: flex-end;
+  margin: 0;
+}
+
+/* Radera i redigeringsläget (CreateEventForm): soptunnan längst till höger efter Spara och Avbryt. */
+.event-form-delete {
+  align-self: center;
+  margin-left: auto;
+}
+
+/* Eventets biljett närmare blockets rubrik, så att den får plats utan att scrolla. */
+.map-pad-page:has(.event-ticket-sheet) .map-pad-head {
+  margin-bottom: 0.4rem;
+}
+
+/* Kvittot hela vägen ut till kanterna, under båda spalterna. */
+/* Fast höjd (--stub-h), så att urtagen hamnar vid den perforerade linjen. På en smal skärm får tiden, platsen och
+   Skapat av två rader. */
+.event-ticket-sheet-stub {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  align-self: stretch;
+  gap: 0.4rem 0.75rem;
+  box-sizing: border-box;
+  height: var(--stub-h);
+  margin: auto -1.5rem -1.5rem;
+  padding: 0.55rem 1.5rem;
+  border-top: 2px dashed rgba(58, 47, 37, 0.4);
+  background: var(--poster-soft);
+}
+
+.event-ticket-sheet-stub .event-ticket-date {
+  margin-right: 0.25rem;
+}
+
+.event-ticket-box {
+  max-width: 100%;
+  padding: 0.25rem 0.65rem;
+  overflow: hidden;
+  background: var(--color-ink);
+  color: #fffdf7;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: rotate(-1.5deg);
+}
+
+@container (min-width: 40rem) {
+  /* Mindre fast utrymme för beskrivningen än i andra vyer (.event-description), så att allt får plats utan att
+     scrolla. */
+  .event-ticket-sheet .event-description {
+    min-height: 4.5rem;
+  }
+
+  .event-ticket-sheet .event-stamps {
+    top: 0.6rem;
+    right: 0;
+  }
+
+  .event-ticket-sheet .title-row {
+    padding-right: 7.5rem;
+  }
+
+  .event-ticket-sheet .title-row .card-title {
+    font-size: 1.7rem;
+  }
+
+  .event-ticket-sheet-stub {
+    grid-column: 1 / -1;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  /* Längst ner till höger i kvittot. */
+  .event-ticket-sheet .event-created-by {
+    flex-basis: auto;
+    align-self: flex-end;
+    margin-left: auto;
+  }
+
+  /* Spalterna och kvittot tätt under varandra: luften står bara mellan spalterna. */
+  .event-ticket-sheet .detail-view {
+    grid-template-rows: 1fr auto;
+    align-items: stretch;
+    row-gap: 0;
+  }
+}
+
+/* Skapa och redigera event i samma stil (.event-ticket-form): vitt papper med en gul rad överst, rubriken i
+   tryckbokstäver och etiketterna små och tryckta, som på biljetten. Fälten är som vanligt. */
+.event-ticket-form.card {
+  padding-block: 1.1rem;
+  border: 0;
+  border-radius: 2px;
+  background:
+    linear-gradient(var(--color-accent), var(--color-accent)) top / 100% 8px no-repeat,
+    #fffdf7;
+  box-shadow:
+    0 2px 0 rgba(58, 47, 37, 0.06),
+    0 8px 20px rgba(58, 47, 37, 0.12);
+}
+
+/* Tre spalter när formuläret är brett (CreateEventForm), så att allt får plats utan att scrolla, och en lägre karta. */
+@container (min-width: 60rem) {
+  .event-ticket-form .form-columns {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 1.5rem;
+  }
+}
+
+.event-ticket-form .location-picker-map {
+  height: 120px;
+}
+
+/* Lite tätare mellan fälten än i andra formulär, så att allt får plats utan att scrolla också på en låg skärm. */
+.event-ticket-form form {
+  gap: 0.5rem;
+}
+
+/* Två fält bredvid varandra också i en smalare spalt (t.ex. Plats och Gatuadress), och Bjud in närmare fälten
+   ovanför. */
+.event-ticket-form .form-row {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.event-ticket-form .detail-view-section {
+  margin-top: 0.25rem;
+}
+
+.event-ticket-form h2 {
+  font-family: var(--font-body);
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.event-ticket-form .form-field > label,
+.event-ticket-form legend {
+  color: #5a5148;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
