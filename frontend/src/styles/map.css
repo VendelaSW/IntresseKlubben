@@ -2501,12 +2501,13 @@
    kartan, Klubbar och Events. Kartan (inget block öppet) är en större gul
    knapp i mitten. En gul bubbla (.map-nav-blob) glider till den öppna sidan
    och töjs ut på vägen; på kartan växer den till en ring runt knappen.
-   Menyn ligger ovanför källhänvisningen, och blocken går ända ner under den. */
+   Menyn ligger nära nederkanten, så att sidorna får mer plats. Källhänvisningen till kartan står ovanför den, och
+   blocken går ända ner under den. */
 @media (max-width: 767px) {
   .map-page-widgets {
     left: calc(18px + env(safe-area-inset-left));
     right: calc(18px + env(safe-area-inset-right));
-    bottom: calc(22px + env(safe-area-inset-bottom));
+    bottom: calc(8px + env(safe-area-inset-bottom));
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 2px;
@@ -2564,7 +2565,6 @@
     border: 2px solid var(--color-ink);
     border-radius: 50%;
     background: var(--color-accent);
-    box-shadow: 3px 3px 0 var(--color-ink);
   }
 
   .map-page-widget-home .map-page-widget-icon {
@@ -2640,27 +2640,32 @@
   /* Raka hörn nertill: det handritade, snedställda hörnet nere till vänster (se .map-pad-page) ser avklippt ut när
      blocket går ner under menyn. */
   .map-pad-page {
-    padding-bottom: 6.5rem;
+    padding-bottom: 5.5rem;
     border-radius: 6px 6px 0 0;
   }
 
-  /* Sökikonen och skapa-knappen (se .map-pad-float) ovanför menyn: menyns överkant ligger 86px över skärmens
+  /* Sökikonen och skapa-knappen (se .map-pad-float) ovanför menyn: menyns överkant ligger 72px över skärmens
      nederkant och blockets nederkant 12px över den. Sidan får plats att scrolla fram det sista ovanför båda. */
   .map-pad-float,
   .map-pad-float-start {
-    bottom: 84px;
+    bottom: 70px;
   }
 
   .map-pad:has(.map-pad-float:not(:empty)) .map-pad-page {
-    padding-bottom: 9.5rem;
+    padding-bottom: 8rem;
   }
 
   .map-sketch-compass {
-    bottom: calc(100px + env(safe-area-inset-bottom));
+    bottom: calc(86px + env(safe-area-inset-bottom));
   }
 
   .map-sketch-hint {
-    bottom: calc(170px + env(safe-area-inset-bottom));
+    bottom: calc(156px + env(safe-area-inset-bottom));
+  }
+
+  /* Källhänvisningen till kartan (som måste synas) ovanför menyn i stället för bakom den. */
+  .map-sketch .maplibregl-ctrl-bottom-right {
+    bottom: calc(76px + env(safe-area-inset-bottom));
   }
 }
 

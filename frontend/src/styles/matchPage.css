@@ -47,15 +47,6 @@
   justify-self: start;
 }
 
-/* "Ta bort förslag" på en egen vit bakgrund med en tunn kant, så att texten syns var kortet än ligger. */
-.match-card .match-actions .text-button {
-  padding: 0.3rem 0.9rem;
-  border: 1.5px solid var(--color-ink);
-  border-radius: 4px;
-  background: var(--color-white);
-  color: var(--color-ink);
-}
-
 /* Pilarna vid kortets sidor: nästa åt höger och tillbaka åt vänster. Den skissade pilen (DrawnArrow), men tjockare, med
    svart kant och fylld med den gula färgen. */
 .match-stage {
@@ -83,12 +74,13 @@
   cursor: pointer;
 }
 
-/* På en smal skärm utan scroll (.match-panel.is-fitted, se MatchPanel): kortet får hela bredden, och pilarna står på
+/* På en smal skärm (också när blocket är för lågt för läget utan scroll, .is-fitted, t.ex. på en telefon med
+   webbläsarens adressfält): kortet får hela bredden, och pilarna står på
    raden under, på var sin sida om Näst på tur. Med pilarna bredvid blir kortet så smalt att namnet och taggarna bryts
    till flera rader och knapparna inte får plats. Lite mindre luft i kortet, och rubriken "Därför matchar ni" döljs (skälen
    börjar med "Ni delar ..."). */
 @media (max-width: 767px) {
-  .match-panel.is-fitted > .match-stack {
+  .match-panel > .match-stack {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-rows: minmax(0, 1fr) auto;
@@ -97,11 +89,11 @@
     gap: 0.6rem 0.25rem;
   }
 
-  .match-panel.is-fitted .match-stage {
+  .match-panel .match-stage {
     display: contents;
   }
 
-  .match-panel.is-fitted .match-stage .match-card {
+  .match-panel .match-stage .match-card {
     grid-column: 1 / -1;
     grid-row: 1;
     align-self: start;
@@ -110,40 +102,40 @@
     gap: 0.35rem;
   }
 
-  .match-panel.is-fitted .match-stage .match-arrow {
+  .match-panel .match-stage .match-arrow {
     grid-row: 2;
     width: 2.2rem;
   }
 
-  .match-panel.is-fitted .match-stage .match-arrow:first-child {
+  .match-panel .match-stage .match-arrow:first-child {
     grid-column: 1;
   }
 
-  .match-panel.is-fitted .match-stage .match-arrow:last-child {
+  .match-panel .match-stage .match-arrow:last-child {
     grid-column: 3;
   }
 
-  .match-panel.is-fitted .match-stack > .match-upnext {
+  .match-panel .match-stack > .match-upnext {
     grid-column: 2;
     grid-row: 2;
     min-width: 0;
   }
 
-  .match-panel.is-fitted .match-upnext-title {
+  .match-panel .match-upnext-title {
     white-space: nowrap;
   }
 
-  .match-panel.is-fitted .match-strip-avatar {
+  .match-panel .match-strip-avatar {
     width: 1.75rem;
     height: 1.75rem;
     font-size: 0.65rem;
   }
 
-  .match-panel.is-fitted .match-strip-people > li + li {
+  .match-panel .match-strip-people > li + li {
     margin-left: -0.6rem;
   }
 
-  .match-panel.is-fitted .match-why-title {
+  .match-panel .match-why-title {
     display: none;
   }
 }
@@ -431,5 +423,110 @@
 @media (max-width: 767px) {
   .interview-summary.poster-card .interview-save-buttons {
     background: #fffdf7;
+  }
+}
+
+/* ---------- Medlemmar på mobil ---------- */
+
+/* Matcha: kortet i sin riktiga storlek (förstoringen på datorn, .match-stage .match-card, gör annars att det sticker ut
+   åt sidan och över Näst på tur), bilden till vänster om namnet och staden, namnet på högst två rader och staden på en
+   rad. Knappen "Skicka förfrågan" i hela bredden, och "Ta bort förslag" som en liten knapp med ram under (MatchCard). */
+@media (max-width: 767px) {
+  .match-stage .match-card {
+    transform: none;
+  }
+
+  .match-card.poster-card .person-card-link {
+    grid-template-columns: 60px minmax(0, 1fr);
+    column-gap: 0.75rem;
+  }
+
+  .match-card .person-card-link .card-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 1.2rem;
+  }
+
+  .match-card .person-card-link .poster-name {
+    font-size: 1.15rem;
+  }
+
+  /* Om mig högst fyra rader, så att kortet inte blir långt också när blocket är för lågt för läget utan scroll (där
+     räknar fitAboutText i MatchPanel ut raderna och sätter --about-lines på texten). */
+  .match-card .poster-about-clamped {
+    --about-lines: 4;
+  }
+
+  .match-card .person-card-link .poster-stamp,
+  .card-grid-compact .person-card.poster-card .person-card-link .poster-stamp {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Sök, Förfrågningar och Kompisar: ett kort per rad över hela bredden (i stället för två smala), med bilden till
+     vänster om namnet och staden, intressena under och knapparna på en rad nederst. */
+  .card-grid-compact:has(> .person-card) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: auto;
+    gap: 0.9rem;
+  }
+
+  /* Så höga som innehållet, inte listkortens fasta minsta höjd (--card-height). */
+  .card-grid-compact > .person-card.poster-card {
+    min-height: 0;
+    padding: 1rem 0.9rem 0.85rem;
+  }
+
+  .card-grid-compact .person-card.poster-card .person-card-link {
+    grid-template-columns: 52px minmax(0, 1fr);
+    column-gap: 0.75rem;
+    row-gap: 0.25rem;
+  }
+
+  .card-grid-compact .person-card.poster-card .person-card-link .card-avatar {
+    grid-row: 1 / span 2;
+    width: 52px;
+    height: 52px;
+  }
+
+  .card-grid-compact .person-card.poster-card .person-card-link .poster-name {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    font-size: 1rem;
+  }
+
+  .card-grid-compact .person-card.poster-card .person-card-link .poster-stamp {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 0.65rem;
+  }
+
+  /* Huvudknappen tar raden som blir över, de små (brevikonen, Avböj, Ta bort) så breda som sin text. */
+  .card-grid-compact .person-card .card-actions {
+    flex-wrap: nowrap;
+  }
+
+  .card-grid-compact .person-card .card-actions > button.primary-button {
+    flex: 1 1 auto;
+    font-size: 0.85rem;
+  }
+
+  .card-grid-compact .person-card .card-actions > button.secondary-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* Intressena tar bara så många rader som de har (på datorn har de alltid plats för två, så att korten i en rad blir
+     lika höga, men här ligger korten under varandra). */
+  .card-grid-compact .person-card .person-card-interests > .interest-tags {
+    min-height: 0;
+  }
+
+  /* Brevikonen skjuter inte resten av raden åt höger här, så att huvudknappen får platsen. */
+  .card-grid-compact .person-card .card-actions > .card-write {
+    margin-right: 0;
   }
 }
