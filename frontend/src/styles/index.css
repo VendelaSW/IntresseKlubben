@@ -2635,6 +2635,53 @@ button.answer-summary-box:disabled {
   }
 }
 
+/* Matcha-fliken utan scroll (MatchPanel, useFitToPad): panelen har höjden som är kvar i blocket, och kortet håller sig
+   inom den. Allt i kortet behåller sin storlek utom Om mig-texten och skälen, som krymper och scrollar inuti kortet, så att
+   knapparna alltid syns. Näst på tur får bara plats när det finns gott om höjd. */
+.match-panel.is-fitted {
+  display: flex;
+  flex-direction: column;
+  height: var(--match-room);
+}
+
+.match-panel.is-fitted > * {
+  flex: none;
+}
+
+.match-panel.is-fitted > .match-stack {
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 1rem;
+  container-type: size;
+}
+
+.match-panel.is-fitted .match-stage,
+.match-panel.is-fitted .match-stack > .match-card {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.match-panel.is-fitted .match-card {
+  max-height: 100%;
+}
+
+.match-panel.is-fitted .match-card > * {
+  flex-shrink: 0;
+}
+
+.match-panel.is-fitted .match-card > .match-about,
+.match-panel.is-fitted .match-card > .match-reasons {
+  flex: 0 1 auto;
+  min-height: 2.6rem;
+  overflow-y: auto;
+}
+
+@container (max-height: 40rem) {
+  .match-panel.is-fitted .match-upnext {
+    display: none;
+  }
+}
+
 .match-upnext {
   display: flex;
   flex-direction: column;

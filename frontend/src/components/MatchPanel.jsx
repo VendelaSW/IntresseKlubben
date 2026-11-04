@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
 import { useDesignChoice } from '../hooks/useDesignChoice'
@@ -18,6 +18,45 @@ const NOTICE_MS = 8000
 const UP_NEXT = 4
 const PREFETCH_AT = 5
 
+// Under så här många pixlar kvar i blocket får fliken scrolla som vanligt, i stället för att kortet trycks ihop.
+const MIN_ROOM = 320
+
+// Avståndet från elementets överkant till `ancestor`s, i layouten (offset-mått: blocken på kartan lutar lite, och då stämmer
+// inte getBoundingClientRect). Ligger `ancestor` inte i kedjan av offsetParent räknas båda från sidans överkant.
+function offsetTopIn(element, ancestor) {
+  let top = 0
+  for (let e = element; e; e = e.offsetParent) {
+    if (e === ancestor) return top
+    top += e.offsetTop
+  }
+  for (let e = ancestor; e; e = e.offsetParent) top -= e.offsetTop
+  return top
+}
+
+// Matcha-fliken ska inte scrolla: panelen får höjden som är kvar i blocket (.map-pad-page) under filtren, och CSS:en
+// (.match-panel.is-fitted) får kortet att hålla sig inom den. Mäts om när blocket eller innehållet ovanför ändrar storlek,
+// t.ex. när filtren öppnas eller fönstret ändras.
+function useFitToPad(panelRef) {
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    const pad = panel?.closest('.map-pad-page')
+    if (!pad) return undefined
+    const measure = () => {
+      const padBottom = parseFloat(getComputedStyle(pad).paddingBottom) || 0
+      const room = Math.floor(pad.clientHeight - padBottom - offsetTopIn(panel, pad))
+      const fits = room >= MIN_ROOM
+      panel.classList.toggle('is-fitted', fits)
+      if (fits) panel.style.setProperty('--match-room', `${room}px`)
+      else panel.style.removeProperty('--match-room')
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(pad)
+    if (panel.parentElement) observer.observe(panel.parentElement)
+    return () => observer.disconnect()
+  }, [panelRef])
+}
+
 // Matcha-fliken under Medlemmar: det bästa förslaget som ett stort kort överst och de närmast på tur som små kort under
 // (så att det syns att det finns fler), bäst först (GET /matches). Skickar eller tar man bort någon växer nästa kort fram. På kortet kan man skicka en
 // kompisförfrågan eller ta bort förslaget för gott (med Ångra). Med pilarna vid kortets sidor går man vidare till nästa (utan
@@ -35,6 +74,8 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
   const [error, setError] = useState('')
   const [notice, setNotice] = useState(null) // { text, undo? }
   const [history, setHistory] = useState([]) // de man gått förbi med pilen, den senaste sist: pilen åt vänster tar tillbaka den
+  const panelRef = useRef(null)
+  useFitToPad(panelRef)
   const skipped = useRef(0)
   const request = useRef(0)
   const appending = useRef(false)
@@ -297,7 +338,7 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
 
   // "Ångra" efter att man skickat eller tagit bort någon.
   return (
-    <div className="match-panel">
+    <div ref={panelRef} className="match-panel">
       {body}
       {error && <p className="status-error">{error}</p>}
       {noticeElement}
