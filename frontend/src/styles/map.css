@@ -1793,6 +1793,32 @@
   min-height: 0;
 }
 
+/* Ett formulär som ska få plats utan scroll (.form-fit, t.ex. skapa klubb)
+   fyller hela blockets höjd: sidan, kortet runt formuläret (.sheet-form, eller
+   .profile-edit i Redigera profil) och formuläret växer,
+   och fälten som kan växa (beskrivningen, kartan) tar det som blir över. Får det
+   inte plats (låg skärm, mobil) scrollar sidan som vanligt. */
+.map-pad-page:has(.form-fit),
+.map-pad-page:has(.form-fit) .map-pad-app-page,
+.map-pad-page:has(.form-fit) .app-section,
+.map-pad-page:has(.form-fit) .sheet-form,
+.map-pad-page:has(.form-fit) .profile-edit {
+  display: flex;
+  flex-direction: column;
+}
+
+.map-pad-page:has(.form-fit) .map-pad-app-page,
+.map-pad-page:has(.form-fit) .app-section,
+.map-pad-page:has(.form-fit) .sheet-form,
+.map-pad-page:has(.form-fit) .profile-edit {
+  flex: 1 0 auto;
+}
+
+/* Redigera profil fyller blockets bredd också, som skapa klubb och event. */
+.map-pad-page .card-wide.profile-edit {
+  max-width: none;
+}
+
 /* Knapparna i blocken: tre sorter, i en och samma storlek, så att det inte
    blandas stora och små knappar på samma sida (t.ex. Spara, Avbryt, Byt
    lösenord och Radera konto på samma rad i Redigera profil).

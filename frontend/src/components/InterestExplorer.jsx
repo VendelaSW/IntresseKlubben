@@ -279,7 +279,7 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, onSetPractices,
   }
 
   return (
-    <section className="card card-wide explorer">
+    <section className="card card-wide card-soft explorer">
       <h2 className="card-title">Vad gillar du?</h2>
       {mine}
       {search}

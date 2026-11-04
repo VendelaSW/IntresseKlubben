@@ -1,35 +1,98 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import eventIcon from '../../assets/event.png'
+import ChoiceButtons from '../ChoiceButtons'
 import DateField from '../DateField'
-import FormField from '../FormField'
+import FormField, { RequiredNote } from '../FormField'
+import FormSection from '../FormSection'
+import InputWithCount from '../InputWithCount'
 import InterestPicker from '../InterestPicker'
-import LocationPicker from '../LocationPicker'
+import { LocationMap } from '../LocationPicker'
+import LocationSearch from '../LocationSearch'
 import Modal from '../Modal'
+import NumberStepper from '../NumberStepper'
 import TextareaWithCount from '../TextareaWithCount'
 import InvitePicker from './InvitePicker'
+import { useFitToHeight } from '../../hooks/useFitToHeight'
+import { useLocationPicker } from '../../hooks/useLocationPicker'
 import { EVENT_VISIBILITY, createEvent, inviteToEvent, updateEvent } from '../../services/events'
 import { SCOPES, SKILL_LEVELS, areaOptions, getRegions } from '../../services/groups'
 import { profileQuery } from '../../services/profile'
 import { localInputValue } from '../../utils/eventTime'
 import InfoTip from '../InfoTip'
 
-// Hur man kommer med (SCRUM-296). Öppet och Ansökan går inte i en privat klubb.
+// Ett litet hänglås, öppet eller låst, som Öppen och Privat på klubbkorten (GroupList).
+function LockIcon({ open }) {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d={open ? 'M8 11V7a4 4 0 0 1 7.9-.9' : 'M8 11V7a4 4 0 0 1 8 0v4'} />
+    </svg>
+  )
+}
+
+// Ett brev, för Ansökan.
+function LetterIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+      <rect x="3" y="6" width="18" height="13" rx="2" />
+      <path d="m4 8 8 6 8-6" />
+    </svg>
+  )
+}
+
+// Hur man kommer med (SCRUM-296), med samma färger och ikoner som i klubbformuläret. Öppet och Ansökan går inte i
+// en privat klubb.
 const VISIBILITY_OPTIONS = [
-  { value: EVENT_VISIBILITY.inviteOnly, label: 'Bara inbjudna', hint: 'Syns bara för dem du bjuder in.' },
-  { value: EVENT_VISIBILITY.open, label: 'Öppet', hint: 'Syns för alla, och alla kan svara.' },
-  { value: EVENT_VISIBILITY.application, label: 'Ansökan', hint: 'Syns för alla, och du godkänner vem som får vara med.' },
+  {
+    value: EVENT_VISIBILITY.inviteOnly,
+    label: 'Bara inbjudna',
+    info: 'Syns bara för dem du bjuder in.',
+    icon: <LockIcon />,
+    tone: 'lilac',
+  },
+  {
+    value: EVENT_VISIBILITY.open,
+    label: 'Öppet',
+    info: 'Syns för alla, och alla kan svara.',
+    icon: <LockIcon open />,
+    tone: 'green',
+  },
+  {
+    value: EVENT_VISIBILITY.application,
+    label: 'Ansökan',
+    info: 'Syns för alla, och du godkänner vem som får vara med.',
+    icon: <LetterIcon />,
+    tone: 'peach',
+  },
 ]
 
 // Ett event kan valfritt gälla ett större område (SCRUM-295); kommun finns inte, eftersom eventet redan hör till
 // sin plats.
 const EVENT_SCOPES = SCOPES.filter((s) => s.value !== 'kommun')
 
-// "2 personer och 1 klubb", eller en kort uppmaning om inget är valt än.
+// Räckvidden som svar på "Gäller ett större område?" ("I ett län"), och frågan om vilket område det är.
+const SCOPE_CHOICES = {
+  lan: 'I ett län',
+  landskap: 'I ett landskap',
+  landsdel: 'I en landsdel',
+  country: 'I hela Sverige',
+}
+const AREA_QUESTIONS = { lan: 'Vilket län?', landskap: 'Vilket landskap?', landsdel: 'Vilken landsdel?' }
+
+// Nivåerna med "Alla nivåer" först, eftersom det är förvalt (som i klubbformuläret).
+const ALL_LEVELS = 'all_levels'
+const SKILL_CHOICES = [
+  ...SKILL_LEVELS.filter((l) => l.value === ALL_LEVELS),
+  ...SKILL_LEVELS.filter((l) => l.value !== ALL_LEVELS),
+]
+
+// "2 personer och 1 klubb", eller inget om inget är valt än.
 function inviteSummary({ userIds, groupIds }) {
   const parts = []
   if (userIds.length > 0) parts.push(`${userIds.length} ${userIds.length === 1 ? 'medlem' : 'medlemmar'}`)
   if (groupIds.length > 0) parts.push(`${groupIds.length} ${groupIds.length === 1 ? 'klubb' : 'klubbar'}`)
-  return parts.length > 0 ? `${parts.join(' och ')} valda. Skickas när eventet har skapats.` : 'Valfritt.'
+  return parts.length > 0 ? `${parts.join(' och ')} valda. Skickas när eventet har skapats.` : ''
 }
 
 // Formulärets fält för ett befintligt event, i den form fälten vill ha.
@@ -46,7 +109,7 @@ function fieldsFrom(event) {
       event.latitude != null && event.longitude != null ? { latitude: event.latitude, longitude: event.longitude } : null,
     scope: event.scope ?? '',
     areaCode: event.scope && event.scope !== 'country' ? event.scope_code : '',
-    skillLevel: event.skill_level ?? '',
+    skillLevel: event.skill_level ?? ALL_LEVELS,
     maxAttendees: event.max_attendees ? String(event.max_attendees) : '',
     creatorInMax: event.creator_in_max ?? true,
   }
@@ -63,7 +126,7 @@ const EMPTY_FIELDS = {
   position: null,
   scope: '',
   areaCode: '',
-  skillLevel: '',
+  skillLevel: ALL_LEVELS,
   maxAttendees: '',
   creatorInMax: true,
 }
@@ -108,11 +171,20 @@ function CreateEventForm({
   const [endsAt, setEndsAt] = useState(initial.endsAt)
   const [placeName, setPlaceName] = useState(initial.placeName)
   const [address, setAddress] = useState(initial.address)
-  // Var på kartan: { latitude, longitude } eller null (se LocationPicker).
+  // Var på kartan: { latitude, longitude } eller null (se useLocationPicker).
   const [position, setPosition] = useState(initial.position)
   // Ens egen kommun, som kartan visar innan nålen är satt (profilen finns redan
   // i det delade minnet, se services/queryClient.js).
   const { data: profile } = useQuery(profileQuery)
+  // Var på kartan: sökknappen ligger bredvid adressfältet och kartan bredvid, så de delar på det här.
+  const picker = useLocationPicker({
+    // Adressen först, sedan platsens namn (t.ex. "Slottsskogen").
+    queries: [address, placeName],
+    value: position,
+    onChange: setPosition,
+    // Nålen bestämmer adressen: den närmaste gatuadressen skrivs i fältet.
+    onAddressFound: setAddress,
+  })
   // Bara ägaren och administratörer skapar event för en klubb (SCRUM-326).
   const clubsToCreateFor = groups.filter((g) => g.is_owner || g.is_admin)
   // Klubben kan vara vald från början (när man skapar ett event från en klubbs sida).
@@ -123,6 +195,8 @@ function CreateEventForm({
   // Område, nivå och max antal (SCRUM-293, SCRUM-295), valfria.
   const [scope, setScope] = useState(initial.scope)
   const [areaCode, setAreaCode] = useState(initial.areaCode)
+  // Har man bytt område? Då lyser frågan om vilket upp (inte när formuläret öppnas).
+  const [scopeChanged, setScopeChanged] = useState(false)
   const [skillLevel, setSkillLevel] = useState(initial.skillLevel)
   const [maxAttendees, setMaxAttendees] = useState(initial.maxAttendees)
   // Räknas mitt eget Ja in i maxantalet (som standard), eller gäller det bara gästerna?
@@ -141,6 +215,12 @@ function CreateEventForm({
 
   const group = groups.find((g) => String(g.id) === groupId)
   const inPrivateGroup = group?.visibility === 'private'
+
+  function chooseScope(next) {
+    setScope(next)
+    setAreaCode('')
+    setScopeChanged(true)
+  }
 
   function handleGroupChange(value) {
     setGroupId(value)
@@ -180,6 +260,10 @@ function CreateEventForm({
     const changes = changedFields()
     onSaved(Object.keys(changes).length > 0 ? await updateEvent(event.id, changes) : event)
   }
+
+  // Hela formuläret krymps lite på låga datorskärmar, så att det alltid får plats utan att man scrollar.
+  const formRef = useRef(null)
+  useFitToHeight(formRef)
 
   async function handleSubmit(submitEvent) {
     submitEvent.preventDefault()
@@ -229,27 +313,29 @@ function CreateEventForm({
   }
 
   return (
-    <form className="auth-form form-wide form-compact form-split" onSubmit={handleSubmit}>
-      <h2>
-        {editing ? 'Redigera event' : 'Skapa event'}
-        {editing && (
-          <>
-            {' '}
-            <InfoTip
-              text="Ändrar du tid eller plats får de som har svarat Ja eller Kanske en notis från Intresseklubben."
-            />
-          </>
-        )}
-      </h2>
+    // Som en affisch, i samma stil som klubbformuläret (se .form-poster i index.css).
+    <form
+      ref={formRef}
+      className="auth-form form-wide form-compact form-split form-fit form-poster"
+      onSubmit={handleSubmit}
+    >
+      <div className="form-header">
+        {/* Rubriken med eventikonen som en stämpel bredvid. */}
+        <div className="form-poster-title">
+          <h2>{editing ? 'Redigera event' : 'Skapa event'}</h2>
+          {editing && (
+            <InfoTip text="Ändrar du tid eller plats får de som har svarat Ja eller Kanske en notis från Intresseklubben." />
+          )}
+          <img src={eventIcon} alt="" className="form-poster-stamp" />
+        </div>
+        <RequiredNote />
+      </div>
 
-      {/* Vad och när till vänster, var (med kartan) och vem det är till för till höger. */}
-      <div className="form-columns">
-        <div className="form-column">
-          <FormField id="event-title" label="Titel">
-            <input
+      <FormSection title="Om eventet" description="Det andra ser först." grow>
+        <div className="form-grid">
+          <FormField id="event-title" label="Titel" required>
+            <InputWithCount
               id="event-title"
-              className="field-large"
-              type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={50}
@@ -257,18 +343,7 @@ function CreateEventForm({
             />
           </FormField>
 
-          <FormField id="event-description" label="Beskrivning">
-            <TextareaWithCount
-              id="event-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={800}
-              rows={4}
-              required
-            />
-          </FormField>
-
-          <FormField id="event-interest" label="Intresse">
+          <FormField id="event-interest" label="Intresse" required>
             <InterestPicker
               id="event-interest"
               myInterests={myInterests}
@@ -278,8 +353,9 @@ function CreateEventForm({
             />
           </FormField>
 
-          <div className="form-row">
-            <FormField id="event-starts-at" label="Start">
+          {/* När: start och slut hör ihop, i en gemensam ruta med en pil emellan. */}
+          <div className="form-grid-wide form-linked">
+            <FormField id="event-starts-at" label="Start" required>
               <DateField
                 id="event-starts-at"
                 withTime
@@ -291,130 +367,134 @@ function CreateEventForm({
                 required
               />
             </FormField>
-            <FormField id="event-ends-at" label="Slut (valfritt)">
-              <DateField
-                id="event-ends-at"
-                withTime
-                value={endsAt}
-                onChange={setEndsAt}
-                min={startsAt || undefined}
-              />
+            <span className="form-linked-arrow" aria-hidden="true">
+              →
+            </span>
+            <FormField id="event-ends-at" label="Slut">
+              <DateField id="event-ends-at" withTime value={endsAt} onChange={setEndsAt} min={startsAt || undefined} />
             </FormField>
           </div>
+
+          <FormField id="event-description" label="Beskrivning" required className="form-grid-tall">
+            <TextareaWithCount
+              id="event-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={800}
+              rows={4}
+              placeholder="Vad ska ni göra, och vem passar det för?"
+              required
+            />
+          </FormField>
+        </div>
+      </FormSection>
+
+      <FormSection title="Deltagare" description="Vilka som kan vara med.">
+        <div className="form-inline">
+          {!editing && clubsToCreateFor.length > 0 && (
+            <FormField id="event-group" label="Klubb">
+              <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
+                <option value="">Ingen klubb</option>
+                {clubsToCreateFor.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          )}
+          {!editing && (
+            <ChoiceButtons
+              name="event-visibility"
+              legend="Vem kan vara med?"
+              // Öppet och Ansökan går inte i en privat klubb.
+              options={VISIBILITY_OPTIONS.map((option) => ({
+                ...option,
+                disabled: inPrivateGroup && option.value !== EVENT_VISIBILITY.inviteOnly,
+                disabledReason: 'Events i privata klubbar är alltid bara för inbjudna.',
+              }))}
+              value={inPrivateGroup ? EVENT_VISIBILITY.inviteOnly : visibility}
+              onChange={setVisibility}
+            />
+          )}
+          <FormField id="event-skill-level" label="Nivå">
+            <select id="event-skill-level" value={skillLevel} onChange={(e) => setSkillLevel(e.target.value)}>
+              {SKILL_CHOICES.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </FormField>
+          <FormField id="event-max-attendees" label="Max deltagare">
+            <NumberStepper id="event-max-attendees" value={maxAttendees} onChange={setMaxAttendees} min={2} max={1000} />
+          </FormField>
+        </div>
+
+        <div className="form-inline">
+          {/* Med ett maxantal: tar skaparens eget Ja en av platserna, eller är de bara till gästerna? */}
+          {maxAttendees && (
+            <label>
+              <input type="checkbox" checked={creatorInMax} onChange={(e) => setCreatorInMax(e.target.checked)} /> Räkna
+              in mig i maxantalet
+            </label>
+          )}
           {!editing && (
             <>
-              {clubsToCreateFor.length > 0 && (
-                <FormField id="event-group" label="Klubb (valfritt)">
-                  <select id="event-group" value={groupId} onChange={(e) => handleGroupChange(e.target.value)}>
-                    <option value="">Ingen klubb</option>
-                    {clubsToCreateFor.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </FormField>
-              )}
-
-              <fieldset className="form-choice">
-                <legend>Vem kan vara med?</legend>
-                {VISIBILITY_OPTIONS.map((option) => (
-                  <label key={option.value}>
-                    <input
-                      type="radio"
-                      name="event-visibility"
-                      value={option.value}
-                      checked={(inPrivateGroup ? EVENT_VISIBILITY.inviteOnly : visibility) === option.value}
-                      disabled={inPrivateGroup && option.value !== EVENT_VISIBILITY.inviteOnly}
-                      onChange={() => setVisibility(option.value)}
-                    />{' '}
-                    <strong>{option.label}</strong> <span className="hint-text">{option.hint}</span>
-                  </label>
-                ))}
-                {inPrivateGroup && <p className="hint-text">Events i privata klubbar är alltid bara för inbjudna.</p>}
-              </fieldset>
+              <span className="with-info-tip">
+                <button type="button" className="button-secondary" onClick={() => setInviteOpen(true)}>
+                  Bjud in
+                </button>
+                {inviteSummary(invites) && <span className="hint-text">{inviteSummary(invites)}</span>}
+              </span>
+              <span className="with-info-tip">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={guestsCanInvite}
+                    onChange={(e) => setGuestsCanInvite(e.target.checked)}
+                  />{' '}
+                  Gäster får bjuda in
+                </label>
+                <InfoTip text="Utan bockning kan bara du bjuda in. Du kan ändra det senare." />
+              </span>
             </>
           )}
-
-          {/* Valfritt område, nivå och max antal (SCRUM-293, SCRUM-295). Går att ändra senare. */}
-          <div className="form-row">
-            <FormField id="event-scope" label="Gäller ett större område (valfritt)">
-              <select
-                id="event-scope"
-                value={scope}
-                onChange={(e) => {
-                  setScope(e.target.value)
-                  setAreaCode('')
-                }}
-              >
-                <option value="">Nej, platsen räcker</option>
-                {EVENT_SCOPES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            {scope && scope !== 'country' && (
-              <FormField id="event-area" label={SCOPES.find((s) => s.value === scope)?.label}>
-                <select id="event-area" value={areaCode} onChange={(e) => setAreaCode(e.target.value)} required>
-                  <option value="">Välj...</option>
-                  {areaOptions(scope, regions).map((a) => (
-                    <option key={a.kod} value={a.kod}>
-                      {a.namn}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
-            )}
-          </div>
-          <div className="form-row">
-            <FormField id="event-skill-level" label="Nivå (valfritt)">
-              <select id="event-skill-level" value={skillLevel} onChange={(e) => setSkillLevel(e.target.value)}>
-                <option value="">Ingen angiven</option>
-                {SKILL_LEVELS.map((l) => (
-                  <option key={l.value} value={l.value}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            <FormField id="event-max-attendees" label="Max antal som kommer (valfritt)">
-              <input
-                id="event-max-attendees"
-                type="number"
-                inputMode="numeric"
-                min={2}
-                max={1000}
-                value={maxAttendees}
-                onChange={(e) => setMaxAttendees(e.target.value)}
-                placeholder="Ingen gräns"
-              />
-            </FormField>
-            {/* Med ett maxantal: tar skaparens eget Ja en av platserna, eller är de bara till gästerna? */}
-            {maxAttendees && (
-              <label>
-                <input type="checkbox" checked={creatorInMax} onChange={(e) => setCreatorInMax(e.target.checked)} /> Räkna
-                in mig i maxantalet
-              </label>
-            )}
-          </div>
         </div>
-        <div className="form-column">
-          <div className="form-row">
-            <FormField id="event-place" label="Plats">
-              <input
-                id="event-place"
-                type="text"
-                value={placeName}
-                onChange={(e) => setPlaceName(e.target.value)}
-                placeholder="T.ex. Slottsskogen"
-                maxLength={100}
-                required
-              />
-            </FormField>
-  
-            <FormField id="event-address" label="Gatuadress">
+        {!editing && inviteOpen && (
+          <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
+            <InvitePicker
+              contacts={contacts}
+              groups={groups}
+              initial={invites}
+              submitLabel="Klar"
+              onSubmit={(selection) => {
+                setInvites(selection)
+                setInviteOpen(false)
+              }}
+              onCancel={() => setInviteOpen(false)}
+            />
+          </Modal>
+        )}
+      </FormSection>
+
+      <FormSection title="Plats" description="Var ni ses." grow>
+        <div className="form-grid">
+          <FormField id="event-place" label="Plats" required>
+            <input
+              id="event-place"
+              type="text"
+              value={placeName}
+              onChange={(e) => setPlaceName(e.target.value)}
+              placeholder="T.ex. Slottsskogen"
+              maxLength={100}
+              required
+            />
+          </FormField>
+
+          <FormField id="event-address" label="Gatuadress" required>
+            {/* Sökningen på kartan hör ihop med adressen, så knapparna ligger direkt till höger om fältet. */}
+            <div className="input-with-buttons">
               <input
                 id="event-address"
                 type="text"
@@ -424,57 +504,62 @@ function CreateEventForm({
                 maxLength={100}
                 required
               />
+              <LocationSearch picker={picker} />
+            </div>
+          </FormField>
+
+          {/* Valfritt större område (SCRUM-295): först hur stort, sedan vilket, i en gemensam ruta som i
+              klubbformuläret. Den andra frågan lyser upp när man byter, och har en gul ram tills den är besvarad. */}
+          <div className="form-grid-wide form-linked">
+            <FormField
+              id="event-scope"
+              label="Gäller ett större område?"
+              info="Platsen räcker för de flesta events. Välj ett större område om eventet är för fler än de som bor nära."
+            >
+              <select id="event-scope" value={scope} onChange={(e) => chooseScope(e.target.value)}>
+                <option value="">Nej, platsen räcker</option>
+                {EVENT_SCOPES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {SCOPE_CHOICES[s.value] ?? s.label}
+                  </option>
+                ))}
+              </select>
             </FormField>
+            {scope && scope !== 'country' && (
+              <>
+                <span className="form-linked-arrow" aria-hidden="true">
+                  →
+                </span>
+                <FormField
+                  key={scope}
+                  id="event-area"
+                  label={AREA_QUESTIONS[scope]}
+                  required
+                  className={scopeChanged ? 'form-linked-flash' : undefined}
+                >
+                  <select id="event-area" value={areaCode} onChange={(e) => setAreaCode(e.target.value)} required>
+                    <option value="">Välj...</option>
+                    {areaOptions(scope, regions).map((a) => (
+                      <option key={a.kod} value={a.kod}>
+                        {a.namn}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+              </>
+            )}
           </div>
-          <LocationPicker
-            id="event-position"
-            // Adressen först, sedan platsens namn (t.ex. "Slottsskogen").
-            queries={[address, placeName]}
-            value={position}
-            onChange={setPosition}
-            // Nålen bestämmer adressen: den närmaste gatuadressen skrivs i fältet.
-            onAddressFound={setAddress}
-            saveLabel={editing ? 'Spara' : 'Skapa event'}
-            kommunCode={profile?.municipality_code}
-          />
-          {!editing && (
-            <>
-              <div className="detail-view-section">
-                <button type="button" className="secondary-button button-small" onClick={() => setInviteOpen(true)}>
-                  Bjud in
-                </button>
-                <p className="hint-text">{inviteSummary(invites)}</p>
-                <div className="with-info-tip">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={guestsCanInvite}
-                      onChange={(e) => setGuestsCanInvite(e.target.checked)}
-                    />{' '}
-                    Gäster får bjuda in
-                  </label>
-                  <InfoTip text="Utan bockning kan bara du bjuda in. Du kan ändra det senare." />
-                </div>
-              </div>
-              {inviteOpen && (
-                <Modal title="Bjud in" onClose={() => setInviteOpen(false)}>
-                  <InvitePicker
-                    contacts={contacts}
-                    groups={groups}
-                    initial={invites}
-                    submitLabel="Klar"
-                    onSubmit={(selection) => {
-                      setInvites(selection)
-                      setInviteOpen(false)
-                    }}
-                    onCancel={() => setInviteOpen(false)}
-                  />
-                </Modal>
-              )}
-            </>
-          )}
+
+          <div className="form-grid-tall">
+            <LocationMap
+              id="event-position"
+              picker={picker}
+              saveLabel={editing ? 'Spara' : 'Skapa event'}
+              kommunCode={profile?.municipality_code}
+            />
+          </div>
         </div>
-      </div>
+      </FormSection>
 
       {error && <p className="status-error">{error}</p>}
 

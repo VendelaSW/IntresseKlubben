@@ -328,14 +328,14 @@
 }
 
 .start-logo {
-  /* Större på en bred skärm: 96 px på en smal och upp till 150 px på en stor. */
-  width: clamp(96px, 8vw, 150px);
+  /* Större på en bred skärm: 120 px på en smal och upp till 190 px på en stor. */
+  width: clamp(120px, 10vw, 190px);
   height: auto;
 }
 
 .start-headline {
   margin: 0;
-  font-size: clamp(3.2rem, 13vw, 6.5rem);
+  font-size: clamp(2.75rem, 11vw, 5.5rem);
 }
 
 /* Polaroiderna: i en rad under rubriken, och på en bred skärm utspridda runt texten. De kommer när rubriken är klar. */
@@ -1215,7 +1215,7 @@
   }
 
   .start-logo {
-    width: 72px;
+    width: 90px;
   }
 
   .start-polaroid {

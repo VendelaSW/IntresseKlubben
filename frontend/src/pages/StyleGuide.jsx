@@ -421,7 +421,7 @@ function StyleGuide() {
           Platsväljare (components/LocationPicker.jsx)
         </p>
         <p className="hint-text">
-          Var på kartan ett event eller en klubbs träffplats är. "Hitta adressen på kartan" söker på queries i tur och
+          Var på kartan ett event eller en klubbs träffplats är. "Hitta på kartan" söker på queries i tur och
           ordning (GET /geocode, kräver inloggning) och sätter en nål; nålen går att dra eller flytta med ett klick.
           Utan nål visas kommunCode:s kommun, annars hela Sverige. value är {'{ latitude, longitude }'} eller null.
           Kartan laddas först när komponenten visas.

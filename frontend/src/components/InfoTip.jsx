@@ -3,8 +3,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 // En liten i-ikon med en förklaring (SCRUM-315), i stället för en hjälptext som alltid tar plats. Förklaringen syns
 // när man håller muspekaren över ikonen, när man tabbar till den och när man trycker på den, och den läses upp av
 // skärmläsare. Rutan ligger i webbläsarens översta lager (popover), så att den inte klipps av blocket eller en
-// popup.
-function InfoTip({ text }) {
+// popup. `items` ([{ label, text }]), i stället för `text`, gör förklaringen till en lista med
+// rubriken i fetstil och luft emellan, t.ex. vad varje val i en fråga betyder.
+function InfoTip({ text, items }) {
   const [open, setOpen] = useState(false)
   // Tryckt på (inte bara muspekaren över): då stängs den inte när pekaren lämnar ikonen.
   const pinned = useRef(false)
@@ -25,9 +26,11 @@ function InfoTip({ text }) {
     const margin = 8
     const below = icon.bottom + 6
     const top = below + height > window.innerHeight - margin ? icon.top - height - 6 : below
-    bubble.style.top = `${Math.max(margin, top)}px`
+    // I ett formulär som är krympt (zoom, se useFitToHeight) räknas top och left i rutans egna, krympta mått.
+    const zoom = bubble.currentCSSZoom ?? 1
+    bubble.style.top = `${Math.max(margin, top) / zoom}px`
     const centered = icon.left + icon.width / 2 - width / 2
-    bubble.style.left = `${Math.max(margin, Math.min(centered, window.innerWidth - width - margin))}px`
+    bubble.style.left = `${Math.max(margin, Math.min(centered, window.innerWidth - width - margin)) / zoom}px`
   }, [open])
 
   // Rutan står still medan sidan rör sig, så den stängs när man scrollar. Esc stänger bara förklaringen, inte ett öppet
@@ -55,7 +58,7 @@ function InfoTip({ text }) {
         ref={buttonRef}
         type="button"
         className="info-tip-button"
-        aria-label={`Förklaring: ${text}`}
+        aria-label={`Förklaring: ${items ? items.map((i) => `${i.label}: ${i.text}`).join(' ') : text}`}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => !pinned.current && setOpen(false)}
         onFocus={() => setOpen(true)}
@@ -73,7 +76,13 @@ function InfoTip({ text }) {
       </button>
       {open && (
         <span ref={bubbleRef} className="info-tip-bubble" popover="manual" aria-hidden="true">
-          {text}
+          {items
+            ? items.map((i) => (
+                <span key={i.label} className="info-tip-item">
+                  <strong>{i.label}</strong> {i.text}
+                </span>
+              ))
+            : text}
         </span>
       )}
     </span>
