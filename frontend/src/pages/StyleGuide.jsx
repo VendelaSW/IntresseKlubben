@@ -409,6 +409,18 @@ function StyleGuide() {
             </div>
           ))}
         </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Mobilens meny (.map-page-widgets i map.css)
+        </p>
+        <p className="hint-text">
+          På telefonen (upp till 767 px) är sidornas lappar på kartan en flytande, halvgenomskinlig och rundad meny
+          längst ned, med bara ikonerna: Brev, Medlemmar, kartan, Klubbar och Events. Namnen finns för skärmläsare.
+          Kartan (inget block öppet) är en större gul knapp i mitten (.map-page-widget-home). En gul bubbla
+          (.map-nav-blob) glider till den öppna sidan och töjs ut på vägen, och runt kartans knapp blir den en ring.
+          Blocken går ända ner under menyn. Med minskad rörelse byter bubblan bara plats. På surfplattan och datorn är
+          lapparna som förut, och kartans knapp och bubblan syns inte.
+        </p>
       </section>
 
       <section className="style-section">
