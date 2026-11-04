@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import brevIcon from '../assets/brev.png'
 import eventIcon from '../assets/event.png'
-import klubbarIcon from '../assets/klubbar.png'
 import hemIcon from '../assets/hem.png'
+import klubbarIcon from '../assets/klubbar.png'
 import personerIcon from '../assets/personer.png'
 
-// Appens sidor som små lappar bredvid profillappen (på mobil som en rad
+// Appens sidor som små lappar bredvid profillappen (på surfplattan som en rad
 // längst ned), med samma ikoner som appens meny. Ett klick lägger sidan som
 // ett block på kartan (se MapPagePad); klickar man på den öppna sidans lapp
 // igen stängs blocket. Notiserna ligger i profillappens meny (se MapProfileWidget).
@@ -15,8 +15,8 @@ import personerIcon from '../assets/personer.png'
 // att något har hänt. `badge` säger vilken siffra lappen visar och hur den
 // läses upp.
 //
-// På mobil är lapparna en flytande meny längst ned (se map.css), med Hem (kartan, inget block öppet) som en större
-// knapp i mitten. En gul bubbla glider till den öppna sidan och töjs ut på vägen.
+// På mobil är lapparna en flytande meny längst ned (se map.css), med kartan (inget block öppet) som en större knapp i
+// mitten. En gul bubbla glider till den öppna sidan och töjs ut på vägen.
 const WIDGETS = [
   { id: 'brev', label: 'Brev', icon: brevIcon, badge: ['unseenMessages', 'konversationer med nya brev'] },
   { id: 'personer', label: 'Medlemmar', icon: personerIcon, badge: ['contactRequests', 'nya kompisförfrågningar'] },
@@ -34,15 +34,14 @@ function MapPageWidgets({ openPage, onOpen, counts }) {
   const [pinged, setPinged] = useState(() => new Set())
   const previous = useRef(null)
   const pingTimer = useRef(null)
-  // Hur många gånger bubblan har flyttat: två likadana animationer byts av, så att den spelas om vid varje byte.
-  const [moves, setMoves] = useState(0)
-  const shownPage = useRef(openPage)
-
-  useEffect(() => {
-    if (shownPage.current === openPage) return
-    shownPage.current = openPage
-    setMoves((n) => n + 1)
-  }, [openPage])
+  // Bubblan på mobil: var den står och hur många gånger den har flyttat (två likadana animationer byts av, så att den
+  // spelas om vid varje byte). Ett block som inte har någon lapp (t.ex. Notiser från profillappen) döljer bubblan där
+  // den står. Räknas om under renderingen när en annan sida öppnas, som Reacts mönster för state som följer en prop.
+  const openIndex = WIDGETS.findIndex(({ id }) => id === openPage)
+  const [blob, setBlob] = useState({ page: openPage, index: openIndex, moves: 0 })
+  if (blob.page !== openPage) {
+    setBlob({ page: openPage, index: openIndex < 0 ? blob.index : openIndex, moves: blob.moves + 1 })
+  }
 
   useEffect(() => {
     if (!counts) return
@@ -59,15 +58,13 @@ function MapPageWidgets({ openPage, onOpen, counts }) {
 
   useEffect(() => () => clearTimeout(pingTimer.current), [])
 
-  const openIndex = WIDGETS.findIndex(({ id }) => id === (openPage ?? null))
-  const goo = moves === 0 ? '' : moves % 2 ? ' is-goo-a' : ' is-goo-b'
+  const goo = blob.moves === 0 ? '' : blob.moves % 2 ? ' is-goo-a' : ' is-goo-b'
 
   return (
     <nav className="map-page-widgets" aria-label="Sidor">
-      {/* Bubblan på mobil. Ett block som inte har någon lapp (t.ex. Notiser från profillappen) får ingen bubbla. */}
       <span
         className={`map-nav-blob${openPage ? '' : ' is-home'}${openIndex < 0 ? ' is-hidden' : ''}${goo}`}
-        style={{ '--nav-index': openIndex }}
+        style={{ '--nav-index': blob.index }}
         aria-hidden="true"
       />
       {WIDGETS.map(({ id, label, icon, badge: [key, badgeLabel] }) => (
@@ -75,7 +72,7 @@ function MapPageWidgets({ openPage, onOpen, counts }) {
           key={id ?? 'karta'}
           type="button"
           className={`map-page-widget${id ? '' : ' map-page-widget-home'}${openPage === id ? ' is-open' : ''}${pinged.has(id) ? ' is-pinged' : ''}`}
-          aria-pressed={(openPage ?? null) === id}
+          aria-pressed={openPage === id}
           title={label}
           onClick={() => onOpen(id && openPage === id ? null : id)}
         >

@@ -2438,12 +2438,12 @@
     height: 64px;
     box-sizing: border-box;
     padding: 6px;
-    border: 1.5px solid rgba(58, 47, 37, 0.35);
+    border: 1.5px solid color-mix(in srgb, var(--color-ink) 35%, transparent);
     border-radius: 999px;
-    background: rgba(255, 253, 247, 0.55);
+    background: color-mix(in srgb, var(--color-white) 55%, transparent);
     -webkit-backdrop-filter: blur(12px) saturate(1.2);
     backdrop-filter: blur(12px) saturate(1.2);
-    box-shadow: 0 8px 22px rgba(58, 47, 37, 0.22);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--color-ink) 22%, transparent);
   }
 
   .map-page-widget {
@@ -2486,10 +2486,10 @@
     width: 64px;
     height: 64px;
     margin: -9px 0 -3px;
-    border: 2px solid #3a2f25;
+    border: 2px solid var(--color-ink);
     border-radius: 50%;
     background: var(--color-accent);
-    box-shadow: 3px 3px 0 #3a2f25;
+    box-shadow: 3px 3px 0 var(--color-ink);
   }
 
   .map-page-widget-home .map-page-widget-icon {
@@ -2497,14 +2497,19 @@
     height: 38px;
   }
 
-  .map-widget-badge {
+  .map-page-widgets .map-widget-badge {
     top: 2px;
     right: 6px;
     min-width: 17px;
     height: 17px;
     padding: 0 4px;
-    border-color: #fffdf7;
+    border-color: var(--color-white);
     font-size: 10px;
+  }
+
+  /* Fokusramen i bläck, eftersom den gula inte syns mot den gula knappen och bubblan. */
+  .map-page-widget:focus-visible {
+    outline-color: var(--color-ink);
   }
 
   /* Bubblan mitt i den öppna sidans ruta: rutorna är en femtedel av menyns
@@ -2519,9 +2524,9 @@
     width: 48px;
     height: 48px;
     box-sizing: border-box;
-    border: 1.5px solid rgba(58, 47, 37, 0.25);
+    border: 1.5px solid color-mix(in srgb, var(--color-ink) 25%, transparent);
     border-radius: 50%;
-    background: rgba(244, 196, 48, 0.6);
+    background: color-mix(in srgb, var(--color-accent) 60%, transparent);
     transition:
       left 0.5s cubic-bezier(0.5, 1.5, 0.45, 1),
       top 0.5s cubic-bezier(0.5, 1.5, 0.45, 1),
