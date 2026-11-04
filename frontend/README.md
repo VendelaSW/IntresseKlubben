@@ -32,7 +32,8 @@ på nya hex-koder eller pixelvärden.
 | Ålder i filter | `AgeRangeSlider` (två handtag mellan 13 och 100 år, se `utils/age.js`), `null` = ingen gräns | `<AgeRangeSlider value={{ min: minAge, max: maxAge }} onChange={({ min, max }) => …} />` |
 | Stämplar | `.stamp` (mörk), `.stamp-success` (grön), flera i rad i `.trust-stamps` | `<span className="stamp stamp-success">E-post bekräftad</span>` |
 | Länkar | `.info-link` (fungerar även på en `<button>`, t.ex. något som fälls ut) | `<a className="info-link">` |
-| Brev | `.envelopes` + `ConversationCard` (kuvert), `.lined-paper` (linjerat papper), `.notepad` (konversationen) | Se Brev-exemplet i stilguiden |
+| Brev | `.envelopes` + `ConversationCard` (kuvert, nytt med `.envelope-new` och rosetten `.envelope-bow`), `LetterFriends` (kompisar man inte har skrivit till än), `.lined-paper` (linjerat papper), `.notepad` (konversationen) | Se Brev-exemplet i stilguiden |
+| Handritat | `--tag-ink` (bläck), `--tag-shape` och `--tag-shape-alt` (frihandshörn), från `:root` | `border: 1.5px solid var(--tag-ink); border-radius: var(--tag-shape); box-shadow: 2px 2px 0 var(--tag-ink);` |
 | Rubriker | Vanliga `<h1>`/`<h2>`-taggar, redan stylade automatiskt | `<h2>Min rubrik</h2>` |
 
 Behöver ni något nytt (en ny färg, en ny komponenttyp), lägg till den i
