@@ -28,8 +28,8 @@ import '../styles/startPage.css'
 // "Logga in som ..." finns bara i testläget (npm run dev:test), och kommer inte ens med i en vanlig build.
 const DevLogin = DEV_MODE ? lazy(() => import('../devtools/DevLogin')) : null
 
-// Startsidan. En lång sida: rubriken skrivs för hand (se HandwrittenHeadline) med polaroider runt, "Så funkar det" i tre steg,
-// kartan med påhittade events, intressena och en sista uppmaning med Intressekompisen. Knapparna leder till
+// Startsidan. En lång sida: rubriken skrivs för hand (se HandwrittenHeadline) med polaroider runt, "Så funkar det" i
+// tre steg, kartan med påhittade events, intressena och en sista uppmaning med Intressekompisen. Knapparna leder till
 // /logga-in och /registrera (AuthPage). Rubrikerna skrivs bara första gången per session.
 
 const WRITTEN_KEY = 'intresseklubben.startsida-skriven'
