@@ -425,7 +425,7 @@
   gap: 0.3rem;
   max-width: 11rem;
   padding: 0.2rem 0.55rem 0.2rem 0.3rem;
-  background: var(--color-white);
+  background: var(--color-warm-white);
   border: 1.5px solid #3a2f25;
   border-radius: 4px;
   box-shadow: 2px 2px 0 #3a2f25;
@@ -1316,7 +1316,7 @@
   padding: 0.3rem 0.7rem;
   border: 1.5px solid #3a2f25;
   border-radius: 4px;
-  background: var(--color-white);
+  background: var(--color-warm-white);
   box-shadow: 2px 2px 0 #3a2f25;
   color: var(--color-text);
   font-family: var(--font-body);
@@ -1378,7 +1378,7 @@
    lapparna. (:not(:empty) behövs, annars vinner MapLibres egen skugga, som
    har samma specificitet men laddas efter den här filen.) */
 .map-sketch .maplibregl-ctrl-group:not(:empty) {
-  background: var(--color-white);
+  background: var(--color-warm-white);
   border: 1.5px solid #3a2f25;
   border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
   box-shadow: 3px 3px 0 #3a2f25;
@@ -1464,7 +1464,7 @@
   gap: 0.35rem;
   height: 52px;
   padding: 0 0.7rem 0 0.45rem;
-  background: var(--color-white);
+  background: var(--color-warm-white);
   border: 1.5px solid #3a2f25;
   border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
   box-shadow: 3px 3px 0 #3a2f25;
@@ -1472,6 +1472,11 @@
   font-family: var(--font-heading);
   font-size: 1.35rem;
   cursor: pointer;
+}
+
+/* Kartans sökikon i samma varma vita som de andra knapparna på kartan (gul när sökningen är öppen). */
+.map-place-search .search-toggle-row .search-toggle:not(.is-open) {
+  background: var(--color-warm-white);
 }
 
 .map-page-widget:hover,
@@ -1595,7 +1600,7 @@
      om lappen. Smalare än så blir den ändå när raden är smal (flexraden). */
   max-width: 16rem;
   padding: 0.3rem 0.35rem 0.3rem 0.9rem;
-  background: var(--color-white);
+  background: var(--color-warm-white);
   border: 1.5px solid #3a2f25;
   border-radius: 225px 12px 255px 12px / 12px 255px 12px 225px;
   box-shadow: 3px 3px 0 #3a2f25;
@@ -1984,7 +1989,7 @@
   max-width: 12rem;
   margin: 0.3rem 0 0;
   padding: 0.15rem 0.6rem;
-  background: var(--color-white);
+  background: var(--color-warm-white);
   border: 1.5px solid #3a2f25;
   border-radius: 4px;
   box-shadow: 2px 2px 0 #3a2f25;
@@ -2510,7 +2515,7 @@
     padding: 6px;
     border: 1.5px solid color-mix(in srgb, var(--color-ink) 35%, transparent);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--color-white) 55%, transparent);
+    background: color-mix(in srgb, var(--color-warm-white) 60%, transparent);
     -webkit-backdrop-filter: blur(12px) saturate(1.2);
     backdrop-filter: blur(12px) saturate(1.2);
     box-shadow: 0 8px 22px color-mix(in srgb, var(--color-ink) 22%, transparent);

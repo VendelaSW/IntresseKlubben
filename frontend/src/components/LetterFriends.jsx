@@ -4,7 +4,7 @@ import { shortNames } from '../utils/shortNames'
 import Avatar from './Avatar'
 import DrawnArrow from './DrawnArrow'
 
-// Kompisar man inte har skrivit till än, överst i Brev (SCRUM-320): runda bilder på en rad. Får de inte plats
+// Kompisar man inte har skrivit till än, längst ner i Brev (SCRUM-320): runda bilder på en rad. Får de inte plats
 // tonar raden ut åt det håll där det finns fler, och på dator finns en pil åt det hållet. På mobil sveper man.
 function LetterFriends({ friends }) {
   const listRef = useRef(null)

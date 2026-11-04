@@ -54,8 +54,9 @@ const COLORS = [
   { name: '--color-error', hex: '#a32d2d', label: 'Error (felmeddelanden)' },
   { name: '--color-paper', hex: '#f5eddc', label: 'Brevpapper (aningen mörkare än bakgrunden)' },
   { name: '--color-paper-margin', hex: '#e7a1a1', label: 'Brevpapprets röda marginal' },
-  { name: '--color-envelope-paper', hex: '#e8d3ad', label: 'Kuvertets papper' },
-  { name: '--color-envelope-inside', hex: '#cdb288', label: 'Kuvertets insida' },
+  { name: '--color-envelope-paper', hex: '#f1e4c8', label: 'Kuvertets papper' },
+  { name: '--color-envelope-inside', hex: '#ddc8a1', label: 'Kuvertets insida' },
+  { name: '--color-warm-white', hex: '#fdf9f0', label: 'Varm vit (bakom kartans ikoner och knappar)' },
   { name: '--tag-ink', hex: '#3a2f25', label: 'Bläck (kanter och hårda skuggor på taggar, kuvert och anteckningsblocket)' },
 ]
 
@@ -565,8 +566,8 @@ function StyleGuide() {
         <h2>Brev</h2>
         <p className="swatch-label">Kuvert (.envelopes med ConversationCard)</p>
         <p className="hint-text">
-          Fem per rad på dator, från vänster i linje med rubriken, och tre i mitten på
-          mobil. Brunt papper (--color-envelope-paper) med bläckkant och hård bläckskugga (--tag-ink), och små
+          I Brev fyra i bredd och två rader (två i bredd på mobil), som scrollar i sidled med Matchas pilar
+          (.match-arrow) när de är fler än åtta (.envelope-rows). Ljust brunt papper (--color-envelope-paper) med bläckkant och hård bläckskugga (--tag-ink), och små
           ojämna hörn: inte --tag-shape, eftersom kuvertets sidor måste vara raka för att möta fliken och framsidan.
           Klickbara som andra kort (.card-interactive): lyfts och får gul kant vid hover. Ett öppnat kuvert står
           öppet, med fliken uppvikt och en bit av brevpappret synlig, och på dator kommer brevet upp lite till vid
@@ -585,10 +586,27 @@ function StyleGuide() {
         </ul>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
+          Lediga platser (.envelope-empty)
+        </p>
+        <p className="hint-text">
+          Har man färre än åtta brev fylls platserna ut med tomma, streckade kuvert. Bara prydnad: de går inte att
+          klicka på och läses inte upp.
+        </p>
+        <div className="envelope-rows" style={{ marginTop: '1rem' }}>
+          <ul className="envelopes" aria-hidden="true">
+            {[1, 2, 3, 4].map((n) => (
+              <li key={n}>
+                <span className="envelope-empty" />
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Kompisar man inte har skrivit till än (LetterFriends, .letter-friends)
         </p>
         <p className="hint-text">
-          Överst i Brev: runda bilder och förnamn på en rad, och ett klick öppnar ett nytt brev. Får de inte plats
+          Längst ner i Brev: runda bilder och förnamn på en rad, och ett klick öppnar ett nytt brev. Får de inte plats
           tonar raden ut åt det håll där det finns fler, utan rullningslist. På dator finns en pil åt det hållet, och
           på mobil sveper man. Raden syns inte när det inte finns någon kvar att skriva till.
         </p>
