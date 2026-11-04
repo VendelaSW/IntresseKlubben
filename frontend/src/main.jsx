@@ -7,6 +7,7 @@ import { AuthProvider } from './hooks/useAuth.jsx'
 import { ConfirmProvider } from './hooks/useConfirm.jsx'
 import { queryClient } from './services/queryClient'
 import './styles/index.css'
+import './styles/matchPage.css'
 import { applyChosenDesign } from './chosenDesign'
 import { DEV_MODE } from './devtools/devMode'
 

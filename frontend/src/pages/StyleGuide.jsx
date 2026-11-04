@@ -746,7 +746,7 @@ function StyleGuide() {
         </p>
         <div className="card-grid" style={{ marginTop: '1.75rem', gap: '2rem 1rem' }}>
           {EXAMPLE_MATCHES.map((match) => (
-            <MatchCard key={match.id} match={match} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onSkip={() => {}} onDismiss={() => {}} />
+            <MatchCard key={match.id} match={match} sharedInterestIds={new Set([1, 2])} onSend={() => {}} onDismiss={() => {}} />
           ))}
         </div>
 

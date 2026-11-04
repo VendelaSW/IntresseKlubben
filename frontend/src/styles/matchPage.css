@@ -1,8 +1,7 @@
-/* TILLFÄLLIGT, bara i testläget: layouten "Nicklas förslag 1" för Medlemmar och Matcha (väljaren "Matchningssidan" i
-   testpanelen, se PadBackgroundPicker, MatchPanel, PeoplePage och InterestPicker). Flyttad hit från index.css så att appens
-   vanliga CSS inte berörs. Tas bort när ett utseende är valt; det valda flyttas då in i appen. */
+/* Matchningssidan under Medlemmar (Matcha och Sök): affischkorten, pilarna, Näst på tur och filterraden som lappar. Laddas
+   efter index.css (se main.jsx), så att reglerna här vinner över de lika starka i index.css. */
 
-/* Nicklas förslag 1 (matchningssidans layout, se MatchPanel): kortet som klubbkortet Affisch (Nicklas variant): vitt papper
+/* Matchningskortet (se MatchCard): kortet som klubbkortet Affisch (Nicklas variant): vitt papper
    utan kant, en färgad rad överst, ett rasterhörn, namnet i tryckbokstäver, en mörkare mjuk skugga och en lätt lutning. Raden
    är delad i en färg per huvudområde som personens intressen ligger i, de ni har gemensamt först (MatchCard sätter --poster,
    första färgen, och --poster-strip, raden som färgstopp). Kortet visas ensamt, så det är bredare än ett vanligt personkort. */
@@ -134,16 +133,6 @@
   overflow-wrap: break-word;
 }
 
-
-/* Nicklas förslag 1: knapparna närmare texten, och "Ta bort förslag" ensam och centrerad (pilarna vid sidorna går vidare). */
-.match-card-poster .match-actions {
-  gap: 0.5rem;
-  margin-top: -0.45rem;
-}
-
-.match-card-poster .match-actions-row {
-  justify-content: center;
-}
 
 /* "Ta bort förslag" på en egen vit bakgrund med en tunn kant, så att texten syns var kortet än ligger. */
 .match-card-poster .match-actions .text-button {
@@ -284,41 +273,13 @@
 }
 
 
-/* Nicklas förslag 1: de små korten i samma affischstil som det stora kortet (.match-card-poster): vitt papper utan kant,
-   en färgad rad överst i färgerna på personens områden (MatchThumb sätter --poster-strip), mjuk skugga och en lätt lutning. */
-.match-thumb.match-thumb-poster {
-  padding-top: 0.85rem;
-  border: 0;
-  border-radius: 2px;
-  background:
-    linear-gradient(to right, var(--poster-strip)) top / 100% 5px no-repeat,
-    #fffdf7;
-  box-shadow: 1px 3px 6px rgba(58, 47, 37, 0.32);
-  transform: rotate(-1deg);
-}
-
-.match-thumb-poster:nth-child(even) {
-  transform: rotate(1deg);
-}
-
-.match-thumb-poster .match-thumb-name {
-  font-family: var(--font-body);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.05;
-  text-transform: uppercase;
-  overflow-wrap: anywhere;
-  hyphens: auto;
-}
-
-/* Nicklas förslag 1: kortet med pilarna direkt på sidan under filtren (components/MatchPanel.jsx). */
+/* Kortet med pilarna direkt på sidan under filtren (components/MatchPanel.jsx). */
 .match-stack .match-stage {
   max-width: 40rem;
 }
 
 
-/* Filterraden i Matcha-fliken under Medlemmar (Nicklas förslag 1): som sökraden i Klubbar med utseendet "Papperslappar".
+/* Filterraden i Matcha och Sök under Medlemmar: som sökraden i Klubbar med utseendet "Papperslappar".
    Små rundade lappar i varmt papper med en tunn kant och en liten skugga nedåt, lagom stora, och alla på samma rad (de
    bryts till nästa rad på en smal skärm). Lägg till utöver filter-select-row. */
 .filter-select-row.filter-select-row-paper {
@@ -451,5 +412,3 @@
   box-shadow: none;
   outline: none;
 }
-
-

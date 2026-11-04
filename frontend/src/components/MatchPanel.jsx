@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import kompisMedGlasogon from '../assets/kompis-glasogon.webp'
-import { useDesignChoice } from '../hooks/useDesignChoice'
 import { sendContactRequest } from '../services/contacts'
 import { getMatches } from '../services/matches'
 import { dismissSuggestion, undoDismissSuggestion } from '../services/people'
@@ -82,9 +81,6 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
   const skipped = useRef(0)
   const request = useRef(0)
   const appending = useRef(false)
-  // TILLFÄLLIGT (testläget): matchningssidans layout (väljaren "Matchningssidan"). "Nicklas förslag 1": kortet direkt på
-  // sidan under filtren, med pilar vid sidorna (nästa och tillbaka). Grunden har kortet med knappen Gå vidare.
-  const proposal1 = useDesignChoice('matchLayout') === 'nicklas-1'
 
   // Hämtar en sida. Ett svar på en äldre hämtning (filtret har ändrats sedan dess) kastas.
   const load = useCallback(
@@ -311,50 +307,33 @@ function MatchPanel({ municipalityCodes, genders, minAge, maxAge, myInterestIds,
         </section>
       )
 
-    if (proposal1) {
-      body = (
-        <div className="match-stack">
-          <div className="match-stage">
-            <button
-              type="button"
-              className={`match-arrow${history.length === 0 ? ' is-hidden' : ''}`}
-              aria-label="Förra förslaget"
-              disabled={busy || history.length === 0}
-              onClick={handleBack}
-            >
-              <DrawnArrow className="match-arrow-prev" />
-            </button>
-            <MatchCard
-              key={current.id}
-              match={current}
-              {...sharedProps}
-              busy={busy}
-              onSend={() => handleSend(current)}
-              onDismiss={() => handleDismiss(current)}
-            />
-            <button type="button" className="match-arrow" aria-label="Nästa förslag" disabled={busy} onClick={handleSkip}>
-              <DrawnArrow className="match-arrow-next" />
-            </button>
-          </div>
-          {upNext(upcoming, 'Näst på tur')}
-        </div>
-      )
-    } else {
-      body = (
-        <div className="match-stack">
+    body = (
+      <div className="match-stack">
+        <div className="match-stage">
+          <button
+            type="button"
+            className={`match-arrow${history.length === 0 ? ' is-hidden' : ''}`}
+            aria-label="Förra förslaget"
+            disabled={busy || history.length === 0}
+            onClick={handleBack}
+          >
+            <DrawnArrow className="match-arrow-prev" />
+          </button>
           <MatchCard
             key={current.id}
             match={current}
             {...sharedProps}
             busy={busy}
             onSend={() => handleSend(current)}
-            onSkip={handleSkip}
             onDismiss={() => handleDismiss(current)}
           />
-          {upNext(upcoming, 'Näst på tur')}
+          <button type="button" className="match-arrow" aria-label="Nästa förslag" disabled={busy} onClick={handleSkip}>
+            <DrawnArrow className="match-arrow-next" />
+          </button>
         </div>
-      )
-    }
+        {upNext(upcoming, 'Näst på tur')}
+      </div>
+    )
   }
 
   // "Ångra" efter att man skickat eller tagit bort någon.

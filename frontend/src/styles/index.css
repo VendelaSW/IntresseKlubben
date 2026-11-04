@@ -2480,7 +2480,6 @@ button.answer-summary-box:disabled {
 .match-card {
   position: relative;
   width: 100%;
-  max-width: 360px;
 }
 
 .match-about {
@@ -2530,14 +2529,15 @@ button.answer-summary-box:disabled {
 .match-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  margin-top: 0.4rem;
+  gap: 0.5rem;
+  margin-top: -0.45rem;
 }
 
+/* "Ta bort förslag" ensam och centrerad (pilarna vid kortet går vidare och tillbaka). */
 .match-actions-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 0.6rem;
 }
 
@@ -2655,8 +2655,7 @@ button.answer-summary-box:disabled {
   container-type: size;
 }
 
-.match-panel.is-fitted .match-stage,
-.match-panel.is-fitted .match-stack > .match-card {
+.match-panel.is-fitted .match-stage {
   flex: 0 1 auto;
   min-height: 0;
 }
@@ -2759,6 +2758,8 @@ button.answer-summary-box:disabled {
   list-style: none;
 }
 
+/* Samma affischstil som det stora kortet (.match-card-poster): vitt papper utan kant, en färgad rad överst i färgerna på
+   personens områden (MatchThumb sätter --poster-strip), mjuk skugga och en lätt lutning, åt olika håll varannan gång. */
 .match-thumb {
   flex: none;
   display: flex;
@@ -2766,12 +2767,20 @@ button.answer-summary-box:disabled {
   align-items: center;
   gap: 0.3rem;
   width: var(--w);
-  padding: 0.6rem 0.4rem 0.5rem;
-  background: var(--color-white);
-  border: 2px solid var(--color-line);
-  border-radius: 4px;
+  padding: 0.85rem 0.4rem 0.5rem;
+  border: 0;
+  border-radius: 2px;
+  background:
+    linear-gradient(to right, var(--poster-strip)) top / 100% 5px no-repeat,
+    #fffdf7;
+  box-shadow: 1px 3px 6px rgba(58, 47, 37, 0.32);
   opacity: var(--o);
   text-align: center;
+  transform: rotate(-1deg);
+}
+
+.match-thumb:nth-child(even) {
+  transform: rotate(1deg);
 }
 
 .match-thumb-1 {
@@ -2805,10 +2814,14 @@ button.answer-summary-box:disabled {
 }
 
 .match-thumb-name {
-  font-family: var(--font-heading);
-  font-size: calc(var(--w) * 0.2);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
   font-weight: 700;
-  line-height: 1;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .match-thumb-place {
@@ -2892,13 +2905,13 @@ button.answer-summary-box:disabled {
   margin-right: 0.4rem;
 }
 
-/* Siffran i "Ni har 2 gemensamma intressen" på personkorten: fet och mörk,
-   med samma gula understrykning som länkarna, så att den syns i den grå
-   texten. */
+/* Siffran i "3 gemensamma intressen" (Sök): fet och mörk, och det gula strecket går genom siffran som en
+   överstrykningspenna (som den valda fliken), så att den syns i den grå texten. */
 .shared-count {
+  padding: 0 0.15em;
+  background: linear-gradient(176deg, transparent 52%, rgba(244, 196, 48, 0.8) 52%, rgba(244, 196, 48, 0.8) 88%, transparent 88%);
   color: var(--color-text);
   font-weight: 700;
-  border-bottom: 2px solid var(--color-accent);
 }
 
 /* Förslag på Personer: en grupp kort per antal gemensamma intressen, med
@@ -5453,7 +5466,7 @@ button.board-note:focus-visible {
     height: 14px;
   }
 
-  /* .search-toggle-row också här: testlägets lappfilter (matchLayout.css) laddas senare, med lika stark regel. */
+  /* .search-toggle-row också här: lappfiltret i matchPage.css laddas senare, med lika stark regel. */
   .search-toggle-row .search-toggle-panel .filter-select-row select,
   .search-toggle-row .search-toggle-panel .filter-select-row input,
   .search-toggle-row .search-toggle-panel .multi-option-picker-button {

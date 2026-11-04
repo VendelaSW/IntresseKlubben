@@ -11,7 +11,6 @@ import InterestPicker from '../components/InterestPicker'
 import MatchPanel from '../components/MatchPanel'
 import MultiOptionPicker from '../components/MultiOptionPicker'
 import PersonCard from '../components/PersonCard'
-import { useDesignChoice } from '../hooks/useDesignChoice'
 import { useResetOnTabChange, useTabParam } from '../hooks/useTabParam'
 import {
   CANCEL_REQUEST,
@@ -106,18 +105,14 @@ const NO_FILTERS = {
 
 function PeoplePage() {
   const confirm = useConfirm()
-  // TILLFÄLLIGT (testläget): matchningssidans layout (väljaren "Matchningssidan"), se MatchPanel.
-  const matchLayout = useDesignChoice('matchLayout')
   // Intressena och kommunerna (för filtren) och ens egna intressen kommer ur minnet.
   const [filterDataFailed, setFilterDataFailed] = useState(false)
   // Fliken står i adressen, så att Tillbaka från en profil kommer hit igen (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
   // Matcha är första fliken och den som öppnas när adressen inte säger något annat.
   const tab = urlTab ?? 'match'
-  // Filterraderna som papperslappar: i Matcha och Sök, i layouten Nicklas förslag 1 (se .filter-select-row-paper).
-  const paperRow = (tab === 'match' || tab === 'suggested') && matchLayout === 'nicklas-1'
   // I Matcha står åldern på samma rad som kommun och kön, så att filtren tar så lite höjd som möjligt från kortet.
-  const ageInRow = tab === 'match' && paperRow
+  const ageInRow = tab === 'match'
   const [myInterestIds, setMyInterestIds] = useState(new Set())
   const [filters, setFilters] = useState(NO_FILTERS)
   useResetOnTabChange(tab, () => setFilters(NO_FILTERS))
@@ -398,7 +393,7 @@ function PeoplePage() {
           <SearchToggle key={tab} count={activeFilters.length} defaultOpen={tab === 'match'}>
             <div className="filter-panel">
               <div
-                className={`filter-select-row${paperRow ? ' filter-select-row-paper' : ''}${ageInRow ? ' has-age' : ''}`}
+                className={`filter-select-row filter-select-row-paper${ageInRow ? ' has-age' : ''}`}
               >
                 {tab === 'suggested' && (
                   <InterestPicker
@@ -417,7 +412,7 @@ function PeoplePage() {
                 {ageInRow && ageSlider}
               </div>
               {!ageInRow && (
-                <div className={`filter-age-row${paperRow ? ' filter-select-row-paper' : ''}`}>{ageSlider}</div>
+                <div className="filter-age-row filter-select-row-paper">{ageSlider}</div>
               )}
             </div>
           </SearchToggle>
