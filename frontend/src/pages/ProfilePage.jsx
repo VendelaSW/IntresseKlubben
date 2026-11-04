@@ -6,6 +6,8 @@ import BlockedUsers from '../components/BlockedUsers'
 import ChangePassword from '../components/ChangePassword'
 import DeleteAccount from '../components/DeleteAccount'
 import EmailVerification from '../components/EmailVerification'
+import FormField, { RequiredNote } from '../components/FormField'
+import FormSection from '../components/FormSection'
 import InterestExplorer from '../components/InterestExplorer'
 import MunicipalityPicker from '../components/MunicipalityPicker'
 import NewProfileImage from '../components/NewProfileImage'
@@ -14,6 +16,7 @@ import { PosterCard } from '../components/Poster'
 import ProfileHeader, { profileFacts } from '../components/ProfileHeader'
 import TextareaWithCount from '../components/TextareaWithCount'
 import { useAuth } from '../hooks/useAuth'
+import { useFitToHeight } from '../hooks/useFitToHeight'
 import { useGoBack } from '../hooks/useCanGoBack'
 import { checkAvailability, getCurrentUser, updateAccount } from '../services/api'
 import { clearProfileDraft, loadProfileDraft, saveProfileDraft } from '../services/profileDraft'
@@ -150,6 +153,10 @@ function ProfilePage() {
   const availabilityRequest = useRef(0)
   // "Försök igen" när profilen inte gick att hämta (SCRUM-286): effekten nedan körs om.
   const [loadAttempt, retryLoad] = useRetry()
+  // Redigera profil krymps lite på låga datorskärmar, så att allt får plats utan att man scrollar. Inte Skapa din
+  // profil, som har intresseväljaren under och ändå scrollar.
+  const editRef = useRef(null)
+  useFitToHeight(editRef, editing && profile !== null)
 
   useEffect(() => {
     // Själva inloggningskollen sköts redan av ProtectedRoute, så vi kan
@@ -418,169 +425,187 @@ function ProfilePage() {
   if (editing) {
     const isNew = profile === null
     return (
-      <div className="card card-wide content-stack profile-edit">
-        {/* Rubriken (med en pil tillbaka till profilen) till vänster och bilden i mitten, formuläret i två
-            spalter (uppgifterna om en själv till vänster, Om mig och kontot till höger) och knapparna på en rad
-            längst ner, så att allt får plats utan att scrolla. Under varandra på mobil. */}
-        <div className="profile-edit-head">
-          <div className="profile-edit-title">
-            <div className="profile-edit-heading">
-              {!isNew && (
-                <button
-                  type="button"
-                  className="profile-edit-back"
-                  onClick={() => setEditing(false)}
-                  aria-label="Tillbaka till profilen"
-                >
-                  {/* En handritad pil. */}
-                  <svg viewBox="0 0 36 24" width="36" height="24" aria-hidden="true">
-                    <path
-                      d="M33 12.5 C25 12 15 11.6 4 12.2 M11 4.5 C8.6 7.4 6.2 9.8 3.4 12.2 C6.3 14.5 8.6 16.8 10.6 19.6"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              )}
-              <h1>{isNew ? 'Skapa din profil' : 'Redigera profil'}</h1>
+      <>
+        {/* Tillbaka till profilen, som på de andra sidorna: i blocket blir rubriken "← Min profil" knappen. */}
+        {!isNew && <BackButton onClick={() => setEditing(false)} />}
+        {/* Kortet krymps lite på låga datorskärmar, så att allt får plats utan att man scrollar (se useFitToHeight). */}
+        <div ref={editRef} className="card card-wide card-soft content-stack profile-edit">
+          {/* Formuläret med samma fält och delar som skapa klubb och event: rubriken, Om dig (med profilbilden
+              under rubriken), Var du bor och Konto. Knapparna på en rad längst ner, utanför formuläret (se
+              nedan). Fälten i tre jämna kolumner (.form-grid-even). Under varandra på mobil. */}
+          <form
+            id="profile-edit-form"
+            className="auth-form form-wide form-compact form-split form-fit form-poster"
+            onSubmit={handleSubmit}
+          >
+            <div className="form-header">
+              <div className="form-poster-title">
+                <h2>{isNew ? 'Skapa din profil' : 'Redigera profil'}</h2>
+              </div>
+              <RequiredNote />
             </div>
-            {isNew && (
-              <p className="profile-intro">
-                Berätta lite om dig själv så att andra i klubben vet vem du är.
-              </p>
-            )}
+            {isNew && <p className="hint-text">Berätta lite om dig själv så att andra i klubben vet vem du är.</p>}
             {!isNew && imageNotice && <p className="form-error">{imageNotice}</p>}
-          </div>
-          {/* Befintlig profil: bilden sparas direkt, oberoende av Spara-knappen.
-              Ny profil: bilden väntar och laddas upp efter att profilen sparats. */}
-          {isNew ? (
-            <NewProfileImage name={name} image={pendingImage} onChange={setPendingImage} />
-          ) : (
-            <ProfileImage
-              profile={profile}
-              onUploaded={(updated) => {
-                setImageNotice('')
-                setProfile(updated)
-              }}
-              editable
-            />
-          )}
-        </div>
-        <form id="profile-edit-form" className="auth-form form-wide form-compact form-split" onSubmit={handleSubmit}>
-          <div className="form-columns">
-            <div className="form-column">
-              <label htmlFor="profile-name">Namn</label>
-              <input
-                id="profile-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={50}
-                required
-              />
 
-              <label htmlFor="profile-birth-date">Födelsedatum</label>
-              <BirthDatePicker id="profile-birth-date" value={birthDate} onChange={setBirthDate} required />
-              <div className="with-info-tip">
-                <label>
-                  <input type="checkbox" checked={ageHidden} onChange={(e) => setAgeHidden(e.target.checked)} /> Dölj
-                  min ålder för andra
-                </label>
-                <InfoTip
-                  text="Du syns då inte när andra filtrerar på ålder. Intresseklubbens moderatorer ser alltid åldern."
-                />
-              </div>
-
-              <label htmlFor="profile-gender">Kön</label>
-              <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)} required>
-                <option value="">Välj...</option>
-                {GENDER_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={genderSearchable}
-                  onChange={(e) => setGenderSearchable(e.target.checked)}
-                />{' '}
-                Låt andra hitta mig när de filtrerar på kön (då kan de räkna ut mitt kön)
-              </label>
-
-              <div className="with-info-tip">
-                <label htmlFor="profile-municipality">Kommun</label>
-                <InfoTip text="Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke." />
-              </div>
-              <MunicipalityPicker
-                id="profile-municipality"
-                municipalities={municipalities}
-                value={municipalityCode}
-                onChange={setMunicipalityCode}
-                required
-              />
-
-              <label htmlFor="profile-district">Stadsdel (valfritt)</label>
-              <input
-                id="profile-district"
-                type="text"
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                maxLength={100}
-              />
-            </div>
-            <div className="form-column">
-              <label htmlFor="profile-about">{ABOUT_LABEL}</label>
-              <TextareaWithCount
-                id="profile-about"
-                value={aboutText}
-                onChange={(e) => setAboutText(e.target.value)}
-                maxLength={800}
-                placeholder={ABOUT_PLACEHOLDER}
-                required
-              />
-              <p className="hint-text">{ABOUT_AI_NOTE}</p>
-
-              {/* Kontouppgifterna. En ny profil har redan valt dem när kontot skapades. */}
-              {!isNew && (
-                <>
-                  <h2>Kontouppgifter</h2>
-                  <label htmlFor="profile-username">Användarnamn</label>
+            {/* Höjden som blir över: Om dig får 0,8 delar, Var du bor och Konto en halv var (så att fälten står nära
+                de streckade linjerna) och resten, en del, hamnar ovanför knapparna (se .profile-edit .form-fit). */}
+            <FormSection
+              title="Om dig"
+              grow={0.8}
+              // Profilbilden under rubriken, i vänsterspalten. Befintlig profil: bilden sparas direkt, oberoende
+              // av Spara-knappen. Ny profil: bilden väntar och laddas upp efter att profilen sparats.
+              aside={
+                isNew ? (
+                  <NewProfileImage name={name} image={pendingImage} onChange={setPendingImage} />
+                ) : (
+                  <ProfileImage
+                    profile={profile}
+                    onUploaded={(updated) => {
+                      setImageNotice('')
+                      setProfile(updated)
+                    }}
+                    editable
+                  />
+                )
+              }
+            >
+              <div className="form-grid form-grid-even">
+                <FormField id="profile-name" label="Namn" required>
                   <input
-                    id="profile-username"
+                    id="profile-name"
                     type="text"
-                    autoComplete="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    minLength={3}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     maxLength={50}
                     required
                   />
-                  {availability.username && <p className="form-error">{availability.username}</p>}
+                </FormField>
 
+                <FormField id="profile-gender" label="Kön" required>
+                  <select id="profile-gender" value={gender} onChange={(e) => setGender(e.target.value)} required>
+                    <option value="">Välj...</option>
+                    {GENDER_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                   <div className="with-info-tip">
-                    <label htmlFor="profile-email">E-postadress</label>
-                    <InfoTip text="E-posten syns bara för dig." />
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={genderSearchable}
+                        onChange={(e) => setGenderSearchable(e.target.checked)}
+                      />{' '}
+                      Sökbar på kön
+                    </label>
+                    <InfoTip text="Andra kan hitta dig när de filtrerar på kön. Då kan de också räkna ut ditt kön." />
                   </div>
-                  <input
-                    id="profile-email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                </FormField>
+
+                <FormField id="profile-birth-date" label="Födelsedatum" required className="form-grid-wide">
+                  <BirthDatePicker id="profile-birth-date" value={birthDate} onChange={setBirthDate} required />
+                  <div className="with-info-tip">
+                    <label>
+                      <input type="checkbox" checked={ageHidden} onChange={(e) => setAgeHidden(e.target.checked)} /> Dölj
+                      min ålder
+                    </label>
+                    <InfoTip
+                      text="Du syns då inte när andra filtrerar på ålder. Intresseklubbens moderatorer ser alltid åldern."
+                    />
+                  </div>
+                </FormField>
+
+                <FormField id="profile-about" label={ABOUT_LABEL} required info={ABOUT_AI_NOTE} className="form-grid-tall">
+                  <TextareaWithCount
+                    id="profile-about"
+                    value={aboutText}
+                    onChange={(e) => setAboutText(e.target.value)}
+                    maxLength={800}
+                    placeholder={ABOUT_PLACEHOLDER}
+                    required
                   />
-                  {availability.email && <p className="form-error">{availability.email}</p>}
+                </FormField>
+              </div>
+            </FormSection>
+
+            <FormSection title="Var du bor" grow={0.5}>
+              <div className="form-grid form-grid-even">
+                {/* Kommunen och stadsdelen i den, i en gemensam ruta som områdesfrågan i skapa klubb. */}
+                <div className="form-grid-wide form-linked">
+                  <FormField
+                    id="profile-municipality"
+                    label="Kommun"
+                    required
+                    info="Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke."
+                  >
+                    <MunicipalityPicker
+                      id="profile-municipality"
+                      municipalities={municipalities}
+                      value={municipalityCode}
+                      onChange={setMunicipalityCode}
+                      required
+                    />
+                  </FormField>
+                  <span className="form-linked-arrow" aria-hidden="true">
+                    →
+                  </span>
+                  <FormField id="profile-district" label="Stadsdel">
+                    <input
+                      id="profile-district"
+                      type="text"
+                      value={district}
+                      onChange={(e) => setDistrict(e.target.value)}
+                      maxLength={100}
+                    />
+                  </FormField>
+                </div>
+              </div>
+            </FormSection>
+
+            {/* Kontouppgifterna. En ny profil har redan valt dem när kontot skapades. */}
+            {!isNew && (
+              <FormSection title="Konto" grow={0.5}>
+                <div className="form-grid form-grid-even">
+                  <FormField id="profile-username" label="Användarnamn" required>
+                    <input
+                      id="profile-username"
+                      type="text"
+                      autoComplete="username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      minLength={3}
+                      maxLength={50}
+                      required
+                    />
+                    {availability.username && <p className="form-error">{availability.username}</p>}
+                  </FormField>
+
+                  {/* E-postadresser är långa, så rutan är bredare än de andra (på dator). */}
+                  <FormField
+                    id="profile-email"
+                    label="E-postadress"
+                    info="E-posten syns bara för dig."
+                    className="form-grid-wide profile-email"
+                  >
+                    <input
+                      id="profile-email"
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    {availability.email && <p className="form-error">{availability.email}</p>}
+                  </FormField>
 
                   {/* Lösenordet krävs bara när användarnamn eller e-post ändras. */}
                   {accountChanged && (
-                    <>
-                      <label htmlFor="profile-account-password">
-                        Skriv ditt lösenord för att spara nytt användarnamn eller ny e-post
-                      </label>
+                    <FormField
+                      id="profile-account-password"
+                      label="Ditt lösenord"
+                      required
+                      info="Krävs för att spara ett nytt användarnamn eller en ny e-post."
+                    >
                       <input
                         id="profile-account-password"
                         type="password"
@@ -589,54 +614,54 @@ function ProfilePage() {
                         onChange={(e) => setAccountPassword(e.target.value)}
                         required
                       />
-                    </>
+                    </FormField>
                   )}
-                </>
+                </div>
+              </FormSection>
+            )}
+
+            {/* En ny profil väljer intressen här (minst ett). En befintlig ändrar
+                dem i "Vad gillar du?" på profilen. */}
+            {isNew && (
+              <InterestExplorer
+                mode="form"
+                selected={draftInterests}
+                onAdd={(interest) => setDraftInterests((current) => [...current, interest].sort(byName))}
+                onRemove={(interest) => setDraftInterests((current) => current.filter((i) => i.id !== interest.id))}
+              />
+            )}
+
+            {formError && <p className="form-error">{formError}</p>}
+          </form>
+          {/* Knapparna på en rad längst ner: Spara och Avbryt till vänster (Spara skickar formuläret ovan, via
+              form="profile-edit-form"), Byt lösenord och Radera konto till höger. De två sista ligger utanför
+              formuläret, eftersom de har egna formulär och formulär inte går att lägga i varandra. En ny profil
+              har inget konto att ändra än. */}
+          <div className="profile-edit-footer">
+            <div className="profile-edit-save">
+              <button
+                type="submit"
+                form="profile-edit-form"
+                className="primary-button"
+                disabled={saving || Boolean(availability.username || availability.email)}
+              >
+                {saving ? 'Sparar...' : 'Spara'}
+              </button>
+              {!isNew && (
+                <button type="button" className="secondary-button" onClick={() => setEditing(false)}>
+                  Avbryt
+                </button>
               )}
             </div>
-          </div>
-
-          {/* En ny profil väljer intressen här (minst ett). En befintlig ändrar
-              dem i "Vad gillar du?" på profilen. */}
-          {isNew && (
-            <InterestExplorer
-              mode="form"
-              selected={draftInterests}
-              onAdd={(interest) => setDraftInterests((current) => [...current, interest].sort(byName))}
-              onRemove={(interest) => setDraftInterests((current) => current.filter((i) => i.id !== interest.id))}
-            />
-          )}
-
-          {formError && <p className="form-error">{formError}</p>}
-        </form>
-        {/* Knapparna på en rad längst ner: Spara och Avbryt till vänster (Spara skickar formuläret ovan, via
-            form="profile-edit-form"), Byt lösenord och Radera konto till höger. De två sista ligger utanför
-            formuläret, eftersom de har egna formulär och formulär inte går att lägga i varandra. En ny profil
-            har inget konto att ändra än. */}
-        <div className="profile-edit-footer">
-          <div className="profile-edit-save">
-            <button
-              type="submit"
-              form="profile-edit-form"
-              className="primary-button"
-              disabled={saving || Boolean(availability.username || availability.email)}
-            >
-              {saving ? 'Sparar...' : 'Spara'}
-            </button>
             {!isNew && (
-              <button type="button" className="secondary-button" onClick={() => setEditing(false)}>
-                Avbryt
-              </button>
+              <div className="profile-edit-account">
+                <ChangePassword email={account?.email} />
+                <DeleteAccount />
+              </div>
             )}
           </div>
-          {!isNew && (
-            <div className="profile-edit-account">
-              <ChangePassword email={account?.email} />
-              <DeleteAccount />
-            </div>
-          )}
-        </div>
-      </div>
+          </div>
+      </>
     )
   }
 

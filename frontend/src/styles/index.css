@@ -371,8 +371,9 @@ button.info-link {
   font-weight: 400;
   font-size: var(--text-body);
   padding: 0.6rem 0.75rem;
-  border: 2px solid var(--color-line);
-  border-radius: 8px;
+  /* Ramen och hörnen går att byta för ett helt formulär (t.ex. .form-poster). */
+  border: 2px solid var(--field-border, var(--color-line));
+  border-radius: var(--field-radius, 8px);
   background: var(--color-white);
   color: var(--color-text);
 }
@@ -386,7 +387,7 @@ button.info-link {
 .auth-form select:focus-visible,
 .auth-form textarea:focus-visible {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--field-focus, var(--color-accent));
 }
 
 /* Flerradigt fält, t.ex. "Om mig". Går bara att dra större i höjdled. */
@@ -630,66 +631,14 @@ button.banner-button {
   max-width: 920px;
 }
 
-/* Redigera profil: lika brett som profilen. Överst rubriken med en handritad
-   pil tillbaka till vänster och bilden i mitten, sist en rad med knapparna.
-   Tätt, så att allt får plats i blocket utan att scrolla. */
+/* Redigera profil: lika brett som profilen. Formuläret (i affischstil, se
+   .form-poster) och sist en rad med knapparna. */
 .card-wide.profile-edit {
   max-width: 920px;
   align-items: stretch;
   gap: 0.9rem;
   padding: 1rem 1.25rem;
   text-align: left;
-}
-
-.profile-edit-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 1rem;
-}
-
-.profile-edit-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.profile-edit-head h1 {
-  margin: 0;
-  font-size: 2.2rem;
-}
-
-.profile-edit-back {
-  display: grid;
-  place-items: center;
-  padding: 0.2rem;
-  border: 0;
-  border-radius: 6px;
-  background: none;
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-.profile-edit-back:hover,
-.profile-edit-back:focus-visible {
-  background: var(--color-accent-soft);
-}
-
-.profile-edit-head .profile-image {
-  gap: 0.45rem;
-}
-
-.profile-edit-head .profile-avatar {
-  width: 72px;
-  height: 72px;
-}
-
-.profile-edit-head .profile-avatar-empty {
-  font-size: 2.2rem;
-}
-
-.profile-edit-head .profile-image label {
-  white-space: nowrap;
 }
 
 .profile-edit-footer {
@@ -706,18 +655,6 @@ button.banner-button {
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 0.6rem;
-}
-
-/* Mobil: rubriken och bilden under varandra, bilden i mitten. */
-@media (max-width: 600px) {
-  .profile-edit-head {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-
-  .profile-edit-head h1 {
-    font-size: 1.9rem;
-  }
 }
 
 /* Tillbaka ovanför kortet följer dess bredd, så att knappen linjerar med kortets vänsterkant. */
@@ -944,6 +881,39 @@ span.tag-selected:hover {
   margin: 0 auto;
   padding: 1rem;
   box-shadow: 0 6px 0 var(--color-line);
+}
+
+/* Registreringens fält och knappar med samma varma ramar som Redigera profil
+   (se --field-border i .auth-form input), i stället för de ljusblå. */
+.interview-card,
+.interview-summary {
+  --field-border: rgba(58, 47, 37, 0.2);
+  --field-focus: rgba(58, 47, 37, 0.55);
+  --field-radius: 5px;
+}
+
+.interview-card .button-secondary,
+.interview-summary .button-secondary,
+.interview-summary .secondary-button:not(.button-danger) {
+  border-color: var(--field-border);
+}
+
+/* Exempeltexten i registreringens rutor (t.ex. "T.ex. jag gillar att klättra...")
+   ljusare, så att den inte ser ut som något någon redan har skrivit. */
+.interview-card .auth-form :is(input, textarea)::placeholder {
+  color: var(--color-muted);
+  opacity: 0.55;
+}
+
+/* Ett mjukt kort, som ett medlemskort: krämvitt papper med rundade hörn, en tunn
+   varm ram och en mjuk skugga, i stället för den blå ramen och den hårda blå
+   skuggan. Lägg till på .card (t.ex. Min profil, Vad gillar du?, Redigera profil
+   och registreringens kort). */
+.card.card-soft {
+  border: 1.5px solid rgba(58, 47, 37, 0.18);
+  border-radius: 14px;
+  background: #fffdf7;
+  box-shadow: 0 2px 10px rgba(58, 47, 37, 0.12);
 }
 
 /* Caveat i stor storlek har mycket luft i radhöjden, vilket syns som tom
@@ -5141,6 +5111,20 @@ button.board-note:focus-visible {
   pointer-events: none;
 }
 
+/* En förklaring i flera delar (InfoTip med items): en rad per del, med rubriken i
+   fetstil och luft emellan. */
+.info-tip-item {
+  display: block;
+}
+
+.info-tip-item + .info-tip-item {
+  margin-top: 0.45rem;
+}
+
+.info-tip-item strong {
+  display: block;
+}
+
 /* En etikett, kryssruta eller knapp med en i-ikon bredvid. */
 .with-info-tip {
   display: flex;
@@ -6052,14 +6036,105 @@ select.club-filter:focus-visible,
   gap: 0.75rem;
 }
 
-.location-picker-results {
+/* Ett fält med små knappar direkt till höger om sig (t.ex. adressen och
+   sökningen på kartan). */
+.input-with-buttons {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.2rem;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.input-with-buttons > input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* En liten kvadratisk knapp med en ikon, lika hög som fälten och med samma ram
+   (t.ex. "Hitta på kartan" och "Ta bort nålen"). Namnet står i aria-label och
+   title. */
+.auth-form .icon-square-button {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  flex: none;
+  width: auto;
+  aspect-ratio: 1;
+  min-height: 1.9rem;
+  margin: 0;
+  padding: 0;
+  border: 2px solid var(--field-border, var(--color-line));
+  border-radius: var(--field-radius, 8px);
+  background: var(--color-white);
+  color: var(--color-text);
+}
+
+.auth-form .icon-square-button:hover:not(:disabled),
+.auth-form .icon-square-button:focus-visible {
+  opacity: 1;
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+@media (pointer: coarse) {
+  .auth-form .icon-square-button {
+    min-height: 2.75rem;
+  }
+}
+
+/* "Hitta på kartan" (LocationSearch): knapparna på en rad, och träffarna i en
+   rullgardin under, med egen scroll, ovanpå formuläret (popover) så att inget
+   annat flyttar sig. */
+.location-search {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.location-search-list {
+  position: fixed;
+  inset: auto;
+  z-index: 1000;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 1rem));
+  max-height: 12rem;
+  margin: 0;
+  padding: 0.3rem;
+  overflow-y: auto;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 4px;
+  background: var(--color-white);
+  box-shadow: 2px 2px 0 var(--color-ink);
+  color: var(--color-text);
+  font-size: var(--text-small);
+}
+
+.location-search-list ul {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.location-search-list p {
+  margin: 0.2rem 0.3rem;
+}
+
+.auth-form .location-search-option {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
+  background: transparent;
+  font-size: var(--text-small);
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+}
+
+.auth-form .location-search-option:hover,
+.auth-form .location-search-option:focus-visible {
+  opacity: 1;
+  background: var(--color-accent-soft);
 }
 
 .location-picker-map {
@@ -6074,9 +6149,606 @@ select.club-filter:focus-visible,
 /* Knapparna längst ner i ett formulär, sida vid sida. */
 .form-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   margin-top: 0.25rem;
+}
+
+/* Etiketten i en .form-field (FormField), med en * om fältet måste fyllas i och
+   ibland en i-ikon. Fält utan * är valfria; RequiredNote förklarar stjärnan vid
+   formulärets rubrik (.form-header). */
+.form-field-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.required-mark {
+  margin-left: 0.15rem;
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+/* Formulärets rubrik med RequiredNote ("* måste fyllas i") till höger. */
+.form-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+
+.form-compact legend {
+  font-size: var(--text-small);
+}
+
+/* Enradigt fält med teckenräknare inuti, till höger (InputWithCount). */
+.input-count {
+  position: relative;
+  display: flex;
+}
+
+.auth-form .input-count input {
+  flex: 1;
+  min-width: 0;
+  padding-right: 3.25rem;
+}
+
+.input-count-number {
+  position: absolute;
+  top: 50%;
+  right: 0.6rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Några få val som en toggle (ChoiceButtons): knapparna sitter ihop i en ruta med
+   samma ram som fälten, åtskilda av tunna streck, och den valda är gul. */
+.choice-toggle {
+  display: inline-flex;
+  box-sizing: border-box;
+  max-width: 100%;
+  border: 2px solid var(--field-border, var(--color-line));
+  border-radius: var(--field-radius, 8px);
+  background: var(--color-white);
+  overflow: hidden;
+}
+
+.auth-form .choice-toggle label {
+  flex: 1 1 auto;
+  padding: 0.3rem 0.8rem;
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.choice-toggle label + label {
+  border-left: 1.5px solid var(--field-border, var(--color-line));
+}
+
+.choice-toggle label:hover {
+  background: var(--color-accent-soft);
+}
+
+.choice-toggle label.is-selected {
+  background: var(--color-accent);
+}
+
+.choice-toggle:has(input:focus-visible) {
+  border-color: var(--color-accent);
+}
+
+.choice-toggle label:has(input:focus-visible) {
+  text-decoration: underline;
+}
+
+.auth-form .choice-toggle label:has(input:disabled) {
+  color: var(--color-muted);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.choice-toggle label:has(input:disabled):hover {
+  background: transparent;
+}
+
+/* En ikon före texten (t.ex. hänglåsen), och en egen färg för det valda (tone). */
+.auth-form .choice-toggle label:has(svg) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.choice-toggle svg {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* I ett smalt formulär (mobil) får alla val inte plats med ikonerna: då bara texten, och knapparna delar på bredden. */
+@container (max-width: 47.99rem) {
+  .choice-toggle {
+    display: flex;
+  }
+
+  .auth-form .choice-toggle label {
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+  }
+
+  .choice-toggle svg {
+    display: none;
+  }
+}
+
+.choice-toggle label.is-selected[data-tone='green'] {
+  background: #dcf1e0;
+  color: #22673a;
+  font-weight: 700;
+}
+
+.choice-toggle label.is-selected[data-tone='peach'] {
+  background: #fbe6d1;
+  color: #8a4b16;
+  font-weight: 700;
+}
+
+.choice-toggle label.is-selected[data-tone='lilac'] {
+  background: #ebe3f7;
+  color: #573b8a;
+  font-weight: 700;
+}
+
+@media (pointer: coarse) {
+  .auth-form .choice-toggle label {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+  }
+}
+
+/* Ett antal med − och + (NumberStepper): en liten ruta med knapparna inuti,
+   kanterna, och plats för fyra siffror emellan. */
+.number-stepper {
+  display: inline-flex;
+  box-sizing: border-box;
+  width: max-content;
+  border: 2px solid var(--field-border, var(--color-line));
+  border-radius: var(--field-radius, 8px);
+  background: var(--color-white);
+  overflow: hidden;
+}
+
+.number-stepper:focus-within {
+  border-color: var(--field-focus, var(--color-accent));
+}
+
+.auth-form .number-stepper input {
+  flex: none;
+  box-sizing: content-box;
+  width: 4ch;
+  padding-right: 0.1rem;
+  padding-left: 0.1rem;
+  border: 0;
+  border-radius: 0;
+  text-align: center;
+}
+
+.auth-form .number-stepper button {
+  flex: none;
+  width: 1.75rem;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--text-body);
+  line-height: 1;
+}
+
+.auth-form .number-stepper button:hover:not(:disabled),
+.auth-form .number-stepper button:focus-visible {
+  opacity: 1;
+  background: var(--color-accent-soft);
+}
+
+.auth-form .number-stepper button:disabled {
+  opacity: 0.35;
+}
+
+@media (pointer: coarse) {
+  .auth-form .number-stepper button {
+    width: 2.75rem;
+  }
+}
+
+/* Delar av ett formulär (FormSection): fält som hör ihop, med en streckad linje
+   mellan delarna. På smala skärmar ligger rubriken ovanför fälten, annars i en
+   egen spalt till vänster, så att rubrikerna inte tar någon höjd. */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  /* Luft mellan den streckade linjen och det som står under. */
+  padding-top: 0.75rem;
+  border-top: 1.5px dashed var(--color-line);
+}
+
+.form-section-head h3 {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+
+.form-section-head .hint-text {
+  margin-top: 0.1rem;
+}
+
+.form-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+/* Fält i en del: under varandra på smala skärmar, annars i tre kolonner och två
+   rader, som fylls rad för rad. De två första kolonnerna är bara så breda som
+   korta fält behöver, och .form-grid-tall tar hela höjden och resten av bredden
+   i sista kolumnen (beskrivningen, kartan). .form-grid-wide tar två kolonner. */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.form-grid-tall {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Två frågor som hör ihop, där den andra beror på den första (t.ex. hur stort
+   område en klubb gäller och vilket): i en gemensam ljus ruta med en pil emellan.
+   Rutan går ut i luften runt fälten (negativ marginal), så att fälten står i linje
+   med fälten ovanför och inget annat flyttar sig. På smala skärmar under varandra,
+   utan pil. Den andra frågan lyser upp en kort stund när den byts
+   (.form-linked-flash, bara färg, ingen rörelse), och har en gul ram så länge
+   ingenting är valt. */
+.form-linked {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: end;
+  margin: -0.35rem -0.45rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 8px;
+  background: var(--color-accent-soft);
+}
+
+.form-linked-arrow {
+  display: none;
+}
+
+.form-linked select:required:has(> option[value='']:checked) {
+  border-color: var(--color-accent);
+}
+
+.form-linked-flash :is(input, select) {
+  animation: form-linked-flash 1.2s ease-out;
+}
+
+@keyframes form-linked-flash {
+  from {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+  }
+}
+
+@container (min-width: 48rem) {
+  .form-linked {
+    grid-template-columns: minmax(0, 1fr) 1rem minmax(0, 1fr);
+    gap: 0;
+    align-self: start;
+  }
+
+  /* Bara den första frågan (t.ex. "Nej, platsen räcker" eller "I hela Sverige"): rutan bara runt den. */
+  .form-grid > .form-linked:not(:has(.form-linked-arrow)) {
+    grid-column: span 1;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .form-linked-arrow {
+    display: block;
+    padding-bottom: 0.3rem;
+    color: var(--color-muted);
+    font-weight: 700;
+    text-align: center;
+  }
+}
+
+/* Några korta fält på en rad, som bryts till nästa rad om de inte får plats. */
+.form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem 1.5rem;
+}
+
+.form-inline > .form-field {
+  flex: 1 1 8.5rem;
+  min-width: 8rem;
+}
+
+@container (min-width: 48rem) {
+  .form-section {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr);
+    column-gap: 1.5rem;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 12rem) minmax(0, 12rem) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    gap: 0.6rem 1rem;
+  }
+
+  .form-grid > .form-grid-tall {
+    grid-column: -2;
+    grid-row: 1 / -1;
+  }
+
+  .form-grid > .form-grid-wide {
+    grid-column: span 2;
+  }
+
+  /* Tre jämna kolumner (Redigera profil): alla fält lika viktiga, den sista lite bredare för beskrivningen. */
+  .form-grid.form-grid-even {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr);
+  }
+
+  /* Med en hög ruta bredvid delar de två raderna lika på höjden, så att fälten fördelas jämnt bredvid den. */
+  .form-grid.form-grid-even:has(> .form-grid-tall) {
+    grid-template-rows: 1fr 1fr;
+  }
+
+  /* Bredvid varandra bara så breda som de behöver; på mobil i full bredd. */
+  .form-inline > .form-field {
+    flex-grow: 0;
+  }
+}
+
+/* Ett formulär som ska få plats utan att man scrollar (skapa klubb). I blocket
+   på kartan växer formuläret till blockets höjd (se map.css), och delarna med
+   `grow` delar på höjden som blir över: där växer beskrivningen och kartan. På
+   mobil ligger allt under varandra, och då scrollar man som vanligt. */
+.form-fit {
+  flex: 1 0 auto;
+  /* Luft ovanför varje streckad linje, lika mycket som under (se .form-section). */
+  gap: 0.75rem;
+}
+
+.form-fit .form-section-grow {
+  flex: 1 0 auto;
+}
+
+/* Kartan får det mesta av höjden som blir över. */
+.form-fit .form-section-grow:has(.location-picker) {
+  flex-grow: 3;
+}
+
+.form-fit .form-section-grow .form-grid {
+  flex: 1;
+}
+
+/* En del som växer men inte har något högt fält: innehållet (rubriken och fälten)
+   mitt i höjden, så att luften hamnar lika mycket ovanför och under. */
+@container (min-width: 48rem) {
+  .form-fit .form-section-grow:not(:has(.form-grid-tall)) {
+    align-content: center;
+  }
+}
+
+@container (min-width: 48rem) {
+  .form-fit .form-field:has(> .textarea-count),
+  .form-fit .textarea-count,
+  .form-fit .location-picker {
+    flex: 1;
+  }
+
+  /* Beskrivningen är så hög som de två fälten bredvid, och växer med blocket. */
+  .form-fit .textarea-count {
+    flex: 1 1 0;
+    min-height: 5rem;
+  }
+
+  .form-fit .textarea-count textarea {
+    min-height: 0;
+  }
+
+  .form-fit .location-picker-map {
+    flex: 1;
+    height: auto;
+    min-height: 5rem;
+  }
+}
+
+/* ---------- Formulär som affisch (.form-poster, t.ex. skapa klubb) ----------
+   Samma tryck som klubbkorten (Affisch, Nicklas variant, se clubCardVariants.css):
+   krämvitt papper med en färgad rand ända ut i överkanten och en mörkare skugga,
+   rubriken i stora tryckta versaler med klubbikonen som stämpel bredvid, delarnas rubriker
+   på en mörk remsa som antalet medlemmar på korten, glesa streckade linjer och
+   fält med mjuka, varma ramar. Bara utseendet: allt ligger och är lika stort som
+   i det vanliga formuläret. */
+.sheet.sheet-form:has(> .form-poster) {
+  border-color: transparent;
+  border-radius: 2px;
+  background:
+    linear-gradient(var(--color-accent), var(--color-accent)) top / 100% 7px no-repeat,
+    #fffdf7;
+  /* Randen börjar i kortets yttersta kant, inte innanför ramen (annars syns en ljus springa ovanför). */
+  background-origin: border-box;
+  box-shadow: 1px 3px 6px rgba(58, 47, 37, 0.32);
+}
+
+.form-poster {
+  --field-border: rgba(58, 47, 37, 0.2);
+  --field-focus: rgba(58, 47, 37, 0.55);
+  --field-radius: 5px;
+}
+
+/* Rubriken i stora tryckta versaler, som klubbnamnen på korten, och stämpeln
+   bredvid. Stämpeln går ut i luften runt raden, så att raden inte blir högre. */
+.form-poster-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.form-poster h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+/* ---------- Redigera profil: ett eget, enkelt kort ----------
+   Samma fält, ramar och delar som skapa klubb och event, men inte som en affisch:
+   ett mjukt kort (.card-soft, som ett medlemskort), delarnas rubriker som ljusblå etiketter i profilbildens färg, och
+   lite högre rubriker, texter och fält, så att det känns luftigt. Beskrivningen
+   har sin egen höjd (den växer med blocket). */
+.profile-edit .form-poster h2 {
+  font-size: 1.45rem;
+  line-height: 1.3;
+}
+
+/* En del av höjden som blir över hamnar sist i formuläret, ovanför knapparna (se
+   ProfilePage), så att delarna ovanför inte får för mycket luft runt linjerna.
+   Den negativa marginalen tar bort formulärets mellanrum före den. */
+.profile-edit .form-fit::after {
+  content: '';
+  flex: 1 0 0;
+  margin-top: -0.75rem;
+}
+
+/* E-postadressen över två kolumner, men inte bredare än en lång adress behöver. */
+@container (min-width: 48rem) {
+  .profile-edit .profile-email {
+    max-width: 22rem;
+  }
+}
+
+/* Profilbilden under rubriken Om dig, i vänsterspalten (FormSection aside): bilden
+   och knappen för att byta den under varandra. */
+.profile-edit .form-section-head .profile-image {
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.profile-edit .form-section-head .profile-avatar {
+  width: 4rem;
+  height: 4rem;
+  margin-left: 1.75rem;
+  border-width: 1.5px;
+}
+
+.profile-edit .form-section-head .profile-avatar-empty {
+  font-size: 1.8rem;
+}
+
+.profile-edit .form-section-head .profile-image label {
+  white-space: nowrap;
+}
+
+.profile-edit .form-poster .form-section-head h3 {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--color-pastel-blue);
+  color: var(--color-ink);
+  font-size: 0.8rem;
+}
+
+.profile-edit .form-poster .form-section-head .hint-text {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.profile-edit .form-compact label,
+.profile-edit .form-compact legend {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.profile-edit .form-compact :is(input[type='text'], input[type='email'], input[type='password'], select) {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+/* Knapparna under formuläret i Redigera profil (utanför formuläret) med samma varma ram. */
+.profile-edit:has(> .form-poster) .profile-edit-footer .secondary-button:not(.button-danger) {
+  border-color: rgba(58, 47, 37, 0.2);
+}
+
+.form-poster-stamp {
+  width: 2.2rem;
+  height: 2.2rem;
+  margin-block: -0.4rem;
+  object-fit: contain;
+  opacity: 0.85;
+  rotate: -9deg;
+}
+
+/* Glesa streck (6 px streck, 4 px mellanrum) i stället för en streckad ram,
+   som på eventsidorna. Ramen finns kvar men är genomskinlig, så att inget flyttar sig. */
+.form-poster .form-section {
+  border-top-color: transparent;
+  background: repeating-linear-gradient(90deg, rgba(58, 47, 37, 0.3) 0 6px, transparent 6px 10px) top / 100%
+    1.5px no-repeat;
+  background-origin: border-box;
+}
+
+.form-poster .form-section-head h3 {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: var(--color-ink);
+  color: #fffdf7;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.form-poster .form-section-head .hint-text {
+  margin-top: 0.3rem;
+  color: #5a5148;
+}
+
+/* Beskrivningen har en fast storlek (den växer med blocket i stället), så inget
+   dra-handtag nere i hörnet, och räknaren står där handtaget annars sitter. */
+.form-poster textarea {
+  resize: none;
+}
+
+.form-poster .textarea-count-number {
+  right: 0.75rem;
+}
+
+/* Kartan och Avbryt med samma varma ram som fälten, i stället för mörk och blå. */
+.form-poster .location-picker-map,
+.form-poster .button-secondary {
+  border-color: var(--field-border);
+}
+
+.form-poster .location-picker-map {
+  border-radius: var(--field-radius);
 }
 
 /* En lista med personer (avatar och namn på varje rad), t.ex. medlemmar i en

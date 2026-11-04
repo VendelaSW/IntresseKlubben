@@ -101,10 +101,6 @@ const IDLE_VIDEOS = [...new Set([...IDLE_EARLY, ...IDLE_LATE])]
 // redan är avkodat när det tar över. Då blir bytet mellan klippen utan hack.
 const CLIP_SOURCES = [...new Set([...ALL_CLIPS.map((c) => c.video), ...IDLE_VIDEOS])]
 
-// Korten här är fasta (inte klickbara), så de får den blå hårda skuggan som fasta kort har
-// i stilguiden (samma som .card-wide).
-const FIXED_CARD_SHADOW = { boxShadow: '0 6px 0 var(--color-line)' }
-
 // Åldern i hela år för ett födelsedatum på formen ÅÅÅÅ-MM-DD, eller null om datumet saknas.
 function ageFrom(birthDate) {
   if (!birthDate) return null
@@ -940,7 +936,7 @@ function ProfileInterview() {
                   <span style={{ width: `${((index + 1) / STEPS.length) * 100}%` }} />
                 </div>
               </div>
-              <div className="card sheet interview-card" style={FIXED_CARD_SHADOW}>
+              <div className="card card-soft sheet interview-card">
                 <form
                   ref={formRef}
                   className="auth-form form-wide form-compact"
@@ -991,7 +987,11 @@ function ProfileInterview() {
 
                   {step.id === 'plats' && (
                     <div className="form-row">
-                      <FormField id="interview-municipality" label="Kommun">
+                      <FormField
+                        id="interview-municipality"
+                        label="Kommun"
+                        info="Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke."
+                      >
                         <MunicipalityPicker
                           id="interview-municipality"
                           municipalities={municipalities}
@@ -1000,7 +1000,6 @@ function ProfileInterview() {
                           required
                           autoFocus={AUTO_FOCUS}
                         />
-                        <p className="hint-text">Bor du i en mindre ort? Välj kommunen den ligger i, t.ex. Härryda för Mölnlycke.</p>
                       </FormField>
                       <FormField id="interview-district" label="Stadsdel (valfritt)">
                         <input
@@ -1032,7 +1031,7 @@ function ProfileInterview() {
                   )}
 
                   {step.id === 'person' && (
-                    <FormField id="interview-about" label={ABOUT_LABEL_SHORT}>
+                    <FormField id="interview-about" label={ABOUT_LABEL_SHORT} info={ABOUT_AI_NOTE}>
                       <TextareaWithCount
                         id="interview-about"
                         value={answers.about}
@@ -1045,7 +1044,6 @@ function ProfileInterview() {
                         placeholder={ABOUT_PLACEHOLDER}
                         required
                       />
-                      <p className="hint-text">{ABOUT_AI_NOTE}</p>
                       {aboutError && <p className="form-error">{aboutError}</p>}
                     </FormField>
                   )}
