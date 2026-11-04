@@ -4,8 +4,8 @@ import pytest
 
 from app.auth.security import get_current_user
 from app.main import app
-from app.models import EventHost, EventJoinRequest, Interest, Notification, User
-from app.models.event import EventVisibility
+from app.models import EventHost, EventInvitation, EventJoinRequest, EventResponse, Interest, Notification, User
+from app.models.event import EventAnswer, EventVisibility
 from tests.event_helpers import add_event, payload
 from tests.helpers import make_profile
 
@@ -111,6 +111,44 @@ def test_approving_lets_the_applicant_answer(client, db, people, applied):
     assert client.put(f"/events/{applied.id}/requests/{GUEST}").status_code == 204
     login(people, GUEST)
     assert answer(client, applied.id, "yes").status_code == 200
+
+
+def test_an_approved_applicant_counts_as_coming(client, db, people, applied):
+    # Personen har ansökt för att komma: godkänd står hen direkt som Kommer och räknas, utan att behöva svara.
+    client.put(f"/events/{applied.id}/requests/me", json={})
+    login(people, CREATOR)
+    assert client.put(f"/events/{applied.id}/requests/{GUEST}").status_code == 204
+    response = db.query(EventResponse).filter_by(event_id=applied.id, user_id=GUEST).one()
+    assert response.answer == EventAnswer.yes
+
+
+def test_the_event_counts_invited_who_have_not_answered(client, db, people):
+    event = add_event(db, CREATOR, visibility=EventVisibility.invite_only)
+    db.add_all([EventInvitation(event_id=event.id, user_id=HOST), EventInvitation(event_id=event.id, user_id=GUEST)])
+    db.commit()
+
+    def unanswered():
+        login(people, CREATOR)
+        return next(e for e in client.get("/events/").json() if e["id"] == event.id)["unanswered_count"]
+
+    assert unanswered() == 2
+    login(people, GUEST)
+    answer(client, event.id, "no")
+    # Ett Nej är ett svar: bara den som inte har svarat alls räknas.
+    assert unanswered() == 1
+
+
+def test_a_full_event_cannot_approve_more(client, db, people, applied):
+    applied.max_attendees = 1
+    db.add(EventResponse(event_id=applied.id, user_id=HOST, answer=EventAnswer.yes))
+    db.commit()
+    client.put(f"/events/{applied.id}/requests/me", json={})
+    login(people, CREATOR)
+    response = client.put(f"/events/{applied.id}/requests/{GUEST}")
+    assert response.status_code == 409 and response.json()["detail"] == "Eventet är fullt"
+    # Ansökan ligger kvar, och personen kommer inte.
+    assert db.query(EventJoinRequest).filter_by(event_id=applied.id, user_id=GUEST).count() == 1
+    assert db.query(EventResponse).filter_by(event_id=applied.id, user_id=GUEST).count() == 0
 
 
 def test_declining_explains_and_allows_applying_again(client, db, people, applied):
@@ -221,3 +259,58 @@ def test_removing_a_host(client, db, people):
     db.commit()
     assert client.delete(f"/events/{event.id}/hosts/{HOST}").status_code == 204
     assert db.query(EventHost).count() == 0
+
+
+# --- Skaparen och max antal, och att ta bort sitt svar --------------------------
+
+
+def _event_info(client, event_id):
+    return next(e for e in client.get("/events/").json() if e["id"] == event_id)
+
+
+def test_the_creator_counts_in_the_max_by_default(client, db, people):
+    event = add_event(db, CREATOR, visibility=EventVisibility.open, max_attendees=1)
+    login(people, CREATOR)
+    assert answer(client, event.id, "yes").status_code == 200
+    login(people, GUEST)
+    response = answer(client, event.id, "yes")
+    assert response.status_code == 409 and response.json()["detail"] == "Eventet är fullt"
+
+
+def test_a_creator_outside_the_max_can_always_say_yes(client, db, people):
+    # Max antal gäller bara gästerna: skaparen tar ingen plats, och kan svara Ja även när det är fullt.
+    event = add_event(db, CREATOR, visibility=EventVisibility.open, max_attendees=1, creator_in_max=False)
+    login(people, GUEST)
+    assert answer(client, event.id, "yes").status_code == 200
+    login(people, CREATOR)
+    assert answer(client, event.id, "yes").status_code == 200
+    info = _event_info(client, event.id)
+    assert (info["yes_count"], info["spots_left"], info["is_full"]) == (2, 0, True)
+    login(people, HOST)
+    assert answer(client, event.id, "yes").status_code == 409
+
+
+def test_the_creator_can_choose_and_cannot_empty_the_choice(client, db, people):
+    event = add_event(db, CREATOR, visibility=EventVisibility.open, max_attendees=3)
+    login(people, CREATOR)
+    assert client.patch(f"/events/{event.id}", json={"creator_in_max": False}).json()["creator_in_max"] is False
+    assert client.patch(f"/events/{event.id}", json={"creator_in_max": None}).status_code == 422
+
+
+def test_spots_left_counts_the_creator_only_when_chosen(client, db, people):
+    event = add_event(db, CREATOR, visibility=EventVisibility.open, max_attendees=3)
+    login(people, CREATOR)
+    answer(client, event.id, "yes")
+    assert _event_info(client, event.id)["spots_left"] == 2
+    client.patch(f"/events/{event.id}", json={"creator_in_max": False})
+    assert _event_info(client, event.id)["spots_left"] == 3
+
+
+def test_you_can_remove_your_answer(client, db, people):
+    event = add_event(db, CREATOR, visibility=EventVisibility.open)
+    login(people, GUEST)
+    answer(client, event.id, "maybe")
+    assert client.delete(f"/events/{event.id}/response").status_code == 200
+    assert db.query(EventResponse).filter_by(event_id=event.id, user_id=GUEST).count() == 0
+    # Går att upprepa, och någon annans svar påverkas inte.
+    assert client.delete(f"/events/{event.id}/response").status_code == 200

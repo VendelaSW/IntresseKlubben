@@ -48,6 +48,7 @@ function fieldsFrom(event) {
     areaCode: event.scope && event.scope !== 'country' ? event.scope_code : '',
     skillLevel: event.skill_level ?? '',
     maxAttendees: event.max_attendees ? String(event.max_attendees) : '',
+    creatorInMax: event.creator_in_max ?? true,
   }
 }
 
@@ -64,6 +65,7 @@ const EMPTY_FIELDS = {
   areaCode: '',
   skillLevel: '',
   maxAttendees: '',
+  creatorInMax: true,
 }
 
 const samePosition = (a, b) =>
@@ -123,6 +125,8 @@ function CreateEventForm({
   const [areaCode, setAreaCode] = useState(initial.areaCode)
   const [skillLevel, setSkillLevel] = useState(initial.skillLevel)
   const [maxAttendees, setMaxAttendees] = useState(initial.maxAttendees)
+  // Räknas mitt eget Ja in i maxantalet (som standard), eller gäller det bara gästerna?
+  const [creatorInMax, setCreatorInMax] = useState(initial.creatorInMax)
   const [regions, setRegions] = useState(null)
   useEffect(() => {
     getRegions()
@@ -161,6 +165,7 @@ function CreateEventForm({
     if (scope !== initial.scope || areaCode !== initial.areaCode) Object.assign(changes, areaFields())
     if (skillLevel !== initial.skillLevel) changes.skill_level = skillLevel || null
     if (maxAttendees !== initial.maxAttendees) changes.max_attendees = maxAttendees ? Number(maxAttendees) : null
+    if (creatorInMax !== initial.creatorInMax) changes.creator_in_max = creatorInMax
     return changes
   }
 
@@ -206,6 +211,7 @@ function CreateEventForm({
         ...areaFields(),
         skill_level: skillLevel || null,
         max_attendees: maxAttendees ? Number(maxAttendees) : null,
+        creator_in_max: creatorInMax,
       })
       let inviteProblem = ''
       if (invites.userIds.length + invites.groupIds.length > 0) {
@@ -385,6 +391,13 @@ function CreateEventForm({
                 placeholder="Ingen gräns"
               />
             </FormField>
+            {/* Med ett maxantal: tar skaparens eget Ja en av platserna, eller är de bara till gästerna? */}
+            {maxAttendees && (
+              <label>
+                <input type="checkbox" checked={creatorInMax} onChange={(e) => setCreatorInMax(e.target.checked)} /> Räkna
+                in mig i maxantalet
+              </label>
+            )}
           </div>
         </div>
         <div className="form-column">
