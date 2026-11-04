@@ -18,8 +18,12 @@ function MapPad({ title, wide = false, onClose, children }) {
   const newHead = useDesignChoice('padHead') !== PRE_DEV
   const [actions, setActions] = useState(null)
   const [float, setFloat] = useState(null)
+  const [floatStart, setFloatStart] = useState(null)
   const [back, setBack] = useState(null)
-  const head = useMemo(() => (newHead ? { actions, float, setBack } : null), [newHead, actions, float])
+  const head = useMemo(
+    () => (newHead ? { actions, float, floatStart, setBack } : null),
+    [newHead, actions, float, floatStart],
+  )
 
   // Lyft blocket och ta bort det när det har lyft.
   function close() {
@@ -66,8 +70,9 @@ function MapPad({ title, wide = false, onClose, children }) {
           </div>
           <PadHeadContext.Provider value={head}>{children}</PadHeadContext.Provider>
         </div>
-        {/* Knappar som flyter nere i högra hörnet, utanför sidan som scrollar (se PadFloatAction). */}
+        {/* Knappar som flyter nere i högra och vänstra hörnet, utanför sidan som scrollar (se PadFloatAction). */}
         {newHead && <div ref={setFloat} className="map-pad-float" />}
+        {newHead && <div ref={setFloatStart} className="map-pad-float map-pad-float-start" />}
       </section>
     </div>
   )

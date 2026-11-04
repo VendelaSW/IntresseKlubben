@@ -2373,6 +2373,50 @@
   padding-inline: 0.75rem 1rem;
 }
 
+/* Sökikonen nere i vänstra hörnet på mobil (PadFloatAction med start), mitt emot skapa-knappen och nära tummen.
+   Öppen blir sök och filter en ruta längs nederkanten, ovanför ikonen, och skapa-knappen göms så länge. Listorna i
+   filtren öppnar sig uppåt, eftersom det inte finns plats under. */
+.map-pad-float-start {
+  right: auto;
+  left: 3rem;
+}
+
+@media (max-width: 767px) {
+  .map-pad-float-start {
+    left: 1.2rem;
+  }
+
+  .map-pad-float-start:has(.search-toggle.is-open) {
+    right: 1.2rem;
+  }
+
+  .map-pad-float-start .search-toggle-row {
+    flex-direction: column-reverse;
+  }
+
+  .map-pad-float-start .search-toggle-panel {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.7rem;
+    border: 1.5px solid var(--color-ink);
+    border-radius: 10px;
+    background: var(--color-white);
+    box-shadow:
+      2px 2px 0 var(--color-ink),
+      0 6px 14px color-mix(in srgb, var(--color-ink) 18%, transparent);
+  }
+
+  .map-pad:has(.map-pad-float-start .search-toggle.is-open) .map-pad-float:not(.map-pad-float-start) {
+    display: none;
+  }
+
+  .map-pad-float-start .municipality-picker-list,
+  .map-pad-float-start .sort-menu-list {
+    top: auto;
+    bottom: calc(100% + 4px);
+  }
+}
+
 /* TILLFÄLLIGT: Gå med och Avböj på de nya klubbkorten (testläget) lite smalare, så att båda och pilen får plats
    på smala kort. */
 .map-pad .club-card-buttons .primary-button,

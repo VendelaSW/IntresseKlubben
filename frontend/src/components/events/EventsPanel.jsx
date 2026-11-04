@@ -4,11 +4,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useResetOnTabChange, useTabParam } from '../../hooks/useTabParam'
 import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
 import CreateOffer from '../CreateOffer'
-import { PadHeadAction } from '../PadHead'
+import { PadFloatAction, PadHeadAction } from '../PadHead'
 import EmptyState from '../EmptyState'
 import FilterTabs from '../FilterTabs'
 import SearchToggle from '../SearchToggle'
@@ -238,18 +239,26 @@ function EventsPanel() {
   // utan att man förstår varför (t.ex. via en gammal länk eller kartan).
   const missing = typeof view === 'number' && !selected && eventsResult.isSuccess
   const newPadHead = useDesignChoice('padHead') !== PRE_DEV
+  // På mobil flyter skapa-knappen och sökikonen nere i blockets hörn, nära tummen (se .map-pad-float i map.css).
+  const mobile = useMediaQuery('(max-width: 767px)')
 
   return (
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Events</h1>
         {/* TILLFÄLLIGT: med den nya rubriken i testläget (useDesignChoice('padHead')) står knappen i blockets
-            rubrikrad, och inte i ett events vy. Annars här, som vanligt. */}
-        {view !== 'create' && !(newPadHead && (selected || missing)) && (
-          <PadHeadAction>
-            <CreateButton label="Skapa event" onClick={() => openCreate()} />
-          </PadHeadAction>
-        )}
+            rubrikrad (på mobil nere i blockets högra hörn), och inte i ett events vy. Annars här, som vanligt. */}
+        {view !== 'create' &&
+          !(newPadHead && (selected || missing)) &&
+          (mobile ? (
+            <PadFloatAction>
+              <CreateButton label="Skapa event" onClick={() => openCreate()} />
+            </PadFloatAction>
+          ) : (
+            <PadHeadAction>
+              <CreateButton label="Skapa event" onClick={() => openCreate()} />
+            </PadHeadAction>
+          ))}
       </div>
 
       {status === 'loading' ? (
@@ -356,18 +365,20 @@ function EventsPanel() {
               )}
               {!showCalendar && (
                 <>
-                  <SearchToggle count={(interestFilter ? 1 : 0) + (dayFilter ? 1 : 0)}>
-                    <div className="filter-select-row filter-select-row-compact">
-                      <InterestPicker
-                        aria-label="Filtrera på intresse"
-                        placeholder="Alla intressen"
-                        myInterests={myInterests}
-                        value={interestFilter}
-                        onChange={setInterestFilter}
-                      />
-                      <EventDayFilter value={dayFilter} onChange={setDayFilter} />
-                    </div>
-                  </SearchToggle>
+                  <PadFloatAction start when={mobile}>
+                    <SearchToggle count={(interestFilter ? 1 : 0) + (dayFilter ? 1 : 0)}>
+                      <div className="filter-select-row filter-select-row-compact">
+                        <InterestPicker
+                          aria-label="Filtrera på intresse"
+                          placeholder="Alla intressen"
+                          myInterests={myInterests}
+                          value={interestFilter}
+                          onChange={setInterestFilter}
+                        />
+                        <EventDayFilter value={dayFilter} onChange={setDayFilter} />
+                      </div>
+                    </SearchToggle>
+                  </PadFloatAction>
                   {shown[tab].length === 0 && interestFilter ? (
                     <CreateOffer
                       text={`Det finns inga events för ${interestFilter.name}. Vill du skapa ett?`}

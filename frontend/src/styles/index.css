@@ -7194,6 +7194,111 @@ label.person-list-item {
   white-space: nowrap;
 }
 
+/* Mobil: biljetten på bredden, ett event per rad, med kvittot (datum, tid och plats) som en flik till höger, avdelad
+   med en perforerad linje och ett urtag överst och nederst. Titeln och beskrivningen överst, och intresset, rollen
+   och stämpeln på en rad nederst. Inget "EVENT" överst och ingen lutning, så att mer får plats. */
+@media (max-width: 767px) {
+  .card-grid-compact:has(> .event-ticket-wrap) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: auto;
+    gap: 0.9rem;
+  }
+
+  .event-ticket-wrap,
+  .event-ticket-wrap:nth-child(even) {
+    transform: none;
+  }
+
+  .event-ticket.card {
+    --stub-w: 6.2rem;
+    --notch: 0.55rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: none;
+    min-height: 8.6rem;
+    padding: 0.95rem calc(var(--stub-w) + 0.8rem) 0.8rem 0.9rem;
+    mask:
+      radial-gradient(circle at calc(100% - var(--stub-w)) top, #0000 var(--notch), #000 calc(var(--notch) + 0.5px)) top / 100% 51% no-repeat,
+      radial-gradient(circle at calc(100% - var(--stub-w)) bottom, #0000 var(--notch), #000 calc(var(--notch) + 0.5px)) bottom / 100% 51% no-repeat;
+  }
+
+  .event-ticket-head {
+    display: none;
+  }
+
+  .event-ticket-main {
+    flex: 1 1 100%;
+  }
+
+  /* Långa ord bryts bara om de inte får plats på en egen rad, och då utan bindestreck mitt i. Luften för prickarna på
+     Ö, Å och Ä bara ovanför, så att inget av en tredje rad syns under de två. */
+  .event-ticket .card-title {
+    padding-bottom: 0;
+    margin-bottom: 0;
+    font-size: 1.05rem;
+    hyphens: manual;
+  }
+
+  .event-ticket .list-card-description {
+    -webkit-line-clamp: 1;
+  }
+
+  /* Rollen och stämpeln på samma rad som intresset, stämpeln längst till höger. Får de inte plats bryts raden. */
+  .event-ticket .card-actions {
+    display: contents;
+  }
+
+  .event-ticket .card-actions .status-pill {
+    padding: 0.1rem 0.5rem;
+    font-size: 0.72rem;
+  }
+
+  .event-ticket .card-actions .stamp {
+    margin-left: auto;
+    padding: 0 0.4rem;
+    font-size: 0.95rem;
+  }
+
+  .event-ticket-stub {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    width: var(--stub-w);
+    height: auto;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.9rem 0.4rem 0.6rem;
+    border-top: 0;
+    border-left: 2px dashed rgba(58, 47, 37, 0.4);
+    background:
+      linear-gradient(var(--poster), var(--poster)) top / 100% 7px no-repeat,
+      var(--poster-soft);
+  }
+
+  .event-ticket-day {
+    font-size: 2.2rem;
+  }
+
+  .event-ticket-when strong {
+    margin-bottom: 0.15rem;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.78rem;
+  }
+
+  .event-ticket-place {
+    font-size: 0.75rem;
+  }
+}
+
 /* Eventets egen vy som en biljett (EventDetails med `ticket`, i .event-ticket-sheet): samma vita papper med en rad i
    intressets färg överst, titeln i tryckbokstäver, stämpeln (Endast inbjudna, Öppet för alla eller Ansökan) uppe till
    höger, och ett kvitto längst ner med datumet, tiden och platsen, de två sista i svarta rutor. */
