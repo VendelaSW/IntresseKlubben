@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import './map.css'
 import { LngLat, Map as MapLibreMap, Marker, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -10,7 +10,6 @@ import { attachPlaceNotes } from './notes'
 import { attachSketchedBuildings } from './buildings'
 import { attachPinsAndThread } from './route'
 import { attachPlaceSigns } from './signs'
-import logo from '../assets/intresseklubben.png'
 import { useConfirm } from '../hooks/useConfirm'
 import Intressekompis from '../shared/Intressekompis'
 import MapCalmPage from './MapCalmPage'
@@ -1799,7 +1798,7 @@ function MapPage() {
     const mapArea = map.getCanvasContainer()
     function forwardWheel(event) {
       if (mapArea.contains(event.target)) return // kartan sköter det själv
-      if (event.target.closest('.map-pad')) return // blocket scrollar själv
+      if (event.target.closest('.map-pad, .map-calm')) return // blocket och Att göra-sidan scrollar själva
       event.preventDefault()
       mapArea.dispatchEvent(
         new WheelEvent('wheel', {
@@ -2004,13 +2003,21 @@ function MapPage() {
           </div>
         </div>
       </div>
-      {/* TEST: dator: kompisen nere i högra hörnet. Mobil: den vanliga loggan uppe i vänstra hörnet. */}
+      {/* TEST: kompisen nere i högra hörnet, bara på dator. */}
       <div className="map-kompis">
         <Intressekompis alt="" />
       </div>
-      <img src={logo} alt="Intresseklubben" className="map-logo" />
+      {/* I Att göra-läget: integritetsinformationen precis under kompisen. Där kompisen inte syns står länken längst ner
+          på sidan i stället (se MapCalmPage). */}
+      {calm && (
+        <Link to="/integritet" className="quiet-link map-kompis-privacy">
+          Integritetsinformation
+        </Link>
+      )}
       {calm && (
         <MapCalmPage
+          counts={badgeCounts}
+          refreshKey={openPage}
           onOpen={openPad}
           onOpenEvent={(id) => openActivityRef.current({ type: 'event', id })}
         />

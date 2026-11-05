@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import AuthPage from '../features/account/AuthPage'
+import PrivacyPage from '../features/start/PrivacyPage'
 import ServiceInfo from '../features/start/ServiceInfo'
 import VerifyEmailPage from '../features/account/VerifyEmailPage'
 import ResetPasswordPage from '../features/account/ResetPasswordPage'
@@ -64,6 +65,8 @@ function App() {
           }
         />
         <Route path="/om" element={<ServiceInfo />} />
+        {/* Integritetsinformationen: utanför inloggningen, så att den går att läsa innan man skapar ett konto. */}
+        <Route path="/integritet" element={<PrivacyPage />} />
         {/* Länkarna i mejlen. Utanför inloggningen: de ska fungera även utloggad. */}
         <Route path="/verifiera" element={<VerifyEmailPage />} />
         <Route path="/aterstall" element={<ResetPasswordPage />} />
