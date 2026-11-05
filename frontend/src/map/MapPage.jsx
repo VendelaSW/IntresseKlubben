@@ -11,6 +11,7 @@ import { attachSketchedBuildings } from './buildings'
 import { attachPinsAndThread } from './route'
 import { attachPlaceSigns } from './signs'
 import logo from '../assets/intresseklubben.png'
+import { useConfirm } from '../hooks/useConfirm'
 import Intressekompis from '../shared/Intressekompis'
 import MapCalmPage from './MapCalmPage'
 import MapPagePad, { MAP_PAGES, widgetFor } from './MapPagePad'
@@ -146,6 +147,16 @@ function youIcon() {
   const paths = YOU_ICON_PATHS.map((d) => `<path d="${d}" />`).join('')
   icon.innerHTML = `<svg viewBox="0 0 32 32" aria-hidden="true">${paths}</svg>`
   return icon
+}
+// Har sidan redan fått, eller blivit nekad, platsen? Utan https svarar webbläsaren ändå nej, och alla webbläsare kan
+// inte svara på frågan: då räknas det som att vi inte har frågat.
+async function locationPermission() {
+  if (!window.isSecureContext) return 'prompt'
+  try {
+    return (await navigator.permissions.query({ name: 'geolocation' })).state
+  } catch {
+    return 'prompt'
+  }
 }
 // Längst in man kan zooma: kvarter med husen tydliga. Kartdatan har ingen
 // mer detalj längre in (den förstoras bara), och husen blir bara större.
@@ -1072,6 +1083,7 @@ function MapPage() {
   const [hasHome, setHasHome] = useState(false)
   // "Hitta mig" (se findMe): väntar på positionen, och beskedet om den inte gick att få.
   const [findingMe, setFindingMe] = useState(false)
+  const confirm = useConfirm()
   const [findMeMessage, setFindMeMessage] = useState('')
   const youMarkerRef = useRef(null)
   // Klubbarna och eventen på kartan, för sökrutan (se loadActivities).
@@ -1318,12 +1330,27 @@ function MapPage() {
   // "Hitta mig" (SCRUM-71): webbläsaren frågar om lov först nu, när man trycker på
   // knappen. Positionen stannar i webbläsaren: den sparas inte och skickas inte till
   // backend. Kartan hämtar sina kartbilder för området som visas, som när man bläddrar.
-  function findMe() {
+  async function findMe() {
     if (!navigator.geolocation) {
       setFindMeMessage('Din webbläsare kan inte visa var du är.')
       return
     }
     setFindMeMessage('')
+    const permission = await locationPermission()
+    if (permission === 'denied') {
+      setFindMeMessage('Platsen är avstängd för den här sidan, och då får vi inte fråga igen. Du slår på den i webbläsaren.')
+      return
+    }
+    // Vår egen fråga först: säger man nej till webbläsarens får vi aldrig fråga igen, men "Inte nu" här går att ångra.
+    if (permission !== 'granted') {
+      const allowed = await confirm({
+        title: 'Vill du visa var du är?',
+        text: 'Då flyttar kartan dit du är. Webbläsaren frågar en gång till, tryck Tillåt där också.',
+        confirmLabel: 'Tillåt',
+        cancelLabel: 'Inte nu',
+      })
+      if (!allowed) return
+    }
     setFindingMe(true)
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
@@ -1332,11 +1359,13 @@ function MapPage() {
       },
       (error) => {
         setFindingMe(false)
-        setFindMeMessage(
-          error.code === error.PERMISSION_DENIED
-            ? 'Vi får inte se var du är. Du kan ändra det i webbläsarens inställningar.'
-            : 'Vi kunde inte hitta dig just nu. Försök igen om en stund.',
-        )
+        if (!window.isSecureContext) {
+          setFindMeMessage('Den här testadressen går över http, och då får webbläsaren inte ge oss platsen. Det fungerar på den riktiga sidan.')
+        } else if (error.code === error.PERMISSION_DENIED) {
+          setFindMeMessage('Okej, vi visar inte var du är.')
+        } else {
+          setFindMeMessage('Vi kunde inte hitta dig just nu. Försök igen om en stund.')
+        }
       },
       { timeout: 10000, maximumAge: 60000 },
     )
