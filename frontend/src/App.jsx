@@ -2,7 +2,6 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import AuthPage from './pages/AuthPage'
 import ServiceInfo from './pages/ServiceInfo'
-import StyleGuide from './pages/StyleGuide'
 import VerifyEmailPage from './pages/VerifyEmailPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import ConfirmPasswordPage from './pages/ConfirmPasswordPage'
@@ -12,19 +11,15 @@ import AppShell from './components/AppShell'
 import ProtectedRoute from './components/ProtectedRoute'
 import RequireProfile from './components/RequireProfile'
 import { useAuth } from './hooks/useAuth'
-import DemoLayout from './pages/demo/DemoLayout'
-import DemoStart from './pages/demo/DemoStart'
-import DemoAuth from './pages/demo/DemoAuth'
-import DemoProfile from './pages/demo/DemoProfile'
-import DemoApp, { DemoComingSoon, DemoOverview } from './pages/demo/DemoApp'
-import DemoPeople from './pages/demo/DemoPeople'
-import DemoClubs from './pages/demo/DemoClubs'
 import { DEV_MODE } from './devtools/devMode'
 
 // Kartbiblioteket är stort, så kartan laddas först när den behövs.
 const MapPrototype = lazy(() => import('./pages/MapPrototype'))
 // Startsidan laddas för sig, så att kartans stilar (map.css) inte följer med på alla sidor.
 const StartPage = lazy(() => import('./pages/StartPage'))
+// Stilguiden och demon används sällan, så de laddas inte för alla besökare.
+const StyleGuide = lazy(() => import('./pages/StyleGuide'))
+const DemoRoutes = lazy(() => import('./pages/demo/DemoRoutes'))
 
 // Testpanelen finns bara i testläget (npm run dev:test), och kommer inte ens med i en vanlig build.
 const DevPanel = DEV_MODE ? lazy(() => import('./devtools/DevPanel')) : null
@@ -81,7 +76,14 @@ function App() {
         {/* Ersatt av inloggning/registrering inline på /, kvar som omdirigering
             ifall någon har ett gammalt bokmärke eller en gammal länk. */}
         <Route path="/konto" element={<Navigate to="/" replace />} />
-        <Route path="/stilguide" element={<StyleGuide />} />
+        <Route
+          path="/stilguide"
+          element={
+            <Suspense fallback={null}>
+              <StyleGuide />
+            </Suspense>
+          }
+        />
 
         <Route element={<ProtectedRoute />}>
           {/* Bara för inloggade med klar profil. Kartan tar hela skärmen. */}
@@ -107,19 +109,14 @@ function App() {
         </Route>
 
         {/* Klickbar prototyp med påhittad data, rör inte backend. */}
-        <Route path="/demo" element={<DemoLayout />}>
-          <Route index element={<DemoStart />} />
-          <Route path="registrera" element={<DemoAuth key="register" mode="register" />} />
-          <Route path="logga-in" element={<DemoAuth key="login" mode="login" />} />
-          <Route path="profil" element={<DemoProfile />} />
-          <Route path="app" element={<DemoApp />}>
-            <Route index element={<DemoOverview />} />
-            <Route path="personer" element={<DemoPeople />} />
-            <Route path="klubbar" element={<DemoClubs />} />
-            <Route path="karta" element={<DemoComingSoon key="map" kind="map" />} />
-            <Route path="evenemang" element={<DemoComingSoon key="events" kind="events" />} />
-          </Route>
-        </Route>
+        <Route
+          path="/demo/*"
+          element={
+            <Suspense fallback={null}>
+              <DemoRoutes />
+            </Suspense>
+          }
+        />
       </Routes>
       {DevPanel && (
         <Suspense fallback={null}>

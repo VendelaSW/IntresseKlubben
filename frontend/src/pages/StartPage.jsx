@@ -39,7 +39,7 @@ const KONTO_PARAM = { login: 'logga-in', register: 'registrera' }
 // polaroiderna faller ändå bara första gången per session; för att se det igen, öppna sidan i en ny flik.
 const alwaysWrite = () => DEV_MODE && new URLSearchParams(window.location.search).has('skriv')
 
-// Polaroiderna i toppen: Nicks korta filmer (kopierade från src/devtools/video), som spelas utan ljud i en slinga.
+// Polaroiderna i toppen: Nicks korta filmer, som spelas utan ljud i en slinga.
 // Med "minska rörelse" (utom med ?skriv i testläget) visas stillbilden i stället; den syns också medan filmen laddas.
 // Alla filmer i src/assets/startsida används, med stillbilden med samma namn (t.ex. dans.mp4 och dans.jpg): en ny film
 // där kommer med av sig själv, och får sin bildtext i CAPTIONS. Fyra slumpas fram när sidan öppnas (se pickPolaroids),
