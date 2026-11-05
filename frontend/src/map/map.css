@@ -2759,7 +2759,7 @@
   }
 }
 
-/* Pekskärm: blockets knappar och kartans kontroller går att träffa med tummen. Stäng-krysset ser lika stort ut,
+/* Pekskärm: blockets knappar går att träffa med tummen. Kartans zoomknappar är kvar i sin storlek: större krockar de med profilen, och det går att nypa för att zooma. Stäng-krysset ser lika stort ut,
    men har större yta (negativ marginal, så att rubriken inte flyttar sig). */
 @media (pointer: coarse) {
   .map-pad .primary-button:not(.notepad-reply button),
@@ -2781,9 +2781,23 @@
     min-width: 44px;
     min-height: 44px;
   }
+}
 
-  .maplibregl-ctrl-group button {
-    width: 44px;
-    height: 44px;
+/* Låga skärmar, som en telefon på sidan: blocket tar hela höjden, annars får nästan inget plats i det. */
+@media (max-height: 500px) {
+  .map-pad-stage {
+    z-index: 40;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .map-pad.is-wide {
+    width: 100%;
+    max-height: none;
+    height: 100%;
+  }
+
+  .map-pad-float {
+    right: 1.2rem;
+    bottom: 0.75rem;
   }
 }

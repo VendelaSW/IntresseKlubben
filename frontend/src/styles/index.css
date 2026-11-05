@@ -5456,3 +5456,16 @@ label.person-list-item {
     min-height: 44px;
   }
 }
+
+/* Plats för krysset i intresseväljaren, också i formulär med mindre fält. */
+.interest-picker input,
+.form-compact .interest-picker input {
+  padding-right: 1.8rem;
+}
+
+/* De smalaste telefonerna: födelsedatumets tre fält får plats på en rad. */
+@media (max-width: 360px) {
+  .birth-date-picker {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+}
