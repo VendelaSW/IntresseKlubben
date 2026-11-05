@@ -3371,10 +3371,6 @@ label:has(> input[type='radio']:not(:disabled)) {
       --search-height: 1.75rem;
     }
 
-  .map-place-search-row .search-toggle-row {
-      --search-height: 2.1rem;
-    }
-
   .search-toggle-row .search-toggle,
     .search-toggle-panel .sort-menu-button {
       width: var(--search-height);

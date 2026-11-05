@@ -67,11 +67,7 @@
 .map-sketch.is-calm .map-sketch-thread,
 .map-sketch.is-calm .map-sketch-compass,
 .map-sketch.is-calm .map-sketch-tools,
-/* Sökningen tar ingen plats alls, annars ligger den osynliga raden över profilbilden på en smal skärm. */
-.map-sketch.is-calm .map-place-search {
-  display: none;
-}
-
+.map-sketch.is-calm .map-place-search,
 .map-sketch.is-calm .map-view-tools,
 .map-sketch.is-calm .map-sketch-hint,
 .map-sketch.is-calm .map-levels {
@@ -1116,6 +1112,8 @@
   pointer-events: auto;
   --map-search-height: 2.1rem;
   --map-search-gap: 0.45rem;
+  /* Plats för sökfältet, som ligger under raden (se .map-place-search). */
+  margin-bottom: calc(var(--map-search-gap) + var(--map-search-height));
 }
 
 .map-view-tools {
@@ -1143,22 +1141,17 @@
   flex-wrap: wrap;
 }
 
-/* Sökningen (MapPlaceSearch, SCRUM-220): sista ikonen på översta raden, med samma bläckkant och hårda skugga som
-   de andra. Fältet öppnas under raden och är lika brett som den (raden är positionerad, se .map-view-row), och
-   förslagen fälls ut under fältet. */
+/* Sökfältet (MapPlaceSearch, SCRUM-220): alltid öppet under raden med ikoner och lika brett som den (raden är
+   positionerad, se .map-view-row), med samma bläckkant och hårda skugga som ikonerna. Förslagen fälls ut under. */
 .map-place-search {
-  flex: none;
-  pointer-events: auto;
-}
-
-.map-place-search .search-toggle-panel {
   position: absolute;
   top: calc(100% + var(--map-search-gap));
   left: 0;
   right: 0;
+  pointer-events: auto;
 }
 
-.map-place-search .search-toggle-panel .search-field {
+.map-place-search .search-field {
   min-height: var(--map-search-height);
   border: 1.5px solid #3a2f25;
   border-radius: var(--radius-sm);
@@ -1166,15 +1159,9 @@
   box-shadow: var(--shadow-ink-sm);
 }
 
-.map-place-search-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
 .map-place-search-list {
   position: absolute;
-  top: calc(100% + 2 * var(--map-search-gap) + var(--map-search-height));
+  top: calc(100% + 0.3rem);
   left: 0;
   /* Namnen behöver mer plats än raden med ikoner, men aldrig mer än skärmen. */
   width: max(100%, min(18rem, calc(100vw - 1.2rem)));
@@ -1229,23 +1216,15 @@
   font-size: var(--text-small);
 }
 
-/* Besked under ikonerna, eller under sökfältet när det är öppet: en lapp som knapparna, så att det går att läsa
-   ovanpå kartan. */
-.map-place-search-row:has(.search-toggle.is-open) ~ .map-place-search-message {
-  top: calc(100% + 2 * var(--map-search-gap) + var(--map-search-height));
-}
-
+/* Besked under sökfältet: en lapp som knapparna, så att det går att läsa ovanpå kartan. */
 .map-place-search-message {
-  position: absolute;
-  top: calc(100% + var(--map-search-gap));
-  left: 0;
   width: max(100%, min(18rem, calc(100vw - 1.2rem)));
   box-sizing: border-box;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
-  margin: 0;
+  margin: 0.4rem 0 0;
   padding: 0.35rem 0.6rem;
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
@@ -1550,40 +1529,6 @@
   font-family: var(--font-heading);
   font-size: 1.35rem;
   cursor: pointer;
-}
-
-/* Kartans sökikon ser ut som de andra ikonerna på raden (se .map-tool). */
-.map-place-search .search-toggle-row .search-toggle {
-  box-sizing: border-box;
-  width: auto;
-  height: auto;
-  padding: 0.3rem 0.7rem;
-  border: 1.5px solid #3a2f25;
-  border-radius: var(--radius-sm);
-  background: var(--color-warm-white);
-  box-shadow: var(--shadow-ink-sm);
-}
-
-.map-place-search .search-toggle-row .search-toggle svg {
-  display: block;
-  width: 1.15rem;
-  height: 1.15rem;
-}
-
-.map-place-search .search-toggle-row .search-toggle:focus-visible {
-  background: #fff3c4;
-}
-
-@media (hover: hover) {
-  .map-place-search .search-toggle-row .search-toggle:hover {
-    background: #fff3c4;
-  }
-}
-
-.map-place-search .search-toggle-row .search-toggle.is-open {
-  background: var(--color-accent);
-  box-shadow: none;
-  transform: translate(2px, 2px);
 }
 
 .map-page-widget.is-open {
@@ -2168,7 +2113,7 @@
   }
 
   .map-sketch-tools {
-    top: calc(3.9rem + env(safe-area-inset-top));
+    top: calc(6.9rem + env(safe-area-inset-top));
     left: calc(0.6rem + env(safe-area-inset-left));
     /* Plats för zoomknapparna och profilbilden uppe till höger. */
     right: calc(3.4rem + 54px);
@@ -2322,8 +2267,7 @@
     font-size: 1.1rem;
   }
 
-  .map-tool,
-  .map-place-search .search-toggle-row .search-toggle {
+  .map-tool {
     padding: 0.2rem 0.5rem;
     font-size: var(--text-xs);
   }
@@ -2836,27 +2780,13 @@
     margin: -6px -10px;
   }
 
-  .map-tool-icon-only,
-  .map-place-search .search-toggle-row .search-toggle {
+  .map-tool-icon-only {
     min-width: 44px;
     min-height: 44px;
   }
 
   .map-view-row {
     --map-search-height: 44px;
-  }
-}
-
-/* De smalaste telefonerna: fem ikoner ryms före profilbilden bara om de står lite tätare. */
-@media (pointer: coarse) and (max-width: 360px) {
-  .map-view-row,
-  .map-view-tools {
-    gap: 0.25rem;
-  }
-
-  .map-tool-icon-only,
-  .map-place-search .search-toggle-row .search-toggle {
-    min-width: 38px;
   }
 }
 

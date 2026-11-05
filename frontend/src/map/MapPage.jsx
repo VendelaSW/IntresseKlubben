@@ -1724,7 +1724,7 @@ function MapPage() {
       <div className="map-top-bar">
         <div className="map-top-left">
           {/* Översta raden, som ritade ikoner: kartan eller dagens att göra (se `calm`, den valda är nedtryckt),
-              Min kommun, Hitta mig och sök. De tre sista bara på kartan. */}
+              Min kommun och Hitta mig, med sökfältet under. Allt utom växeln bara på kartan. */}
           <div className="map-view-row">
             <div className="map-tool-group" role="group" aria-label="Visa">
               <button
