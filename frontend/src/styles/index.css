@@ -2103,10 +2103,13 @@ label:has(> input[type='radio']:not(:disabled)) {
       margin-top: auto;
     }
 
+  /* Raka kanter och lätt rundade hörn: frihandshörnen (--tag-shape-alt) gör det smala pappret snett och skär av
+     kanterna. Gäller breven och klubbchatten. */
   .notepad {
       --paper-margin: 2.2rem;
       --notepad-right: 0.8rem;
       --notepad-indent: 0.6rem;
+      border-radius: var(--radius-lg);
     }
 
   /* Lägre chatt, så att det alltid finns sida att dra i ovanför eller nedanför den. */

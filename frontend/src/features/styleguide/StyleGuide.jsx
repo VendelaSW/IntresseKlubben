@@ -627,7 +627,8 @@ function StyleGuide() {
           Anteckningspapper (.notepad .lined-paper), för en konversation
         </p>
         <p className="hint-text">
-          Linjerat papper med röd marginal, bläckkant, frihandshörn (--tag-shape-alt) och hård bläckskugga. Allt på pappret har radhöjden --line-gap, så att texten
+          Linjerat papper med röd marginal, bläckkant, frihandshörn (--tag-shape-alt, på mobil raka kanter med
+          --radius-lg) och hård bläckskugga. Allt på pappret har radhöjden --line-gap, så att texten
           står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. Någon annans bild och namn (överst och vid breven, ChatSender) är länkar till profilen. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
           ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och på en egen sida på mobil: rubriken Klubbchatt, medlemmarnas bilder
           och namn vid varje meddelande, och en svarsrad. Meddelanden i följd från samma person, inom 5
