@@ -15,13 +15,12 @@ import { REPORT_TARGET } from '../../services/reports'
 import { formatSentAt } from '../../utils/formatSentAt'
 import { startsGroup } from '../../utils/messageGroups'
 import LoadError from '../../shared/LoadError'
+import { isMobile } from '../../hooks/useMediaQuery'
 
 // Hur ofta konversationen hämtas igen medan den är öppen, så att nya brev
 // syns utan att man laddar om sidan.
 const POLL_MS = 5000
 
-// Samma brytpunkt som i index.css: under den ligger pappret längst ner.
-const MOBILE_QUERY = '(max-width: 767px)'
 
 const NO_MESSAGES = []
 
@@ -66,7 +65,7 @@ function ConversationPage() {
   // Mobil: pappret ligger längst ner, så skrolla dit när brev tillkommer (även
   // när sidan öppnas), så att de senaste breven och svarsraden syns.
   useEffect(() => {
-    if (messages.length > 0 && window.matchMedia(MOBILE_QUERY).matches) {
+    if (messages.length > 0 && isMobile()) {
       window.scrollTo({ top: document.documentElement.scrollHeight })
     }
   }, [messages.length])

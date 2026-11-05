@@ -7,7 +7,7 @@ import SearchField from '../../shared/SearchField'
 import SearchToggle from '../../shared/SearchToggle'
 import { useConfirm } from '../../hooks/useConfirm'
 import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
-import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useIsMobile } from '../../hooks/useMediaQuery'
 import CreateGroupForm from './CreateGroupForm'
 import CreateOffer from '../../shared/CreateOffer'
 import { PadFloatAction } from '../../map/PadHead'
@@ -83,7 +83,7 @@ function GroupsPanel() {
   const searchStyle = useDesignChoice('searchStyle')
   const newPadHead = useDesignChoice('padHead') !== PRE_DEV
   // På mobil flyter sökikonen nere i blockets vänstra hörn, mitt emot skapa-knappen (se .map-pad-float i map.css).
-  const mobile = useMediaQuery('(max-width: 767px)')
+  const mobile = useIsMobile()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)

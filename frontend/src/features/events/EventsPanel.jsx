@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useResetOnTabChange, useTabParam } from '../../hooks/useTabParam'
 import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
-import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useIsMobile } from '../../hooks/useMediaQuery'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../../shared/BackButton'
 import CreateButton from '../../shared/CreateButton'
@@ -237,7 +237,7 @@ function EventsPanel() {
   const missing = typeof view === 'number' && !selected && eventsResult.isSuccess
   const newPadHead = useDesignChoice('padHead') !== PRE_DEV
   // På mobil flyter skapa-knappen och sökikonen nere i blockets hörn, nära tummen (se .map-pad-float i map.css).
-  const mobile = useMediaQuery('(max-width: 767px)')
+  const mobile = useIsMobile()
 
   return (
     <section className="app-section app-section-centered">
