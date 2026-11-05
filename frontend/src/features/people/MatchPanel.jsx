@@ -69,6 +69,13 @@ function useFitToPad(panelRef) {
       if (fits) panel.style.setProperty('--match-room', `${room}px`)
       else panel.style.removeProperty('--match-room')
       fitAboutText(panel)
+      // Får kortet ändå inte plats får sidan scrolla, så att knapparna inte hamnar utanför kortet.
+      const card = panel.querySelector('.match-card')
+      if (fits && card && card.scrollHeight > card.clientHeight + 1) {
+        panel.classList.remove('is-fitted')
+        panel.style.removeProperty('--match-room')
+        fitAboutText(panel)
+      }
     }
     measure()
     const observer = new ResizeObserver(measure)
