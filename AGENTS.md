@@ -29,7 +29,7 @@ This project is a monorepo deployed as two separate Vercel projects:
 
 **Strict Rules for File Placement:**
 * Backend code belongs **exclusively** inside `backend/app/` (routes in `api/routes/`, DB models in `models/`, schemas in `schemas/`).
-* Frontend code belongs **exclusively** inside `frontend/src/` (components in `components/`, pages in `pages/`, API calls in `services/`, one file per resource, all going through `services/api.js`).
+* Frontend code belongs **exclusively** inside `frontend/src/` (a feature's pages, components and CSS in `features/<feature>/`, the map in `map/`, generic UI used by several features in `shared/`, API calls in `services/`, one file per resource, all going through `services/api.js`).
 * Do **not** create top-level files outside `backend/` or `frontend/` unless explicitly instructed.
 
 **Read `CONTRIBUTING.md` before building a feature.** It describes how the code fits together, the full workflow, and the team's conventions. The interests feature (`models/interest.py`, `schemas/interest.py`, `crud/interest.py`, `api/routes/interests.py`, `tests/test_interests.py`, `services/interests.js`) is the reference implementation to follow. `projektstruktur.md` describes the Vercel, Neon and GitHub setup.
