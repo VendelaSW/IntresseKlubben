@@ -139,20 +139,32 @@ export function activitiesFrom({ groups, events, kommuner }) {
 }
 
 // Kopplar lapparna till kartan. `getKommun()` ger den valda kommunen
-// (kommunkod) på kommunnivå, annars null: lapparna syns bara då, och bara den
-// kommunens klubbar och events. `onPick(item, compact)` anropas vid klick,
+// (kommunkod) på kommunnivå, annars null: då syns den kommunens klubbar och
+// events. Utan vald kommun ger `getLan()` länet (länskod) på den fria nivån, och
+// då syns länets; utan någon av dem inga. Utzoomat slås de ihop (se clustersFor),
+// så att också ett helt län går att visa. `onPick(item, compact)` anropas vid klick,
 // med om lappen var hopfälld till en ikon. `getFixed()` ger rektanglar som
 // står still (symbolerna för klubbar utan nål, se map/areaSymbols.js):
 // lapparna flyttas undan för dem. Returnerar
 // { setItems, getItem, highlight, render }.
-export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed = () => [] }) {
+export function attachActivityMarkers(map, layer, { getKommun, getLan = () => null, onPick, getFixed = () => [] }) {
   let items = []
 
-  // Klustren: klubbar och events var för sig, i den valda kommunen (supercluster, samma som MapLibre använder). De
-  // byggs om när lapparna eller kommunen ändras. Ett kluster vet om något av dess events är ens eget eller bokat.
+  // Vilka lappar som syns: den valda kommunens, annars länets (se ovan), eller null om inga.
+  function scope() {
+    const kommun = getKommun()
+    if (kommun) return { key: `kommun:${kommun}`, has: (item) => item.kommun === kommun }
+    const lan = getLan()
+    if (lan) return { key: `lan:${lan}`, has: (item) => item.lan === lan }
+    return null
+  }
+
+  // Klustren: klubbar och events var för sig, bland de lappar som syns (supercluster, samma som MapLibre använder).
+  // De byggs om när lapparna eller det som syns ändras. Ett kluster vet om något av dess events är ens eget eller
+  // bokat.
   let clusterCache = null
-  function clustersFor(kommun) {
-    if (clusterCache?.kommun === kommun && clusterCache.items === items) return clusterCache.indexes
+  function clustersFor(shown) {
+    if (clusterCache?.key === shown.key && clusterCache.items === items) return clusterCache.indexes
     const indexes = {}
     for (const type of ['klubb', 'event']) {
       const index = new Supercluster({
@@ -166,12 +178,12 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
       })
       index.load(
         items
-          .filter((i) => i.type === type && i.kommun === kommun && i.exact)
+          .filter((i) => i.type === type && shown.has(i) && i.exact)
           .map((item) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: item.lngLat }, properties: { item } })),
       )
       indexes[type] = index
     }
-    clusterCache = { kommun, items, indexes }
+    clusterCache = { key: shown.key, items, indexes }
     return indexes
   }
 
@@ -184,8 +196,8 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
   }
 
   function draw() {
-    const kommun = getKommun()
-    if (!kommun || map.getZoom() < MIN_ZOOM) {
+    const shown = scope()
+    if (!shown || map.getZoom() < MIN_ZOOM) {
       layer.replaceChildren()
       return
     }
@@ -196,7 +208,7 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
     const onScreen = ({ x, y }) => x >= -200 && x <= width + 200 && y >= -200 && y <= height + 200
     if (compact) {
       // Utzoomat: lappar nära varandra slås ihop till en med antalet (klustren), så att kartan inte fylls av dem.
-      const indexes = clustersFor(kommun)
+      const indexes = clustersFor(shown)
       const bounds = map.getBounds()
       const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]
       const zoom = Math.floor(map.getZoom())
@@ -212,7 +224,7 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
       }
     } else {
       for (const item of items) {
-        if (item.kommun !== kommun) continue
+        if (!shown.has(item)) continue
         // Klubbar och events utan nål finns i kommunens symbol (se map/areaSymbols.js).
         if (!item.exact) continue
         const point = map.project(item.lngLat)

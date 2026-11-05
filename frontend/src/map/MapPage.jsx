@@ -1673,6 +1673,8 @@ function MapPage() {
     })
     activitiesRef.current = attachActivityMarkers(map, activitiesLayerRef.current, {
       getKommun: () => selectedKommunRef.current,
+      // Utan vald kommun (t.ex. när man har zoomat ut till länet och in igen): länets klubbar och events.
+      getLan: () => (modeRef.current === 'free' ? selectedLanRef.current : null),
       onPick: (item, compact) => pickActivityRef.current(item, compact),
       getFixed: () => areaClubsRef.current?.boxes() ?? [],
     })
