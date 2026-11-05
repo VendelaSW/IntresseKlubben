@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useMediaQuery'
@@ -108,15 +108,20 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 // integritetsinformationen (på dator under Intressekompisen i stället), och runt omkring några klotter i marginalen.
 //
 // `counts` är siffrorna från useBadgeCounts (i MapPage, samma som lapparna), så att "Läs 2 nya brev" blir "Läs 1 nytt
-// brev" så fort man har läst ett, utan att sidan hämtas om. Eventen hämtas om när ett block stängs (`refreshKey`),
-// eftersom man kan ha svarat på en inbjudan eller anmält sig i det.
+// brev" så fort man har läst ett, utan att sidan hämtas om. Eventen hämtas om när ett block stängs (`refreshKey` blir
+// null igen), eftersom man kan ha svarat på en inbjudan eller anmält sig i det.
 function MapCalmPage({ counts, refreshKey, onOpen, onOpenEvent }) {
   const { user } = useAuth()
   const mobile = useIsMobile()
   const [name, setName] = useState(null)
   const [todo, setTodo] = useState(null) // null = laddar
+  const loaded = useRef(false)
+  // En rad under Väntar på dig som letar upp sin enda sak (se openWaiting): fler tryck under tiden gör ingenting.
+  const [opening, setOpening] = useState(false)
 
   useEffect(() => {
+    // Ett block som öppnas ändrar inget här; det räcker att hämta om när det stängs.
+    if (refreshKey !== null && loaded.current) return undefined
     let cancelled = false
     // Klubbarna och kommunerna behövs för att veta vilka events som är i ens kommun.
     Promise.allSettled([
@@ -153,6 +158,7 @@ function MapCalmPage({ counts, refreshKey, onOpen, onOpenEvent }) {
       // Alla kommande i ens kommun, närmast först: de som visas när inget händer den här veckan.
       const nearbyAnyTime = nearbyFrom(true)
       setName(me?.name ?? null)
+      loaded.current = true
       setTodo({
         booked: bookedThisWeek(booked, now),
         hasBookedLater: booked.length > 0,
@@ -186,12 +192,16 @@ function MapCalmPage({ counts, refreshKey, onOpen, onOpenEvent }) {
   // listan där de står. Den enda letas upp när man trycker, med färsk data, så att det blir rätt också om något har
   // hänt sedan sidan hämtades. Hittas den inte öppnas listan.
   async function openWaiting(page, count, listPath, findPath) {
+    if (opening) return
     let path = null
     if (count === 1) {
+      setOpening(true)
       try {
         path = await findPath()
       } catch {
         // Listan i stället.
+      } finally {
+        setOpening(false)
       }
     }
     onOpen(page, path ?? listPath)
@@ -228,7 +238,7 @@ function MapCalmPage({ counts, refreshKey, onOpen, onOpenEvent }) {
                 <>
                   {todo.booked.slice(0, MAX_LINES).map((event) => (
                     <TodoLine key={event.id} onClick={() => onOpenEvent(event.id)}>
-                      <strong>{event.title}</strong> <When date={event.starts_at} />
+                      <EventLabel event={event} bold />
                     </TodoLine>
                   ))}
                   <TipLine onClick={() => onOpen('events', '/events?flik=mina-events')} plain>
@@ -246,7 +256,7 @@ function MapCalmPage({ counts, refreshKey, onOpen, onOpenEvent }) {
               )}
             </ul>
             <p className="map-calm-heading map-calm-heading-next">Väntar på dig</p>
-            <ul className="map-calm-todo">
+            <ul className={`map-calm-todo${opening ? ' is-opening' : ''}`} aria-busy={opening}>
               {!countsReady ? null : waiting === 0 ? (
                 <TipLine onClick={() => onOpen('brev')} flush>
                   {/* Kortare på mobil, så att den får plats på en rad. */}
@@ -325,12 +335,12 @@ function MapCalmPage({ counts, refreshKey, onOpen, onOpenEvent }) {
               ) : nearbyLines.length > 0 ? (
                 nearbyLines.slice(0, MAX_LINES).map((event) => (
                   <TipLine key={event.id} onClick={() => onOpenEvent(event.id)}>
-                    {event.title} <When date={event.starts_at} />
+                    <EventLabel event={event} />
                   </TipLine>
                 ))
               ) : (
                 <TipLine onClick={() => onOpen('events', '/events?skapa=1')} flush>
-                  Inget i närheten den här veckan. Skapa ett event?
+                  Inget i närheten just nu. Skapa ett event?
                 </TipLine>
               )}
             </ul>
@@ -366,9 +376,16 @@ function MapCalmPage({ counts, refreshKey, onOpen, onOpenEvent }) {
   )
 }
 
-// När ett event börjar, i rödbrunt efter namnet (som datumet överst).
-function When({ date }) {
-  return <span className="map-calm-when">{eventTime.format(new Date(date))}</span>
+// Ett events namn och när det börjar, i rödbrunt efter namnet (som datumet överst). Får raden inte plats kortas namnet
+// med "…", men tiden syns alltid. `bold`: namnet i fetstil (ens egna events).
+function EventLabel({ event, bold = false }) {
+  const Title = bold ? 'strong' : 'span'
+  return (
+    <span className="map-calm-event">
+      <Title className="map-calm-title">{event.title}</Title>
+      <span className="map-calm-when">{eventTime.format(new Date(event.starts_at))}</span>
+    </span>
+  )
 }
 
 // En rad som väntar på en: en ritad ruta och texten, som öppnar rätt block.

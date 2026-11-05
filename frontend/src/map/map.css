@@ -161,9 +161,29 @@
   color: var(--color-muted);
 }
 
-/* När ett event börjar, efter namnet: i rödbrunt som datumet, så att namnet och tiden går att skilja åt. */
+/* Ett events namn och tid (EventLabel): namnet kortas med "…" när raden inte räcker, tiden syns alltid. Tiden är
+   rödbrun som datumet, så att namnet och tiden går att skilja åt. */
+.map-calm-event {
+  display: flex;
+  gap: 0.3em;
+  min-width: 0;
+}
+
+.map-calm-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .map-calm-when {
+  flex: none;
   color: #9c4a2f;
+}
+
+/* Medan en rad under Väntar på dig letar upp sin enda sak (se openWaiting i MapCalmPage). */
+.map-calm-todo.is-opening {
+  cursor: progress;
+  opacity: 0.6;
 }
 
 /* Länken till integritetsinformationen längst ner: en tom rad ovanför, i appens vanliga text som på startsidan. Bara
