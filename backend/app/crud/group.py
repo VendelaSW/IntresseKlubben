@@ -444,10 +444,6 @@ def request_count(db: Session, group: Group, owner_id: int) -> int:
     return sum(1 for r in group.join_requests if r.user_id not in hidden)
 
 
-def _display_name(user: User) -> str:
-    return (user.profile.name if user.profile else None) or user.username
-
-
 def apply_to_group(db: Session, group: Group, user: User, message: str | None) -> None:
     """Ansöker till en klubb man ansöker till. Ägaren får en notis med meddelandet. Går att upprepa: en ny
     ansökan ersätter inte den som väntar. Har ägaren och den sökande en blockering skapas ingen ansökan, utan
@@ -464,7 +460,7 @@ def apply_to_group(db: Session, group: Group, user: User, message: str | None) -
     if any(owner in hidden for owner in owners):
         return
     db.add(GroupJoinRequest(group_id=group.id, user_id=user.id, message=message))
-    name = _display_name(user)
+    name = user.display_name
     notify(
         db,
         owners,
@@ -541,7 +537,7 @@ def decline_request(db: Session, group: Group, user_id: int, owner: User, messag
     förklaring om hen skrev en."""
     db.delete(_pending_request(group, user_id))
     _request_answered(db, group, user_id)
-    owner_name = _display_name(owner)
+    owner_name = owner.display_name
     notify(
         db,
         [user_id],

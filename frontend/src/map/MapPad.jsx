@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import usePadBounce from '../hooks/usePadBounce'
 import { PadHeadContext } from './PadHead'
 
 // Hur länge blocket lyfter innan det tas bort (samma som .map-pad.is-leaving).
@@ -17,6 +18,7 @@ function MapPad({ title, wide = false, onClose, children }) {
   const [floatStart, setFloatStart] = useState(null)
   const [back, setBack] = useState(null)
   const head = useMemo(() => ({ actions, float, floatStart, setBack }), [actions, float, floatStart])
+  const pageRef = usePadBounce()
 
   // Lyft blocket och ta bort det när det har lyft.
   function close() {
@@ -45,7 +47,7 @@ function MapPad({ title, wide = false, onClose, children }) {
         aria-labelledby="map-pad-title"
       >
         <div className="map-pad-rings" aria-hidden="true" />
-        <div className="map-pad-page">
+        <div ref={pageRef} className="map-pad-page">
           <div className="map-pad-head">
             <h2 id="map-pad-title" className="map-pad-title">
               {back ? (

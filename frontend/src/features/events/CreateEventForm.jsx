@@ -425,7 +425,7 @@ function CreateEventForm({
           {!editing && (
             <>
               <span className="with-info-tip">
-                <button type="button" className="button-secondary" onClick={() => setInviteOpen(true)}>
+                <button type="button" className="secondary-button" onClick={() => setInviteOpen(true)}>
                   Bjud in
                 </button>
                 {inviteSummary(invites) && <span className="hint-text">{inviteSummary(invites)}</span>}
@@ -550,7 +550,7 @@ function CreateEventForm({
         <button type="submit" disabled={saving}>
           {editing ? (saving ? 'Sparar...' : 'Spara') : saving ? 'Skapar...' : 'Skapa event'}
         </button>
-        <button type="button" className="button-secondary" onClick={onCancel}>
+        <button type="button" className="secondary-button" onClick={onCancel}>
           Avbryt
         </button>
         {/* Radera i redigeringsläget, som soptunnan längst till höger (se DeleteEventDialog). */}

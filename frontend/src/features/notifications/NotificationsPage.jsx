@@ -127,7 +127,7 @@ function NotificationsPage() {
               >
                 Ta bort alla
               </button>
-              <button type="button" className="button-secondary" onClick={() => setClearOpen(false)}>
+              <button type="button" className="secondary-button" onClick={() => setClearOpen(false)}>
                 Behåll dem
               </button>
             </div>

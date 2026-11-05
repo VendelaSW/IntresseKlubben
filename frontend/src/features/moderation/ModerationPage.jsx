@@ -299,7 +299,7 @@ function WarnDialog({ report, onClose }) {
           <button type="submit" disabled={saving}>
             {saving ? 'Skickar...' : 'Skicka varningen'}
           </button>
-          <button type="button" className="button-secondary" onClick={onClose} disabled={saving}>
+          <button type="button" className="secondary-button" onClick={onClose} disabled={saving}>
             Avbryt
           </button>
         </div>
@@ -384,7 +384,7 @@ function SuspendDialog({ person, defaultReason, onClose }) {
           <button type="submit" disabled={saving}>
             {saving ? 'Stänger av...' : `Stäng av ${person.name}`}
           </button>
-          <button type="button" className="button-secondary" onClick={onClose} disabled={saving}>
+          <button type="button" className="secondary-button" onClick={onClose} disabled={saving}>
             Avbryt
           </button>
         </div>

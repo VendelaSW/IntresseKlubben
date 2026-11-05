@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
+from app.api.people import to_contact_user
 from app.auth.security import get_current_user, require_profile
 from app.core import error_messages as msg
 from app.core import storage
@@ -344,7 +345,7 @@ def _owned_group_or_403(db: Session, group_id: int, user_id: int) -> Group:
 def read_requests(group_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     group = _owned_group_or_403(db, group_id, current_user.id)
     return [
-        GroupJoinRequestOut(user=_to_invitee(user), message=request.message, created_at=request.created_at)
+        GroupJoinRequestOut(user=to_contact_user(user), message=request.message, created_at=request.created_at)
         for request, user in list_join_requests(db, group, current_user.id)
     ]
 
@@ -420,17 +421,6 @@ def remove(group_id: int, user_id: int, current_user=Depends(get_current_user), 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-def _to_invitee(user: User) -> ContactUser:
-    profile = user.profile
-    image_key = profile.profile_image_url if profile else None
-    return ContactUser(
-        id=user.id,
-        username=user.username,
-        name=profile.name if profile else None,
-        image_url=storage.public_url(image_key) if image_key else None,
-    )
-
-
 # Ägaren får alltid bjuda in, andra medlemmar bara om ägaren har slagit på det
 # (members_can_invite). Svaret är de som blev inbjudna den här gången.
 @router.post("/{group_id}/invitations", response_model=list[ContactUser])
@@ -447,7 +437,7 @@ def add_invitations(
         invited = invite_to_group(db, group, current_user.id, data.user_ids)
     except GroupRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=str(err))
-    return [_to_invitee(u) for u in invited]
+    return [to_contact_user(u) for u in invited]
 
 
 # Den inbjudna avböjer. Går att upprepa utan fel, som att lämna en klubb.

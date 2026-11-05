@@ -187,7 +187,7 @@ function GroupDetails({
                 <button type="submit" disabled={busy}>
                   {busy ? 'Skickar...' : 'Skicka ansökan'}
                 </button>
-                <button type="button" className="button-secondary" onClick={() => setApplyOpen(false)}>
+                <button type="button" className="secondary-button" onClick={() => setApplyOpen(false)}>
                   Avbryt
                 </button>
               </div>

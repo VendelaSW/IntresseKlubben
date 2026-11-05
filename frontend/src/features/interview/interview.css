@@ -71,9 +71,14 @@
   transition: transform 0.15s ease;
 }
 
-.interview-sound:hover img,
 .interview-sound:focus-visible img {
   transform: scale(1.1);
+}
+
+@media (hover: hover) {
+  .interview-sound:hover img {
+    transform: scale(1.1);
+  }
 }
 
 .interview-main {
@@ -96,16 +101,25 @@
   display: none;
 }
 
-/* Mobil (upp till 767 px). Byggd efter de vanliga riktlinjerna för formulär på
-   telefon (se CONTRIBUTING.md, "Mobil"):
-   - en fråga och dess formulär syns utan att man scrollar
-   - en kolumn, etiketten ovanför fältet, fälten över hela bredden
-   - knappar och fält minst 48 px höga (Material 48 dp, Apple 44 pt, WCAG 2.5.8)
-   - huvudknappen ("Nästa") störst och längst till höger, där tummen når
-   - framsteget ("Fråga 2 av 5" och en stapel) ovanför frågan
-   Intressekompisen står högst upp, med det den säger bredvid som en pratbubbla,
-   också på startskärmen. */
+/* Knapparna sist i intervjun (ProfileInterview): "Skapa min profil" stor och
+   "Börja om" liten tätt under, så att man inte trycker fel. */
+.interview-save-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 @media (max-width: 767px) {
+  /* Mobil (upp till 767 px). Byggd efter de vanliga riktlinjerna för formulär på
+     telefon (se CONTRIBUTING.md, "Mobil"):
+     - en fråga och dess formulär syns utan att man scrollar
+     - en kolumn, etiketten ovanför fältet, fälten över hela bredden
+     - knappar och fält minst 48 px höga (Material 48 dp, Apple 44 pt, WCAG 2.5.8)
+     - huvudknappen ("Nästa") störst och längst till höger, där tummen når
+     - framsteget ("Fråga 2 av 5" och en stapel) ovanför frågan
+     Intressekompisen står högst upp, med det den säger bredvid som en pratbubbla,
+     också på startskärmen. */
   /* Under sidan finns lika mycket plats som tangentbordet tar (--keyboard-height, mäts i useKeepFieldAboveKeyboard i
        ProfileInterview), så att fältet man skriver i kan scrollas upp ovanför det. */
 
@@ -215,7 +229,7 @@
       order: -1;
       display: block;
       height: 6px;
-      border-radius: 3px;
+      border-radius: var(--radius-sm);
       background: var(--color-white);
       border: 1px solid var(--color-border);
       overflow: hidden;
@@ -227,9 +241,7 @@
       background: var(--color-accent);
       transition: width 0.3s ease;
     }
-}
 
-@media (max-width: 767px) {
   .interview-page .interview-card label {
       font-size: var(--text-body);
     }
@@ -270,13 +282,4 @@
       background: var(--color-white);
       border-top: 1px solid var(--color-border);
     }
-}
-
-/* Knapparna sist i intervjun (ProfileInterview): "Skapa min profil" stor och
-   "Börja om" liten tätt under, så att man inte trycker fel. */
-.interview-save-buttons {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
 }

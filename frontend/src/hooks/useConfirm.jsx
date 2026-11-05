@@ -57,7 +57,7 @@ export function ConfirmProvider({ children }) {
                   <button type="button" onClick={() => close(true)}>
                     {confirmLabel}
                   </button>
-                  <button type="button" className="button-secondary" onClick={() => close(false)}>
+                  <button type="button" className="secondary-button" onClick={() => close(false)}>
                     {cancelLabel}
                   </button>
                 </>

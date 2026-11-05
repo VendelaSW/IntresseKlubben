@@ -181,6 +181,8 @@
 
 .start-page {
   color: var(--color-text);
+  /* Klottren får sticka ut mot kanten, men aldrig göra sidan bredare än skärmen. */
+  overflow-x: clip;
 }
 
 .start-page a.primary-button,
@@ -233,16 +235,20 @@
   rotate: 0.5deg;
 }
 
-.start-page .start-marker:hover,
-.auth-note .auth-form button[type='submit']:hover,
 .start-page .start-marker:focus-visible,
 .auth-note .auth-form button[type='submit']:focus-visible {
   opacity: 1;
   background: none;
 }
 
-.start-page .start-marker:hover::before,
-.auth-note .auth-form button[type='submit']:hover::before,
+@media (hover: hover) {
+  .start-page .start-marker:hover,
+  .auth-note .auth-form button[type='submit']:hover {
+    opacity: 1;
+    background: none;
+  }
+}
+
 .start-page .start-marker:focus-visible::before,
 .auth-note .auth-form button[type='submit']:focus-visible::before {
   rotate: 0deg;
@@ -250,9 +256,23 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M10 10 C40 9 70 12 100 10 C130 8 160 11 190 10 C196 10 199 18 198 30 C199 42 196 50 190 50 C160 51 130 48 100 50 C70 52 40 49 10 50 C4 50 1 42 2 30 C1 18 4 10 10 10 Z' fill='%23f8d55f'/%3E%3C/svg%3E");
 }
 
-.start-page .secondary-button.start-marker:hover::before,
+@media (hover: hover) {
+  .start-page .start-marker:hover::before,
+  .auth-note .auth-form button[type='submit']:hover::before {
+    rotate: 0deg;
+    scale: 1.04;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M10 10 C40 9 70 12 100 10 C130 8 160 11 190 10 C196 10 199 18 198 30 C199 42 196 50 190 50 C160 51 130 48 100 50 C70 52 40 49 10 50 C4 50 1 42 2 30 C1 18 4 10 10 10 Z' fill='%23f8d55f'/%3E%3C/svg%3E");
+  }
+}
+
 .start-page .secondary-button.start-marker:focus-visible::before {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M10 10 C40 9 70 12 100 10 C130 8 160 11 190 10 C196 10 199 18 198 30 C199 42 196 50 190 50 C160 51 130 48 100 50 C70 52 40 49 10 50 C4 50 1 42 2 30 C1 18 4 10 10 10 Z' fill='%23d6e6f4'/%3E%3C/svg%3E");
+}
+
+@media (hover: hover) {
+  .start-page .secondary-button.start-marker:hover::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M10 10 C40 9 70 12 100 10 C130 8 160 11 190 10 C196 10 199 18 198 30 C199 42 196 50 190 50 C160 51 130 48 100 50 C70 52 40 49 10 50 C4 50 1 42 2 30 C1 18 4 10 10 10 Z' fill='%23d6e6f4'/%3E%3C/svg%3E");
+  }
 }
 
 /* Trycks lite inåt när man klickar. */
@@ -569,9 +589,14 @@
   height: 3.3rem;
 }
 
-.start-scroll:hover .start-scroll-arrow,
 .start-scroll:focus-visible .start-scroll-arrow {
   transform: scale(1.12);
+}
+
+@media (hover: hover) {
+  .start-scroll:hover .start-scroll-arrow {
+    transform: scale(1.12);
+  }
 }
 
 /* Pilen gungar lite upp och ned, så att man ser att det finns mer nedanför. */
@@ -663,10 +688,12 @@
 
 /* Lapparna och intressetaggarna rör sig lite när man håller muspekaren över dem: lappen lyfts och rätas upp, rutan
    lyfts mot en. Med "minska rörelse" byter de läge direkt, utan att glida. */
-.start-step.paper-note:hover {
-  rotate: 0deg;
-  translate: 0 -4px;
-  box-shadow: 5px 6px 0 #3a2f25;
+@media (hover: hover) {
+  .start-step.paper-note:hover {
+    rotate: 0deg;
+    translate: 0 -4px;
+    box-shadow: 5px 6px 0 #3a2f25;
+  }
 }
 
 .start-step-number {
@@ -790,9 +817,11 @@
   border-radius: var(--tag-shape-alt);
 }
 
-.start-marquee .interest-tag:hover {
-  translate: -2px -3px;
-  box-shadow: 4px 5px 0 var(--tag-ink);
+@media (hover: hover) {
+  .start-marquee .interest-tag:hover {
+    translate: -2px -3px;
+    box-shadow: 4px 5px 0 var(--tag-ink);
+  }
 }
 
 .start-marquee-track[aria-hidden] {
@@ -829,8 +858,10 @@
   animation-duration: 65s;
 }
 
-.start-page.is-animated .start-marquee:hover .start-marquee-track {
-  animation-play-state: paused;
+@media (hover: hover) {
+  .start-page.is-animated .start-marquee:hover .start-marquee-track {
+    animation-play-state: paused;
+  }
 }
 
 @keyframes start-marquee {
@@ -1369,9 +1400,14 @@
   cursor: pointer;
 }
 
-.auth-note-close:hover,
 .auth-note-close:focus-visible {
   color: var(--color-text);
+}
+
+@media (hover: hover) {
+  .auth-note-close:hover {
+    color: var(--color-text);
+  }
 }
 
 /* Tillbaka: den pennritade pilen, vriden så att den pekar åt vänster. */
@@ -1395,7 +1431,12 @@
   rotate: 90deg;
 }
 
-.auth-back:hover .auth-back-arrow,
 .auth-back:focus-visible .auth-back-arrow {
   transform: scale(1.12);
+}
+
+@media (hover: hover) {
+  .auth-back:hover .auth-back-arrow {
+    transform: scale(1.12);
+  }
 }

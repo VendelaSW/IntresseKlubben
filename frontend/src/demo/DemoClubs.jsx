@@ -63,7 +63,7 @@ function CreateClubForm({ onDone }) {
       />
 
       <button type="submit">Skapa klubb</button>
-      <button type="button" className="button-secondary" onClick={onDone}>
+      <button type="button" className="secondary-button" onClick={onDone}>
         Avbryt
       </button>
     </form>
