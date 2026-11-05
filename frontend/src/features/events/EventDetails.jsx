@@ -7,7 +7,7 @@ import TextareaWithCount from '../../shared/TextareaWithCount'
 import ShowOnMapButton from '../../map/ShowOnMapButton'
 import DeleteEventDialog from './DeleteEventDialog'
 import InvitePicker from './InvitePicker'
-import { eventAreaText, eventCapacity, TicketDate, ticketTimeText, VisibilityStamp } from './EventList'
+import { eventAreaText, eventCapacity, placeBoxClass, TicketDate, ticketTimeText, VisibilityStamp } from './EventList'
 import GroupJoinRequests from '../clubs/GroupJoinRequests'
 import {
   EVENT_ANSWER,
@@ -410,7 +410,7 @@ function EventDetails({ event, myInterestIds, contacts, groups, onAnswered, onEd
       <div className="event-ticket-sheet-stub">
         <TicketDate start={new Date(event.starts_at)} />
         <span className="event-ticket-box">{ticketTimeText(event)}</span>
-        {event.place_name && <span className="event-ticket-box">{event.place_name}</span>}
+        {event.place_name && <span className={placeBoxClass(event)}>{event.place_name}</span>}
         {/* Skapat av längst ner till höger i kvittot, i den minsta texten. */}
         <p className="hint-text event-created-by">
           Skapat av{' '}

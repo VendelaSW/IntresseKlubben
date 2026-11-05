@@ -84,10 +84,28 @@ function EventsPanel() {
   // till sidan innan, och andra sidor kan öppna en vy direkt. En klubb kan stå med
   // (?skapa=1&klubb=ID eller ?event=ID&klubb=ID): då är klubben förvald i formuläret,
   // och det är dit Tillbaka går om sidan öppnades via en länk. Ett intresse kan stå
-  // med när man skapar (?skapa=1&intresse=ID, från "Vill du skapa ett?"): då är det förvalt.
+  // med när man skapar (?skapa=1&intresse=ID, från "Vill du skapa ett?"): då är det förvalt. Från en platslapp på
+  // kartan står platsen med (?skapa=1&plats=NAMN&adress=GATA&lat=..&lng=..&intressenamn=NAMN): då är platsen, adressen,
+  // nålen och intresset (om det finns i biblioteket) ifyllda.
   const view = Number(searchParams.get('event')) || (searchParams.get('skapa') ? 'create' : 'list')
   const fromGroupId = Number(searchParams.get('klubb')) || null
   const createInterestId = Number(searchParams.get('intresse')) || null
+  const createInterestName = searchParams.get('intressenamn')?.toLowerCase() ?? null
+  const createPlaceName = searchParams.get('plats')
+  const createAddress = searchParams.get('adress') ?? ''
+  const createLat = searchParams.get('lat')
+  const createLng = searchParams.get('lng')
+  const createPlace = useMemo(() => {
+    if (!createPlaceName) return null
+    const latitude = Number(createLat)
+    const longitude = Number(createLng)
+    const hasPosition = createLat !== null && createLng !== null && Number.isFinite(latitude) && Number.isFinite(longitude)
+    return {
+      placeName: createPlaceName.slice(0, 100),
+      address: createAddress.slice(0, 100),
+      position: hasPosition ? { latitude, longitude } : null,
+    }
+  }, [createPlaceName, createAddress, createLat, createLng])
   // `replace` byter ut sidan i historiken i stället för att lägga till en.
   function setView(next, { replace = false } = {}) {
     if (next === view) return
@@ -131,7 +149,10 @@ function EventsPanel() {
   // Hela biblioteket, för namnet på intresset i adressen (?intresse=ID) när formuläret ska ha det förvalt. Det listas
   // inte; intressen väljs med InterestPicker.
   const [interests, setInterests] = useState([])
-  const createInterest = interests.find((i) => i.id === createInterestId) ?? null
+  const createInterest =
+    interests.find((i) => i.id === createInterestId) ??
+    (createInterestName ? interests.find((i) => i.name.toLowerCase() === createInterestName) : null) ??
+    null
   // Fel från inbjudningarna när eventet skapades (eventet skapades ändå).
   const [inviteProblem, setInviteProblem] = useState('')
   // Visas formuläret för att redigera eventet som är öppet? Stängs när man byter vy.
@@ -271,6 +292,7 @@ function EventsPanel() {
               contacts={contacts}
               initialGroupId={fromGroupId}
               initialInterest={createInterest}
+              initialPlace={createPlace}
               onCreated={handleCreated}
               onCancel={goBack}
             />

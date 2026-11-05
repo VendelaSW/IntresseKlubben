@@ -440,8 +440,9 @@
   pointer-events: auto;
 }
 
-/* Bokade events ovanpå de andra (se nedan). En egen, enkel regel före
-   :hover och .is-highlighted, så att de fortfarande vinner. */
+/* Ens egna och bokade events ovanpå de andra (se nedan). En egen, enkel regel
+   före :hover och .is-highlighted, så att de fortfarande vinner. */
+.map-activity.is-mine,
 .map-activity.is-booked {
   z-index: 1;
 }
@@ -465,26 +466,38 @@
   color: #3a2f25;
 }
 
-/* Ens bokade events (se map/activities.js): starkt rosa, lite större
-   och ovanpå de andra (z-index ovan), så att de syns direkt. */
+/* Ens egna events (se map/activities.js): lite större och ovanpå de
+   andra (z-index ovan), så att de syns direkt. De man arrangerar är gula,
+   appens färg, och de man ska gå på starkt rosa. */
+.map-activity.is-event.is-mine,
 .map-activity.is-event.is-booked {
   padding: 0.3rem 0.65rem 0.3rem 0.35rem;
-  background: #ff6fae;
   border-width: 2px;
   box-shadow: var(--shadow-ink);
 }
 
+.map-activity.is-event.is-mine {
+  background: var(--color-accent);
+}
+
+.map-activity.is-event.is-booked {
+  background: #ff6fae;
+}
+
+.map-activity.is-mine img,
 .map-activity.is-booked img {
   width: 26px;
   height: 26px;
 }
 
-/* Utzoomat är även bokade events bara ikonen (se is-compact), med samma luft
+/* Utzoomat är även ens egna events bara ikonen (se is-compact), med samma luft
    runt om som de andra. */
+.map-activity.is-event.is-mine.is-compact,
 .map-activity.is-event.is-booked.is-compact {
   padding: 0.25rem;
 }
 
+.map-activity.is-mine .map-activity-sub,
 .map-activity.is-booked .map-activity-sub {
   color: #3a2f25;
   font-weight: 700;
@@ -582,9 +595,14 @@
   color: #3a2f25;
 }
 
-/* Ens bokade events i listan står i fetstil rosa. */
+/* Ens bokade events i listan står i fetstil rosa, och de man arrangerar i fetstil med en gul markering. */
 .map-area-list-club.is-booked span {
   color: #b0306e;
+  font-weight: 700;
+}
+
+.map-area-list-club.is-mine span {
+  background: var(--color-accent-soft);
   font-weight: 700;
 }
 
@@ -708,6 +726,109 @@
 /* Utzoomat bara ikonen; namnet finns i title och syns när man hovrar. */
 .map-activity.is-compact {
   padding: 0.2rem;
+}
+
+/* Utzoomat är ett event en platsnål (map/activities.js): droppen i eventets färg (ljusrosa, gul för ens
+   egna, starkt rosa för dem man ska gå på), med bläckkant och hård skugga som lapparna, och eventloggan i den vita
+   cirkeln. Spetsen står på platsen. Namnet syns i en lapp bredvid när man hovrar. */
+.map-activity.is-event.is-pin,
+.map-activity.is-event.is-pin.is-mine,
+.map-activity.is-event.is-pin.is-booked {
+  width: 32px;
+  height: 42px;
+  padding: 0;
+  overflow: visible;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.map-activity.is-event.is-pin.is-mine,
+.map-activity.is-event.is-pin.is-booked {
+  width: 38px;
+  height: 50px;
+}
+
+.map-activity-pin {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(2px 2px 0 #3a2f25);
+}
+
+.map-activity-pin-drop {
+  fill: #ffd6e7;
+  stroke: #3a2f25;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.is-mine > .map-activity-pin .map-activity-pin-drop {
+  fill: var(--color-accent);
+}
+
+.is-booked > .map-activity-pin .map-activity-pin-drop {
+  fill: #ff6fae;
+}
+
+.map-activity-pin-hole {
+  fill: var(--color-white);
+  stroke: #3a2f25;
+  stroke-width: 1.2;
+}
+
+/* Ikonen mitt i den vita cirkeln (som ligger 15.6 av 42 ned i nålen). */
+.map-activity.is-pin img {
+  position: absolute;
+  left: 50%;
+  top: 37%;
+  width: 56%;
+  height: auto;
+  translate: -50% -50%;
+}
+
+/* Ett kluster (flera lappar som slagits ihop utzoomat, se clusterEl i map/activities.js): antalet i en liten svart
+   etikett uppe till höger, som på kalenderknappen i kartans ikonrad. */
+.map-activity.is-cluster {
+  overflow: visible;
+}
+
+.map-activity-count {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  min-width: 1.15rem;
+  padding: 0.05rem 0.25rem;
+  box-sizing: border-box;
+  border: 1.5px solid #fffdf7;
+  border-radius: 0.7rem;
+  background: #3a2f25;
+  color: #fffdf7;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .map-activity.is-pin:hover {
+    translate: none;
+  }
+
+  .map-activity.is-pin:hover .map-activity-text {
+    position: absolute;
+    left: calc(100% + 4px);
+    top: 0;
+    padding: 0.2rem 0.5rem;
+    background: var(--color-white);
+    border: 1.5px solid #3a2f25;
+    border-radius: 4px;
+    box-shadow: 2px 2px 0 #3a2f25;
+  }
 }
 
 .map-activity.is-compact .map-activity-text {
@@ -980,12 +1101,24 @@
   overflow-wrap: anywhere;
 }
 
+/* En rad per del av öppettiderna (se openingHoursLines i notes.js). En rad som ändå är för lång bryts, i stället för
+   att gå utanför lappen. */
 .map-note-hours {
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .map-note-rows a {
   color: inherit;
+}
+
+/* Tipset om vad man kan göra på platsen, när OpenStreetMap inte har några uppgifter (se TIPS). */
+.map-note-tip {
+  margin-top: 0.2rem !important;
+}
+
+/* "+ Skapa event" längst ned på den fastklistrade lappen, samma knapp som på eventsidan (se .create-button nedan). */
+.map-note-create {
+  margin-top: 0.6rem;
 }
 
 .map-note-hint,
@@ -1121,6 +1254,11 @@
 .map-view-tools {
   display: flex;
   gap: 0.4rem;
+}
+
+/* Med listan för events öppen (MapEventRange) ligger raden ovanför sökrutan, så att listan inte hamnar under den. */
+.map-view-row:has(.map-event-range-menu) {
+  z-index: 5;
 }
 
 .map-sketch-tools {
@@ -1327,6 +1465,94 @@
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* Knappen för hur långt fram events visas (MapEventRange): en ikonknapp som de andra i raden, med antalet dagar i
+   hörnet. Listan med valen fälls ut under, på samma papper med bläckkant och hård skugga. */
+.map-event-range {
+  position: relative;
+}
+
+/* Antalet dagar i en liten svart etikett i knappens nedre högra hörn, så att det går att läsa. */
+.map-event-range-button {
+  position: relative;
+}
+
+.map-event-range-days {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  min-width: 1.05rem;
+  padding: 0.05rem 0.2rem;
+  box-sizing: border-box;
+  border-radius: 0.6rem;
+  background: #3a2f25;
+  color: #fffdf7;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  pointer-events: none;
+}
+
+.map-event-range-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 6;
+  min-width: 100%;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #3a2f25;
+}
+
+.map-event-range-option {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.map-event-range-option:focus-visible {
+  background: var(--color-accent-soft);
+}
+
+@media (hover: hover) {
+  .map-event-range-option:hover {
+    background: var(--color-accent-soft);
+  }
+}
+
+/* Smala telefoner (under 375 bredd): ikonraden med kalendern når annars in under eller tätt intill profilbilden. Kalendern står
+   då till höger om sökfältet i stället, och sökfältet blir så mycket kortare. */
+@media (max-width: 374px) {
+  .map-event-range {
+    position: absolute;
+    top: calc(100% + var(--map-search-gap));
+    right: 0;
+  }
+
+  .map-view-row .map-place-search {
+    right: calc(44px + 0.4rem);
+  }
+}
+
+.map-event-range-option.is-on {
+  background: var(--color-accent);
+  font-weight: 700;
 }
 
 /* Knappar med bara en ritad ikon: växeln Karta | Att göra och Min kommun (SCRUM-330, SCRUM-331). */
@@ -2441,7 +2667,8 @@
    hård skugga som trycks ner vid hover), med handskriven text, så att den hör
    ihop med rubriken. */
 .map-pad .map-pad-head-actions .create-button,
-.map-pad-float .create-button {
+.map-pad-float .create-button,
+.map-note .create-button {
   min-height: 2.4rem;
   padding: 0.1rem 0.85rem 0.1rem 0.6rem;
   border: 1.5px solid #3a2f25;
@@ -2456,21 +2683,24 @@
 }
 
 .map-pad .map-pad-head-actions .create-button:focus-visible,
-.map-pad-float .create-button:focus-visible {
+.map-pad-float .create-button:focus-visible,
+.map-note .create-button:focus-visible {
   box-shadow: none;
   transform: translate(2px, 2px);
 }
 
 @media (hover: hover) {
   .map-pad .map-pad-head-actions .create-button:hover,
-  .map-pad-float .create-button:hover {
+  .map-pad-float .create-button:hover,
+  .map-note .create-button:hover {
     box-shadow: none;
     transform: translate(2px, 2px);
   }
 }
 
 .map-pad .map-pad-head-actions .create-button img,
-.map-pad-float .create-button img {
+.map-pad-float .create-button img,
+.map-note .create-button img {
   width: 1.1rem;
   height: 1.1rem;
 }

@@ -2,12 +2,12 @@
 // område i stället för en lapp per klubb eller event, så att de inte staplas på
 // varandra. Klubbarna och eventen har var sin symbol (vit respektive rosa hög).
 // Symbolen står på den nivå klubbarna eller eventen hör till:
-//   - Sverige-nivån: hela Sverige och de tre landsdelarna (kartan har ingen egen
-//     nivå för landsdelarna),
-//   - landskapsnivån: det valda landskapet,
 //   - länsvyn: det valda länet,
 //   - kommunnivån: den valda kommunen (kommunklubbar utan nål, och events utan
 //     nål och utan större område, i den kommun de hör till, se activitiesFrom).
+// Klubbar och events för hela Sverige, en landsdel eller ett landskap har ingen
+// symbol: på de nivåerna låg högarna över länen man klickar sig in på. De hittas
+// i Klubbar och Events (i Klubbar visar filtret på en kommun också dem).
 // Ett klick på symbolen öppnar en lista, och ett klick i listan öppnar klubben
 // eller eventet. Klubbar och events med nål har kvar sina lappar (se
 // map/activities.js).
@@ -22,8 +22,8 @@ import klubbarIcon from '../assets/klubbar.png'
 import { FULL_ZOOM } from './activities'
 import { LANDSKAP_LABELS, LAN_LABELS } from './style'
 
-// Var symbolerna för hela Sverige och landsdelarna står: ungefär mitt i varje
-// landsdel, och hela Sverige i fjällen, där inga namn står.
+// Var symbolerna för hela Sverige och landsdelarna skulle stå (de visas inte, se
+// ovan): ungefär mitt i varje landsdel, och hela Sverige i fjällen.
 const COUNTRY_POINT = [13.2, 63.6]
 const LANDSDEL_POINTS = { gotaland: [14.6, 57.3], svealand: [15.4, 59.7], norrland: [18.6, 65.6] }
 
@@ -84,7 +84,8 @@ export function areasFrom({ groups, events = [], eventItems = [], kommuner }) {
       id: event.id,
       name: event.title,
       sub: shortDate.format(new Date(event.starts_at)),
-      booked: event.is_owner || event.my_answer === 'yes' || event.my_answer === 'maybe',
+      mine: event.is_host,
+      booked: !event.is_host && (event.my_answer === 'yes' || event.my_answer === 'maybe'),
     }
     if (event.scope) add('event', event.scope, event.scope_code, event.scope_name, entry)
     else if (kommunOf.get(event.id)?.kommun) add('event', 'kommun', kommunOf.get(event.id).kommun, null, entry)
@@ -112,18 +113,26 @@ export function attachAreaSymbols(map, layer, { getView, onOpen }) {
 
   // Vilka symboler som hör till nivån man är på.
   function visible() {
-    const { mode, landskap, lan, kommun } = getView()
-    if (mode === 'sverige') return areas.filter((a) => a.scope === 'country' || a.scope === 'landsdel')
-    if (mode === 'landskap') {
-      const code = String(LANDSKAP_LABELS.find((l) => l.name === landskap)?.id ?? '')
-      return areas.filter((a) => a.scope === 'landskap' && a.code === code)
-    }
+    const { mode, lan, kommun } = getView()
+    // Inga symboler på Sverige- och landskapsnivån (se ovan).
+    if (mode === 'sverige' || mode === 'landskap') return []
     if (kommun) return areas.filter((a) => a.scope === 'kommun' && a.code === kommun)
     if (lan) return areas.filter((a) => a.scope === 'lan' && a.code === lan)
     return []
   }
 
+  // Symbolerna som redan finns, efter hur de ser ut: kartan ritas om vid varje rörelse, och samma symbol (med samma
+  // bild) flyttas i stället för att byggas på nytt, så att ikonen inte blinkar när man zoomar (som lapparna i
+  // map/activities.js).
+  let built = new Map()
+
   function render() {
+    const using = new Map()
+    const reuse = (signature, create) => {
+      const el = built.get(signature) ?? create()
+      using.set(signature, el)
+      return el
+    }
     const shown = visible()
     if (!shown.some((a) => a.key === openKey)) openKey = null
     const width = layer.clientWidth
@@ -135,9 +144,12 @@ export function attachAreaSymbols(map, layer, { getView, onOpen }) {
       const point = map.project(center ?? area.lngLat)
       const y = center ? point.y - KOMMUN_LIFT_PX : point.y
       if (point.x < -200 || point.x > width + 200 || y < -200 || y > height + 200) continue
-      placed.push({ el: symbolEl(area, compact && area.key !== openKey), area, x: point.x, y })
+      const small = compact && area.key !== openKey
+      const el = reuse(`${area.key}:${area.items.length}:${small}:${area.key === openKey}`, () => symbolEl(area, small))
+      placed.push({ el, area, x: point.x, y })
     }
     layer.replaceChildren(...placed.map((p) => p.el))
+    built = using
     // Klubbarnas och eventens symbol för samma område står på samma punkt: lägg dem bredvid varandra.
     for (let i = 0; i < placed.length; i++) {
       const p = placed[i]
@@ -212,12 +224,12 @@ export function attachAreaSymbols(map, layer, { getView, onOpen }) {
       const item = document.createElement('li')
       const button = document.createElement('button')
       button.type = 'button'
-      button.className = `map-area-list-club${entry.booked ? ' is-booked' : ''}`
+      button.className = `map-area-list-club${entry.mine ? ' is-mine' : ''}${entry.booked ? ' is-booked' : ''}`
       button.dataset.type = entry.type
       button.dataset.id = String(entry.id)
       button.textContent = entry.name
       const sub = document.createElement('span')
-      sub.textContent = entry.booked ? `${entry.sub} · du är anmäld` : entry.sub
+      sub.textContent = entry.mine ? `${entry.sub} · ditt event` : entry.booked ? `${entry.sub} · du är anmäld` : entry.sub
       button.append(sub)
       item.append(button)
       items.append(item)
@@ -263,6 +275,7 @@ export function attachAreaSymbols(map, layer, { getView, onOpen }) {
 
   return {
     setAreas(next) {
+      built = new Map()
       areas = next
       render()
     },

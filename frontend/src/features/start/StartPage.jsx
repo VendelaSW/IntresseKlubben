@@ -9,7 +9,14 @@ import HandwrittenHeadline, { alreadyWritten } from './HandwrittenHeadline'
 import InterestTags from '../interests/InterestTags'
 import Intressekompis from '../../shared/Intressekompis'
 import PenArrow from '../../shared/PenArrow'
-import { eventExtrasText, eventWhenWhereText, VisibilityStamp } from '../events/EventList'
+import {
+  eventExtrasText,
+  placeBoxClass,
+  TicketDate,
+  ticketColors,
+  ticketTimeText,
+  VisibilityStamp,
+} from '../events/EventList'
 import { DEV_MODE } from '../../devtools/devMode'
 import { useAuth } from '../../hooks/useAuth'
 import { areaColors } from '../../utils/interestColors'
@@ -704,36 +711,66 @@ function HeroDoodles({ shown }) {
   )
 }
 
-// Ett påhittat event i blocket, som eventets egen vy i appen (EventDetails) fast utan svar och inbjudningar. Eftersom
-// eventet inte finns lovar knappen inte just det, utan att man hittar liknande events när man har ett konto.
+// Ett påhittat event i blocket, som biljetten i eventets egen vy i appen (EventDetails i .event-ticket-sheet, samma
+// klasser och delar): titeln i tryckbokstäver med stämpeln, intresset, Om eventet, och kvittot längst ner med datumet,
+// tiden och platsen. I stället för svaren och deltagarna en uppmaning att registrera sig. Eftersom eventet inte finns
+// lovar knappen inte just det, utan att man hittar liknande events när man har ett konto.
 function DemoEventDetails({ event }) {
   const extras = eventExtrasText(event)
   return (
-    <section className="detail-view">
-      <div className="detail-main">
-        <div className="title-row">
-          <p className="card-title">{event.title}</p>
-          <VisibilityStamp event={event} />
+    <div className="map-pad-app-page">
+      <section className="app-section">
+        <div className="card sheet detail-sheet event-ticket-sheet" style={ticketColors(event)}>
+          <section className="detail-view">
+            <div className="detail-main">
+              <div className="title-row">
+                <p className="card-title">{event.title}</p>
+                <span className="event-stamps">
+                  <VisibilityStamp event={event} />
+                </span>
+              </div>
+              <div className="event-tags">
+                <InterestTags
+                  interests={[{ id: event.interest_id, name: event.interest_name, area_slug: event.interest_area_slug }]}
+                />
+              </div>
+              <div className="event-section">
+                <h3 className="card-subheading">Om eventet</h3>
+                <p className="card-text event-description">{event.description}</p>
+              </div>
+            </div>
+
+            <div className="detail-aside">
+              <div className="detail-view-section">
+                <section className="soft-box soft-box-wide">
+                  <div className="event-answer-head">
+                    <h2>Kommer du?</h2>
+                  </div>
+                  {extras && <p className="hint-text">{extras}</p>}
+                  <div className="card-actions">
+                    {/* Öppnar registreringen överst på startsidan (se StartPage). */}
+                    <Link to={{ search: '?konto=registrera' }} className="primary-button start-marker start-demo-signup">
+                      Registrera dig och hitta liknande
+                    </Link>
+                  </div>
+                </section>
+              </div>
+              <p className="hint-text">Det här är ett påhittat exempel på hur ett event ser ut.</p>
+            </div>
+
+            <div className="event-ticket-sheet-stub">
+              <TicketDate start={new Date(event.starts_at)} />
+              <span className="event-ticket-box">{ticketTimeText(event)}</span>
+              {event.place_name && <span className={placeBoxClass(event)}>{event.place_name}</span>}
+              <p className="hint-text event-created-by">
+                Skapat av {event.creator_name}
+                {event.group_name && ` i ${event.group_name}`}
+              </p>
+            </div>
+          </section>
         </div>
-        <p className="card-subheading">{eventWhenWhereText(event)}</p>
-        {extras && <p className="hint-text">{extras}</p>}
-        <InterestTags
-          interests={[{ id: event.interest_id, name: event.interest_name, area_slug: event.interest_area_slug }]}
-        />
-        <p className="card-text">{event.description}</p>
-        <p className="hint-text">
-          Skapat av {event.creator_name}
-          {event.group_name && ` i ${event.group_name}`}
-        </p>
-        <div className="card-actions">
-          {/* Öppnar registreringen överst på startsidan (se StartPage). */}
-          <Link to={{ search: '?konto=registrera' }} className="primary-button start-marker start-demo-signup">
-            Registrera dig och hitta liknande
-          </Link>
-        </div>
-        <p className="hint-text">Det här är ett påhittat exempel på hur ett event ser ut.</p>
-      </div>
-    </section>
+      </section>
+    </div>
   )
 }
 

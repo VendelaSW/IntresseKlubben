@@ -11,14 +11,46 @@
 // hela lappen. Lappar som skulle krocka knuffas isär i höjdled, så att de på
 // samma ställe hamnar i en kolumn.
 //
-// Klubbar är vita och events rosa. Ens bokade events (samma som "Mina events"
-// i appen: de man skapat eller svarat Ja eller Kanske på) är det viktigaste
-// kartan visar, så de är starkt rosa, lite större och ligger överst. Utzoomat
-// blir de en ikon som alla andra lappar.
+// Klubbar är vita och events rosa. Ens egna events är det viktigaste kartan
+// visar, så de är lite större och ligger överst: de man arrangerar (skapat
+// eller är medarrangör för) är gula, appens färg, och de man ska gå på (Ja
+// eller Kanske) starkt rosa. Utzoomat blir klubbarna en ikon, och eventen en
+// platsnål i samma färg med eventloggan i en vit cirkel (spetsen på platsen).
+// Utzoomat slås också lappar som hamnar nära varandra ihop till en med antalet
+// (klustren, se clustersFor), och ett tryck på den zoomar in tills de delas upp.
 
+import Supercluster from 'supercluster'
 import eventIcon from '../assets/event.png'
 import klubbarIcon from '../assets/klubbar.png'
 import { isInside, lanCodeAt } from './zoomLevels'
+
+// Hur långt fram events visas på kartan (väljaren i kartans översta rad, se MapPage). `days` räknas i hela
+// dagar från i dag: "Idag" är resten av dagen, "3 dagar" i dag och de två nästa, och så vidare.
+export const EVENT_RANGES = [
+  { id: 'idag', label: 'Idag', days: 1 },
+  { id: '3', label: '3 dagar', days: 3 },
+  { id: '7', label: '1 vecka', days: 7 },
+  { id: '14', label: '14 dagar', days: 14 },
+  { id: '30', label: '1 månad', days: 30 },
+]
+export const DEFAULT_EVENT_RANGE = '14'
+
+// De events som börjar inom intervallet (eller redan har börjat). Ens egna (som arrangör, med Ja eller Kanske, eller
+// med en ansökan) syns alltid, hur långt fram de än ligger, så att det man själv bryr sig om inte försvinner.
+export function eventsWithin(events, rangeId, now = new Date()) {
+  const days = (EVENT_RANGES.find((r) => r.id === rangeId) ?? EVENT_RANGES.find((r) => r.id === DEFAULT_EVENT_RANGE)).days
+  const end = new Date(now)
+  end.setHours(0, 0, 0, 0)
+  end.setDate(end.getDate() + days)
+  return events.filter(
+    (event) =>
+      event.is_host ||
+      event.my_answer === 'yes' ||
+      event.my_answer === 'maybe' ||
+      event.has_applied ||
+      new Date(event.starts_at) < end,
+  )
+}
 
 // Längre ut än så här blir lapparna för många och för små.
 const MIN_ZOOM = 6
@@ -28,6 +60,9 @@ const MIN_ZOOM = 6
 export const FULL_ZOOM = 14
 // Luft i pixlar mellan lappar.
 const GAP_PX = 4
+// Utzoomat slås lappar som ligger närmare varandra än så här (i pixlar på skärmen) ihop till en, med antalet (se
+// clustersFor). Inzoomat, från FULL_ZOOM, står alla för sig.
+const CLUSTER_RADIUS_PX = 48
 
 const normalize = (text) =>
   text
@@ -95,7 +130,8 @@ export function activitiesFrom({ groups, events, kommuner }) {
       lngLat: position ?? kommun.label,
       exact: Boolean(position),
       kommun: kommun.kod,
-      booked: event.is_owner || event.my_answer === 'yes' || event.my_answer === 'maybe',
+      mine: event.is_host,
+      booked: !event.is_host && (event.my_answer === 'yes' || event.my_answer === 'maybe'),
     })
   }
   for (const item of items) item.lan = lanCodeAt(item.lngLat)
@@ -103,14 +139,53 @@ export function activitiesFrom({ groups, events, kommuner }) {
 }
 
 // Kopplar lapparna till kartan. `getKommun()` ger den valda kommunen
-// (kommunkod) på kommunnivå, annars null: lapparna syns bara då, och bara den
-// kommunens klubbar och events. `onPick(item, compact)` anropas vid klick,
+// (kommunkod) på kommunnivå, annars null: då syns den kommunens klubbar och
+// events. Utan vald kommun ger `getLan()` länet (länskod) på den fria nivån, och
+// då syns länets; utan någon av dem inga. Utzoomat slås de ihop (se clustersFor),
+// så att också ett helt län går att visa. `onPick(item, compact)` anropas vid klick,
 // med om lappen var hopfälld till en ikon. `getFixed()` ger rektanglar som
 // står still (symbolerna för klubbar utan nål, se map/areaSymbols.js):
 // lapparna flyttas undan för dem. Returnerar
 // { setItems, getItem, highlight, render }.
-export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed = () => [] }) {
+export function attachActivityMarkers(map, layer, { getKommun, getLan = () => null, onPick, getFixed = () => [] }) {
   let items = []
+
+  // Vilka lappar som syns: den valda kommunens, annars länets (se ovan), eller null om inga.
+  function scope() {
+    const kommun = getKommun()
+    if (kommun) return { key: `kommun:${kommun}`, has: (item) => item.kommun === kommun }
+    const lan = getLan()
+    if (lan) return { key: `lan:${lan}`, has: (item) => item.lan === lan }
+    return null
+  }
+
+  // Klustren: klubbar och events var för sig, bland de lappar som syns (supercluster, samma som MapLibre använder).
+  // De byggs om när lapparna eller det som syns ändras. Ett kluster vet om något av dess events är ens eget eller
+  // bokat.
+  let clusterCache = null
+  function clustersFor(shown) {
+    if (clusterCache?.key === shown.key && clusterCache.items === items) return clusterCache.indexes
+    const indexes = {}
+    for (const type of ['klubb', 'event']) {
+      const index = new Supercluster({
+        radius: CLUSTER_RADIUS_PX,
+        maxZoom: FULL_ZOOM - 1,
+        map: (props) => ({ mine: props.item.mine ? 1 : 0, booked: props.item.booked ? 1 : 0 }),
+        reduce: (sum, props) => {
+          sum.mine += props.mine
+          sum.booked += props.booked
+        },
+      })
+      index.load(
+        items
+          .filter((i) => i.type === type && shown.has(i) && i.exact)
+          .map((item) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: item.lngLat }, properties: { item } })),
+      )
+      indexes[type] = index
+    }
+    clusterCache = { key: shown.key, items, indexes }
+    return indexes
+  }
 
   // Lapparna ritas om när kartan rör sig, så en lapp som har
   // tangentbordsfokus får tillbaka det efter omritningen.
@@ -120,30 +195,70 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
     if (focused) layer.querySelector(`[data-key="${focused}"]`)?.focus({ preventScroll: true })
   }
 
+  // Lapparna som redan finns, efter hur de ser ut (se reuse). Kartan ritas om vid varje rörelse, och en ny lapp
+  // varje gång gav en ny bild, som telefonen hann visa tom en stund: ikonerna blinkade och försvann när man zoomade.
+  // Nu flyttas samma lapp, med samma bild, och bara de som inte syns längre tas bort.
+  let built = new Map()
+  let using = new Map()
+  function reuse(signature, create) {
+    const el = built.get(signature) ?? create()
+    using.set(signature, el)
+    return el
+  }
+
   function draw() {
-    const kommun = getKommun()
-    if (!kommun || map.getZoom() < MIN_ZOOM) {
+    using = new Map()
+    const shown = scope()
+    if (!shown || map.getZoom() < MIN_ZOOM) {
       layer.replaceChildren()
+      built = using
       return
     }
     const compact = map.getZoom() < FULL_ZOOM
     const width = layer.clientWidth
     const height = layer.clientHeight
     const placed = []
-    for (const item of items) {
-      if (item.kommun !== kommun) continue
-      // Klubbar och events utan nål finns i kommunens symbol (se map/areaSymbols.js).
-      if (!item.exact) continue
-      const { x, y } = map.project(item.lngLat)
-      if (x < -200 || x > width + 200 || y < -200 || y > height + 200) continue
-      placed.push({ item, x, y, el: markerEl(item, compact) })
+    const onScreen = ({ x, y }) => x >= -200 && x <= width + 200 && y >= -200 && y <= height + 200
+    if (compact) {
+      // Utzoomat: lappar nära varandra slås ihop till en med antalet (klustren), så att kartan inte fylls av dem.
+      const indexes = clustersFor(shown)
+      const bounds = map.getBounds()
+      const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]
+      const zoom = Math.floor(map.getZoom())
+      for (const [type, index] of Object.entries(indexes)) {
+        for (const feature of index.getClusters(bbox, zoom)) {
+          const point = map.project(feature.geometry.coordinates)
+          if (!onScreen(point)) continue
+          const props = feature.properties
+          const el = props.cluster
+            ? reuse(`kluster:${type}:${props.cluster_id}:${props.point_count}:${props.mine}:${props.booked}`, () =>
+                clusterEl(type, feature),
+              )
+            : reuse(`${type}:${props.item.id}:${compact}`, () => markerEl(props.item, compact))
+          placed.push({ x: point.x, y: point.y, el })
+        }
+      }
+    } else {
+      for (const item of items) {
+        if (!shown.has(item)) continue
+        // Klubbar och events utan nål finns i kommunens symbol (se map/areaSymbols.js).
+        if (!item.exact) continue
+        const point = map.project(item.lngLat)
+        if (!onScreen(point)) continue
+        placed.push({ item, x: point.x, y: point.y, el: reuse(`${item.type}:${item.id}:${compact}`, () => markerEl(item, compact)) })
+      }
     }
     // Lägg ut lapparna för att kunna mäta dem, och knuffa sedan isär dem som
     // överlappar (uppifrån och ner, några varv).
-    layer.replaceChildren(...placed.map((p) => p.el))
+    // Samma lappar i samma ordning: låt dem ligga kvar (då behöver inget läggas om). Annars byt till de nya.
+    const els = placed.map((p) => p.el)
+    if (els.length !== layer.children.length || els.some((el, i) => layer.children[i] !== el)) layer.replaceChildren(...els)
+    built = using
     for (const p of placed) {
       p.w = p.el.offsetWidth
       p.h = p.el.offsetHeight
+      // En nål står med spetsen på platsen, inte mitten.
+      if (p.el.classList.contains('is-pin')) p.y -= p.h / 2
     }
     const fixed = getFixed()
     for (let pass = 0; pass < 8; pass++) {
@@ -177,16 +292,18 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
     }
     for (const p of placed) {
       p.el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`
-      if (p.el.dataset.key === highlighted) p.el.classList.add('is-highlighted')
+      p.el.classList.toggle('is-highlighted', p.el.dataset.key === highlighted)
     }
   }
 
   function markerEl(item, compact) {
     const el = document.createElement('button')
     el.type = 'button'
-    el.className = `map-activity is-${item.type}${item.booked ? ' is-booked' : ''}${compact ? ' is-compact' : ''}`
+    // Utzoomat är ett event en platsnål (se .is-pin i map.css), med ikonen i nålens vita cirkel.
+    const pin = compact && item.type === 'event'
+    el.className = `map-activity is-${item.type}${item.mine ? ' is-mine' : ''}${item.booked ? ' is-booked' : ''}${compact ? ' is-compact' : ''}${pin ? ' is-pin' : ''}`
     el.dataset.key = `${item.type}:${item.id}`
-    el.title = `${item.name} (${item.sub}${item.booked ? ', du är anmäld' : ''})`
+    el.title = `${item.name} (${item.sub}${item.mine ? ', ditt event' : item.booked ? ', du är anmäld' : ''})`
     const icon = document.createElement('img')
     icon.src = item.type === 'klubb' ? klubbarIcon : eventIcon
     icon.alt = ''
@@ -199,13 +316,67 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
     sub.className = 'map-activity-sub'
     sub.textContent = item.sub
     text.append(title, sub)
+    if (pin) el.append(pinShape())
     el.append(icon, text)
     return el
+  }
+
+  // Flera lappar som slagits ihop: samma ikon (en nål för events) med antalet i en liten etikett. Ett tryck zoomar in
+  // så att de delas upp (se klicket nedan). Ens egna och bokade events syns på klustrets färg.
+  function clusterEl(type, feature) {
+    const { cluster_id: id, point_count: count, mine, booked } = feature.properties
+    const el = document.createElement('button')
+    el.type = 'button'
+    const pin = type === 'event'
+    el.className = `map-activity is-${type} is-compact is-cluster${pin ? ' is-pin' : ''}${mine ? ' is-mine' : booked ? ' is-booked' : ''}`
+    el.dataset.key = `kluster:${type}:${id}`
+    el.dataset.cluster = String(id)
+    el.dataset.clusterType = type
+    el.dataset.lngLat = feature.geometry.coordinates.join(',')
+    const what = type === 'klubb' ? 'klubbar' : 'events'
+    el.title = `${count} ${what} här. Klicka för att zooma in.`
+    el.setAttribute('aria-label', el.title)
+    const icon = document.createElement('img')
+    icon.src = type === 'klubb' ? klubbarIcon : eventIcon
+    icon.alt = ''
+    const badge = document.createElement('span')
+    badge.className = 'map-activity-count'
+    badge.textContent = count
+    if (pin) el.append(pinShape())
+    el.append(icon, badge)
+    return el
+  }
+
+  // Nålen: en droppe med bläckkant och en vit cirkel för ikonen, ritad som de andra figurerna på kartan.
+  function pinShape() {
+    const ns = 'http://www.w3.org/2000/svg'
+    const svg = document.createElementNS(ns, 'svg')
+    svg.setAttribute('class', 'map-activity-pin')
+    svg.setAttribute('viewBox', '0 0 32 42')
+    svg.setAttribute('aria-hidden', 'true')
+    const drop = document.createElementNS(ns, 'path')
+    drop.setAttribute('class', 'map-activity-pin-drop')
+    drop.setAttribute('d', 'M16 40.4 C10.6 32 2.4 24.6 2.4 15.6 A13.6 13.6 0 1 1 29.6 15.6 C29.6 24.6 21.4 32 16 40.4 Z')
+    const hole = document.createElementNS(ns, 'circle')
+    hole.setAttribute('class', 'map-activity-pin-hole')
+    hole.setAttribute('cx', '16')
+    hole.setAttribute('cy', '15.6')
+    hole.setAttribute('r', '9.4')
+    svg.append(drop, hole)
+    return svg
   }
 
   layer.addEventListener('click', (event) => {
     const el = event.target.closest('.map-activity')
     if (!el) return
+    // Ett kluster: zooma in precis så mycket att det delas upp, mot klustrets mitt.
+    if (el.dataset.cluster) {
+      const index = clusterCache?.indexes[el.dataset.clusterType]
+      if (!index) return
+      const zoom = Math.min(index.getClusterExpansionZoom(Number(el.dataset.cluster)), FULL_ZOOM)
+      map.easeTo({ center: el.dataset.lngLat.split(',').map(Number), zoom })
+      return
+    }
     const item = items.find((i) => `${i.type}:${i.id}` === el.dataset.key)
     if (item) onPick(item, el.classList.contains('is-compact'))
   })
@@ -227,12 +398,15 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
   return {
     setItems(next) {
       items = next
+      // Nya uppgifter (namn, datum, ens svar): bygg lapparna på nytt.
+      built = new Map()
       render()
     },
     getItem: (type, id) => items.find((i) => i.type === type && i.id === id) ?? null,
     // Lägger till eller ersätter en lapp (t.ex. ett event som nyss skapats).
     putItem(item) {
       items = [...items.filter((i) => !(i.type === item.type && i.id === item.id)), item]
+      built = new Map()
       render()
     },
     highlight,

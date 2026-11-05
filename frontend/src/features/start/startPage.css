@@ -777,10 +777,12 @@
   padding: 1rem;
 }
 
-/* Knappen i det påhittade eventet: flyttad ut till vänster, så att ordet på knappen hamnar nästan i linje med texten
-   ovanför och den gula formen närmare blockets kant, men utan att nudda den. */
-.start-page .start-demo-signup {
-  margin-left: -1rem;
+/* Knappen i det påhittade eventet, i rutan där appen har Kommer du?: får bryta raden, så att den ryms också på en
+   smal telefon (före knapparnas vanliga nowrap i blocket, .map-pad .primary-button i map.css). */
+.start-page .map-pad .start-demo-signup {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
 }
 
 /* Intressena: tre rader med intressetaggar (samma som i appen, fast större) som glider sakta åt sidan, varannan rad åt
