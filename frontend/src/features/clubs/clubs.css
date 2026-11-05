@@ -252,7 +252,7 @@
   background: var(--color-white);
 }
 
-/* Text på korken (laddar, tomt, fel): på en vit bit, så att den går att läsa. */
+/* Fel på korken: på en vit bit, så att det syns. */
 .board-empty,
 .board-error {
   display: inline-block;
@@ -263,10 +263,29 @@
   font-size: var(--text-small);
 }
 
+/* Laddar och inga lappar: en dämpad informationstext direkt på korken, mitt på tavlan. Varmare och mörkare grå än
+   --color-muted, som blir för svag mot korken. */
+.board-hint {
+  margin: 0;
+  color: #5a5148;
+  font-size: var(--text-small);
+  text-align: center;
+}
+
 /* Hela anslagstavlan, som en egen vy i klubben (GroupPosts med `full`): en stor
    kork som fyller blocket, med alla lappar. */
 .board-full {
+  position: relative;
   min-height: 34rem;
+}
+
+/* Laddar och inga lappar mitt på hela tavlan (inte bara under rubriken). Texten försvinner när första lappen sätts upp. */
+.board-full .board-hint {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  transform: translateY(-50%);
 }
 
 /* Mobil: tavlan fyller blocket ända ner till menyn, och lapparna scrollar inuti den (i stället för den låga höjden
@@ -317,6 +336,7 @@
       max-height: none;
       align-content: start;
     }
+
 }
 
 /* Dator: de fyra senaste lapparna på en rad, resten med "Visa alla". */
