@@ -2,22 +2,17 @@ import { useMemo, useState } from 'react'
 import DrawnArrow from '../components/DrawnArrow'
 import EmptyState from '../components/EmptyState'
 import EventList from '../components/events/EventList'
+import kompisFragetecken from '../assets/kompis-fragetecken.webp'
 import './eventCalendar.css'
 
-// TILLFÄLLIGT, bara i testläget: en kalender över ens egna events, på en egen flik efter Mina events (väljaren
-// "Events: kalender", se EventsPanel och eventCalendar.css). Kalendern är ett anteckningsblock med spiral: en månad i taget,
+// En kalender över ens egna events, på en egen flik efter Mina events (se EventsPanel och eventCalendar.css). Kalendern är ett anteckningsblock med spiral: en månad i taget,
 // och på dagar med event ligger en post-it med eventets namn (på en smal skärm ett handskrivet "YAY!", eftersom lappen inte
 // ryms). Ett tryck på en dag visar dagens events, centrerade: bredvid kalendern på en bred skärm, under den på en smal. Är
 // det flera ligger de som en hög biljetter som man bläddrar i (EventStack).
-// Pilarna är samma som på matchningskortet (.match-arrow). Utanför testläget visas inget av detta.
+// Pilarna är samma som på matchningskortet (.match-arrow).
 const WEEKDAYS = ['mån', 'tis', 'ons', 'tors', 'fre', 'lör', 'sön']
 const monthName = new Intl.DateTimeFormat('sv-SE', { month: 'long', year: 'numeric' })
 const dayName = new Intl.DateTimeFormat('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })
-
-// Kompisen med frågetecknet, på en dag utan event. En adress i stället för en import: en import hade tagit med bilden i en
-// vanlig build (Vite lägger med importerade bilder även när koden som använder dem aldrig körs), och kalendern ska bara
-// finnas i testläget. Dev-servern hämtar filen direkt från src/assets.
-const KOMPIS_FRAGETECKEN = '/src/assets/kompis-fragetecken.webp'
 
 // Lapparnas färger och lutning, i tur och ordning efter dagen i månaden så att de inte ser likadana ut.
 const NOTE_COLORS = [
@@ -66,7 +61,7 @@ function eventsByDay(events) {
 function EventStack({ events, myInterestIds, onSelect }) {
   const [index, setIndex] = useState(0)
   if (events.length === 0) {
-    return <EmptyState text="Inga events den här dagen." image={KOMPIS_FRAGETECKEN} />
+    return <EmptyState text="Inga events den här dagen." image={kompisFragetecken} />
   }
   const count = events.length
   const top = Math.min(index, count - 1)
