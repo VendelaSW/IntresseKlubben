@@ -177,12 +177,10 @@
   transform: scale(1.12);
 }
 
-
 /* Kortet med pilarna direkt på sidan under filtren (features/people/MatchPanel.jsx). */
 .match-stack .match-stage {
   max-width: 40rem;
 }
-
 
 /* Filterraden i Matcha och Sök under Medlemmar: som sökraden i Klubbar med utseendet "Papperslappar".
    Små rundade lappar i varmt papper med en tunn kant och en liten skugga nedåt, lagom stora, och alla på samma rad (de
@@ -317,7 +315,6 @@
   box-shadow: none;
   outline: none;
 }
-
 
 /* ---------- Profilerna (features/profile/UserProfilePage.jsx och ProfilePage.jsx) ----------
    Ett stort affischkort (PosterCard med .profile-poster), som personkorten i Sök men utan matchningsdetaljerna: en bredare

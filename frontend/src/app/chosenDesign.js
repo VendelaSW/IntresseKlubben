@@ -1,6 +1,5 @@
-// Utseendet vi har valt i testpanelen, som gäller för alla. Varje val blir ett data-attribut på <html> (se
-// useDesignChoice). I testläget är det här förvalet i testpanelen, som fortfarande kan byta (se PadBackgroundPicker).
-// Väljare som inte står här använder 'pre-dev'. Stilarna bor kvar i devtools tills de andra utseendena städas bort.
+// Appens utseende. Varje val blir ett data-attribut på <html>, som CSS:en utgår från. Kartans val går att byta i
+// testpanelen (se devtools/PadBackgroundPicker.jsx).
 import '../styles/padBackgrounds.css'
 import '../styles/uiStyles.css'
 

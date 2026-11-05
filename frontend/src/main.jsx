@@ -10,10 +10,8 @@ import './styles/index.css'
 import './features/profile/poster.css'
 import './features/people/matchPage.css'
 import { applyChosenDesign } from './app/chosenDesign'
-import { DEV_MODE } from './devtools/devMode'
 
-// I testläget sätter testpanelen valen (se devtools/PadBackgroundPicker.jsx).
-if (!DEV_MODE) applyChosenDesign()
+applyChosenDesign()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

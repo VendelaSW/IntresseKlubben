@@ -52,7 +52,6 @@
   background: linear-gradient(to bottom, var(--map-glow-top, rgba(230, 160, 60, 0.12)), transparent 40%);
 }
 
-
 /* Att göra-läget (se MapPage.jsx): kartan och allt som hör till den göms,
    och en sida i blocket (MapCalmPage) visas i stället. Widgetarna, profilen
    och blocken ligger kvar.
@@ -386,7 +385,6 @@
   perspective: 150dvh;
   pointer-events: none;
 }
-
 
 .map-sketch-labels {
   position: absolute;
@@ -858,7 +856,6 @@
   box-shadow: 0 0 6px 3px color-mix(in srgb, var(--map-paper, var(--color-bg)) 85%, transparent);
 }
 
-
 .map-sketch-compass {
   position: absolute;
   /* Ovanför husen och skyltarna. */
@@ -886,7 +883,6 @@
   stroke: none;
   text-anchor: middle;
 }
-
 
 /* Lapp för en plats, platt ovanpå kartan. Utseendet (vit, ojämna hörn,
    bläckkant, tejp) delas med anslagstavlans lappar, se .paper-note i index.css. */
