@@ -1,0 +1,109 @@
+import { useState } from 'react'
+import Avatar from '../../shared/Avatar'
+import SearchField from '../../shared/SearchField'
+import SearchToggle from '../../shared/SearchToggle'
+import { memberCountText } from '../clubs/GroupList'
+
+// Innehållet i popupen "Bjud in": en sökbar lista över ens kompisar och en lista
+// över ens klubbar (alla medlemmar bjuds då in), med en kryssruta per rad.
+// Kompisar visas med liten text och små avatarer (samma kompakta personlista som
+// svarslistan). `initial` är det som redan var valt när popupen öppnades, och
+// `onSubmit` får { userIds, groupIds }. Själva inbjudan skickas av föräldern.
+function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onSubmit, onCancel }) {
+  const [query, setQuery] = useState('')
+  const [userIds, setUserIds] = useState(initial?.userIds ?? [])
+  const [groupIds, setGroupIds] = useState(initial?.groupIds ?? [])
+
+  const needle = query.trim().toLowerCase()
+  const shown = contacts.filter((c) => `${c.name ?? ''} ${c.username}`.toLowerCase().includes(needle))
+  const count = userIds.length + groupIds.length
+
+  const toggle = (list, setList, value) =>
+    setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
+
+  return (
+    <>
+      <div className="auth-form form-wide form-compact">
+        <SearchToggle label="Sök bland kompisar" count={query ? 1 : 0}>
+          <SearchField
+            aria-label="Sök bland kompisar"
+            placeholder="Sök bland kompisar..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onClear={() => setQuery('')}
+          />
+        </SearchToggle>
+      </div>
+
+      <div className="modal-scroll">
+        <div className="person-list person-list-compact">
+          <div>
+            <p className="card-subheading">Kompisar</p>
+            {contacts.length === 0 ? (
+              <p className="hint-text">Du har inga kompisar än.</p>
+            ) : shown.length === 0 ? (
+              <p className="hint-text">Ingen kompis matchar sökningen.</p>
+            ) : (
+              <ul>
+                {shown.map((c) => (
+                  <li key={c.id}>
+                    <label className="person-list-item">
+                      <input
+                        type="checkbox"
+                        checked={userIds.includes(c.id)}
+                        onChange={() => toggle(userIds, setUserIds, c.id)}
+                      />
+                      <Avatar name={c.name ?? c.username} imageUrl={c.image_url} className="person-list-avatar" />
+                      <span>{c.name ?? c.username}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {groups.length > 0 && (
+            <div>
+              <p className="card-subheading">Hela klubbar</p>
+              <p className="hint-text">Alla medlemmar bjuds in.</p>
+              <ul>
+                {groups.map((g) => (
+                  <li key={g.id}>
+                    <label className="person-list-item">
+                      <input
+                        type="checkbox"
+                        checked={groupIds.includes(g.id)}
+                        onChange={() => toggle(groupIds, setGroupIds, g.id)}
+                      />
+                      <span>{g.name}</span>
+                      <span className="hint-text">{memberCountText(g.member_count)}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {error && <p className="status-error">{error}</p>}
+
+      <div className="card-actions">
+        <button type="button" className="secondary-button button-small" onClick={onCancel}>
+          Avbryt
+        </button>
+        <button
+          type="button"
+          className="primary-button button-small"
+          disabled={busy || count === 0}
+          onClick={() => onSubmit({ userIds, groupIds })}
+        >
+          {submitLabel}
+          {count > 0 && ` (${count})`}
+        </button>
+      </div>
+    </>
+  )
+}
+
+export default InvitePicker

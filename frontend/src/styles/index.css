@@ -308,7 +308,7 @@ button.info-link {
   cursor: pointer;
 }
 
-/* "Läs mer om tjänsten" (components/ServiceDetails.jsx): på startsidan och /om,
+/* "Läs mer om tjänsten" (features/start/ServiceDetails.jsx): på startsidan och /om,
    lika bred som texten ovanför. */
 .service-details {
   max-width: var(--content-width);
@@ -526,7 +526,7 @@ button.banner-button {
   margin: 0;
 }
 
-/* Profilhuvudet (components/ProfileHeader.jsx): bilden till vänster, namnet och
+/* Profilhuvudet (features/profile/ProfileHeader.jsx): bilden till vänster, namnet och
    en rad med det viktigaste till höger, i stället för en stor centrerad bild och
    en tabell. Tar en bråkdel av höjden, så att man slipper scrolla. */
 .profile-header {
@@ -1802,7 +1802,7 @@ span.tag-selected:hover {
   gap: 0.75rem;
 }
 
-/* "+ Skapa klubb" och "+ Skapa event" (components/CreateButton.jsx): det
+/* "+ Skapa klubb" och "+ Skapa event" (shared/CreateButton.jsx): det
    handritade plusset (assets/plus.png) före texten. Lyfts vid hover och fokus.
    Läggs på .primary-button, och måste ligga efter den av samma skäl som
    .button-small. */
@@ -1847,7 +1847,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   cursor: pointer;
 }
 
-/* Redigera och Radera (components/IconButton.jsx): bara den handritade pennan
+/* Redigera och Radera (shared/IconButton.jsx): bara den handritade pennan
    eller soptunnan, utan ram och bakgrund. Lyfts vid hover och fokus, som
    .create-button. Också i formulär, där .auth-form button och .map-pad
    .form-actions button annars gör den till en gul knapp. */
@@ -2475,7 +2475,7 @@ button.answer-summary-box:disabled {
   z-index: 3;
 }
 
-/* ---------- Matchningskortet (components/MatchCard.jsx) ----------
+/* ---------- Matchningskortet (features/people/MatchCard.jsx) ----------
    Ett personkort med nivån i övre hörnet, personens Om mig-text och "Därför matchar ni" med skälen som punkter (gula,
    handritade ringar: bocken är bara för gemensamma intressen). Kortet visas ett i taget i Matcha-fliken. */
 .match-panel {
@@ -2540,7 +2540,7 @@ button.answer-summary-box:disabled {
   gap: 0.6rem;
 }
 
-/* Nivån (components/MatchLevel.jsx): en handritad stämpel i kortets övre högra hörn, med samma form och skugga som
+/* Nivån (features/people/MatchLevel.jsx): en handritad stämpel i kortets övre högra hörn, med samma form och skugga som
    intressetaggarna. Nivån syns också i formen, inte bara i färgen: Okej är streckad och platt, Bra och Stark har skugga
    och SUPERmatch är störst och vickar svagt (bara för den som inte har stängt av animationer). */
 .match-level {
@@ -2605,7 +2605,7 @@ button.answer-summary-box:disabled {
   }
 }
 
-/* Det stora kortet med de närmast på tur under (components/MatchPanel.jsx och MatchUpNext.jsx). Kortet är centrerat, och
+/* Det stora kortet med de närmast på tur under (features/people/MatchPanel.jsx och MatchUpNext.jsx). Kortet är centrerat, och
    när nästa kort blir stort växer det fram (inte för den som har stängt av animationer). */
 .match-stack {
   display: flex;
@@ -2672,7 +2672,7 @@ button.answer-summary-box:disabled {
   overflow-y: auto;
 }
 
-/* Näst på tur (components/MatchUpNext.jsx): en tunn rad under kortet med rubriken, de närmast på tur som små avatarer
+/* Näst på tur (features/people/MatchUpNext.jsx): en tunn rad under kortet med rubriken, de närmast på tur som små avatarer
    som överlappar lite, som en kö där den första står närmast, och "+3 fler". */
 .match-upnext {
   display: flex;
@@ -2982,7 +2982,7 @@ button.answer-summary-box:disabled {
   gap: 1rem;
 }
 
-/* "← Tillbaka" (components/BackButton.jsx) överst på en sida eller vy,
+/* "← Tillbaka" (shared/BackButton.jsx) överst på en sida eller vy,
    ovanför rutan: vänsterställd, i samma bredd som rutorna (.sheet och
    profilkortet), så att den linjerar med rutans vänsterkant. */
 .back-row {
@@ -2991,7 +2991,7 @@ button.answer-summary-box:disabled {
   text-align: left;
 }
 
-/* ---------- Brev (pages/InboxPage.jsx, ConversationPage.jsx) ---------- */
+/* ---------- Brev (features/letters/InboxPage.jsx, ConversationPage.jsx) ---------- */
 
 /* Linjerat papper med röd marginal, som i loggans anteckningsblock. Används
    både för brevet i kuvertet och för konversationen. --line-gap är avståndet
@@ -4358,7 +4358,7 @@ button.answer-summary-box:disabled {
   background: rgba(244, 196, 48, 0.55);
 }
 
-/* En tom lista (components/EmptyState.jsx): Intressekompisen till vänster och en
+/* En tom lista (shared/EmptyState.jsx): Intressekompisen till vänster och en
    handritad lapp (.paper-note) bredvid, lite lutad, med en liten spets mot
    kompisen så att det ser ut som att han säger det. Mitt i blocket, så att en
    tom sida inte ser övergiven ut. På smala skärmar under varandra. */
@@ -4470,7 +4470,7 @@ button.answer-summary-box:disabled {
   }
 }
 
-/* Klubbens anslagstavla (components/groups/GroupPosts.jsx), överst på
+/* Klubbens anslagstavla (features/clubs/GroupPosts.jsx), överst på
    klubbsidan: en låg korktavla med lappar. Bara för medlemmar. Ljus, varm kork
    och en smal ram i ljust trä, så att den passar ihop med appens krämfärger. */
 .board {
@@ -4809,7 +4809,7 @@ button.board-note:focus-visible {
   }
 }
 
-/* Klubbens medlemmar (components/groups/GroupMembers.jsx): två kolumner och
+/* Klubbens medlemmar (features/clubs/GroupMembers.jsx): två kolumner och
    fyra rader, alltså åtta medlemmar, sedan en scrollbar för resten. Tätt, så att
    listan tar lite plats. Långa namn kortas med "…". .person-list i väljarna, så
    att de vinner över den vanliga listans regler längre ner. */
@@ -6357,7 +6357,7 @@ select.club-filter:focus-visible,
   max-width: none;
 }
 
-/* Var på kartan (components/LocationPicker.jsx): sök fram adressen, välj en
+/* Var på kartan (shared/LocationPicker.jsx): sök fram adressen, välj en
    träff och justera nålen på en liten karta. */
 .location-picker {
   display: flex;
@@ -7286,7 +7286,7 @@ label.person-list-item {
   }
 }
 
-/* ---------- Intressesidan: "Vad gillar du?" (components/InterestExplorer.jsx) ----------
+/* ---------- Intressesidan: "Vad gillar du?" (features/interests/InterestExplorer.jsx) ----------
    Alla regler börjar med .explorer, så att .auth-form-stilarna (knappar och
    fält) inte tar över när komponenten ligger i formuläret "Skapa din profil". */
 
@@ -7575,7 +7575,7 @@ label.person-list-item {
   max-width: none;
 }
 
-/* Moderering (pages/ModerationPage.jsx, bara för moderatorer): ett kort per
+/* Moderering (features/moderation/ModerationPage.jsx, bara för moderatorer): ett kort per
    anmälan med vem, var, varför, en kopia av texten (.report-quote) och
    knapparna. Avstängd står i rött, och påminnelsen om tidigare avstängningar i
    rutan "Stäng av" står i en gul ruta. */

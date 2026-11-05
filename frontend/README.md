@@ -38,7 +38,7 @@ på nya hex-koder eller pixelvärden.
 | Rubriker | Vanliga `<h1>`/`<h2>`-taggar, redan stylade automatiskt | `<h2>Min rubrik</h2>` |
 
 Behöver ni något nytt (en ny färg, en ny komponenttyp), lägg till den i
-`index.css` **och** i `src/pages/StyleGuide.jsx`, så den syns för alla.
+`index.css` **och** i `src/features/styleguide/StyleGuide.jsx`, så den syns för alla.
 
 ## Deploy (Vercel)
 

@@ -105,7 +105,6 @@ GROUP_APPLICANT_TOO_MANY_GROUPS = "Personen är redan med i så många klubbar s
 # ---------- Events (routes/events.py, crud/event.py) ----------
 EVENT_NOT_FOUND = "Eventet finns inte"
 EVENT_CANCEL_MESSAGE_TOO_LONG = "Meddelandet får max vara 300 tecken"
-EVENT_ONLY_CREATOR = "Bara den som skapat eventet kan ändra det"
 EVENT_ONLY_CREATOR_CAN_INVITE = "Bara den som skapat eventet kan bjuda in"
 EVENT_IN_PRIVATE_GROUP_CANNOT_BE_OPEN = "Events i privata klubbar kan inte vara öppna"
 EVENT_ONLY_CREATOR_OR_CLUB_OWNER_CAN_DELETE = "Bara den som skapat eventet och klubbens ägare kan ta bort det"
