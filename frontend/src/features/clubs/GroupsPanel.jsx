@@ -145,9 +145,14 @@ function GroupsPanel() {
   const [error, setError] = useState('')
   // Klubben man nyss gick med i, för bekräftelsen "Du är med i …!" (tills nästa åtgärd eller flikbyte).
   const [joined, setJoined] = useState(null)
-  // Klubbens anslagstavla, en egen vy inne i klubben. Stängs när man går till en annan klubb eller listan.
+  // Klubbens anslagstavla och (på mobil) klubbchatten, egna vyer inne i klubben. Stängs när man går till en annan
+  // klubb eller listan.
   const [boardOpen, setBoardOpen] = useState(false)
-  useEffect(() => setBoardOpen(false), [view])
+  const [chatOpen, setChatOpen] = useState(false)
+  useEffect(() => {
+    setBoardOpen(false)
+    setChatOpen(false)
+  }, [view])
 
   const handleError = (err) => setError(err.message)
 
@@ -507,12 +512,24 @@ function GroupsPanel() {
               <BackButton onClick={() => setBoardOpen(false)} />
               <GroupPosts key={selected.id} groupId={selected.id} isOwner={selected.is_owner} full />
             </>
+          ) : selected && chatOpen && mobile && selected.is_member ? (
+            <>
+              {/* "← Klubbar" går tillbaka till klubben. Chatten fyller blocket, som anslagstavlan. */}
+              <BackButton onClick={() => setChatOpen(false)} />
+              <div className="group-chat-slot group-chat-full">
+                <GroupChat
+                  key={selected.id}
+                  groupId={selected.id}
+                  canModerate={selected.is_owner || selected.is_admin}
+                />
+              </div>
+            </>
           ) : selected ? (
             <>
               <BackButton onClick={goBack} />
               {/* Klubben till vänster och för medlemmar chatten till höger på dator, lika höga (chatten scrollar
-                  i sin ruta). På mobil ligger chatten i klubbens ruta (se GroupDetails). Anslagstavlan öppnas med en
-                  rad i klubbens ruta. Den som inte är med ser bara klubben, i hela bredden med events och medlemmar
+                  i sin ruta). Anslagstavlan öppnas med en rad under knapparna i klubbens ruta, och på mobil chatten
+                  med en ruta bredvid. Den som inte är med ser bara klubben, i hela bredden med events och medlemmar
                   i en egen spalt. */}
               <div className="group-layout">
                 {/* Intressets färg som en rad överst på rutan, som på klubbkorten (används på mobil, se .club-detail). */}
@@ -532,19 +549,8 @@ function GroupsPanel() {
                     onDelete={handleDelete}
                     onDecline={handleDecline}
                     onOpenBoard={() => setBoardOpen(true)}
-                    // På mobil ligger chatten i klubbens ruta, under medlemmarna, och fälls ut med ett tryck.
-                    chat={
-                      mobile && selected.is_member ? (
-                        <details className="group-chat-dropdown">
-                          <summary>Klubbchatt</summary>
-                          <GroupChat
-                            key={selected.id}
-                            groupId={selected.id}
-                            canModerate={selected.is_owner || selected.is_admin}
-                          />
-                        </details>
-                      ) : null
-                    }
+                    // På mobil öppnas chatten i en egen vy, med en ruta bredvid anslagstavlans.
+                    onOpenChat={mobile && selected.is_member ? () => setChatOpen(true) : undefined}
                   />
                 </div>
                 {!mobile && selected.is_member && (

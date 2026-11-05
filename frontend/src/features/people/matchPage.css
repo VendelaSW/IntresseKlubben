@@ -493,6 +493,7 @@
   /* Huvudknappen tar raden som blir över, de små (brevikonen, Avböj, Ta bort) så breda som sin text. */
   .card-grid-compact .person-card .card-actions {
     flex-wrap: nowrap;
+    column-gap: 0.5rem;
   }
 
   .card-grid-compact .person-card .card-actions > button.primary-button {

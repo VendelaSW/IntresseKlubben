@@ -302,9 +302,11 @@
   padding-top: 0.4rem;
 }
 
+/* Kuvertet i sina egna proportioner (bilden är bredare än hög), inte ihoptryckt till en fyrkant. */
 .card-write img {
-  width: 1.25rem;
+  width: 1.6rem;
   height: 1.25rem;
+  object-fit: contain;
 }
 
 /* Siffran i "3 gemensamma intressen" (Sök): fet och mörk, och det gula strecket går genom siffran som en
@@ -387,5 +389,68 @@
   .filter-panel .filter-select-row-paper > * {
       flex: 1 1 0;
       min-width: 0;
+    }
+
+  /* Rubrikerna över listorna under Medlemmar (Inkommande, Skickade, Medlemmar med liknande intressen och Fler i
+     Intresseklubben) lite mindre, så att de får plats på en rad. */
+  .people-list-title {
+      font-size: var(--text-subheading);
+    }
+
+  /* Sök (PeoplePage): intresse och kommun på första raden bredvid sökikonen, och kön och åldern på raden under, som
+     börjar direkt under sökikonen och går över hela bredden. */
+  .search-toggle-row:has(.filter-age-row.has-gender) {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: start;
+    }
+
+  .search-toggle-row:has(.filter-age-row.has-gender) > .search-toggle-panel,
+    .search-toggle-row:has(.filter-age-row.has-gender) .filter-panel {
+      display: contents;
+    }
+
+  .search-toggle-row:has(.filter-age-row.has-gender) .filter-select-row {
+      grid-column: 2;
+    }
+
+  .filter-age-row.has-gender {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+  /* Kön smal, så att reglaget får plats: "Kön" syns innan man har valt något, och valen kortas med "…" (de syns när
+     man öppnar knappen). */
+  .filter-age-row.has-gender > .multi-option-picker {
+      flex: 0 0 4.6rem;
+      min-width: 0;
+    }
+
+  .filter-age-row.has-gender .multi-option-picker-button {
+      width: 100%;
+      min-width: 0;
+      padding-left: 0.55rem;
+      padding-right: 1.4rem;
+      background-position: right 0.45rem center;
+    }
+
+  .filter-age-row.has-gender .multi-option-picker-label {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+  .filter-age-row.has-gender > .age-range {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+  /* Ett ensamt filter (intresset under Kompisar) får inte bara halva raden, så att "Alla intressen" får plats bredvid
+     listans pil. */
+  .filter-select-row.filter-select-row-single {
+      grid-template-columns: minmax(0, 11rem);
     }
 }
