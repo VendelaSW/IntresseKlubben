@@ -106,13 +106,13 @@ function nearestOnRings(rings, lng, lat) {
 }
 
 // Var kartan får vara: aldrig längre ut än att hela Sverige syns (`fit`, från
-// fitSweden), och kartans mitt (en osynlig prick mitt på skärmen) alltid
+// fitSweden), eller än `floor` på fri nivå (se updateLanFloor), och kartans mitt (en osynlig prick mitt på skärmen) alltid
 // innanför Sveriges gräns, eller innanför länets när ett län är valt (`lan`,
 // länskod), så att man kan röra sig fritt i länet men inte lämna det. Drar
 // man pricken utanför stannar den vid gränsen.
-function constrainToSweden(fit, lngLat, zoom, lan) {
+function constrainToSweden(fit, lngLat, zoom, lan, floor) {
   if (!fit) return { center: lngLat, zoom }
-  const z = Math.min(MAX_ZOOM, Math.max(zoom, fit.zoom))
+  const z = Math.min(MAX_ZOOM, Math.max(zoom, fit.zoom, floor ?? 0))
   const inside = lan ? lanCodeAt([lngLat.lng, lngLat.lat]) === lan : inSweden(lngLat.lng, lngLat.lat)
   if (inside) return { center: lngLat, zoom: z }
   const [lng, lat] = nearestOnRings(lan ? lanRings(lan) : SWEDEN_RINGS, lngLat.lng, lngLat.lat)
@@ -194,8 +194,12 @@ async function findDistrict(district, kommun) {
 // vidare genom att klicka (på ett landskap, eller i landskapet för att komma
 // till länet där) eller med + och −, som då stegar mellan nivåerna. På
 // 'free' (län, kommun och närmare) zoomar man fritt, och nålarna finns bara
-// där. Zoomar man ut förbi landskapets storlek fastnar kartan på landskapet.
+// där. Fingrar och scroll stannar när hela länet syns, och därifrån tar − en
+// upp till landskapet, så att man bara byter nivå med knapparna och klick.
 const LEVEL_PADDING = 48 // luft runt området när man zoomar till en nivå
+// Längre ut än så här från länet är kartan på väg in till det, och då sätts gränsen först när den är framme.
+const LAN_FLOOR_MARGIN = 0.5
+const LAN_FLOOR_TOLERANCE = 0.01 // så nära gränsen räknas som att vara vid den
 // Nålarna och tråden mellan dem (Sätt ut nålar, Längs vägen, Nålar i svängar)
 // är avstängda tills vidare: de förvirrade användarna. Sätt till true
 // för att visa dem igen (se attachPinsAndThread).
@@ -795,19 +799,31 @@ function syncPlaceLabels(
     layer.replaceChildren(...landskapNames, ...placeEls(placeOpacity))
   }
 
-  // Ortnamnen går att klicka på: kartan zoomar in på orten (onPickPlace). De släpper igenom musen och
-  // fingrarna, annars skulle det inte gå att dra eller nypa kartan där det står ett namn. Därför känns ett
-  // klick igen på kartan, i stället för på namnet. Med tangentbordet är de vanliga knappar (se nedan).
+  // Ortnamnen och kommunnamnen går att klicka på: kartan zoomar in på orten (onPickPlace) eller kommunen
+  // (onPickKommun). De släpper igenom musen och fingrarna, annars skulle det inte gå att dra eller nypa kartan
+  // där det står ett namn. Därför känns ett klick igen på kartan, i stället för på namnet. Med tangentbordet
+  // är de vanliga knappar (se nedan).
   function pickPlace(el) {
-    onPickPlace(el.textContent, [Number(el.dataset.lng), Number(el.dataset.lat)])
+    const lngLat = [Number(el.dataset.lng), Number(el.dataset.lat)]
+    if (el.classList.contains('is-kommun')) onPickKommun(lngLat)
+    else onPickPlace(el.textContent, lngLat)
   }
 
   function placeLabelAt({ originalEvent: { clientX: x, clientY: y } }) {
     if (getMode() !== 'free') return null
-    return [...layer.querySelectorAll('.map-sketch-label')].find((el) => {
+    // Namnens rutor kan gå in i varandra: det närmaste fingret eller muspekaren är det man menade.
+    let nearest = null
+    let nearestDistance = Infinity
+    for (const el of layer.querySelectorAll('.map-sketch-label, .is-kommun')) {
       const box = el.getBoundingClientRect()
-      return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom
-    })
+      if (x < box.left || x > box.right || y < box.top || y > box.bottom) continue
+      const distance = (x - (box.left + box.right) / 2) ** 2 + (y - (box.top + box.bottom) / 2) ** 2
+      if (distance < nearestDistance) {
+        nearest = el
+        nearestDistance = distance
+      }
+    }
+    return nearest
   }
 
   map.on('click', (event) => {
@@ -815,21 +831,22 @@ function syncPlaceLabels(
     if (el) pickPlace(el)
   })
   map.on('mousemove', (event) => {
-    map.getCanvasContainer().style.cursor = placeLabelAt(event) ? 'pointer' : ''
+    const el = placeLabelAt(event)
+    map.getCanvasContainer().style.cursor = el ? 'pointer' : ''
+    layer.querySelector('.is-hovered')?.classList.remove('is-hovered')
+    el?.classList.add('is-hovered')
   })
 
   // Länens namn i landskapsvyn: klick zoomar till länet, hovring markerar det.
   layer.addEventListener('click', (event) => {
-    const place = event.target.closest('.map-sketch-label')
+    const place = event.target.closest('.map-sketch-label, .is-kommun')
     if (place) {
       pickPlace(place)
       return
     }
-    const item = event.target.closest('.is-lan, .is-kommun')
+    const item = event.target.closest('.is-lan')
     if (!item) return
-    const lngLat = [Number(item.dataset.lng), Number(item.dataset.lat)]
-    if (item.classList.contains('is-kommun')) onPickKommun(lngLat)
-    else onPickLan(lngLat)
+    onPickLan([Number(item.dataset.lng), Number(item.dataset.lat)])
   })
   // Fokus med tangentbordet markerar också, som hovring.
   for (const type of ['mouseover', 'focusin']) {
@@ -1114,7 +1131,39 @@ function MapPage() {
     labelsApiRef.current?.render()
   }
 
-  // Byt nivå: lås eller släpp zoomen med mus, fingrar och tangentbord.
+  // Hur långt ut kartan går just nu: till länet på fri nivå, annars till hela Sverige. Är kartan på väg in till länet
+  // väntar gränsen tills den är framme (moveend), annars skulle kartan hoppa dit direkt.
+  function updateLanFloor() {
+    const map = mapRef.current
+    const fit = fitRef.current
+    if (!map || !fit) return
+    const lan = lanFocusRef.current
+    const inLan = modeRef.current === 'free' && lan && lan.lan === selectedLanRef.current
+    const camera = inLan && lan.bounds && map.cameraForBounds(lan.bounds, { padding: LEVEL_PADDING, pitch: TILT })
+    const floor = camera ? Math.max(camera.zoom, fit.zoom) : fit.zoom
+    const limit = map.getZoom() < floor - LAN_FLOOR_MARGIN ? fit.zoom : Math.min(floor, map.getZoom())
+    // Både här och i kartans egen begränsning (constrainToSweden), som annars går före setMinZoom.
+    zoomFloorRef.current = limit
+    map.setMinZoom(limit)
+    keepZoomOutEnabled()
+  }
+  const zoomFloorRef = useRef(null)
+  const updateLanFloorRef = useRef(updateLanFloor)
+  updateLanFloorRef.current = updateLanFloor
+
+  // MapLibre stänger av − vid kartans gräns. På fri nivå ska det gå att trycka där, för att komma upp till landskapet.
+  function keepZoomOutEnabled() {
+    if (modeRef.current !== 'free') return
+    const button = mapRef.current?.getContainer().querySelector('.maplibregl-ctrl-zoom-out')
+    if (!button) return
+    button.disabled = false
+    button.setAttribute('aria-disabled', 'false')
+  }
+  const keepZoomOutEnabledRef = useRef(keepZoomOutEnabled)
+  keepZoomOutEnabledRef.current = keepZoomOutEnabled
+
+  // Byt nivå: lås eller släpp zoomen och flytten med mus, fingrar och tangentbord. På de låsta nivåerna syns hela
+  // området redan, och man ska inte kunna dra bort det.
   // `lan`: länskoden på fri nivå (länsvyn och kommuner i den), annars null.
   function setMode(next, landskap = null, lan = null, kommun = null) {
     if (next === 'free') leftFreeAtRef.current = null
@@ -1128,12 +1177,13 @@ function MapPage() {
     updateYouMarker()
     if (selectedKommunRef.current) rememberKommunOverview(selectedKommunRef.current)
     showLanFocus(selectedLanRef.current)
+    updateLanFloor()
     // En väntande flygning till en ort gäller inte längre.
     flyTokenRef.current += 1
     const map = mapRef.current
     if (!map) return
     const locked = next !== 'free'
-    for (const handler of [map.scrollZoom, map.boxZoom, map.doubleClickZoom, map.touchZoomRotate, map.keyboard]) {
+    for (const handler of [map.scrollZoom, map.boxZoom, map.doubleClickZoom, map.touchZoomRotate, map.keyboard, map.dragPan]) {
       if (locked) handler.disable()
       else handler.enable()
     }
@@ -1177,6 +1227,7 @@ function MapPage() {
     map.getSource('kommuner')?.setData(kommuner.geojson)
     if (map.getLayer('kommun-borders')) map.setLayoutProperty('kommun-borders', 'visibility', 'visible')
     labelsApiRef.current?.render()
+    updateLanFloor()
   }
 
   // Zooma så att hela området syns, och visa dess namn.
@@ -1269,10 +1320,18 @@ function MapPage() {
     try {
       profile = await getProfile()
     } catch {
-      return
+      profile = null
     }
     const kommun = profile?.municipality_code && (await kommunByCode(profile.municipality_code))
-    if (!kommun || mapRef.current !== map) return
+    if (mapRef.current !== map) return
+    if (!kommun) {
+      // Ingen kommun i profilen: länet där kartan står, så att också den här kartan har en gräns utåt.
+      const region = await regionAt('lan', map.getCenter().toArray())
+      if (mapRef.current === map && modeRef.current === 'free' && !selectedLanRef.current) {
+        setMode('free', null, region.lan)
+      }
+      return
+    }
     setHasHome(true)
     setMode('free', null, kommun.lan, kommun.kod)
     const camera = map.cameraForBounds(kommun.bounds, { padding: LEVEL_PADDING, pitch: TILT })
@@ -1407,7 +1466,8 @@ function MapPage() {
       center: GUSTAVSBERG,
       zoom: 13.5,
       maxZoom: MAX_ZOOM,
-      transformConstrain: (lngLat, zoom) => constrainToSweden(fit, lngLat, zoom, selectedLanRef.current),
+      transformConstrain: (lngLat, zoom) =>
+        constrainToSweden(fit, lngLat, zoom, selectedLanRef.current, zoomFloorRef.current),
       pitch: TILT,
       minPitch: TILT,
       maxPitch: TILT,
@@ -1454,6 +1514,8 @@ function MapPage() {
       fitRef.current = fit
       map.setMinZoom(zoom)
       map.jumpTo(saved)
+      // Länets gräns beror också på skärmens storlek.
+      updateLanFloorRef.current()
     }
     fitSweden()
     map.on('resize', fitSweden)
@@ -1479,6 +1541,7 @@ function MapPage() {
       }),
     )
     mapRef.current = map
+    map.on('moveend', () => whenSettled(() => updateLanFloorRef.current()))
     // Klick på kartan på en låst nivå: ett steg in, där man klickade. Bara i
     // Sverige, och på landskapsnivån bara i det valda landskapet: runt om ligger
     // bara papper, och landskapet närmast klicket (se landskapAt) är inte det
@@ -1499,9 +1562,17 @@ function MapPage() {
         event.stopPropagation()
         return
       }
-      if (modeRef.current === 'free') return // fri nivå: vanlig zoom
       const button = event.target.closest('.maplibregl-ctrl-zoom-in, .maplibregl-ctrl-zoom-out')
       if (!button) return
+      if (modeRef.current === 'free') {
+        // Fri nivå: vanlig zoom, men när hela länet syns tar − en upp till landskapet.
+        const atFloor = lanFocusRef.current && map.getZoom() <= map.getMinZoom() + LAN_FLOOR_TOLERANCE
+        if (atFloor && button.matches('.maplibregl-ctrl-zoom-out')) {
+          event.stopPropagation()
+          stepLevelRef.current(-1, map.getCenter().toArray())
+        }
+        return
+      }
       event.stopPropagation()
       const center = map.getCenter().toArray()
       if (button.matches('.maplibregl-ctrl-zoom-out')) {
@@ -1541,20 +1612,13 @@ function MapPage() {
     window.addEventListener('pointerup', onZoomOutUp)
     window.addEventListener('pointercancel', onZoomOutUp)
     rootRef.current.addEventListener('contextmenu', onZoomOutMenu)
-    // Zoomar man själv ut förbi landskapets storlek fastnar kartan på
-    // landskapet vid skärmens mitt.
+    // Har länet inte hunnit väljas (se startAtHome) fastnar kartan på landskapet vid skärmens mitt när man zoomar ut
+    // förbi det. Annars stannar zoomen vid länet (se updateLanFloor).
     map.on('zoomend', (event) => {
       if (!event.originalEvent) return
       whenSettled(() => {
-        if (modeRef.current !== 'free') return
+        if (modeRef.current !== 'free' || lanFocusRef.current) return
         const region = landskapAt(map.getCenter().toArray())
-        // I länsvyn: förbi länets storlek går man upp till landskapet.
-        const lanBounds = lanFocusRef.current?.bounds
-        if (lanBounds) {
-          const lan = map.cameraForBounds(lanBounds, { padding: LEVEL_PADDING, pitch: TILT })
-          if (lan && map.getZoom() < lan.zoom - 0.3) enterLandskapRef.current(region)
-          return
-        }
         const landskap = map.cameraForBounds(region.bounds, { padding: LEVEL_PADDING, pitch: TILT })
         if (landskap && map.getZoom() < landskap.zoom) enterLandskapRef.current(region)
       })
@@ -1587,6 +1651,7 @@ function MapPage() {
     map.on('mouseleave', 'lan-fill', () => setHoveredLan(null))
     map.on('zoomstart', () => setHoveredLan(null))
     map.on('zoom', () => updateYouMarkerRef.current())
+    map.on('zoom', () => keepZoomOutEnabledRef.current())
     // Namnet gäller tills man drar kartan själv.
     map.on('dragstart', () => setLevelName(''))
     // Drar eller zoomar man själv innan flygningen till en ort har börjat
