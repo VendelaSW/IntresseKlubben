@@ -273,7 +273,7 @@
   background: var(--color-line);
   object-fit: cover;
   font-family: var(--font-heading);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .match-strip-more {
@@ -341,7 +341,7 @@
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
   border-radius: var(--radius-md);
-  box-shadow: 3px 3px 0 #3a2f25;
+  box-shadow: var(--shadow-ink);
   font-size: var(--text-small);
   overflow-wrap: anywhere;
 }

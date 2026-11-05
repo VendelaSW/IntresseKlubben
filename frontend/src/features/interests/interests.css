@@ -62,7 +62,7 @@
   list-style: none;
   background: var(--tag-fill, var(--color-white));
   border: 1.5px solid var(--tag-ink);
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   box-shadow: 3px 3px 0 var(--tag-ink);
 }
 
@@ -84,13 +84,13 @@
 .interest-picker-heading {
   padding: 0.3rem 0.75rem 0.1rem;
   color: var(--color-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .interest-picker-path {
   display: block;
   color: var(--color-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 /* ---------- Intressesidan: "Vad gillar du?" (features/interests/InterestExplorer.jsx) ----------
@@ -243,7 +243,7 @@
   background: var(--tag-sub, var(--color-white));
   border: 1.5px solid #3a2f25;
   border-radius: 225px 12px 255px 12px / 12px 255px 12px 225px;
-  box-shadow: 3px 3px 0 #3a2f25;
+  box-shadow: var(--shadow-ink);
 }
 
 .library-area-title {

@@ -290,7 +290,7 @@
   bottom: 6%;
   z-index: 2;
   border: 1px solid var(--tag-ink);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition: transform 0.3s ease;
 }
 

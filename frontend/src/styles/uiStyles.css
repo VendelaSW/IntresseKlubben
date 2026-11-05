@@ -27,7 +27,7 @@
 
 :root[data-ui-style='handskrivet'] .filter-tabs > .tag {
   padding: 0 0.25rem;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: #5a5148;
   font-family: var(--font-heading);
