@@ -1,7 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Patrick+Hand&family=Shantell+Sans:wght@400;600&display=swap');
-
-/* TILLFÄLLIGT: stilar för flikarna (FilterTabs) och sökraden i Klubbar att jämföra (se UiStylePicker i
-   PadBackgroundPicker.jsx). "nu" är index.css som den är. Alla har tunnare linjer än i dag. */
+/* Flikarna (FilterTabs) och sökraden i det valda utseendet. */
 
 /* ---------- 2. Tunn bläcklinje ----------
    Samma upplägg som nu, men runt och med en tunn, varm bläcklinje i stället för den tjocka svarta ramen.
