@@ -789,6 +789,31 @@
   translate: -50% -50%;
 }
 
+/* Ett kluster (flera lappar som slagits ihop utzoomat, se clusterEl i map/activities.js): antalet i en liten svart
+   etikett uppe till höger, som på kalenderknappen i kartans ikonrad. */
+.map-activity.is-cluster {
+  overflow: visible;
+}
+
+.map-activity-count {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  min-width: 1.15rem;
+  padding: 0.05rem 0.25rem;
+  box-sizing: border-box;
+  border: 1.5px solid #fffdf7;
+  border-radius: 0.7rem;
+  background: #3a2f25;
+  color: #fffdf7;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  pointer-events: none;
+}
+
 @media (hover: hover) {
   .map-activity.is-pin:hover {
     translate: none;

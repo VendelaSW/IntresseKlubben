@@ -16,7 +16,10 @@
 // eller är medarrangör för) är gula, appens färg, och de man ska gå på (Ja
 // eller Kanske) starkt rosa. Utzoomat blir klubbarna en ikon, och eventen en
 // platsnål i samma färg med eventloggan i en vit cirkel (spetsen på platsen).
+// Utzoomat slås också lappar som hamnar nära varandra ihop till en med antalet
+// (klustren, se clustersFor), och ett tryck på den zoomar in tills de delas upp.
 
+import Supercluster from 'supercluster'
 import eventIcon from '../assets/event.png'
 import klubbarIcon from '../assets/klubbar.png'
 import { isInside, lanCodeAt } from './zoomLevels'
@@ -57,6 +60,9 @@ const MIN_ZOOM = 6
 export const FULL_ZOOM = 14
 // Luft i pixlar mellan lappar.
 const GAP_PX = 4
+// Utzoomat slås lappar som ligger närmare varandra än så här (i pixlar på skärmen) ihop till en, med antalet (se
+// clustersFor). Inzoomat, från FULL_ZOOM, står alla för sig.
+const CLUSTER_RADIUS_PX = 48
 
 const normalize = (text) =>
   text
@@ -142,6 +148,33 @@ export function activitiesFrom({ groups, events, kommuner }) {
 export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed = () => [] }) {
   let items = []
 
+  // Klustren: klubbar och events var för sig, i den valda kommunen (supercluster, samma som MapLibre använder). De
+  // byggs om när lapparna eller kommunen ändras. Ett kluster vet om något av dess events är ens eget eller bokat.
+  let clusterCache = null
+  function clustersFor(kommun) {
+    if (clusterCache?.kommun === kommun && clusterCache.items === items) return clusterCache.indexes
+    const indexes = {}
+    for (const type of ['klubb', 'event']) {
+      const index = new Supercluster({
+        radius: CLUSTER_RADIUS_PX,
+        maxZoom: FULL_ZOOM - 1,
+        map: (props) => ({ mine: props.item.mine ? 1 : 0, booked: props.item.booked ? 1 : 0 }),
+        reduce: (sum, props) => {
+          sum.mine += props.mine
+          sum.booked += props.booked
+        },
+      })
+      index.load(
+        items
+          .filter((i) => i.type === type && i.kommun === kommun && i.exact)
+          .map((item) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: item.lngLat }, properties: { item } })),
+      )
+      indexes[type] = index
+    }
+    clusterCache = { kommun, items, indexes }
+    return indexes
+  }
+
   // Lapparna ritas om när kartan rör sig, så en lapp som har
   // tangentbordsfokus får tillbaka det efter omritningen.
   function render() {
@@ -160,13 +193,32 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
     const width = layer.clientWidth
     const height = layer.clientHeight
     const placed = []
-    for (const item of items) {
-      if (item.kommun !== kommun) continue
-      // Klubbar och events utan nål finns i kommunens symbol (se map/areaSymbols.js).
-      if (!item.exact) continue
-      const { x, y } = map.project(item.lngLat)
-      if (x < -200 || x > width + 200 || y < -200 || y > height + 200) continue
-      placed.push({ item, x, y, el: markerEl(item, compact) })
+    const onScreen = ({ x, y }) => x >= -200 && x <= width + 200 && y >= -200 && y <= height + 200
+    if (compact) {
+      // Utzoomat: lappar nära varandra slås ihop till en med antalet (klustren), så att kartan inte fylls av dem.
+      const indexes = clustersFor(kommun)
+      const bounds = map.getBounds()
+      const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]
+      const zoom = Math.floor(map.getZoom())
+      for (const [type, index] of Object.entries(indexes)) {
+        for (const feature of index.getClusters(bbox, zoom)) {
+          const point = map.project(feature.geometry.coordinates)
+          if (!onScreen(point)) continue
+          const el = feature.properties.cluster
+            ? clusterEl(type, feature)
+            : markerEl(feature.properties.item, compact)
+          placed.push({ x: point.x, y: point.y, el })
+        }
+      }
+    } else {
+      for (const item of items) {
+        if (item.kommun !== kommun) continue
+        // Klubbar och events utan nål finns i kommunens symbol (se map/areaSymbols.js).
+        if (!item.exact) continue
+        const point = map.project(item.lngLat)
+        if (!onScreen(point)) continue
+        placed.push({ item, x: point.x, y: point.y, el: markerEl(item, compact) })
+      }
     }
     // Lägg ut lapparna för att kunna mäta dem, och knuffa sedan isär dem som
     // överlappar (uppifrån och ner, några varv).
@@ -238,6 +290,32 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
     return el
   }
 
+  // Flera lappar som slagits ihop: samma ikon (en nål för events) med antalet i en liten etikett. Ett tryck zoomar in
+  // så att de delas upp (se klicket nedan). Ens egna och bokade events syns på klustrets färg.
+  function clusterEl(type, feature) {
+    const { cluster_id: id, point_count: count, mine, booked } = feature.properties
+    const el = document.createElement('button')
+    el.type = 'button'
+    const pin = type === 'event'
+    el.className = `map-activity is-${type} is-compact is-cluster${pin ? ' is-pin' : ''}${mine ? ' is-mine' : booked ? ' is-booked' : ''}`
+    el.dataset.key = `kluster:${type}:${id}`
+    el.dataset.cluster = String(id)
+    el.dataset.clusterType = type
+    el.dataset.lngLat = feature.geometry.coordinates.join(',')
+    const what = type === 'klubb' ? 'klubbar' : 'events'
+    el.title = `${count} ${what} här. Klicka för att zooma in.`
+    el.setAttribute('aria-label', el.title)
+    const icon = document.createElement('img')
+    icon.src = type === 'klubb' ? klubbarIcon : eventIcon
+    icon.alt = ''
+    const badge = document.createElement('span')
+    badge.className = 'map-activity-count'
+    badge.textContent = count
+    if (pin) el.append(pinShape())
+    el.append(icon, badge)
+    return el
+  }
+
   // Nålen: en droppe med bläckkant och en vit cirkel för ikonen, ritad som de andra figurerna på kartan.
   function pinShape() {
     const ns = 'http://www.w3.org/2000/svg'
@@ -260,6 +338,14 @@ export function attachActivityMarkers(map, layer, { getKommun, onPick, getFixed 
   layer.addEventListener('click', (event) => {
     const el = event.target.closest('.map-activity')
     if (!el) return
+    // Ett kluster: zooma in precis så mycket att det delas upp, mot klustrets mitt.
+    if (el.dataset.cluster) {
+      const index = clusterCache?.indexes[el.dataset.clusterType]
+      if (!index) return
+      const zoom = Math.min(index.getClusterExpansionZoom(Number(el.dataset.cluster)), FULL_ZOOM)
+      map.easeTo({ center: el.dataset.lngLat.split(',').map(Number), zoom })
+      return
+    }
     const item = items.find((i) => `${i.type}:${i.id}` === el.dataset.key)
     if (item) onPick(item, el.classList.contains('is-compact'))
   })
