@@ -227,6 +227,11 @@
   flex-shrink: 0;
 }
 
+/* Ett ensamt kort behöver inte hålla plats för en andra rad taggar för att bli lika högt som andra kort. */
+.match-panel.is-fitted .match-card .person-card-interests > .interest-tags {
+  min-height: 0;
+}
+
 /* Om mig kortas i stället med "…" (se fitAboutText). Får kortet ändå inte plats krymper skälen och scrollar. */
 .match-panel.is-fitted .match-card > .match-reasons {
   flex: 0 1 auto;
