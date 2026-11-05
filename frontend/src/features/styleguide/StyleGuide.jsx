@@ -1242,7 +1242,7 @@ function StyleGuide() {
             </FormField>
             <div className="form-actions">
               <button type="submit">Skapa</button>
-              <button type="button" className="button-secondary">Avbryt</button>
+              <button type="button" className="secondary-button">Avbryt</button>
             </div>
           </form>
         </div>

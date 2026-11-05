@@ -5,8 +5,7 @@ import { LngLat, Map as MapLibreMap, Marker, NavigationControl } from 'maplibre-
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { addMissingDoodle } from './doodles'
 import { applyMapTheme } from './themeApply'
-import { composeMapTheme, MAP_PICKERS } from './themes'
-import { useDesignChoice } from '../hooks/useDesignChoice'
+import { MAP_THEME } from './theme'
 import { attachPlaceNotes } from './notes'
 import { attachSketchedBuildings } from './buildings'
 import { attachPinsAndThread } from './route'
@@ -1368,8 +1367,6 @@ function MapPage() {
   zoomToLevelRef.current = zoomToLevel
   const stepLevelRef = useRef(stepLevel)
   stepLevelRef.current = stepLevel
-  // En väljare för varje del av kartan. Antalet är fast, så krokarna kommer alltid i samma ordning.
-  const mapChoices = MAP_PICKERS.map(({ attr }) => useDesignChoice(attr)) // eslint-disable-line react-hooks/rules-of-hooks
 
   useEffect(() => {
     // Mitt och zoom där hela Sverige ryms på skärmen, i kartans lutning.
@@ -1684,15 +1681,15 @@ function MapPage() {
     }
   }, [])
 
-  // Valen för kartan, se map/themes.js och app/chosenDesign.js. I testläget kan de bytas medan kartan är igång.
+  // Kartans tema, se map/theme.js.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return undefined
-    const apply = () => applyMapTheme(map, containerRef.current.closest('.map-sketch'), composeMapTheme(mapChoices))
+    const apply = () => applyMapTheme(map, containerRef.current.closest('.map-sketch'), MAP_THEME)
     if (map.getLayer('forest')) apply()
     else map.once('load', apply)
     return () => map.off('load', apply)
-  }, [mapChoices.join()]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div
@@ -1727,7 +1724,7 @@ function MapPage() {
       <div className="map-top-bar">
         <div className="map-top-left">
           {/* Översta raden, som ritade ikoner: kartan eller dagens att göra (se `calm`, den valda är nedtryckt),
-              Min kommun och Hitta mig. De två sista bara på kartan. */}
+              Min kommun och Hitta mig, med sökfältet under. Allt utom växeln bara på kartan. */}
           <div className="map-view-row">
             <div className="map-tool-group" role="group" aria-label="Visa">
               <button
@@ -1788,13 +1785,13 @@ function MapPage() {
                 </svg>
               </button>
             </div>
+            <MapPlaceSearch
+              activities={activityItems}
+              onPick={goToSearchResult}
+              findMeMessage={findMeMessage}
+              onCloseFindMeMessage={() => setFindMeMessage('')}
+            />
           </div>
-          <MapPlaceSearch
-            activities={activityItems}
-            onPick={goToSearchResult}
-            findMeMessage={findMeMessage}
-            onCloseFindMeMessage={() => setFindMeMessage('')}
-          />
           <div className="map-sketch-tools" role="toolbar" aria-label="Nålar och väg" hidden={!pinsShown}>
             <button
               type="button"

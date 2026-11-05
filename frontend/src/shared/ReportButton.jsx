@@ -122,7 +122,7 @@ function ReportButton({ targetType, targetId, userId, name, quote, onBlocked, cl
                 <button type="submit" disabled={sending}>
                   {sending ? 'Skickar...' : 'Skicka anmälan'}
                 </button>
-                <button type="button" className="button-secondary" onClick={close} disabled={sending}>
+                <button type="button" className="secondary-button" onClick={close} disabled={sending}>
                   Avbryt
                 </button>
               </div>

@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
+from app.api.people import to_contact_user
 from app.auth.security import get_current_user, require_profile
 from app.core import error_messages as msg
-from app.core import storage
 from app.core.profanity import censor_text
 from app.crud.event import (
     EventRuleError,
@@ -41,7 +41,6 @@ from app.crud.notification import notify_event_cancelled, notify_event_changed
 from app.db.session import get_db
 from app.models.event import Event, EventVisibility
 from app.models.group import GroupScope, GroupVisibility
-from app.models.user import User
 from app.schemas.contact import ContactUser
 from app.schemas.event import (
     EventAnswerIn,
@@ -124,17 +123,6 @@ def _to_response(db: Session, event: Event, user_id: int) -> EventOut:
     )
 
 
-def _to_invitee(user: User) -> ContactUser:
-    profile = user.profile
-    image_key = profile.profile_image_url if profile else None
-    return ContactUser(
-        id=user.id,
-        username=user.username,
-        name=profile.name if profile else None,
-        image_url=storage.public_url(image_key) if image_key else None,
-    )
-
-
 def _visible_event_or_404(db: Session, event_id: int, user_id: int) -> Event:
     # Ett event man inte får se ger samma svar som ett som inte finns.
     event = get_visible_event(db, event_id, user_id)
@@ -145,7 +133,7 @@ def _visible_event_or_404(db: Session, event_id: int, user_id: int) -> Event:
 
 def _to_attendees(db: Session, event: Event, viewer_id: int) -> list[EventAttendee]:
     return [
-        EventAttendee(**_to_invitee(user).model_dump(), answer=response.answer, blocked_by_me=blocked_by_me)
+        EventAttendee(**to_contact_user(user).model_dump(), answer=response.answer, blocked_by_me=blocked_by_me)
         for response, user, blocked_by_me in list_responses(db, event, viewer_id)
     ]
 
@@ -278,7 +266,7 @@ def read_invitations(
     db: Session = Depends(get_db),
 ):
     event = _hosted_event_or_error(db, event_id, current_user.id)
-    return [_to_invitee(u) for u in list_invitees(db, event, current_user.id)]
+    return [to_contact_user(u) for u in list_invitees(db, event, current_user.id)]
 
 
 # Skaparen får alltid bjuda in. Andra som kan se eventet får det bara om skaparen har
@@ -299,7 +287,7 @@ def add_invitations(
         invited = invite(db, event, current_user.id, data.user_ids, data.group_ids)
     except EventRuleError as err:
         raise HTTPException(status_code=err.status_code, detail=err.detail)
-    return [_to_invitee(u) for u in invited]
+    return [to_contact_user(u) for u in invited]
 
 
 @router.delete("/{event_id}/invitations/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -386,7 +374,7 @@ def withdraw(event_id: int, current_user=Depends(get_current_user), db: Session 
 def read_requests(event_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     event = _hosted_event_or_error(db, event_id, current_user.id)
     return [
-        GroupJoinRequestOut(user=_to_invitee(user), message=request.message, created_at=request.created_at)
+        GroupJoinRequestOut(user=to_contact_user(user), message=request.message, created_at=request.created_at)
         for request, user in list_event_requests(db, event, current_user.id)
     ]
 

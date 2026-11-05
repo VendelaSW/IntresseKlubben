@@ -364,7 +364,7 @@ function CreateGroupForm({
         <button type="submit" disabled={saving}>
           {saving ? 'Skapar...' : 'Skapa klubb'}
         </button>
-        <button type="button" className="button-secondary" onClick={onCancel}>
+        <button type="button" className="secondary-button" onClick={onCancel}>
           Avbryt
         </button>
       </div>

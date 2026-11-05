@@ -1,5 +1,5 @@
-// Appens utseende. Varje val blir ett data-attribut på <html>, som CSS:en utgår från. Kartans val går att byta i
-// testpanelen (se devtools/PadBackgroundPicker.jsx).
+// Appens utseende. Varje val blir ett data-attribut på <html>, som CSS:en utgår från. Kartans utseende
+// finns i map/theme.js.
 import '../styles/padBackgrounds.css'
 import '../styles/uiStyles.css'
 
@@ -14,17 +14,6 @@ export const CHOSEN_DESIGN = {
   visStyle: 'mjuk',
   // Events (biljetten är inget val längre, utan alltid utseendet, se EventList)
   eventCalendar: 'kalender',
-  // Kartan (se map/themes.js)
-  mapGround: 'kaffe',
-  mapLines: 'stora-rutor',
-  mapGlow: 'ingen',
-  mapRoads: 'hela',
-  mapWater: 'ljus',
-  mapWaterStyle: 'hel',
-  mapForest: 'mork',
-  mapForestStyle: 'stark',
-  mapHouseColors: 'varma',
-  mapHouseStyle: 'farg-tak',
 }
 
 export function applyChosenDesign() {

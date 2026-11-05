@@ -27,9 +27,14 @@
   transition: border-color 0.15s ease;
 }
 
-.banner-link:hover,
 .banner-link:focus-visible {
   border-color: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .banner-link:hover {
+    border-color: var(--color-accent);
+  }
 }
 
 .banner-button {
@@ -44,9 +49,14 @@
   transition: opacity 0.15s ease;
 }
 
-.banner-button:hover,
 .banner-button:focus-visible {
   opacity: 0.85;
+}
+
+@media (hover: hover) {
+  .banner-button:hover {
+    opacity: 0.85;
+  }
 }
 
 .tagline {
@@ -102,8 +112,10 @@ button.banner-button {
   cursor: default;
 }
 
-.tag-static:hover {
-  border-color: var(--color-border);
+@media (hover: hover) {
+  .tag-static:hover {
+    border-color: var(--color-border);
+  }
 }
 
 .demo-profile-form {

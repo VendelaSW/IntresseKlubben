@@ -85,6 +85,12 @@
   --text-body: 1rem;
   --text-small: 0.85rem;
 
+  --text-xs: 0.75rem;
+
+  /* Hård skugga, som på en lapp */
+  --shadow-ink: 3px 3px 0 #3a2f25;
+  --shadow-ink-sm: 2px 2px 0 #3a2f25;
+
   /* Rundade hörn */
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -118,6 +124,12 @@
 
 .service-heading {
   margin: 0;
+}
+
+/* Dra-ned-för-att-ladda-om och studsen när sidan når toppen eller botten stängs av. */
+html,
+body {
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -214,9 +226,14 @@ h2 {
   transition: opacity 0.15s ease;
 }
 
-.info-link:hover,
 .info-link:focus-visible {
   opacity: 0.7;
+}
+
+@media (hover: hover) {
+  .info-link:hover {
+    opacity: 0.7;
+  }
 }
 
 /* .info-link på en knapp (t.ex. "Läs mer om tjänsten" som fälls ut): ser ut
@@ -311,8 +328,10 @@ button.info-link {
   margin-top: 0.5rem;
 }
 
-.auth-form button:hover {
-  opacity: 0.85;
+@media (hover: hover) {
+  .auth-form button:hover {
+    opacity: 0.85;
+  }
 }
 
 .auth-form button:disabled {
@@ -320,7 +339,7 @@ button.info-link {
   cursor: default;
 }
 
-.auth-form .button-secondary {
+.auth-form .secondary-button {
   background: transparent;
   border: 2px solid var(--color-border);
   margin-top: 0;
@@ -345,11 +364,18 @@ button.info-link {
 }
 
 /* Samma hover som Radera konto (.secondary-button.button-danger): fylld röd. */
-.auth-form .delete-account-confirm:hover:not(:disabled),
 .auth-form .delete-account-confirm:focus-visible {
   background: var(--color-error);
   color: var(--color-white);
   opacity: 1;
+}
+
+@media (hover: hover) {
+  .auth-form .delete-account-confirm:hover:not(:disabled) {
+    background: var(--color-error);
+    color: var(--color-white);
+    opacity: 1;
+  }
 }
 
 /* En liten knapp som ändå är lätt att träffa på pekskärm: ytan man kan trycka på
@@ -398,12 +424,6 @@ button.info-link {
 
 .profile-column > .soft-box {
   max-width: none;
-}
-
-/* Min profil: allt vänsterställt och lika brett, som på andras profiler. */
-.profile-own {
-  align-items: stretch;
-  text-align: left;
 }
 
 /* Personens events: titeln, och tid och plats på raden under. */
@@ -463,13 +483,17 @@ span.tag {
   cursor: default;
 }
 
-span.tag:hover {
-  opacity: 1;
-  border-color: var(--color-border);
+@media (hover: hover) {
+  span.tag:hover {
+    opacity: 1;
+    border-color: var(--color-border);
+  }
 }
 
-span.tag-selected:hover {
-  border-color: var(--color-accent);
+@media (hover: hover) {
+  span.tag-selected:hover {
+    border-color: var(--color-accent);
+  }
 }
 
 .home-link {
@@ -483,9 +507,14 @@ span.tag-selected:hover {
   text-decoration: none;
 }
 
-.home-link:hover,
 .home-link:focus-visible {
   opacity: 0.7;
+}
+
+@media (hover: hover) {
+  .home-link:hover {
+    opacity: 0.7;
+  }
 }
 
 .primary-button {
@@ -502,8 +531,10 @@ span.tag-selected:hover {
   cursor: pointer;
 }
 
-.primary-button:hover {
-  opacity: 0.85;
+@media (hover: hover) {
+  .primary-button:hover {
+    opacity: 0.85;
+  }
 }
 
 .style-section {
@@ -556,8 +587,8 @@ span.tag-selected:hover {
   box-shadow: 0 6px 0 var(--color-border);
 }
 
-.interview-card .button-secondary,
-.interview-summary .button-secondary,
+.interview-card .secondary-button,
+.interview-summary .secondary-button,
 .interview-summary .secondary-button:not(.button-danger) {
   border-color: var(--field-border);
 }
@@ -580,7 +611,7 @@ span.tag-selected:hover {
    och registreringens kort). */
 .card.card-soft {
   border: 1.5px solid rgba(58, 47, 37, 0.18);
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   background: #fffdf7;
   box-shadow: 0 2px 10px rgba(58, 47, 37, 0.12);
 }
@@ -598,11 +629,18 @@ span.tag-selected:hover {
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.card-interactive:hover,
 .card-interactive:focus-within {
   transform: translateY(-3px);
   border-color: var(--color-accent);
   box-shadow: 0 6px 0 var(--color-accent);
+}
+
+@media (hover: hover) {
+  .card-interactive:hover {
+    transform: translateY(-3px);
+    border-color: var(--color-accent);
+    box-shadow: 0 6px 0 var(--color-accent);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -610,10 +648,15 @@ span.tag-selected:hover {
       transition: none;
     }
 
-  .card-interactive:hover,
-    .card-interactive:focus-within {
+  .card-interactive:focus-within {
       transform: none;
     }
+
+  @media (hover: hover) {
+    .card-interactive:hover {
+        transform: none;
+      }
+  }
 }
 
 .card-avatar {
@@ -733,9 +776,14 @@ span.tag-selected:hover {
 
 /* Gul kantlinje vid hover, samma som .secondary-button och .tag-selected,
    inte nästan-svart (--color-text) som tidigare. */
-.tag:hover,
 .tag:focus-visible {
   border-color: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .tag:hover {
+    border-color: var(--color-accent);
+  }
 }
 
 .tag-selected {
@@ -744,9 +792,14 @@ span.tag-selected:hover {
   color: var(--color-text);
 }
 
-.tag-selected:hover,
 .tag-selected:focus-visible {
   opacity: 0.85;
+}
+
+@media (hover: hover) {
+  .tag-selected:hover {
+    opacity: 0.85;
+  }
 }
 
 /* ---------- Intressetaggar (InterestTagGroup, InterestTags, InterestTree) ----------
@@ -795,10 +848,16 @@ span.tag-selected:hover {
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
-.interest-tag:has(.interest-tag-toggle:hover),
 .interest-tag-group.is-open > .interest-tag {
   box-shadow: none;
   transform: translate(2px, 2px);
+}
+
+@media (hover: hover) {
+  .interest-tag:has(.interest-tag-toggle:hover) {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
 }
 
 /* Bocken (CheckMark), samma som i .interest-tag.is-shared. */
@@ -875,9 +934,14 @@ span.tag-selected:hover {
   cursor: pointer;
 }
 
-.interest-tag-remove:hover,
 .interest-tag-remove:focus-visible {
   opacity: 1;
+}
+
+@media (hover: hover) {
+  .interest-tag-remove:hover {
+    opacity: 1;
+  }
 }
 
 .interest-tag.is-shared {
@@ -916,9 +980,14 @@ span.tag-selected:hover {
   cursor: pointer;
 }
 
-.text-button:hover,
 .text-button:focus-visible {
   opacity: 0.7;
+}
+
+@media (hover: hover) {
+  .text-button:hover {
+    opacity: 0.7;
+  }
 }
 
 /* Lugn länk under formulär (inloggning, registrering, glömt lösenord): grå text i normal vikt, med samma gula linje
@@ -935,9 +1004,14 @@ span.tag-selected:hover {
   cursor: pointer;
 }
 
-.quiet-link:hover,
 .quiet-link:focus-visible {
   color: var(--color-text);
+}
+
+@media (hover: hover) {
+  .quiet-link:hover {
+    color: var(--color-text);
+  }
 }
 
 /* Första länken en rad under knappen i formuläret. */
@@ -975,9 +1049,14 @@ span.tag-selected:hover {
   display: none;
 }
 
-.back-arrow:hover .back-arrow-icon,
 .back-arrow:focus-visible .back-arrow-icon {
   transform: scale(1.12);
+}
+
+@media (hover: hover) {
+  .back-arrow:hover .back-arrow-icon {
+    transform: scale(1.12);
+  }
 }
 
 /* Inloggnings-/registreringsvyerna: loggan högt upp och tätt mot rubriken. Pilen ligger i hörnet bredvid loggan. */
@@ -1000,10 +1079,16 @@ span.tag-selected:hover {
   cursor: pointer;
 }
 
-.secondary-button:hover,
 .secondary-button:focus-visible {
   border-color: var(--color-accent);
   background: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .secondary-button:hover {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+  }
 }
 
 /* "Visa fler" under en lista (Medlemmar > Sök, Klubbar > Alla): lagom bred och
@@ -1091,11 +1176,18 @@ span.tag-selected:hover {
   height: 1rem;
 }
 
-.create-button:hover,
 .create-button:focus-visible {
   opacity: 1;
   transform: translateY(-2px);
   box-shadow: 0 3px 0 var(--color-border);
+}
+
+@media (hover: hover) {
+  .create-button:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 0 var(--color-border);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1103,10 +1195,15 @@ span.tag-selected:hover {
       transition: none;
     }
 
-  .create-button:hover,
-    .create-button:focus-visible {
+  .create-button:focus-visible {
       transform: none;
     }
+
+  @media (hover: hover) {
+    .create-button:hover {
+        transform: none;
+      }
+  }
 }
 
 /* Pekfingret på kryssrutor, radioknappar och rullistor, och på etiketten runt
@@ -1148,12 +1245,18 @@ label:has(> input[type='radio']:not(:disabled)) {
   object-fit: contain;
 }
 
-.icon-button:hover:not(:disabled),
-.icon-button:focus-visible,
-.auth-form .icon-button:hover:not(:disabled),
-.map-pad .form-actions .icon-button:hover:not(:disabled) {
+.icon-button:focus-visible {
   background: none;
   transform: translateY(-2px) rotate(-4deg);
+}
+
+@media (hover: hover) {
+  .icon-button:hover:not(:disabled),
+  .auth-form .icon-button:hover:not(:disabled),
+  .map-pad .form-actions .icon-button:hover:not(:disabled) {
+    background: none;
+    transform: translateY(-2px) rotate(-4deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1161,15 +1264,22 @@ label:has(> input[type='radio']:not(:disabled)) {
       transition: none;
     }
 
-  .icon-button:hover:not(:disabled),
-    .icon-button:focus-visible {
+  .icon-button:focus-visible {
       transform: none;
     }
+
+  @media (hover: hover) {
+    .icon-button:hover:not(:disabled) {
+        transform: none;
+      }
+  }
 }
 
-.tag-static.tag-selected:hover {
-  border-color: var(--color-accent);
-  opacity: 1;
+@media (hover: hover) {
+  .tag-static.tag-selected:hover {
+    border-color: var(--color-accent);
+    opacity: 1;
+  }
 }
 
 /* Taggar inne i formulär ska inte ärva .auth-form-knappstilen. */
@@ -1383,7 +1493,7 @@ label:has(> input[type='radio']:not(:disabled)) {
       grid-column: 1;
       grid-row: auto;
       max-width: 100%;
-      font-size: 0.75rem;
+      font-size: var(--text-xs);
       overflow-wrap: break-word;
     }
 
@@ -1435,7 +1545,7 @@ label:has(> input[type='radio']:not(:disabled)) {
       height: auto;
       min-height: 2.5rem;
       padding-inline: 0.5rem;
-      font-size: 0.75rem;
+      font-size: var(--text-xs);
       line-height: 1.15;
       white-space: normal;
     }
@@ -1568,6 +1678,7 @@ label:has(> input[type='radio']:not(:disabled)) {
 
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -1640,11 +1751,18 @@ label:has(> input[type='radio']:not(:disabled)) {
   cursor: not-allowed;
 }
 
-.app-nav-link:not(.active):not(.app-nav-link-locked):hover .nav-icon,
 .app-nav-link:not(.active):focus-visible .nav-icon {
   transform: scale(1.15);
   filter: drop-shadow(1px 0 0 var(--color-accent)) drop-shadow(-1px 0 0 var(--color-accent))
     drop-shadow(0 1px 0 var(--color-accent)) drop-shadow(0 -1px 0 var(--color-accent));
+}
+
+@media (hover: hover) {
+  .app-nav-link:not(.active):not(.app-nav-link-locked):hover .nav-icon {
+    transform: scale(1.15);
+    filter: drop-shadow(1px 0 0 var(--color-accent)) drop-shadow(-1px 0 0 var(--color-accent))
+      drop-shadow(0 1px 0 var(--color-accent)) drop-shadow(0 -1px 0 var(--color-accent));
+  }
 }
 
 /* Aktiv sida: ingen kontur, ikonen är lite större och texten har strecket. */
@@ -1667,7 +1785,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   border-radius: var(--radius-pill);
   background: var(--color-text);
   color: var(--color-white);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .app-user {
@@ -1783,14 +1901,22 @@ label:has(> input[type='radio']:not(:disabled)) {
 
 /* Klickbart: gul understrykning under namnet vid hover och tangentbordsfokus,
    och en gul ram vid fokus. */
-.notepad-title-link:hover .notepad-title-name,
 .notepad-title-link:focus-visible .notepad-title-name,
-.notepad-person-link:hover strong,
 .notepad-person-link:focus-visible strong {
   text-decoration: underline;
   text-decoration-color: var(--color-accent);
   text-decoration-thickness: 3px;
   text-underline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .notepad-title-link:hover .notepad-title-name,
+  .notepad-person-link:hover strong {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-decoration-thickness: 3px;
+    text-underline-offset: 3px;
+  }
 }
 
 /* Bilden överst och vid varje brev. Vid breven ryms den inom raden, så att
@@ -1848,7 +1974,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   background: transparent;
   color: var(--color-muted);
   font: inherit;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   text-transform: none;
   letter-spacing: normal;
   text-decoration: underline;
@@ -1861,9 +1987,14 @@ label:has(> input[type='radio']:not(:disabled)) {
   opacity: 1;
 }
 
-.report-link:hover,
 .report-link:focus-visible {
   color: var(--color-text);
+}
+
+@media (hover: hover) {
+  .report-link:hover {
+    color: var(--color-text);
+  }
 }
 
 @media (hover: none), (max-width: 767px) {
@@ -1920,7 +2051,7 @@ label:has(> input[type='radio']:not(:disabled)) {
 
 .notepad-messages::-webkit-scrollbar-thumb {
   background: var(--color-border);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 /* Långa ord och länkar bryts, så att de inte sticker ut ur pappret. */
@@ -2040,8 +2171,10 @@ label:has(> input[type='radio']:not(:disabled)) {
   padding: 0.45rem 0.9rem;
 }
 
-.filter-tabs > .tag:hover {
-  background: var(--color-accent-soft);
+@media (hover: hover) {
+  .filter-tabs > .tag:hover {
+    background: var(--color-accent-soft);
+  }
 }
 
 .filter-tabs > .tag:focus-visible {
@@ -2049,11 +2182,18 @@ label:has(> input[type='radio']:not(:disabled)) {
   outline-offset: -5px;
 }
 
-.filter-tabs > .tag-selected,
-.filter-tabs > .tag-selected:hover {
+.filter-tabs > .tag-selected {
   background: var(--color-accent);
   font-weight: 700;
   opacity: 1;
+}
+
+@media (hover: hover) {
+  .filter-tabs > .tag-selected:hover {
+    background: var(--color-accent);
+    font-weight: 700;
+    opacity: 1;
+  }
 }
 
 /* Antalet efter namnet (FilterTabs) som en liten gul bricka med mörk siffra och
@@ -2069,7 +2209,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   background: var(--color-accent);
   color: var(--color-ink);
   font-family: var(--font-body);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.25rem;
@@ -2296,7 +2436,7 @@ label:has(> input[type='radio']:not(:disabled)) {
       padding: 0.2rem 0.5rem;
       background: var(--color-ink);
       color: #fffdf7;
-      font-size: 0.72rem;
+      font-size: var(--text-xs);
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -2318,7 +2458,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   line-height: 1.35;
   border: 1.5px solid #3a2f25;
   border-radius: 255px 12px 225px 12px / 12px 225px 12px 255px;
-  box-shadow: 3px 3px 0 #3a2f25;
+  box-shadow: var(--shadow-ink);
 }
 
 .paper-note::before,
@@ -2648,9 +2788,14 @@ label:has(> input[type='radio']:not(:disabled)) {
   cursor: pointer;
 }
 
-.multi-option-picker-button:hover,
 .multi-option-picker-button:focus-visible {
   border-color: var(--color-ink);
+}
+
+@media (hover: hover) {
+  .multi-option-picker-button:hover {
+    border-color: var(--color-ink);
+  }
 }
 
 .multi-option-picker-button:focus-visible {
@@ -2704,7 +2849,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   width: 0.95rem;
   height: 0.95rem;
   border: 1.5px solid var(--color-ink);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--color-white);
   font-size: 0.7rem;
   line-height: 1;
@@ -2743,10 +2888,6 @@ label:has(> input[type='radio']:not(:disabled)) {
 /* Intresseväljaren (InterestPicker) har kommunfältets klasser och utseende. Det
    här är det den har utöver: plats för krysset, rubriken över ens egna intressen
    och var en träff hör hemma, under namnet. */
-.interest-picker input {
-  padding-right: 1.8rem;
-}
-
 /* Krysset ligger där filtren annars har en pil (Klubbar, papperslapparna i
    testläget), så pilen tas bort när ett intresse är valt. */
 .municipality-picker.interest-picker:has(.field-clear) input {
@@ -3005,9 +3146,14 @@ label:has(> input[type='radio']:not(:disabled)) {
   inset: -0.75rem;
 }
 
-.info-tip .info-tip-button:hover,
 .info-tip .info-tip-button:focus-visible {
   background: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .info-tip .info-tip-button:hover {
+    background: var(--color-accent);
+  }
 }
 
 .info-tip-bubble {
@@ -3022,7 +3168,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   border: 1.5px solid #3a2f25;
   border-radius: var(--radius-sm);
   background: var(--color-white);
-  box-shadow: 2px 2px 0 #3a2f25;
+  box-shadow: var(--shadow-ink-sm);
   color: var(--color-text);
   font-family: var(--font-body);
   font-size: var(--text-small);
@@ -3125,9 +3271,14 @@ label:has(> input[type='radio']:not(:disabled)) {
   cursor: pointer;
 }
 
-.search-field .search-field-clear:hover,
 .search-field .search-field-clear:focus-visible {
   color: var(--color-text);
+}
+
+@media (hover: hover) {
+  .search-field .search-field-clear:hover {
+    color: var(--color-text);
+  }
 }
 
 /* På pekskärm är fältet och krysset lättare att träffa (se CONTRIBUTING, "Mobil"). */
@@ -3167,9 +3318,14 @@ label:has(> input[type='radio']:not(:disabled)) {
   cursor: pointer;
 }
 
-.search-toggle-row .search-toggle:hover,
 .search-toggle-row .search-toggle:focus-visible {
   border-color: var(--color-ink);
+}
+
+@media (hover: hover) {
+  .search-toggle-row .search-toggle:hover {
+    border-color: var(--color-ink);
+  }
 }
 
 .search-toggle-row .search-toggle.is-open {
@@ -3210,10 +3366,6 @@ label:has(> input[type='radio']:not(:disabled)) {
 @media (pointer: fine) {
   .search-toggle-row {
       --search-height: 1.75rem;
-    }
-
-  .map-place-search-row .search-toggle-row {
-      --search-height: 2.1rem;
     }
 
   .search-toggle-row .search-toggle,
@@ -3435,10 +3587,16 @@ label:has(> input[type='radio']:not(:disabled)) {
   --tone: var(--color-pastel-rose);
 }
 
-.card.club-card.card-interactive:hover,
 .card.club-card.card-interactive:focus-within {
   border-color: color-mix(in srgb, var(--tone) 50%, var(--color-ink));
   box-shadow: 0 5px 0 color-mix(in srgb, var(--tone) 65%, var(--color-ink));
+}
+
+@media (hover: hover) {
+  .card.club-card.card-interactive:hover {
+    border-color: color-mix(in srgb, var(--tone) 50%, var(--color-ink));
+    box-shadow: 0 5px 0 color-mix(in srgb, var(--tone) 65%, var(--color-ink));
+  }
 }
 
 .club-card .card-text {
@@ -3692,11 +3850,18 @@ label:has(> input[type='radio']:not(:disabled)) {
   color: var(--color-text);
 }
 
-.auth-form .icon-square-button:hover:not(:disabled),
 .auth-form .icon-square-button:focus-visible {
   opacity: 1;
   border-color: var(--color-accent);
   background: var(--color-accent-soft);
+}
+
+@media (hover: hover) {
+  .auth-form .icon-square-button:hover:not(:disabled) {
+    opacity: 1;
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+  }
 }
 
 @media (pointer: coarse) {
@@ -3755,10 +3920,16 @@ label:has(> input[type='radio']:not(:disabled)) {
   text-transform: none;
 }
 
-.auth-form .location-search-option:hover,
 .auth-form .location-search-option:focus-visible {
   opacity: 1;
   background: var(--color-accent-soft);
+}
+
+@media (hover: hover) {
+  .auth-form .location-search-option:hover {
+    opacity: 1;
+    background: var(--color-accent-soft);
+  }
 }
 
 .location-picker-map {
@@ -3853,8 +4024,10 @@ label:has(> input[type='radio']:not(:disabled)) {
   border-left: 1.5px solid var(--field-border, var(--color-border));
 }
 
-.choice-toggle label:hover {
-  background: var(--color-accent-soft);
+@media (hover: hover) {
+  .choice-toggle label:hover {
+    background: var(--color-accent-soft);
+  }
 }
 
 .choice-toggle label.is-selected {
@@ -3875,8 +4048,10 @@ label:has(> input[type='radio']:not(:disabled)) {
   cursor: not-allowed;
 }
 
-.choice-toggle label:has(input:disabled):hover {
-  background: transparent;
+@media (hover: hover) {
+  .choice-toggle label:has(input:disabled):hover {
+    background: transparent;
+  }
 }
 
 /* En ikon före texten (t.ex. hänglåsen), och en egen färg för det valda (tone). */
@@ -3975,10 +4150,16 @@ label:has(> input[type='radio']:not(:disabled)) {
   line-height: 1;
 }
 
-.auth-form .number-stepper button:hover:not(:disabled),
 .auth-form .number-stepper button:focus-visible {
   opacity: 1;
   background: var(--color-accent-soft);
+}
+
+@media (hover: hover) {
+  .auth-form .number-stepper button:hover:not(:disabled) {
+    opacity: 1;
+    background: var(--color-accent-soft);
+  }
 }
 
 .auth-form .number-stepper button:disabled {
@@ -4342,7 +4523,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   padding: 0.2rem 0.5rem;
   background: var(--color-ink);
   color: #fffdf7;
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.08em;
   line-height: 1.3;
   text-transform: uppercase;
@@ -4365,7 +4546,7 @@ label:has(> input[type='radio']:not(:disabled)) {
 
 /* Kartan och Avbryt med samma varma ram som fälten, i stället för mörk och blå. */
 .form-poster .location-picker-map,
-.form-poster .button-secondary {
+.form-poster .secondary-button {
   border-color: var(--field-border);
 }
 
@@ -4399,8 +4580,10 @@ label:has(> input[type='radio']:not(:disabled)) {
   overflow-wrap: anywhere;
 }
 
-.person-list-item:hover span:not(.hint-text):not(.person-list-avatar) {
-  text-decoration: underline;
+@media (hover: hover) {
+  .person-list-item:hover span:not(.hint-text):not(.person-list-avatar) {
+    text-decoration: underline;
+  }
 }
 
 /* Lägg på .person-list: titeln får den gula överstrykningspennan (samma som
@@ -4411,10 +4594,16 @@ label:has(> input[type='radio']:not(:disabled)) {
   margin: 0 -0.15em;
 }
 
-.person-list-marker .person-list-item:hover span:not(.hint-text):not(.person-list-avatar),
 .person-list-marker .person-list-item:focus-visible span:not(.hint-text):not(.person-list-avatar) {
   text-decoration: none;
   background: linear-gradient(transparent 58%, var(--color-accent) 58%, var(--color-accent) 88%, transparent 88%);
+}
+
+@media (hover: hover) {
+  .person-list-marker .person-list-item:hover span:not(.hint-text):not(.person-list-avatar) {
+    text-decoration: none;
+    background: linear-gradient(transparent 58%, var(--color-accent) 58%, var(--color-accent) 88%, transparent 88%);
+  }
 }
 
 .person-list-avatar {
@@ -4451,7 +4640,7 @@ label:has(> input[type='radio']:not(:disabled)) {
 }
 
 .person-list-compact .card-avatar-initials {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 /* Popup (Modal.jsx), byggd på det inbyggda <dialog>-elementet. Ligger på .card
@@ -4480,12 +4669,12 @@ label:has(> input[type='radio']:not(:disabled)) {
 }
 
 /* Den gula knappen har ingen ram: en osynlig lika tjock som Avbryts, så att de blir exakt lika breda. */
-.confirm-dialog .form-actions button:not(.button-secondary):not(.button-danger) {
+.confirm-dialog .form-actions button:not(.secondary-button):not(.button-danger) {
   border: 2px solid transparent;
 }
 
 /* Popupen är ett mjukt kort (.card-soft, se Modal), och knapparna i den har samma varma ram i stället för den blå. */
-.modal :is(.secondary-button, .button-secondary):not(.button-danger) {
+.modal .secondary-button:not(.button-danger) {
   border-color: rgba(58, 47, 37, 0.2);
 }
 
@@ -4603,10 +4792,16 @@ label.person-list-item {
   transition: transform 0.15s ease, filter 0.15s ease;
 }
 
-.event-ticket-wrap:hover,
 .event-ticket-wrap:focus-within {
   filter: drop-shadow(2px 7px 8px rgba(58, 47, 37, 0.36));
   transform: translateY(-3px);
+}
+
+@media (hover: hover) {
+  .event-ticket-wrap:hover {
+    filter: drop-shadow(2px 7px 8px rgba(58, 47, 37, 0.36));
+    transform: translateY(-3px);
+  }
 }
 
 .event-ticket.card {
@@ -4620,7 +4815,7 @@ label.person-list-item {
   min-height: 0;
   padding: 1.05rem 1.05rem 0;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background:
     linear-gradient(var(--poster), var(--poster)) top / 100% 7px no-repeat,
     #fffdf7;
@@ -4631,11 +4826,18 @@ label.person-list-item {
 }
 
 /* Hovern ligger på omslaget (se ovan), inte på kortet. */
-.event-ticket.card.card-interactive:hover,
 .event-ticket.card.card-interactive:focus-within {
   border-color: transparent;
   box-shadow: none;
   transform: none;
+}
+
+@media (hover: hover) {
+  .event-ticket.card.card-interactive:hover {
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
+  }
 }
 
 /* "EVENT" överst, som tryckt på en biljett. */
@@ -4708,7 +4910,7 @@ label.person-list-item {
 
 .event-ticket-month {
   margin-top: -0.1rem;
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -4812,7 +5014,7 @@ label.person-list-item {
 
   .event-ticket .card-actions .status-pill {
       padding: 0.1rem 0.5rem;
-      font-size: 0.72rem;
+      font-size: var(--text-xs);
     }
 
   .event-ticket .card-actions .stamp {
@@ -4865,7 +5067,7 @@ label.person-list-item {
     }
 
   .event-ticket-place {
-      font-size: 0.75rem;
+      font-size: var(--text-xs);
     }
 }
 
@@ -4960,7 +5162,7 @@ label.person-list-item {
   border-radius: 0;
   background: var(--color-ink);
   color: #fffdf7;
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -4970,7 +5172,7 @@ label.person-list-item {
 .event-ticket-sheet h3.card-subheading {
   color: #5a5148;
   font-family: var(--font-body);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -5186,4 +5388,83 @@ label.person-list-item {
         linear-gradient(var(--poster), var(--poster)) top / 100% 8px no-repeat,
         var(--poster-soft);
     }
+}
+
+/* De smalaste telefonerna (320 px bred). */
+@media (max-width: 360px) {
+  .service-heading {
+    font-size: 2rem;
+  }
+
+  /* Den röda marginalen tar annars halva raden från det man skriver. */
+  .notepad {
+    --paper-margin: 1.5rem;
+    --notepad-right: 0.75rem;
+  }
+}
+
+/* Långa alternativ får inte göra ett fält bredare än blocket. */
+.form-field {
+  min-width: 0;
+}
+
+.form-field select {
+  max-width: 100%;
+}
+
+/* Stilguiden har breda exempel, som inte ska göra hela sidan bredare än skärmen. */
+.page:has(> .logo) {
+  overflow-x: clip;
+}
+
+/* Pekskärm: knappar och fält går att träffa med tummen (se CONTRIBUTING.md, "Mobil"). 44 px är Apples minsta mått.
+   Svarsraden på brevpappret (.notepad-reply) är undantagen, eftersom den följer pappersraderna. */
+@media (pointer: coarse) {
+  .form-compact input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], .visually-hidden),
+  .form-compact select {
+    min-height: 44px;
+  }
+
+  .primary-button:not(.notepad-reply button),
+  .secondary-button,
+  .form-actions button {
+    min-height: 44px;
+  }
+
+  button.tag {
+    min-height: 40px;
+  }
+
+  .search-toggle,
+  .notification-remove,
+  .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .report-link,
+  .info-link,
+  .quiet-link,
+  .text-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .person-list-item {
+    min-height: 44px;
+  }
+}
+
+/* Plats för krysset i intresseväljaren, också i formulär med mindre fält. */
+.interest-picker input,
+.form-compact .interest-picker input {
+  padding-right: 1.8rem;
+}
+
+/* De smalaste telefonerna: födelsedatumets tre fält får plats på en rad. */
+@media (max-width: 360px) {
+  .birth-date-picker {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+  }
 }

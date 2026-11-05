@@ -6,10 +6,16 @@
   cursor: pointer;
 }
 
-.interest-tag-more:hover,
 .interest-tag-more:focus-visible {
   box-shadow: none;
   transform: translate(2px, 2px);
+}
+
+@media (hover: hover) {
+  .interest-tag-more:hover {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
 }
 
 /* Layouten för personkort och brevkort. Hover-effekten kommer från
@@ -267,7 +273,7 @@
   background: var(--color-line);
   object-fit: cover;
   font-family: var(--font-heading);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .match-strip-more {
@@ -337,7 +343,7 @@
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
   border-radius: var(--radius-md);
-  box-shadow: 3px 3px 0 #3a2f25;
+  box-shadow: var(--shadow-ink);
   font-size: var(--text-small);
   overflow-wrap: anywhere;
 }
@@ -368,15 +374,13 @@
   align-items: center;
 }
 
-/* På mobil: intresse, kommun och kön på en rad, lika breda (med korta namn,
-   se PeoplePage), och åldern på hela raden under. */
 @media (max-width: 767px) {
+  /* På mobil: intresse, kommun och kön på en rad, lika breda (med korta namn,
+     se PeoplePage), och åldern på hela raden under. */
   .filter-panel {
       width: auto;
     }
-}
 
-@media (max-width: 767px) {
   .filter-panel .filter-select-row-paper > * {
       flex: 1 1 0;
       min-width: 0;
