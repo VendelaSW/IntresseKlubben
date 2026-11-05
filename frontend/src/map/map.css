@@ -807,7 +807,7 @@
   background: #3a2f25;
   color: #fffdf7;
   font-family: var(--font-body);
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   font-weight: 800;
   line-height: 1.2;
   text-align: center;
@@ -1489,7 +1489,7 @@
   background: #3a2f25;
   color: #fffdf7;
   font-family: var(--font-body);
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
   font-weight: 800;
   line-height: 1.2;
   text-align: center;
@@ -1536,9 +1536,9 @@
   }
 }
 
-/* De smalaste telefonerna (under 360 bredd): ikonraden med kalendern når annars in under profilbilden. Kalendern står
+/* Smala telefoner (under 375 bredd): ikonraden med kalendern når annars in under eller tätt intill profilbilden. Kalendern står
    då till höger om sökfältet i stället, och sökfältet blir så mycket kortare. */
-@media (max-width: 359px) {
+@media (max-width: 374px) {
   .map-event-range {
     position: absolute;
     top: calc(100% + var(--map-search-gap));
