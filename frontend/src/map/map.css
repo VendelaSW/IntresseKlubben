@@ -2758,3 +2758,32 @@
     animation: none;
   }
 }
+
+/* Pekskärm: blockets knappar och kartans kontroller går att träffa med tummen. Stäng-krysset ser lika stort ut,
+   men har större yta (negativ marginal, så att rubriken inte flyttar sig). */
+@media (pointer: coarse) {
+  .map-pad .primary-button:not(.notepad-reply button),
+  .map-pad .secondary-button,
+  .map-pad .button-danger,
+  .map-pad .form-actions button,
+  .map-pad .auth-form > button,
+  .map-pad-back {
+    min-height: 44px;
+  }
+
+  .map-pad-close {
+    min-width: 44px;
+    min-height: 44px;
+    margin: -6px -10px;
+  }
+
+  .map-tool-icon-only {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .maplibregl-ctrl-group button {
+    width: 44px;
+    height: 44px;
+  }
+}

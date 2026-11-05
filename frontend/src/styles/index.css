@@ -5411,3 +5411,42 @@ label.person-list-item {
 .page:has(> .logo) {
   overflow-x: clip;
 }
+
+/* Pekskärm: knappar och fält går att träffa med tummen (se CONTRIBUTING.md, "Mobil"). 44 px är Apples minsta mått.
+   Svarsraden på brevpappret (.notepad-reply) är undantagen, eftersom den följer pappersraderna. */
+@media (pointer: coarse) {
+  .form-compact input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], .visually-hidden),
+  .form-compact select {
+    min-height: 44px;
+  }
+
+  .primary-button:not(.notepad-reply button),
+  .secondary-button,
+  .form-actions button {
+    min-height: 44px;
+  }
+
+  button.tag {
+    min-height: 40px;
+  }
+
+  .search-toggle,
+  .notification-remove,
+  .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .report-link,
+  .info-link,
+  .quiet-link,
+  .text-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .person-list-item {
+    min-height: 44px;
+  }
+}
