@@ -84,7 +84,8 @@ export function areasFrom({ groups, events = [], eventItems = [], kommuner }) {
       id: event.id,
       name: event.title,
       sub: shortDate.format(new Date(event.starts_at)),
-      booked: event.is_owner || event.my_answer === 'yes' || event.my_answer === 'maybe',
+      mine: event.is_host,
+      booked: !event.is_host && (event.my_answer === 'yes' || event.my_answer === 'maybe'),
     }
     if (event.scope) add('event', event.scope, event.scope_code, event.scope_name, entry)
     else if (kommunOf.get(event.id)?.kommun) add('event', 'kommun', kommunOf.get(event.id).kommun, null, entry)
@@ -212,12 +213,12 @@ export function attachAreaSymbols(map, layer, { getView, onOpen }) {
       const item = document.createElement('li')
       const button = document.createElement('button')
       button.type = 'button'
-      button.className = `map-area-list-club${entry.booked ? ' is-booked' : ''}`
+      button.className = `map-area-list-club${entry.mine ? ' is-mine' : ''}${entry.booked ? ' is-booked' : ''}`
       button.dataset.type = entry.type
       button.dataset.id = String(entry.id)
       button.textContent = entry.name
       const sub = document.createElement('span')
-      sub.textContent = entry.booked ? `${entry.sub} · du är anmäld` : entry.sub
+      sub.textContent = entry.mine ? `${entry.sub} · ditt event` : entry.booked ? `${entry.sub} · du är anmäld` : entry.sub
       button.append(sub)
       item.append(button)
       items.append(item)
