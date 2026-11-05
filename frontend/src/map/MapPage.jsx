@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import './map.css'
 import { LngLat, Map as MapLibreMap, Marker, NavigationControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -2007,6 +2007,13 @@ function MapPage() {
       <div className="map-kompis">
         <Intressekompis alt="" />
       </div>
+      {/* I Att göra-läget: integritetsinformationen precis under kompisen. Där kompisen inte syns står länken längst ner
+          på sidan i stället (se MapCalmPage). */}
+      {calm && (
+        <Link to="/integritet" className="quiet-link map-kompis-privacy">
+          Integritetsinformation
+        </Link>
+      )}
       {calm && (
         <MapCalmPage
           counts={badgeCounts}

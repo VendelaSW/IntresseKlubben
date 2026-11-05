@@ -574,8 +574,8 @@ function StartPage() {
         <span className="start-footer-brand">Intresseklubben</span>
         <span>Gemenskap börjar med något gemensamt.</span>
         <nav className="start-footer-links" aria-label="Mer om Intresseklubben">
-          <Link to="/om" className="quiet-link">
-            Om tjänsten
+          <Link to="/integritet" className="quiet-link">
+            Integritetsinformation
           </Link>
           <Link to={authLink('login')} className="quiet-link">
             Logga in

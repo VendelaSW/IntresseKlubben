@@ -31,6 +31,20 @@
   margin: 0;
 }
 
+/* Integritetsinformationen (PrivacyPage): luft mellan styckena och rubrikerna, och punktlistor. */
+.service-details.policy p,
+.service-details.policy ul {
+  margin: 0 0 1rem;
+}
+
+.service-details.policy ul {
+  padding-left: 1.25rem;
+}
+
+.service-details.policy .service-details-heading {
+  margin-top: 1.5rem;
+}
+
 .account-choice-links {
   display: flex;
   gap: 1rem;

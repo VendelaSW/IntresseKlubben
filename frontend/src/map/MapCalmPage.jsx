@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useMediaQuery'
 import { contactsQuery } from '../services/contacts'
@@ -103,7 +104,8 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 // öppnas direkt, se openWaiting); och "I närheten den här veckan", tips på events i ens kommun ("I närheten framöver"
 // med de som kommer senare när inget händer den här veckan). De tre står alltid kvar, med en rad vidare när de är
 // tomma (I närheten ber om kommunen när profilen saknar den). "Förslag för dig" visas när sidan annars är tom. Varje
-// rad öppnar rätt block (`onOpen(sida, adress)` eller `onOpenEvent(id)`). Runt omkring några klotter i marginalen.
+// rad öppnar rätt block (`onOpen(sida, adress)` eller `onOpenEvent(id)`). Längst ner en länk till
+// integritetsinformationen (på dator under Intressekompisen i stället), och runt omkring några klotter i marginalen.
 //
 // `counts` är siffrorna från useBadgeCounts (i MapPage, samma som lapparna), så att "Läs 2 nya brev" blir "Läs 1 nytt
 // brev" så fort man har läst ett, utan att sidan hämtas om. Eventen hämtas om när ett block stängs (`refreshKey`),
@@ -352,6 +354,13 @@ function MapCalmPage({ counts, refreshKey, onOpen, onOpenEvent }) {
             )}
           </>
         )}
+        {/* Integritetsinformationen (PrivacyPage) längst ner, vid marginalen som texten ovanför, där
+            Intressekompisen inte syns. Annars står den under kompisen (se MapPage). */}
+        <p className="map-calm-privacy">
+          <Link to="/integritet" className="quiet-link">
+            Integritetsinformation
+          </Link>
+        </p>
       </div>
     </div>
   )

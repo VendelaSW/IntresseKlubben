@@ -166,6 +166,13 @@
   color: #9c4a2f;
 }
 
+/* Länken till integritetsinformationen längst ner: en tom rad ovanför, i appens vanliga text som på startsidan. Bara
+   där Intressekompisen inte syns; annars står den under kompisen (.map-kompis-privacy). */
+.map-calm-page .map-calm-privacy {
+  display: none;
+  margin-top: var(--calm-line);
+}
+
 .map-calm-todo {
   padding: 0;
   list-style: none;
@@ -1738,6 +1745,17 @@
   width: 130px;
 }
 
+/* Integritetsinformationen i Att göra-läget, precis under kompisen, en bit in från kanten så att den inte hamnar på
+   sidans rullningslist. */
+.map-kompis-privacy {
+  position: absolute;
+  right: 24px;
+  bottom: 0.6rem;
+  z-index: 4;
+  width: 150px;
+  text-align: center;
+}
+
 .map-profile-wrap {
   position: relative;
   min-width: 0;
@@ -2382,9 +2400,14 @@
     z-index: 6;
   }
 
-  /* TEST: på mobil syns inte kompisen. */
-  .map-kompis {
+  /* TEST: på mobil syns inte kompisen. Integritetsinformationen står då längst ner på Att göra-sidan i stället. */
+  .map-kompis,
+  .map-kompis-privacy {
     display: none;
+  }
+
+  .map-calm-page .map-calm-privacy {
+    display: block;
   }
 
   /* Flikraden har en fast plats mellan kompassen och högerkanten. Fler lappar
