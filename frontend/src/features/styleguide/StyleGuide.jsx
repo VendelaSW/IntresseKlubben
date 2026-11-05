@@ -15,7 +15,7 @@ import LocationPicker from '../../shared/LocationPicker'
 import BackButton from '../../shared/BackButton'
 import ChatSender from '../letters/ChatSender'
 import ConversationCard from '../letters/ConversationCard'
-import LetterFriends from '../letters/LetterFriends'
+import LetterFriends, { NoLetterFriends } from '../letters/LetterFriends'
 import CreateButton from '../../shared/CreateButton'
 import DateField from '../../shared/DateField'
 import EventDayFilter from '../events/EventDayFilter'
@@ -470,8 +470,8 @@ function StyleGuide() {
           På telefonen (upp till 767 px) ligger korten ett per rad över hela bredden, utan lutning och utan "EVENT"
           eller "KLUBB" överst. Eventbiljetten har kvittot (datum, tid och plats) som en flik till höger, och intresset,
           rollen och stämpeln på en rad nederst. På klubbkortet står Öppen/Privat uppe till höger, namnet kortas med
-          "…" efter två rader och beskrivningen efter tre. Sökikonen flyter nere i blockets vänstra hörn och skapa-knappen
-          i det högra (PadFloatAction, .map-pad-float), ovanför menyn. Öppen blir sökningen en ruta längs nederkanten.
+          "…" efter två rader och beskrivningen efter tre. Sökningen står under flikarna och skapa-knappen flyter nere i blockets högra hörn
+          (PadFloatAction, .map-pad-float), ovanför menyn.
           I eventets egen vy står kvittot överst, med urtagen under sig. Klubbens egen
           vy har en rad i intressets färg överst, namnet i tryckbokstäver och antalet medlemmar i en svart ruta.
         </p>
@@ -609,9 +609,11 @@ function StyleGuide() {
         <p className="hint-text">
           Längst ner i Brev: runda bilder och förnamn på en rad, och ett klick öppnar ett nytt brev. Får de inte plats
           tonar raden ut åt det håll där det finns fler, utan rullningslist. På dator finns en pil åt det hållet, och
-          på mobil sveper man. Raden syns inte när det inte finns någon kvar att skriva till.
+          på mobil sveper man. Finns det ingen kvar att skriva till säger Intressekompisen det under samma rubrik
+          (NoLetterFriends).
         </p>
         <LetterFriends friends={EXAMPLE_FRIENDS} />
+        <NoLetterFriends hasFriends />
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Anteckningspapper (.notepad .lined-paper), för en konversation
