@@ -372,15 +372,13 @@
   align-items: center;
 }
 
-/* På mobil: intresse, kommun och kön på en rad, lika breda (med korta namn,
-   se PeoplePage), och åldern på hela raden under. */
 @media (max-width: 767px) {
+  /* På mobil: intresse, kommun och kön på en rad, lika breda (med korta namn,
+     se PeoplePage), och åldern på hela raden under. */
   .filter-panel {
       width: auto;
     }
-}
 
-@media (max-width: 767px) {
   .filter-panel .filter-select-row-paper > * {
       flex: 1 1 0;
       min-width: 0;

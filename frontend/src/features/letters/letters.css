@@ -222,12 +222,6 @@
   scroll-snap-align: start;
 }
 
-@media (max-width: 767px) {
-  .envelope-pages > .envelopes {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
 /* Ett tomt kuvert på en ledig plats: streckad kant och flik i kantlinjens färg. Bara prydnad, inte klickbart. */
 .envelope-empty {
   display: block;
@@ -520,9 +514,21 @@
   border-radius: var(--radius-sm);
 }
 
-/* Mobil: tre mindre kuvert per rad utan animation (namn och sigill krymper med
-   kuvertet), och pappret i chatten ligger längst ner på skärmen, där man skriver. */
+@media (prefers-reduced-motion: reduce) {
+  .envelope-flap,
+    .envelope-letter,
+    .envelope-bow {
+      transition: none;
+    }
+}
+
 @media (max-width: 767px) {
+  .envelope-pages > .envelopes {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+  /* Mobil: tre mindre kuvert per rad utan animation (namn och sigill krymper med
+     kuvertet), och pappret i chatten ligger längst ner på skärmen, där man skriver. */
   .envelopes {
       --envelope-gap: 0.75rem;
       /* Tre per rad, och ett eller två brev hamnar i mitten (auto-fit tar bort
@@ -535,13 +541,5 @@
 
   .conversation-page {
       flex: 1;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .envelope-flap,
-    .envelope-letter,
-    .envelope-bow {
-      transition: none;
     }
 }

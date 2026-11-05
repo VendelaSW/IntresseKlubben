@@ -59,18 +59,6 @@
   width: 100%;
 }
 
-@media (min-width: 768px) {
-  .group-layout {
-      flex-direction: row;
-      align-items: stretch;
-    }
-
-  .group-layout > .group-chat-slot {
-      flex: 1 1 0;
-      min-width: 0;
-    }
-}
-
 /* Chatten har en fast storlek: lika hög som klubbens ruta bredvid (på dator),
    eller en fast höjd under den (på mobil). Fler meddelanden gör den inte längre,
    de scrollar i rutan i stället. Chatten ligger utanför flödet (absolute), så
@@ -78,12 +66,6 @@
 .group-chat-slot {
   position: relative;
   min-height: 26rem;
-}
-
-@media (min-width: 768px) {
-  .group-chat-slot {
-      min-height: 22rem;
-    }
 }
 
 /* Anslagstavlan i klubbens ruta (GroupDetails): en ljusgul rad med tavlans ikon (assets/anslagstavla.png), som
@@ -264,12 +246,6 @@
   min-height: 34rem;
 }
 
-@media (max-width: 767px) {
-  .board-full {
-      min-height: 28rem;
-    }
-}
-
 /* Dator: de fyra senaste lapparna på en rad, resten med "Visa alla". */
 .board-notes {
   display: grid;
@@ -426,37 +402,6 @@ button.board-note:focus-visible {
   gap: 0.5rem;
 }
 
-/* Mobil: två lappar bredvid varandra i ett rutnät, alla lappar, och tavlan har
-   en fast höjd: första raden syns hel och nästa rad tittar fram, så man
-   ser att det går att skrolla. Scrollbaren ligger till höger (som
-   medlemslistan). */
-@media (max-width: 767px) {
-  .board-notes {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1rem 0.6rem;
-      max-height: 9.85rem;
-      overflow-y: auto;
-      /* Luft upptill för den fastnålade lappens knappnål, och lite nedtill så att
-         sista radens snedställda hörn och skugga inte klipps. */
-      padding: 0.6rem 0.35rem 0.3rem 0;
-      scrollbar-width: thin;
-      scrollbar-color: #d4b483 transparent;
-    }
-
-  .board-notes:not(.is-all) > button.board-note:nth-of-type(n + 5) {
-      display: flex;
-    }
-
-  .board-show-all {
-      display: none;
-    }
-
-  .board-note {
-      padding: 0.8rem 0.55rem 0.4rem;
-      font-size: 0.74rem;
-    }
-}
-
 /* Klubbar: sök och filter på en rad (GroupsPanel). Ett brett, runt sökfält
    med förstoringsglas, och intresse, kommun och sortering som rundade knappar
    bredvid, med en liten pil. På mobil hamnar knapparna på en egen rad under. */
@@ -539,26 +484,6 @@ select.club-filter:focus-visible,
   height: 2.9rem;
   border-width: 1.5px;
   border-radius: var(--radius-pill);
-}
-
-@media (max-width: 767px) {
-  .club-filters {
-      flex-direction: column;
-    }
-
-  .club-filter-pills {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-    }
-
-  select.club-filter,
-    .club-filter-kommun input,
-    .club-filter-interest input {
-      width: 100%;
-      max-width: none;
-      padding: 0 1.6rem 0 0.8rem;
-      background-position: right 0.65rem center;
-    }
 }
 
 /* Sorteringsknappen (en ikon) och menyn den öppnar. */
@@ -738,4 +663,73 @@ select.club-filter:focus-visible,
   .club-card:hover .club-card-open {
     background: rgba(255, 255, 255, 0.65);
   }
+}
+
+@media (min-width: 768px) {
+  .group-layout {
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+  .group-layout > .group-chat-slot {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+  .group-chat-slot {
+      min-height: 22rem;
+    }
+}
+
+@media (max-width: 767px) {
+  .board-full {
+      min-height: 28rem;
+    }
+
+  /* Mobil: två lappar bredvid varandra i ett rutnät, alla lappar, och tavlan har
+     en fast höjd: första raden syns hel och nästa rad tittar fram, så man
+     ser att det går att skrolla. Scrollbaren ligger till höger (som
+     medlemslistan). */
+  .board-notes {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem 0.6rem;
+      max-height: 9.85rem;
+      overflow-y: auto;
+      /* Luft upptill för den fastnålade lappens knappnål, och lite nedtill så att
+         sista radens snedställda hörn och skugga inte klipps. */
+      padding: 0.6rem 0.35rem 0.3rem 0;
+      scrollbar-width: thin;
+      scrollbar-color: #d4b483 transparent;
+    }
+
+  .board-notes:not(.is-all) > button.board-note:nth-of-type(n + 5) {
+      display: flex;
+    }
+
+  .board-show-all {
+      display: none;
+    }
+
+  .board-note {
+      padding: 0.8rem 0.55rem 0.4rem;
+      font-size: 0.74rem;
+    }
+
+  .club-filters {
+      flex-direction: column;
+    }
+
+  .club-filter-pills {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    }
+
+  select.club-filter,
+    .club-filter-kommun input,
+    .club-filter-interest input {
+      width: 100%;
+      max-width: none;
+      padding: 0 1.6rem 0 0.8rem;
+      background-position: right 0.65rem center;
+    }
 }
