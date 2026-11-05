@@ -70,7 +70,8 @@
 .map-sketch.is-calm .map-place-search,
 .map-sketch.is-calm .map-view-tools,
 .map-sketch.is-calm .map-sketch-hint,
-.map-sketch.is-calm .map-levels {
+.map-sketch.is-calm .map-levels,
+.map-sketch.is-calm .maplibregl-ctrl-attrib {
   visibility: hidden;
   pointer-events: none;
 }
@@ -89,19 +90,21 @@
 
 /* Att göra-läget: en sida i anteckningsblocket (se MapCalmPage.jsx), med egna
    linjer så att handstilen står på dem (radhöjden är linjeavståndet, 32px)
-   och samma röda marginallinje 64px in. Kartans papper göms under den. */
+   och samma röda marginallinje 64px in (--calm-margin, närmare kanten på
+   mobil). Kartans papper göms under den. */
 .map-sketch.is-calm .map-sketch-paper {
   visibility: hidden;
 }
 
 .map-calm {
   --calm-line: 32px;
+  --calm-margin: 64px;
   position: absolute;
   inset: 0;
   z-index: 3;
   overflow-y: auto;
   background-image:
-    linear-gradient(to right, transparent 64px, var(--map-margin, rgba(214, 69, 65, 0.55)) 64px, var(--map-margin, rgba(214, 69, 65, 0.55)) 66px, transparent 66px),
+    linear-gradient(to right, transparent var(--calm-margin), var(--map-margin, rgba(214, 69, 65, 0.55)) var(--calm-margin), var(--map-margin, rgba(214, 69, 65, 0.55)) calc(var(--calm-margin) + 2px), transparent calc(var(--calm-margin) + 2px)),
     repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--calm-line) - 1px), var(--map-line, rgba(80, 140, 200, 0.35)) calc(var(--calm-line) - 1px), var(--map-line, rgba(80, 140, 200, 0.35)) var(--calm-line));
   background-attachment: local;
   color: #3a2f25;
@@ -110,7 +113,7 @@
 .map-calm-page {
   position: relative;
   max-width: 34rem;
-  padding: calc(var(--calm-line) * 3) 1.5rem calc(var(--calm-line) * 5) calc(64px + 1.4rem);
+  padding: calc(var(--calm-line) * 2) 1.5rem calc(var(--calm-line) * 5) calc(var(--calm-margin) + 1.4rem);
   font-family: var(--font-heading);
   font-size: 1.45rem;
   line-height: var(--calm-line);
@@ -143,7 +146,8 @@
   text-underline-offset: 4px;
 }
 
-/* "I närheten den här veckan": en tom rad ovanför, som mellan datumet och listan. */
+/* Rubrikerna efter den första (Väntar på dig, I närheten och Förslag för dig): en tom rad ovanför, som mellan datumet
+   och listan. */
 .map-calm-heading-next {
   margin-top: var(--calm-line) !important;
 }
@@ -155,6 +159,11 @@
 
 .map-calm-muted {
   color: var(--color-muted);
+}
+
+/* När ett event börjar, efter namnet: i rödbrunt som datumet, så att namnet och tiden går att skilja åt. */
+.map-calm-when {
+  color: #9c4a2f;
 }
 
 .map-calm-todo {
@@ -178,6 +187,15 @@
   cursor: pointer;
 }
 
+/* Varje rad på en rad: det som inte får plats kortas med "…", och ett tryck öppnar eventet eller sidan med resten. */
+.map-calm-line > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .map-calm-line:focus-visible span {
   text-decoration: underline;
   text-decoration-color: var(--color-accent);
@@ -197,10 +215,6 @@
   outline-offset: 2px;
 }
 
-.map-calm-line.is-done {
-  color: var(--color-muted);
-}
-
 .map-calm-box {
   flex-shrink: 0;
   width: 20px;
@@ -211,12 +225,6 @@
   stroke: #3a2f25;
   stroke-width: 1.6;
   stroke-linejoin: round;
-}
-
-.map-calm-check {
-  stroke: #2e7d4f;
-  stroke-width: 2.4;
-  stroke-linecap: round;
 }
 
 /* Klottren i marginalen, under texten och utan att ta emot klick. */
@@ -349,10 +357,15 @@
 }
 
 /* Smal skärm: mindre hälsning, och flygplanet, kaffefläcken och den andra
-   stjärnan får inte plats bredvid texten. Plats nertill för sidornas lappar. */
+   stjärnan får inte plats bredvid texten. Marginallinjen närmare kanten, så att mer text får plats på raden. Plats
+   nertill för sidornas lappar. */
 @media (max-width: 600px) {
+  .map-calm {
+    --calm-margin: 32px;
+  }
+
   .map-calm-page {
-    padding: calc(var(--calm-line) * 3) 1rem calc(var(--calm-line) * 6) calc(64px + 0.8rem);
+    padding: calc(var(--calm-line) * 2) 1rem calc(var(--calm-line) * 6) calc(var(--calm-margin) + 0.8rem);
     font-size: var(--text-h2);
   }
 
@@ -1725,11 +1738,6 @@
   width: 130px;
 }
 
-/* TEST: den vanliga loggan, bara på mobil (se media-blocket nedan), där kompisen inte syns. */
-.map-logo {
-  display: none;
-}
-
 .map-profile-wrap {
   position: relative;
   min-width: 0;
@@ -2352,11 +2360,6 @@
     left: calc(0.6rem + env(safe-area-inset-left));
   }
 
-  /* I att göra-läget syns loggan i hörnet, så växeln står bredvid den. */
-  .map-sketch.is-calm .map-view-row {
-    left: calc(4rem + env(safe-area-inset-left));
-  }
-
   .map-sketch-tools {
     top: calc(6.9rem + env(safe-area-inset-top));
     left: calc(0.6rem + env(safe-area-inset-left));
@@ -2379,21 +2382,9 @@
     z-index: 6;
   }
 
-  /* TEST: på mobil syns inte kompisen. Den vanliga loggan syns bara i att göra-läget, uppe i vänstra hörnet. När kartan är
-     aktiv syns ingen logga, eftersom verktygsknapparna ligger där. */
+  /* TEST: på mobil syns inte kompisen. */
   .map-kompis {
     display: none;
-  }
-
-  .map-sketch.is-calm .map-logo {
-    display: block;
-    position: absolute;
-    left: 0.2rem;
-    top: calc(10px + env(safe-area-inset-top));
-    z-index: 4;
-    width: 56px;
-    height: auto;
-    pointer-events: none;
   }
 
   /* Flikraden har en fast plats mellan kompassen och högerkanten. Fler lappar

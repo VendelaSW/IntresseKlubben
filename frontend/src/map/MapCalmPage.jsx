@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { getBadges } from '../services/badges'
+import { useIsMobile } from '../hooks/useMediaQuery'
+import { contactsQuery } from '../services/contacts'
 import { getEvents } from '../services/events'
-import { getAllGroups, getGroupsOverview, getMyGroups } from '../services/groups'
+import { getAllGroups, getGroupsOverview, getMyGroups, groupsOverviewQuery } from '../services/groups'
 import { getMyInterests } from '../services/interests'
+import { conversationsQuery } from '../services/messages'
+import { notificationsQuery } from '../services/notifications'
 import { getProfile } from '../services/profile'
+import { queryClient } from '../services/queryClient'
 import { activitiesFrom } from './activities'
 import { allKommuner } from './zoomLevels'
 
@@ -39,11 +43,9 @@ function unansweredInvitations(events, now) {
   return events.filter((e) => !e.is_owner && e.is_invited && e.my_answer === null && notOver(e, now))
 }
 
-// De bokade eventen som är att göra nu: de som pågår eller börjar de närmaste sju dagarna (SCRUM-333). Resten finns
-// under Mina events.
+// De bokade eventen som visas: de som pågår eller börjar de närmaste sju dagarna (SCRUM-333). Resten finns under Mina
+// events.
 const bookedThisWeek = (booked, now) => booked.filter((e) => startsThisWeek(e, now))
-// Börjar eventet senast i dag? De bokade eventen har inte tagit slut, så de pågår i så fall i dag.
-const startsByToday = (event, now) => new Date(event.starts_at).getTime() < new Date(now).setHours(24, 0, 0, 0)
 
 // "I närheten den här veckan": öppna events i ens kommun som pågår någon gång de
 // närmaste sju dagarna och som man varken har skapat, blivit inbjuden till eller
@@ -95,44 +97,47 @@ function suggestionsForYou({ clubs, events, interestIds }) {
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 
-// Att göra-läget (se MapPage.jsx): i stället för kartan en sida i ett
-// anteckningsblock. Överst en hälsning och dagens datum, och på linjerna
-// dagens att göra: de närmaste bokade eventen den här veckan (och en länk till Mina events),
-// obesvarade eventinbjudningar, nya brev, klubbinbjudningar och
-// kompisförfrågningar. Under det "I närheten den här veckan", tips på events i
-// ens kommun, eller "Förslag för dig" när sidan annars är tom. Varje rad öppnar rätt block (`onOpen(sida, adress)` eller
-// `onOpenEvent(id)`). Runt omkring några klotter i marginalen.
-function MapCalmPage({ onOpen, onOpenEvent }) {
+// Att göra-läget (se MapPage.jsx): i stället för kartan en sida i ett anteckningsblock. Överst en hälsning och dagens
+// datum, och på linjerna under egna rubriker: "Dina events", de närmaste bokade eventen den här veckan (och en länk
+// till Mina events); "Väntar på dig", obesvarade inbjudningar, kompisförfrågningar, nya brev och notiser (en ensam
+// öppnas direkt, se openWaiting); och "I närheten den här veckan", tips på events i ens kommun ("I närheten framöver"
+// med de som kommer senare när inget händer den här veckan). De tre står alltid kvar, med en rad vidare när de är
+// tomma (I närheten ber om kommunen när profilen saknar den). "Förslag för dig" visas när sidan annars är tom. Varje
+// rad öppnar rätt block (`onOpen(sida, adress)` eller `onOpenEvent(id)`). Runt omkring några klotter i marginalen.
+//
+// `counts` är siffrorna från useBadgeCounts (i MapPage, samma som lapparna), så att "Läs 2 nya brev" blir "Läs 1 nytt
+// brev" så fort man har läst ett, utan att sidan hämtas om. Eventen hämtas om när ett block stängs (`refreshKey`),
+// eftersom man kan ha svarat på en inbjudan eller anmält sig i det.
+function MapCalmPage({ counts, refreshKey, onOpen, onOpenEvent }) {
   const { user } = useAuth()
+  const mobile = useIsMobile()
   const [name, setName] = useState(null)
   const [todo, setTodo] = useState(null) // null = laddar
 
   useEffect(() => {
     let cancelled = false
-    // Siffrorna kommer i ett anrop, samma som appens märken (se useBadgeCounts).
     // Klubbarna och kommunerna behövs för att veta vilka events som är i ens kommun.
     Promise.allSettled([
       getProfile(),
       getEvents(),
-      getBadges(),
       getMyInterests(),
       // Ur det delade minnet: kartan har oftast redan hämtat dem (SCRUM-276).
       getAllGroups(),
       getMyGroups(),
       allKommuner(),
       getGroupsOverview(),
-    ]).then(([profile, events, badges, interests, publicGroups, myGroups, kommuner, overview]) => {
+    ]).then(([profile, events, interests, publicGroups, myGroups, kommuner, overview]) => {
       if (cancelled) return
       const value = (result, fallback) => (result.status === 'fulfilled' ? result.value : fallback)
-      const counts = value(badges, null)
       const me = value(profile, null)
       const allEvents = value(events, [])
       const now = Date.now()
       const booked = bookedEvents(allEvents, now)
       const interestIds = new Set(value(interests, []).map((i) => i.id))
       // Utan kommunerna eller ens kommun går det inte att veta vad som är i närheten.
+      const knowsKommun = kommuner.status === 'fulfilled' && Boolean(me?.municipality_code)
       const nearbyFrom = (anyTime) =>
-        kommuner.status === 'fulfilled' && me?.municipality_code
+        knowsKommun
           ? nearbyEvents({
               events: allEvents,
               groups: [...value(publicGroups, []), ...value(myGroups, [])],
@@ -143,43 +148,66 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
               anyTime,
             })
           : []
+      // Alla kommande i ens kommun, närmast först: de som visas när inget händer den här veckan.
+      const nearbyAnyTime = nearbyFrom(true)
       setName(me?.name ?? null)
       setTodo({
         booked: bookedThisWeek(booked, now),
         hasBookedLater: booked.length > 0,
-        hasBookedToday: booked.some((e) => startsByToday(e, now)),
-        eventInvitations: unansweredInvitations(allEvents, now).length,
+        eventInvitations: unansweredInvitations(allEvents, now),
+        // Saknas profilens kommun ber sidan om den, eftersom den är det enda som styr vad som är i närheten.
+        hasKommun: me === null || Boolean(me.municipality_code),
         nearby: nearbyFrom(false),
+        nearbyLater: [...nearbyAnyTime].sort(byStart),
         suggestions: suggestionsForYou({
           clubs: value(overview, null)?.suggested ?? [],
-          events: nearbyFrom(true),
+          events: nearbyAnyTime,
           interestIds,
         }),
-        letters: counts?.unread_conversations ?? 0,
-        invitations: counts?.club_invitations ?? 0,
-        requests: counts?.contact_requests ?? 0,
-        notifications: counts?.unread_notifications ?? 0,
       })
     })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [refreshKey])
 
   const firstName = (name ?? user.username).trim().split(/\s+/)[0]
-  // Inget att göra i dag, men bokade events senare i veckan. Annat att göra (brev, inbjudningar...) är att göra i dag.
-  const nothingUntilLater =
-    todo !== null &&
-    todo.booked.length > 0 &&
-    !todo.hasBookedToday &&
-    !(todo.eventInvitations || todo.letters || todo.invitations || todo.requests || todo.notifications)
+  const letters = counts?.unseenMessages ?? 0
+  const invitations = counts?.clubInvitations ?? 0
+  const requests = counts?.contactRequests ?? 0
+  const notifications = counts?.notifications ?? 0
+  const eventInvitations = todo?.eventInvitations.length ?? 0
+  // Hur mycket som väntar på en (inbjudningar, kompisförfrågningar, brev och notiser).
+  const waiting = todo === null ? 0 : eventInvitations + invitations + requests + letters + notifications
+
+  // Väntar det bara en sak av ett slag går raden direkt till den (brevet, notisen, klubben, personen), annars till
+  // listan där de står. Den enda letas upp när man trycker, med färsk data, så att det blir rätt också om något har
+  // hänt sedan sidan hämtades. Hittas den inte öppnas listan.
+  async function openWaiting(page, count, listPath, findPath) {
+    let path = null
+    if (count === 1) {
+      try {
+        path = await findPath()
+      } catch {
+        // Listan i stället.
+      }
+    }
+    onOpen(page, path ?? listPath)
+  }
+  const fresh = (query) => queryClient.fetchQuery({ ...query, staleTime: 0 })
+
+  // I närheten: den här veckan, annars det som händer längre fram (och då en annan rubrik).
+  const nearbyLines = todo === null ? [] : todo.nearby.length > 0 ? todo.nearby : todo.nearbyLater
+  const laterOnly = todo !== null && todo.nearby.length === 0 && nearbyLines.length > 0
+  const nearbyHeading = laterOnly ? 'I närheten framöver' : 'I närheten den här veckan'
+
+  // Siffrorna (counts) kan komma efter eventen. Innan dess står inget under Väntar på dig, så att "Inget som väntar"
+  // inte blinkar till.
+  const countsReady = counts !== null
 
   // Förslagen bara när det inte finns något annat på sidan, så att den inte blir full (SCRUM-218).
   const nothingAtAll =
-    todo !== null &&
-    todo.booked.length === 0 &&
-    todo.nearby.length === 0 &&
-    !(todo.eventInvitations || todo.letters || todo.invitations || todo.requests || todo.notifications)
+    todo !== null && countsReady && todo.booked.length === 0 && nearbyLines.length === 0 && waiting === 0
 
   return (
     <div className="map-calm">
@@ -188,69 +216,122 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
         <h2 className="map-calm-hello">Hej {firstName}!</h2>
         <p className="map-calm-date">{today.format(new Date())}</p>
 
-        <p className="map-calm-heading">Att göra idag</p>
         {todo === null ? (
           <p className="map-calm-muted">Bläddrar i blocket...</p>
         ) : (
           <>
-            {nothingUntilLater && <p className="map-calm-muted">Ingenting att göra idag, men...</p>}
+            <p className="map-calm-heading">Dina events</p>
             <ul className="map-calm-todo">
               {todo.booked.length > 0 ? (
                 <>
                   {todo.booked.slice(0, MAX_LINES).map((event) => (
-                    <TodoLine key={event.id} onClick={() => onOpenEvent(event.id)} done={false}>
-                      <strong>{event.title}</strong>, {eventTime.format(new Date(event.starts_at))}
+                    <TodoLine key={event.id} onClick={() => onOpenEvent(event.id)}>
+                      <strong>{event.title}</strong> <When date={event.starts_at} />
                     </TodoLine>
                   ))}
-                  <TodoLine onClick={() => onOpen('events', '/events?flik=mina-events')} done={false}>
+                  <TipLine onClick={() => onOpen('events', '/events?flik=mina-events')} plain>
                     Alla mina events →
-                  </TodoLine>
+                  </TipLine>
                 </>
               ) : todo.hasBookedLater ? (
-                <TodoLine onClick={() => onOpen('events', '/events?flik=mina-events')} done={false}>
+                <TipLine onClick={() => onOpen('events', '/events?flik=mina-events')} flush>
                   Inga bokade events den här veckan. Alla mina events →
-                </TodoLine>
+                </TipLine>
               ) : (
-                <TodoLine onClick={() => onOpen('events')} done={false}>
+                <TipLine onClick={() => onOpen('events')} flush>
                   Inga bokade events. Kika på Events?
-                </TodoLine>
-              )}
-              {todo.eventInvitations > 0 && (
-                <TodoLine onClick={() => onOpen('events', '/events?flik=inbjudningar')} done={false}>
-                  Svara på {plural(todo.eventInvitations, 'eventinbjudan', 'eventinbjudningar')}
-                </TodoLine>
-              )}
-              <TodoLine onClick={() => onOpen('brev')} done={todo.letters === 0}>
-                {todo.letters > 0 ? `Läs ${plural(todo.letters, 'nytt brev', 'nya brev')}` : 'Inga nya brev'}
-              </TodoLine>
-              {todo.invitations > 0 && (
-                <TodoLine onClick={() => onOpen('klubbar')} done={false}>
-                  Svara på {plural(todo.invitations, 'klubbinbjudan', 'klubbinbjudningar')}
-                </TodoLine>
-              )}
-              {todo.requests > 0 && (
-                <TodoLine onClick={() => onOpen('personer')} done={false}>
-                  {plural(todo.requests, 'medlem vill', 'medlemmar vill')} bli din kompis
-                </TodoLine>
-              )}
-              {todo.notifications > 0 && (
-                <TodoLine onClick={() => onOpen('notiser')} done={false}>
-                  Läs {plural(todo.notifications, 'ny notis', 'nya notiser')}
-                </TodoLine>
+                </TipLine>
               )}
             </ul>
-            {todo.nearby.length > 0 && (
-              <>
-                <p className="map-calm-heading map-calm-heading-next">I närheten den här veckan</p>
-                <ul className="map-calm-todo">
-                  {todo.nearby.slice(0, MAX_LINES).map((event) => (
-                    <TipLine key={event.id} onClick={() => onOpenEvent(event.id)}>
-                      {event.title}, {eventTime.format(new Date(event.starts_at))}
-                    </TipLine>
-                  ))}
-                </ul>
-              </>
-            )}
+            <p className="map-calm-heading map-calm-heading-next">Väntar på dig</p>
+            <ul className="map-calm-todo">
+              {!countsReady ? null : waiting === 0 ? (
+                <TipLine onClick={() => onOpen('brev')} flush>
+                  {/* Kortare på mobil, så att den får plats på en rad. */}
+                  {mobile ? 'Inget som väntar. Skriv ett brev?' : 'Inget som väntar. Skriv ett brev till en kompis?'}
+                </TipLine>
+              ) : (
+                <>
+                  {eventInvitations > 0 && (
+                    <TodoLine
+                      onClick={() =>
+                        eventInvitations === 1
+                          ? onOpenEvent(todo.eventInvitations[0].id)
+                          : onOpen('events', '/events?flik=inbjudningar')
+                      }
+                    >
+                      Svara på {plural(eventInvitations, 'eventinbjudan', 'eventinbjudningar')}
+                    </TodoLine>
+                  )}
+                  {invitations > 0 && (
+                    <TodoLine
+                      onClick={() =>
+                        openWaiting('klubbar', invitations, '/klubbar?flik=inbjudningar', async () => {
+                          const club = (await fresh(groupsOverviewQuery)).invitations?.[0]
+                          return club ? `/klubbar?klubb=${club.id}` : null
+                        })
+                      }
+                    >
+                      Svara på {plural(invitations, 'klubbinbjudan', 'klubbinbjudningar')}
+                    </TodoLine>
+                  )}
+                  {requests > 0 && (
+                    <TodoLine
+                      onClick={() =>
+                        openWaiting('personer', requests, '/personer?flik=kompisforfragningar', async () => {
+                          const request = (await fresh(contactsQuery)).incoming_requests?.[0]
+                          return request ? `/anvandare/${request.user.id}` : null
+                        })
+                      }
+                    >
+                      {plural(requests, 'medlem vill', 'medlemmar vill')} bli din kompis
+                    </TodoLine>
+                  )}
+                  {letters > 0 && (
+                    <TodoLine
+                      onClick={() =>
+                        openWaiting('brev', letters, '/meddelanden', async () => {
+                          const conversation = (await fresh(conversationsQuery)).find((c) => c.unread)
+                          return conversation ? `/meddelanden/${conversation.id}` : null
+                        })
+                      }
+                    >
+                      Läs {plural(letters, 'nytt brev', 'nya brev')}
+                    </TodoLine>
+                  )}
+                  {notifications > 0 && (
+                    <TodoLine
+                      onClick={() =>
+                        openWaiting('notiser', notifications, '/notiser', async () => {
+                          const notification = (await fresh(notificationsQuery)).find((n) => !n.read)
+                          return notification ? `/notiser?notis=${notification.id}` : null
+                        })
+                      }
+                    >
+                      Läs {plural(notifications, 'ny notis', 'nya notiser')}
+                    </TodoLine>
+                  )}
+                </>
+              )}
+            </ul>
+            <p className="map-calm-heading map-calm-heading-next">{nearbyHeading}</p>
+            <ul className="map-calm-todo">
+              {!todo.hasKommun ? (
+                <TipLine onClick={() => onOpen('profil')} flush>
+                  Lägg till din kommun i profilen, så visas events i närheten.
+                </TipLine>
+              ) : nearbyLines.length > 0 ? (
+                nearbyLines.slice(0, MAX_LINES).map((event) => (
+                  <TipLine key={event.id} onClick={() => onOpenEvent(event.id)}>
+                    {event.title} <When date={event.starts_at} />
+                  </TipLine>
+                ))
+              ) : (
+                <TipLine onClick={() => onOpen('events', '/events?skapa=1')} flush>
+                  Inget i närheten den här veckan. Skapa ett event?
+                </TipLine>
+              )}
+            </ul>
             {nothingAtAll && todo.suggestions.length > 0 && (
               <>
                 <p className="map-calm-heading map-calm-heading-next">Förslag för dig</p>
@@ -276,15 +357,18 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
   )
 }
 
-// En rad i att göra-listan: en ritad ruta (bockad när det inte finns något
-// att göra) och texten, som öppnar rätt block.
-function TodoLine({ onClick, done, children }) {
+// När ett event börjar, i rödbrunt efter namnet (som datumet överst).
+function When({ date }) {
+  return <span className="map-calm-when">{eventTime.format(new Date(date))}</span>
+}
+
+// En rad som väntar på en: en ritad ruta och texten, som öppnar rätt block.
+function TodoLine({ onClick, children }) {
   return (
     <li>
-      <button type="button" className={`map-calm-line${done ? ' is-done' : ''}`} onClick={onClick}>
+      <button type="button" className="map-calm-line" onClick={onClick}>
         <svg className="map-calm-box" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M3 4 L17 3 L16.5 17 L3.5 16.5 Z" />
-          {done && <path className="map-calm-check" d="M5.5 10 L9 14 L18 1" />}
         </svg>
         <span>{children}</span>
       </button>
@@ -292,15 +376,20 @@ function TodoLine({ onClick, done, children }) {
   )
 }
 
-// En rad under "I närheten den här veckan": ett tips, inte något man måste
-// göra, så en ritad punkt i stället för en ruta. Öppnar eventet.
-function TipLine({ onClick, children }) {
+// Ett tips (I närheten, Förslag för dig), inte något man måste göra, så en ritad punkt i stället för en ruta. Med
+// `plain` utan punkt, för en länk vidare under rader med rutor (t.ex. "Alla mina events →"), indragen som de. Med
+// `flush` utan punkt och utan indrag, för en rad som står ensam (t.ex. "Inga bokade events").
+function TipLine({ onClick, plain = false, flush = false, children }) {
   return (
     <li>
       <button type="button" className="map-calm-line" onClick={onClick}>
-        <svg className="map-calm-box" viewBox="0 0 20 20" aria-hidden="true">
-          <path className="map-calm-dot" d="M10 7.5 C12 7, 13 9, 12.5 10.5 C12 12.5, 9 13, 8 11.5 C7 10, 8 7.8, 10 7.5 Z" />
-        </svg>
+        {!flush && (
+          <svg className="map-calm-box" viewBox="0 0 20 20" aria-hidden="true">
+            {!plain && (
+              <path className="map-calm-dot" d="M10 7.5 C12 7, 13 9, 12.5 10.5 C12 12.5, 9 13, 8 11.5 C7 10, 8 7.8, 10 7.5 Z" />
+            )}
+          </svg>
+        )}
         <span>{children}</span>
       </button>
     </li>
