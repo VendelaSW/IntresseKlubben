@@ -639,7 +639,7 @@ function StyleGuide() {
           kartans lappar). En lapp visar tre rader; ett klick öppnar hela lappen i en popup, där den som
           satte upp den och ägaren kan ta ner den. Ägaren kan nåla fast en lapp i taget (.is-pinned: rak,
           svagt gul och med en röd knappnål), som alltid ligger först och bara ägaren kan ta ner.
-          Medlemmarna (.group-members) står i två kolumner.
+          Medlemmarna (.group-members) står i två kolumner, och på mobil i en spalt över hela bredden.
         </p>
         <article className="notepad lined-paper" style={{ marginTop: '1rem' }}>
           <h3 className="notepad-title">
