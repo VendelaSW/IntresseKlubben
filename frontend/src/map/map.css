@@ -1948,10 +1948,21 @@
   mask: radial-gradient(ellipse 4px 11px at 11px 11px, #000 98%, transparent) 0 0 / 22px 22px repeat-x;
 }
 
+/* Den lilla studsen när sidan når sin början eller sitt slut (se usePadBounce). Bara medan den pågår,
+   eftersom en transform annars påverkar hur menyer och popups i sidan ligger. */
+.map-pad-page.is-bouncing > * {
+  transform: translateY(var(--pad-bounce, 0));
+  transition: transform var(--pad-bounce-ms, 280ms) cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.map-pad-page.is-bounce-pull > * {
+  transition: none;
+}
+
 /* Sidan: vitt rutat papper med bläckkant, som lapparna på kartan. */
 .map-pad-page {
   overflow-y: auto;
-  /* none, inte contain: contain behåller studsen förbi blockets början och slut. */
+  /* none, inte contain: webbläsarens studs går inte att göra mindre, så usePadBounce gör en liten i stället. */
   overscroll-behavior: none;
   padding: 1.6rem 1.5rem 1.4rem;
   background-color: #fffdf6;
