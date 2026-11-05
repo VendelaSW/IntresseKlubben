@@ -95,10 +95,16 @@
   --poster: #d0605f;
 }
 
-.club-style-5 .card.club-card.card-interactive:hover,
 .club-style-5 .card.club-card.card-interactive:focus-within {
   box-shadow: 2px 8px 10px rgba(58, 47, 37, 0.2);
   transform: translateY(-3px);
+}
+
+@media (hover: hover) {
+  .club-style-5 .card.club-card.card-interactive:hover {
+    box-shadow: 2px 8px 10px rgba(58, 47, 37, 0.2);
+    transform: translateY(-3px);
+  }
 }
 
 /* Häftstiftet. */
@@ -269,9 +275,14 @@
   box-shadow: 1px 3px 6px rgba(58, 47, 37, 0.32);
 }
 
-.club-style-7 .card.club-card.card-interactive:hover,
 .club-style-7 .card.club-card.card-interactive:focus-within {
   box-shadow: 2px 8px 12px rgba(58, 47, 37, 0.38);
+}
+
+@media (hover: hover) {
+  .club-style-7 .card.club-card.card-interactive:hover {
+    box-shadow: 2px 8px 12px rgba(58, 47, 37, 0.38);
+  }
 }
 
 /* Affischerna: intresset lite upp från rivlapparna och perforeringen, som

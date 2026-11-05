@@ -163,11 +163,18 @@
   cursor: pointer;
 }
 
-.explorer .explorer-add:hover,
 .explorer .explorer-add:focus-visible {
   border-color: var(--color-accent);
   outline: none;
   opacity: 1;
+}
+
+@media (hover: hover) {
+  .explorer .explorer-add:hover {
+    border-color: var(--color-accent);
+    outline: none;
+    opacity: 1;
+  }
 }
 
 .explorer .explorer-add-on {
@@ -186,10 +193,16 @@
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
-.explorer .explorer-area:hover,
 .explorer .explorer-area-open {
   box-shadow: none;
   transform: translate(2px, 2px);
+}
+
+@media (hover: hover) {
+  .explorer .explorer-area:hover {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
 }
 
 .explorer .explorer-area:focus-visible {
@@ -255,11 +268,17 @@
   font-weight: 700;
 }
 
-.interest-pick.is-on,
-.interest-pick:not(.interest-pick-group):hover,
-.interest-pick-group:has(.interest-pick-toggle:hover) {
+.interest-pick.is-on {
   box-shadow: none;
   transform: translate(2px, 2px);
+}
+
+@media (hover: hover) {
+  .interest-pick:not(.interest-pick-group):hover,
+  .interest-pick-group:has(.interest-pick-toggle:hover) {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
 }
 
 .interest-pick:focus-visible {

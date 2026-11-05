@@ -77,9 +77,14 @@
   box-shadow: 0 1px 3px rgba(58, 47, 37, 0.12);
 }
 
-.notification:has(.notification-open:hover),
 .notification:has(.notification-open:focus-visible) {
   border-color: var(--color-ink);
+}
+
+@media (hover: hover) {
+  .notification:has(.notification-open:hover) {
+    border-color: var(--color-ink);
+  }
 }
 
 .notification.is-unread {
@@ -121,10 +126,16 @@
   cursor: pointer;
 }
 
-.notification-remove:hover,
 .notification-remove:focus-visible {
   background: rgba(58, 47, 37, 0.08);
   color: var(--color-text);
+}
+
+@media (hover: hover) {
+  .notification-remove:hover {
+    background: rgba(58, 47, 37, 0.08);
+    color: var(--color-text);
+  }
 }
 
 .notification-dot {

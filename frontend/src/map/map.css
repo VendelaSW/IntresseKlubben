@@ -178,11 +178,18 @@
   cursor: pointer;
 }
 
-.map-calm-line:hover span,
 .map-calm-line:focus-visible span {
   text-decoration: underline;
   text-decoration-color: var(--color-accent);
   text-decoration-thickness: 3px;
+}
+
+@media (hover: hover) {
+  .map-calm-line:hover span {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-decoration-thickness: 3px;
+  }
 }
 
 .map-calm-line:focus-visible {
@@ -439,10 +446,12 @@
   z-index: 1;
 }
 
-.map-activity:hover {
-  z-index: 2;
-  box-shadow: none;
-  translate: 2px 2px;
+@media (hover: hover) {
+  .map-activity:hover {
+    z-index: 2;
+    box-shadow: none;
+    translate: 2px 2px;
+  }
 }
 
 /* Events på rosa papper, klubbar på vitt, så att de går att skilja åt. */
@@ -588,10 +597,16 @@
   padding: 0.25rem 0.55rem 0.25rem 0.25rem;
 }
 
-.map-activity.is-area:hover,
 .map-activity.is-area.is-open {
   rotate: 0deg;
   translate: 0 -1px;
+}
+
+@media (hover: hover) {
+  .map-activity.is-area:hover {
+    rotate: 0deg;
+    translate: 0 -1px;
+  }
 }
 
 .map-activity.is-area.is-open {
@@ -673,9 +688,14 @@
   font-weight: 400;
 }
 
-.map-area-list-club:hover,
 .map-area-list-club:focus-visible {
   background: var(--color-accent-soft);
+}
+
+@media (hover: hover) {
+  .map-area-list-club:hover {
+    background: var(--color-accent-soft);
+  }
 }
 
 /* Lappen man nyss visade på kartan (från Klubbar eller Events). */
@@ -707,8 +727,10 @@
   touch-action: none;
 }
 
-.map-note-stuck:hover {
-  z-index: 100000 !important;
+@media (hover: hover) {
+  .map-note-stuck:hover {
+    z-index: 100000 !important;
+  }
 }
 
 .map-sketch-label {
@@ -745,13 +767,18 @@
   cursor: pointer;
 }
 
-.map-sketch-landskap.is-listed:hover,
-.map-sketch-landskap.is-lan:hover,
-.map-sketch-landskap.is-kommun:hover,
 .map-sketch-landskap.is-listed:focus-visible,
 .map-sketch-landskap.is-lan:focus-visible,
 .map-sketch-landskap.is-kommun:focus-visible {
   text-decoration: underline;
+}
+
+@media (hover: hover) {
+  .map-sketch-landskap.is-listed:hover,
+  .map-sketch-landskap.is-lan:hover,
+  .map-sketch-landskap.is-kommun:hover {
+    text-decoration: underline;
+  }
 }
 
 /* Tangentbordsfokus på kartans knappar: namnen, lapparna, widgetarna och
@@ -909,9 +936,14 @@
   cursor: pointer;
 }
 
-.map-note-close:hover,
 .map-note-close:focus-visible {
   color: #d0352f;
+}
+
+@media (hover: hover) {
+  .map-note-close:hover {
+    color: #d0352f;
+  }
 }
 
 .map-note p {
@@ -1147,9 +1179,14 @@
   cursor: pointer;
 }
 
-.map-place-search-option:hover,
 .map-place-search-option.is-active {
   background: var(--color-accent-soft);
+}
+
+@media (hover: hover) {
+  .map-place-search-option:hover {
+    background: var(--color-accent-soft);
+  }
 }
 
 /* Vad förslaget är (Kommun, Län, Klubb · Göteborg, Värmdö kommun ...), under namnet. */
@@ -1255,10 +1292,16 @@
   background: #ffd6e7;
 }
 
-.map-nearby:hover,
 .map-nearby:focus-visible {
   box-shadow: none;
   translate: 2px 2px;
+}
+
+@media (hover: hover) {
+  .map-nearby:hover {
+    box-shadow: none;
+    translate: 2px 2px;
+  }
 }
 
 .map-nearby img {
@@ -1358,9 +1401,14 @@
   border-bottom-left-radius: 0;
 }
 
-.map-tool:hover,
 .map-tool:focus-visible {
   background: #fff3c4;
+}
+
+@media (hover: hover) {
+  .map-tool:hover {
+    background: #fff3c4;
+  }
 }
 
 /* Vald: gul som stilguidens primära knapp, och intryckt (skuggan borta). */
@@ -1475,10 +1523,16 @@
   background: var(--color-warm-white);
 }
 
-.map-page-widget:hover,
 .map-page-widget.is-open {
   box-shadow: none;
   transform: translate(3px, 3px);
+}
+
+@media (hover: hover) {
+  .map-page-widget:hover {
+    box-shadow: none;
+    transform: translate(3px, 3px);
+  }
 }
 
 .map-page-widget-icon {
@@ -1606,10 +1660,16 @@
 }
 
 /* Nedtryckt när man hovrar och medan menyn är öppen, som verktygsknapparna. */
-.map-profile:hover,
 .map-profile.is-open {
   box-shadow: none;
   transform: translate(3px, 3px);
+}
+
+@media (hover: hover) {
+  .map-profile:hover {
+    box-shadow: none;
+    transform: translate(3px, 3px);
+  }
 }
 
 /* Menyn: en liten lapp under profillappen, högerställd. Ligger ovanpå det som
@@ -1649,9 +1709,14 @@
   cursor: pointer;
 }
 
-.map-profile-menu-item:hover,
 .map-profile-menu-item:focus-visible {
   background: var(--color-accent-soft);
+}
+
+@media (hover: hover) {
+  .map-profile-menu-item:hover {
+    background: var(--color-accent-soft);
+  }
 }
 
 /* Antalet nya anmälningar vid Moderering (samma röda märke som i menyn). */
@@ -2335,11 +2400,18 @@
   font-size: 0.7em;
 }
 
-.map-pad-back:hover,
 .map-pad-back:focus-visible {
   text-decoration: underline;
   text-decoration-color: var(--color-accent);
   text-decoration-thickness: 3px;
+}
+
+@media (hover: hover) {
+  .map-pad-back:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-decoration-thickness: 3px;
+  }
 }
 
 /* Skapa-knappen i rubrikraden eller nere i hörnet: en gul lapp i samma
@@ -2361,12 +2433,18 @@
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-.map-pad .map-pad-head-actions .create-button:hover,
 .map-pad .map-pad-head-actions .create-button:focus-visible,
-.map-pad-float .create-button:hover,
 .map-pad-float .create-button:focus-visible {
   box-shadow: none;
   transform: translate(2px, 2px);
+}
+
+@media (hover: hover) {
+  .map-pad .map-pad-head-actions .create-button:hover,
+  .map-pad-float .create-button:hover {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
 }
 
 .map-pad .map-pad-head-actions .create-button img,
@@ -2495,10 +2573,16 @@
     box-shadow: none;
   }
 
-  .map-page-widget:hover,
   .map-page-widget.is-open {
     box-shadow: none;
     transform: none;
+  }
+
+  @media (hover: hover) {
+    .map-page-widget:hover {
+      box-shadow: none;
+      transform: none;
+    }
   }
 
   .map-page-widget-label {

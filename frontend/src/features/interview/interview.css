@@ -71,9 +71,14 @@
   transition: transform 0.15s ease;
 }
 
-.interview-sound:hover img,
 .interview-sound:focus-visible img {
   transform: scale(1.1);
+}
+
+@media (hover: hover) {
+  .interview-sound:hover img {
+    transform: scale(1.1);
+  }
 }
 
 .interview-main {

@@ -108,10 +108,16 @@
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-.club-board-link:hover,
 .club-board-link:focus-visible {
   box-shadow: none;
   transform: translate(2px, 2px);
+}
+
+@media (hover: hover) {
+  .club-board-link:hover {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
 }
 
 .club-board-link img {
@@ -181,10 +187,15 @@
       transition: none;
     }
 
-  .club-board-link:hover,
-    .club-board-link:focus-visible {
+  .club-board-link:focus-visible {
       transform: none;
     }
+
+  @media (hover: hover) {
+    .club-board-link:hover {
+        transform: none;
+      }
+  }
 }
 
 /* Klubbens anslagstavla (features/clubs/GroupPosts.jsx), överst på
@@ -296,11 +307,18 @@
   rotate: 0.9deg;
 }
 
-button.board-note:hover,
 button.board-note:focus-visible {
   translate: 0 -3px;
   box-shadow: 4px 6px 0 #3a2f25;
   outline: none;
+}
+
+@media (hover: hover) {
+  button.board-note:hover {
+    translate: 0 -3px;
+    box-shadow: 4px 6px 0 #3a2f25;
+    outline: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -308,10 +326,15 @@ button.board-note:focus-visible {
       transition: none;
     }
 
-  button.board-note:hover,
-    button.board-note:focus-visible {
+  button.board-note:focus-visible {
       translate: none;
     }
+
+  @media (hover: hover) {
+    button.board-note:hover {
+        translate: none;
+      }
+  }
 }
 
 .board-note-text {
@@ -557,10 +580,15 @@ select.club-filter:focus-visible,
   cursor: pointer;
 }
 
-.sort-menu-button:hover,
 .sort-menu-button:focus-visible,
 .sort-menu-button-open {
   border-color: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .sort-menu-button:hover {
+    border-color: var(--color-accent);
+  }
 }
 
 .sort-menu-list {
@@ -603,9 +631,14 @@ select.club-filter:focus-visible,
   cursor: pointer;
 }
 
-.sort-menu-item:hover,
 .sort-menu-item:focus-visible {
   background: var(--color-accent-soft);
+}
+
+@media (hover: hover) {
+  .sort-menu-item:hover {
+    background: var(--color-accent-soft);
+  }
 }
 
 .sort-menu-item-selected {
@@ -613,9 +646,14 @@ select.club-filter:focus-visible,
   font-weight: 600;
 }
 
-.sort-menu-item-selected:hover,
 .sort-menu-item-selected:focus-visible {
   background: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .sort-menu-item-selected:hover {
+    background: var(--color-accent);
+  }
 }
 
 .club-card-icon {
@@ -696,6 +734,8 @@ select.club-filter:focus-visible,
   cursor: pointer;
 }
 
-.club-card:hover .club-card-open {
-  background: rgba(255, 255, 255, 0.65);
+@media (hover: hover) {
+  .club-card:hover .club-card-open {
+    background: rgba(255, 255, 255, 0.65);
+  }
 }

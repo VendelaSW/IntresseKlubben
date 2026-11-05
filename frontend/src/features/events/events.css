@@ -34,8 +34,10 @@ button.answer-summary-box {
   cursor: pointer;
 }
 
-button.answer-summary-box:hover:not(:disabled) {
-  border-color: var(--color-accent);
+@media (hover: hover) {
+  button.answer-summary-box:hover:not(:disabled) {
+    border-color: var(--color-accent);
+  }
 }
 
 button.answer-summary-box:disabled {

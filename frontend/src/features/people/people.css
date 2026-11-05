@@ -6,10 +6,16 @@
   cursor: pointer;
 }
 
-.interest-tag-more:hover,
 .interest-tag-more:focus-visible {
   box-shadow: none;
   transform: translate(2px, 2px);
+}
+
+@media (hover: hover) {
+  .interest-tag-more:hover {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
 }
 
 /* Layouten för personkort och brevkort. Hover-effekten kommer från

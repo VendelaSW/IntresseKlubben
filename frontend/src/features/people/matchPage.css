@@ -172,9 +172,14 @@
   rotate: -90deg;
 }
 
-.match-arrow:not(:disabled):hover .drawn-arrow,
 .match-arrow:focus-visible .drawn-arrow {
   transform: scale(1.12);
+}
+
+@media (hover: hover) {
+  .match-arrow:not(:disabled):hover .drawn-arrow {
+    transform: scale(1.12);
+  }
 }
 
 /* Kortet med pilarna direkt på sidan under filtren (features/people/MatchPanel.jsx). */
