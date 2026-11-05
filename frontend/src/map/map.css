@@ -1074,8 +1074,10 @@
   overflow-wrap: anywhere;
 }
 
+/* En rad per del av öppettiderna (se openingHoursLines i notes.js). En rad som ändå är för lång bryts, i stället för
+   att gå utanför lappen. */
 .map-note-hours {
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .map-note-rows a {

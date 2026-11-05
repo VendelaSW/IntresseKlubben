@@ -171,11 +171,19 @@ function streetAddress(details) {
   return [details?.['addr:street'], details?.['addr:housenumber']].filter(Boolean).join(' ')
 }
 
-// "Mo-Fr 09:00-18:00; Sa 10:00-15:00" -> en rad per del, med svenska dagar.
+// "Mo-Fr 09:00-18:00; Sa 10:00-15:00" -> en rad per del, med svenska dagar. En del platser skiljer delarna med
+// kommatecken i stället ("Mo-Th 10:00-23:00, Fr 10:00-24:00"), så ett kommatecken före en dag är också ett radbyte
+// (men inte ett mellan två tider, som "10:00-14:00,17:00-22:00"). "off" blir "stängt" och PH "helgdagar".
 function openingHoursLines(value) {
   return value
-    .split(';')
-    .map((part) => part.trim().replace(/\b(Mo|Tu|We|Th|Fr|Sa|Su)\b/g, (d) => DAYS[d]))
+    .split(/;|,\s*(?=(?:Mo|Tu|We|Th|Fr|Sa|Su|PH)\b)/)
+    .map((part) =>
+      part
+        .trim()
+        .replace(/\b(Mo|Tu|We|Th|Fr|Sa|Su)\b/g, (d) => DAYS[d])
+        .replace(/\bPH\b/g, 'helgdagar')
+        .replace(/\b(off|closed)\b/g, 'stängt'),
+    )
     .filter(Boolean)
 }
 
