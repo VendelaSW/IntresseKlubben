@@ -61,10 +61,6 @@ router = APIRouter(
 )
 
 
-def _name(user: User) -> str:
-    return (user.profile.name if user.profile else None) or user.username
-
-
 def _suspension_out(suspension) -> SuspensionOut:
     return SuspensionOut(
         starts_at=suspension.starts_at, until=suspension.until, reason=suspension.reason, lifted_at=suspension.lifted_at
@@ -102,7 +98,7 @@ def read_reports(handled: bool = Query(False), db: Session = Depends(get_db)):
             current = next((s for s in suspensions if is_active(s)), None)
             reported = ReportedUser(
                 id=user.id,
-                name=_name(user),
+                name=user.display_name,
                 report_count=counts.get(user.id, 0),
                 suspension=_suspension_out(current) if current else None,
                 previous_suspensions=[_suspension_out(s) for s in suspensions if s is not current],
@@ -121,9 +117,9 @@ def read_reports(handled: bool = Query(False), db: Session = Depends(get_db)):
                 comment=report.comment,
                 created_at=report.created_at,
                 handled_at=report.handled_at,
-                handled_by=_name(moderator) if moderator else None,
+                handled_by=moderator.display_name if moderator else None,
                 reported=reported,
-                reporter=PersonRef(id=reporter.id, name=_name(reporter)) if reporter else None,
+                reporter=PersonRef(id=reporter.id, name=reporter.display_name) if reporter else None,
             )
         )
     return out

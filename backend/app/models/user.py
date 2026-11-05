@@ -53,6 +53,11 @@ class User(Base):
         onboarding_completed_at."""
         return self.profile is not None
 
+    @property
+    def display_name(self) -> str:
+        """Namnet i profilen, eller användarnamnet utan profil."""
+        return (self.profile.name if self.profile else None) or self.username
+
 
 # Skiftlägesokänsligt unikt: "Vendela" och "vendela" får inte båda finnas.
 # create_user kollar redan detta i koden, indexet stoppar race conditions.

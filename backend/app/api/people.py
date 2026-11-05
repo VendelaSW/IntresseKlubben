@@ -12,6 +12,7 @@ from app.core import storage
 from app.crud.interest import profile_interests
 from app.crud.profile import calculate_age
 from app.models.user import User
+from app.schemas.contact import ContactUser
 from app.schemas.profile import PersonResponse
 
 
@@ -46,4 +47,16 @@ def to_person_response(db: Session, user: User, viewer: User | None = None) -> P
         district=profile.district,
         image_url=storage.public_url(profile.profile_image_url) if profile.profile_image_url else None,
         interests=profile_interests(db, user),
+    )
+
+
+def to_contact_user(user: User) -> ContactUser:
+    """Någon i en lista över inbjudna, gäster eller ansökningar: id, namn och bild."""
+    profile = user.profile
+    image_key = profile.profile_image_url if profile else None
+    return ContactUser(
+        id=user.id,
+        username=user.username,
+        name=profile.name if profile else None,
+        image_url=storage.public_url(image_key) if image_key else None,
     )

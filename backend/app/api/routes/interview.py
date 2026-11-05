@@ -9,13 +9,13 @@ användare får anropa den. Gränsen räknas i minnet per användare och gäller
 den är en spärr och inget mer.
 """
 
-import time
 from collections import defaultdict, deque
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth.security import get_current_user
 from app.core import error_messages as msg
+from app.core.rate_limit import check_rate_limit
 from app.schemas.interview import InterestExtractRequest, InterestExtractResponse
 from app.services import interest_extractor
 from app.services.ai_clients import AIFailed, AINotConfigured
@@ -30,13 +30,7 @@ _recent: dict[int, deque[float]] = defaultdict(deque)
 
 
 def _check_rate_limit(user_id: int) -> None:
-    now = time.monotonic()
-    calls = _recent[user_id]
-    while calls and now - calls[0] > RATE_WINDOW_SECONDS:
-        calls.popleft()
-    if len(calls) >= RATE_LIMIT:
-        raise HTTPException(status_code=429, detail=msg.INTERVIEW_TOO_MANY_REQUESTS)
-    calls.append(now)
+    check_rate_limit(_recent, user_id, RATE_LIMIT, RATE_WINDOW_SECONDS, msg.INTERVIEW_TOO_MANY_REQUESTS)
 
 
 @router.post("/interests", response_model=InterestExtractResponse)
