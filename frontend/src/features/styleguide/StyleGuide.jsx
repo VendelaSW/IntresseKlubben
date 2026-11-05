@@ -445,17 +445,19 @@ function StyleGuide() {
         </div>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
-          Anslagstavlan (.club-board-link) och klubbchatten på mobil (.group-chat-dropdown)
+          Anslagstavlan och klubbchatten på mobil (.club-board-link)
         </p>
         <p className="hint-text">
-          I klubbens ruta öppnar en ljusgul rad med tavlans ikon (assets/anslagstavla.png) anslagstavlan, under
-          knapparna. På mobil ligger klubbchatten i rutan under medlemmarna, ihopfälld till en rad med "Klubbchatt" och
-          en pil, och fälls ut med ett tryck. På datorn står chatten bredvid klubben. På mobil är raden till tavlan lägre
-          och bara så bred som sin text.
+          Under knapparna i klubbens ruta (.club-view-links) öppnar en rad som ser ut som tavlan, korken med sina
+          prickar (.is-board), med tavlans ikon (assets/anslagstavla.png) anslagstavlan. På datorn står chatten bredvid
+          klubben. På mobil står tavlan och chatten som två lika stora rutor bredvid varandra, ikonen överst och namnet
+          under, utan pil: chattens ruta (.is-chat) har det linjerade pappret (.lined-paper) och en handritad,
+          genomskinlig pratbubbla (.club-link-icon).
         </p>
         <p className="hint-text">
           Tavlans egen sida (GroupPosts med `full`, .board-full): på mobil fyller tavlan blocket ända ner till menyn, och
           lapparna scrollar inuti den, två i bredd och i sin vanliga storlek. Ett tryck på en lapp visar hela texten.
+          Klubbchatten på mobil har en likadan egen sida (.group-chat-full) som fyller blocket, där meddelandena scrollar.
           Rubriken och "+ Sätt upp en lapp" står på samma rad, knappen i övre högra hörnet, och lapparna börjar direkt
           under.
         </p>
@@ -627,7 +629,7 @@ function StyleGuide() {
         <p className="hint-text">
           Linjerat papper med röd marginal, bläckkant, frihandshörn (--tag-shape-alt) och hård bläckskugga. Allt på pappret har radhöjden --line-gap, så att texten
           står på linjerna. Profilbilden (Avatar) står överst och vid varje brev, och ryms inom raden. Någon annans bild och namn (överst och vid breven, ChatSender) är länkar till profilen. .lined-paper är samma papper som i kuvertet. På mobil ligger pappret längst
-          ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och under på mobil: rubriken Klubbchatt, medlemmarnas bilder
+          ner på skärmen. Meddelandena scrollar i sin ruta, högst 15 linjer (useChatScroll). Samma papper används i klubbens chatt (GroupChat), bredvid klubben på dator och på en egen sida på mobil: rubriken Klubbchatt, medlemmarnas bilder
           och namn vid varje meddelande, och en svarsrad. Meddelanden i följd från samma person, inom 5
           minuter, står under samma namn och bild (startsGroup i utils/messageGroups.js). Klubbens anslagstavla (GroupPosts, .board) ligger
           överst på klubbsidan för medlemmar: en låg korktavla med handritade lappar (.paper-note, samma som
