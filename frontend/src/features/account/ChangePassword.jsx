@@ -56,7 +56,7 @@ function ChangePassword({ email }) {
           Vi har skickat ett mejl till {email}. Klicka på länken i mejlet för att bekräfta. Fram till dess gäller
           ditt gamla lösenord.
         </p>
-        <button type="button" className="button-secondary" onClick={close}>
+        <button type="button" className="secondary-button" onClick={close}>
           Stäng
         </button>
       </div>
@@ -102,7 +102,7 @@ function ChangePassword({ email }) {
         {status === 'sending' ? 'Skickar...' : 'Byt lösenord'}
       </button>
       {/* Heter inte "Avbryt": under Redigera profil finns redan en Avbryt för redigeringen. */}
-      <button type="button" className="button-secondary" onClick={close} disabled={status === 'sending'}>
+      <button type="button" className="secondary-button" onClick={close} disabled={status === 'sending'}>
         Behåll lösenordet
       </button>
     </form>

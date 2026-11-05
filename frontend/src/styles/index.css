@@ -321,7 +321,7 @@ button.info-link {
   cursor: default;
 }
 
-.auth-form .button-secondary {
+.auth-form .secondary-button {
   background: transparent;
   border: 2px solid var(--color-border);
   margin-top: 0;
@@ -557,8 +557,8 @@ span.tag-selected:hover {
   box-shadow: 0 6px 0 var(--color-border);
 }
 
-.interview-card .button-secondary,
-.interview-summary .button-secondary,
+.interview-card .secondary-button,
+.interview-summary .secondary-button,
 .interview-summary .secondary-button:not(.button-danger) {
   border-color: var(--field-border);
 }
@@ -4368,7 +4368,7 @@ label:has(> input[type='radio']:not(:disabled)) {
 
 /* Kartan och Avbryt med samma varma ram som fälten, i stället för mörk och blå. */
 .form-poster .location-picker-map,
-.form-poster .button-secondary {
+.form-poster .secondary-button {
   border-color: var(--field-border);
 }
 
@@ -4483,12 +4483,12 @@ label:has(> input[type='radio']:not(:disabled)) {
 }
 
 /* Den gula knappen har ingen ram: en osynlig lika tjock som Avbryts, så att de blir exakt lika breda. */
-.confirm-dialog .form-actions button:not(.button-secondary):not(.button-danger) {
+.confirm-dialog .form-actions button:not(.secondary-button):not(.button-danger) {
   border: 2px solid transparent;
 }
 
 /* Popupen är ett mjukt kort (.card-soft, se Modal), och knapparna i den har samma varma ram i stället för den blå. */
-.modal :is(.secondary-button, .button-secondary):not(.button-danger) {
+.modal .secondary-button:not(.button-danger) {
   border-color: rgba(58, 47, 37, 0.2);
 }
 

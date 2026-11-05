@@ -134,7 +134,7 @@ function GroupJoinRequests({
               <button type="submit" disabled={busyId !== null}>
                 {busyId !== null ? 'Nekar...' : 'Neka ansökan'}
               </button>
-              <button type="button" className="button-secondary" onClick={() => setDeclining(null)}>
+              <button type="button" className="secondary-button" onClick={() => setDeclining(null)}>
                 Avbryt
               </button>
             </div>

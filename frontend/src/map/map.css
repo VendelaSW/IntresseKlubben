@@ -1830,13 +1830,12 @@
    blandas stora och små knappar på samma sida (t.ex. Spara, Avbryt, Byt
    lösenord och Radera konto på samma rad i Redigera profil).
    - Huvudknapp (.primary-button, ett formulärs skicka-knapp): gul.
-   - Sekundär (.secondary-button, .button-secondary, .button-danger): vit med ram.
+   - Sekundär (.secondary-button, .secondary-button, .button-danger): vit med ram.
    - Textlänk (.text-button, .info-link): fet text med gul understrykning.
    Gäller också .button-small i blocken. Utanför blocken (startsidan och
    intervjun) gäller de vanliga måtten. */
 .map-pad .primary-button,
 .map-pad .secondary-button,
-.map-pad .button-secondary,
 .map-pad .button-danger,
 .map-pad .form-actions button,
 .map-pad .auth-form > button {
