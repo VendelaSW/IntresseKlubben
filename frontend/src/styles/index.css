@@ -127,6 +127,12 @@
   margin: 0;
 }
 
+/* Dra-ned-för-att-ladda-om och studsen när sidan når toppen eller botten stängs av. */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
 body {
   margin: 0;
   background: var(--color-bg);

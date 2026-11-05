@@ -1951,7 +1951,8 @@
 /* Sidan: vitt rutat papper med bläckkant, som lapparna på kartan. */
 .map-pad-page {
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* none, inte contain: contain behåller studsen förbi blockets början och slut. */
+  overscroll-behavior: none;
   padding: 1.6rem 1.5rem 1.4rem;
   background-color: #fffdf6;
   background-image:
