@@ -139,10 +139,19 @@ function HandwrittenHeadline({ lines, storageKey, always = false, className = ''
     const t0 = performance.now()
     let frame
 
+    // Tecknets ruta har padding runt tecknet (se .hw-letter). Den räknas bort, så att pennan följer själva tecknet,
+    // precis som klippet som visar det, och spetsen hamnar på samma ställe i tecknet som förut.
+    const style = els[last] ? getComputedStyle(els[last]) : null
+    const padY = style ? parseFloat(style.paddingTop) : 0
+    const padRight = style ? parseFloat(style.paddingRight) : 0
+
     function letterPoint(i, progress) {
       const box = boxRef.current.getBoundingClientRect()
       const rect = els[i].getBoundingClientRect()
-      return { x: rect.left - box.left + rect.width * progress, y: rect.top - box.top + rect.height * 0.72 }
+      return {
+        x: rect.left - box.left + (rect.width - padRight) * progress,
+        y: rect.top - box.top + padY + (rect.height - 2 * padY) * 0.72,
+      }
     }
 
     // En punkt på linjen, `progress` från 0 (vänster) till 1 (höger). Ritningen är 440 x 22 (se viewBox nedan).
