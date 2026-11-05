@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.schemas.text import message_text
+
 
 class GroupMessageCreate(BaseModel):
     content: str
@@ -9,12 +11,7 @@ class GroupMessageCreate(BaseModel):
     @field_validator("content")
     @classmethod
     def content_not_empty_or_too_long(cls, v: str) -> str:
-        v = v.strip()
-        if len(v) == 0:
-            raise ValueError("Meddelandet får inte vara tomt")
-        if len(v) > 2000:
-            raise ValueError("Meddelandet får max vara 2000 tecken")
-        return v
+        return message_text(v)
 
 
 class GroupMessageOut(BaseModel):

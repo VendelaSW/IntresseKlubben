@@ -1050,7 +1050,7 @@ function ProfileInterview() {
                   )}
 
                   <div className="form-actions interview-actions">
-                    <button type="button" className="button-secondary interview-back" disabled={index === 0} onClick={goBack}>
+                    <button type="button" className="secondary-button interview-back" disabled={index === 0} onClick={goBack}>
                       Tillbaka
                     </button>
                     <button type="submit" className="interview-next" disabled={checkingAbout}>

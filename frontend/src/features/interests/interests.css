@@ -62,7 +62,7 @@
   list-style: none;
   background: var(--tag-fill, var(--color-white));
   border: 1.5px solid var(--tag-ink);
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   box-shadow: 3px 3px 0 var(--tag-ink);
 }
 
@@ -84,13 +84,13 @@
 .interest-picker-heading {
   padding: 0.3rem 0.75rem 0.1rem;
   color: var(--color-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .interest-picker-path {
   display: block;
   color: var(--color-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 /* ---------- Intressesidan: "Vad gillar du?" (features/interests/InterestExplorer.jsx) ----------
@@ -163,11 +163,18 @@
   cursor: pointer;
 }
 
-.explorer .explorer-add:hover,
 .explorer .explorer-add:focus-visible {
   border-color: var(--color-accent);
   outline: none;
   opacity: 1;
+}
+
+@media (hover: hover) {
+  .explorer .explorer-add:hover {
+    border-color: var(--color-accent);
+    outline: none;
+    opacity: 1;
+  }
 }
 
 .explorer .explorer-add-on {
@@ -186,10 +193,16 @@
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
-.explorer .explorer-area:hover,
 .explorer .explorer-area-open {
   box-shadow: none;
   transform: translate(2px, 2px);
+}
+
+@media (hover: hover) {
+  .explorer .explorer-area:hover {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
 }
 
 .explorer .explorer-area:focus-visible {
@@ -230,7 +243,7 @@
   background: var(--tag-sub, var(--color-white));
   border: 1.5px solid #3a2f25;
   border-radius: 225px 12px 255px 12px / 12px 255px 12px 225px;
-  box-shadow: 3px 3px 0 #3a2f25;
+  box-shadow: var(--shadow-ink);
 }
 
 .library-area-title {
@@ -255,11 +268,17 @@
   font-weight: 700;
 }
 
-.interest-pick.is-on,
-.interest-pick:not(.interest-pick-group):hover,
-.interest-pick-group:has(.interest-pick-toggle:hover) {
+.interest-pick.is-on {
   box-shadow: none;
   transform: translate(2px, 2px);
+}
+
+@media (hover: hover) {
+  .interest-pick:not(.interest-pick-group):hover,
+  .interest-pick-group:has(.interest-pick-toggle:hover) {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
 }
 
 .interest-pick:focus-visible {

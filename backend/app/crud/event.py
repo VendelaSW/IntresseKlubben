@@ -387,10 +387,6 @@ def _host_ids(event: Event) -> list[int]:
     return [event.created_by, *(h.user_id for h in event.hosts)]
 
 
-def _display_name(user: User) -> str:
-    return (user.profile.name if user.profile else None) or user.username
-
-
 def has_applied(event: Event, user_id: int) -> bool:
     return any(r.user_id == user_id for r in event.join_requests)
 
@@ -414,7 +410,7 @@ def apply_to_event(db: Session, event: Event, user: User, message: str | None) -
     if event.created_by in hidden:
         return
     db.add(EventJoinRequest(event_id=event.id, user_id=user.id, message=message))
-    name = _display_name(user)
+    name = user.display_name
     # En medarrangör som har en blockering med den sökande får ingen notis (och ser inte ansökan, se
     # list_event_requests).
     notify(
@@ -496,7 +492,7 @@ def decline_event_request(db: Session, event: Event, user_id: int, by: User, mes
     """Nekar ansökan: den tas bort, så att personen kan ansöka igen, och personen får en notis med förklaringen."""
     db.delete(_pending_request(event, user_id))
     _request_answered(db, event, user_id)
-    by_name = _display_name(by)
+    by_name = by.display_name
     notify(
         db,
         [user_id],

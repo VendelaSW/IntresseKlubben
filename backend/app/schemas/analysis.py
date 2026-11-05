@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core import error_messages as msg
+from app.schemas.text import required_text
 
 # Så mycket text analyseras som mest (profiltexten är max 800 tecken).
 MAX_TEXT_LENGTH = 1000
@@ -15,10 +16,7 @@ class AnalyzeRequest(BaseModel):
     @field_validator("text")
     @classmethod
     def text_not_empty(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
-            raise ValueError(msg.INTERVIEW_TEXT_EMPTY)
-        return value
+        return required_text(value)
 
 
 class SuggestRequest(BaseModel):

@@ -88,9 +88,14 @@
   transform: rotate(-90deg);
 }
 
-.letter-friends-arrow:hover,
 .letter-friends-arrow:focus-visible {
   background: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .letter-friends-arrow:hover {
+    background: var(--color-accent);
+  }
 }
 
 @media (hover: hover) {
@@ -117,10 +122,16 @@
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-.letter-friend:hover .letter-friend-avatar,
 .letter-friend:focus-visible .letter-friend-avatar {
   border-color: var(--color-accent);
   transform: translateY(-2px);
+}
+
+@media (hover: hover) {
+  .letter-friend:hover .letter-friend-avatar {
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+  }
 }
 
 /* Luft runt namnet, så att Caveats bokstäver inte klipps av overflow: hidden (se .envelope-name). */
@@ -161,9 +172,14 @@
   margin-top: 28%;
 }
 
-.envelopes li:hover,
 .envelopes li:focus-within {
   z-index: 1;
+}
+
+@media (hover: hover) {
+  .envelopes li:hover {
+    z-index: 1;
+  }
 }
 
 /* Brevsidan (InboxPage): kuverten i sidor om åtta, fyra i bredd och två rader (två i bredd på mobil), som man
@@ -206,12 +222,6 @@
   scroll-snap-align: start;
 }
 
-@media (max-width: 767px) {
-  .envelope-pages > .envelopes {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
 /* Ett tomt kuvert på en ledig plats: streckad kant och flik i kantlinjens färg. Bara prydnad, inte klickbart. */
 .envelope-empty {
   display: block;
@@ -245,9 +255,14 @@
   border-radius: 4px 7px 5px 8px / 8px 5px 7px 4px;
 }
 
-.envelope:hover,
 .envelope:focus-within {
   box-shadow: 3px 3px 0 var(--color-accent);
+}
+
+@media (hover: hover) {
+  .envelope:hover {
+    box-shadow: 3px 3px 0 var(--color-accent);
+  }
 }
 
 .envelope-inside,
@@ -275,7 +290,7 @@
   bottom: 6%;
   z-index: 2;
   border: 1px solid var(--tag-ink);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition: transform 0.3s ease;
 }
 
@@ -378,9 +393,14 @@
   clip-path: polygon(2px 0, calc(100% - 2px) 0, 50% calc(100% - 3px));
 }
 
-.envelope:hover .envelope-flap,
 .envelope:focus-visible .envelope-flap {
   background: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .envelope:hover .envelope-flap {
+    background: var(--color-accent);
+  }
 }
 
 /* Ett nytt, oöppnat kuvert är knutet med ett tvinnat snöre och en rosett. Ritat i kuvertets egna mått (10:7), så
@@ -494,9 +514,21 @@
   border-radius: var(--radius-sm);
 }
 
-/* Mobil: tre mindre kuvert per rad utan animation (namn och sigill krymper med
-   kuvertet), och pappret i chatten ligger längst ner på skärmen, där man skriver. */
+@media (prefers-reduced-motion: reduce) {
+  .envelope-flap,
+    .envelope-letter,
+    .envelope-bow {
+      transition: none;
+    }
+}
+
 @media (max-width: 767px) {
+  .envelope-pages > .envelopes {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+  /* Mobil: tre mindre kuvert per rad utan animation (namn och sigill krymper med
+     kuvertet), och pappret i chatten ligger längst ner på skärmen, där man skriver. */
   .envelopes {
       --envelope-gap: 0.75rem;
       /* Tre per rad, och ett eller två brev hamnar i mitten (auto-fit tar bort
@@ -509,13 +541,5 @@
 
   .conversation-page {
       flex: 1;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .envelope-flap,
-    .envelope-letter,
-    .envelope-bow {
-      transition: none;
     }
 }

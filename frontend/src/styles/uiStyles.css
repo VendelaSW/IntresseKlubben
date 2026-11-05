@@ -1,7 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Patrick+Hand&family=Shantell+Sans:wght@400;600&display=swap');
-
-/* TILLFÄLLIGT: stilar för flikarna (FilterTabs) och sökraden i Klubbar att jämföra (se UiStylePicker i
-   PadBackgroundPicker.jsx). "nu" är index.css som den är. Alla har tunnare linjer än i dag. */
+/* Flikarna (FilterTabs) och sökraden i det valda utseendet. */
 
 /* ---------- 2. Tunn bläcklinje ----------
    Samma upplägg som nu, men runt och med en tunn, varm bläcklinje i stället för den tjocka svarta ramen.
@@ -30,22 +27,30 @@
 
 :root[data-ui-style='handskrivet'] .filter-tabs > .tag {
   padding: 0 0.25rem;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: #5a5148;
   font-family: var(--font-heading);
   font-size: 1.5rem;
 }
 
-:root[data-ui-style='handskrivet'] .filter-tabs > .tag:hover {
-  background: linear-gradient(transparent 58%, rgba(244, 196, 48, 0.35) 58%, rgba(244, 196, 48, 0.35) 90%, transparent 90%);
+@media (hover: hover) {
+  :root[data-ui-style='handskrivet'] .filter-tabs > .tag:hover {
+    background: linear-gradient(transparent 58%, rgba(244, 196, 48, 0.35) 58%, rgba(244, 196, 48, 0.35) 90%, transparent 90%);
+    color: var(--color-text);
+  }
+}
+
+:root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected {
+  background: linear-gradient(176deg, transparent 52%, rgba(244, 196, 48, 0.8) 52%, rgba(244, 196, 48, 0.8) 88%, transparent 88%);
   color: var(--color-text);
 }
 
-:root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected,
-:root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected:hover {
-  background: linear-gradient(176deg, transparent 52%, rgba(244, 196, 48, 0.8) 52%, rgba(244, 196, 48, 0.8) 88%, transparent 88%);
-  color: var(--color-text);
+@media (hover: hover) {
+  :root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected:hover {
+    background: linear-gradient(176deg, transparent 52%, rgba(244, 196, 48, 0.8) 52%, rgba(244, 196, 48, 0.8) 88%, transparent 88%);
+    color: var(--color-text);
+  }
 }
 
 /* Mobil: flikarna är smala (fyra i en rad), så handstilen blir mindre där, och fälten behåller vanlig text
@@ -64,13 +69,20 @@
 
   /* Överstrykningen på namnet i stället för på hela fliken, som är högre när den har ett antal under namnet. */
   :root[data-ui-style='handskrivet'] .filter-tabs > .tag,
-  :root[data-ui-style='handskrivet'] .filter-tabs > .tag:hover,
   :root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected {
     background: transparent;
   }
 
-  :root[data-ui-style='handskrivet'] .filter-tabs > .tag:hover :is(.filter-tab-label, .filter-tab-short) {
-    background: linear-gradient(transparent 58%, rgba(244, 196, 48, 0.35) 58%, rgba(244, 196, 48, 0.35) 90%, transparent 90%);
+  @media (hover: hover) {
+    :root[data-ui-style='handskrivet'] .filter-tabs > .tag:hover {
+      background: transparent;
+    }
+  }
+
+  @media (hover: hover) {
+    :root[data-ui-style='handskrivet'] .filter-tabs > .tag:hover :is(.filter-tab-label, .filter-tab-short) {
+      background: linear-gradient(transparent 58%, rgba(244, 196, 48, 0.35) 58%, rgba(244, 196, 48, 0.35) 90%, transparent 90%);
+    }
   }
 
   :root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected :is(.filter-tab-label, .filter-tab-short) {

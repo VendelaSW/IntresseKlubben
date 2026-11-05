@@ -21,7 +21,7 @@
 //
 // Husen växer upp mellan zoom 14 och 15, som innan, så att de inte poppar.
 
-import { mapDefaultTheme } from './themes'
+import { MAP_THEME } from './theme'
 import { boxInSweden, inSweden, pixelRatio, refreshWhileMoving, pixelsPerMeter } from './style'
 
 const LAYER_ID = 'building-shapes'
@@ -49,7 +49,7 @@ let ROOF_PATTERN = null
 let OUTLINE = 'normal'
 let GRAPHITE = '84, 58, 36'
 
-// TILLFÄLLIGT (testläget): husens färger och stil, se map/themes.js.
+// Husens färger och stil, se map/theme.js.
 export function setBuildingTheme(theme) {
   PALETTES = theme.palettes
   INK = theme.ink
@@ -64,7 +64,7 @@ export function setBuildingTheme(theme) {
   HEIGHT_SCALE = theme.heightScale
   redraw?.()
 }
-setBuildingTheme(mapDefaultTheme())
+setBuildingTheme(MAP_THEME)
 
 // Platta "kartmeter" kring Gustavsberg, så att takens streck ligger fast på
 // kartan och fortsätter jämnt från hus till hus.
