@@ -96,7 +96,8 @@
   align-self: stretch;
 }
 
-/* Raden till tavlan ser ut som tavlan: korken med sina prickar (som .board). */
+/* Korken med sina prickar: tavlan (.board) och raden till tavlan, som ser ut som den. */
+.board,
 .club-board-link.is-board {
   background-color: #efe0c2;
   background-image:
@@ -176,12 +177,6 @@
   padding: 0.55rem 0.75rem 0.85rem;
   border: 3px solid #d4b483;
   border-radius: var(--radius-xl);
-  background-color: #efe0c2;
-  background-image:
-    radial-gradient(rgba(150, 110, 60, 0.22) 1px, transparent 1.4px),
-    radial-gradient(rgba(255, 250, 235, 0.5) 1px, transparent 1.4px);
-  background-size: 9px 9px, 13px 13px;
-  background-position: 0 0, 4px 6px;
   box-shadow: 0 4px 0 var(--color-border);
   text-align: left;
 }
@@ -771,11 +766,12 @@ select.club-filter:focus-visible,
       margin-left: auto;
     }
 
-  /* "+ Sätt upp en lapp" lite mindre, så att rubriken och knappen får plats på raden. */
-  .board-full .board-actions .button-small {
+  /* "+ Sätt upp en lapp" lite mindre, så att rubriken och knappen får plats på raden. .map-pad för att gå före
+     knapparnas 44 px på pekskärm i map.css: tryckytan är ändå hög nog, med .touch-target. */
+  .map-pad .board-full .board-actions .button-small {
       min-height: 1.9rem;
       padding: 0.2rem 0.6rem;
-      font-size: 0.72rem;
+      font-size: var(--text-xs);
     }
 
   .board-full .board-notes {

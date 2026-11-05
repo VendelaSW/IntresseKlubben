@@ -173,7 +173,7 @@ function GroupPosts({ groupId, isOwner, full = false }) {
             </button>
           )}
           {!writing && (
-            <button type="button" className="primary-button button-small" onClick={() => setWriting(true)}>
+            <button type="button" className="primary-button button-small touch-target" onClick={() => setWriting(true)}>
               + Sätt upp en lapp
             </button>
           )}

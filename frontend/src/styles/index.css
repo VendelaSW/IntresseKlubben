@@ -2235,6 +2235,7 @@ label:has(> input[type='radio']:not(:disabled)) {
 @media (max-width: 767px) {
   .filter-tabs {
       display: flex;
+      flex-wrap: nowrap;
       justify-content: space-between;
       width: 100%;
     }
