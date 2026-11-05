@@ -1,5 +1,5 @@
 import { FIGURE_HEIGHT_PX, FIGURE_WIDTH_PX, figureUrl } from './doodles'
-import { placeGroup, refreshWhileMoving } from './style'
+import { placeGroup, refreshWhileMoving, pixelsPerMeter } from './style'
 
 // PROTOTYP: platsernas pop-up-figurer (pappkort på en fot), stående i samma
 // perspektiv som 3D-husen.
@@ -20,14 +20,6 @@ const POI = { source: 'openmaptiles', sourceLayer: 'poi' }
 // Hur stora korten får bli jämfört med vanlig storlek.
 const MIN_SCALE = 0.5
 const MAX_SCALE = 2
-
-// Skärmpixlar per meter österut vid en plats [lng, lat].
-function pixelsPerMeter(map, lngLat) {
-  const east = [lngLat[0] + 1 / (111320 * Math.cos((lngLat[1] * Math.PI) / 180)), lngLat[1]]
-  const a = map.project(lngLat)
-  const b = map.project(east)
-  return Math.hypot(b.x - a.x, b.y - a.y)
-}
 
 // Kopplar skyltarna till symbollagret `layerId`. `layer` är elementet de
 // ritas i (med perspektiv i CSS, se .map-sketch-signs).

@@ -52,7 +52,6 @@
   background: linear-gradient(to bottom, var(--map-glow-top, rgba(230, 160, 60, 0.12)), transparent 40%);
 }
 
-
 /* Att göra-läget (se MapPage.jsx): kartan och allt som hör till den göms,
    och en sida i blocket (MapCalmPage) visas i stället. Widgetarna, profilen
    och blocken ligger kvar.
@@ -347,7 +346,7 @@
 @media (max-width: 600px) {
   .map-calm-page {
     padding: calc(var(--calm-line) * 3) 1rem calc(var(--calm-line) * 6) calc(64px + 0.8rem);
-    font-size: 1.25rem;
+    font-size: var(--text-h2);
   }
 
   .map-calm-hello {
@@ -386,7 +385,6 @@
   perspective: 150dvh;
   pointer-events: none;
 }
-
 
 .map-sketch-labels {
   position: absolute;
@@ -427,7 +425,7 @@
   padding: 0.2rem 0.55rem 0.2rem 0.3rem;
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   box-shadow: 2px 2px 0 #3a2f25;
   color: var(--color-text);
   text-align: left;
@@ -500,7 +498,7 @@
 .map-activity-name {
   overflow: hidden;
   font-family: var(--font-heading);
-  font-size: 1.05rem;
+  font-size: var(--text-subheading);
   font-weight: 700;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -532,7 +530,7 @@
   padding: 0.2rem 1.1rem 0.2rem 0.3rem;
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .map-activity.is-area::before,
@@ -542,7 +540,7 @@
   inset: 0;
   z-index: 0;
   border: 1.5px solid #3a2f25;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* Klubbarnas gula (som appens accent) och kartans blå, så att högen syns mot kartan. */
@@ -613,7 +611,7 @@
   padding: 0 0.3rem;
   background: #3a2f25;
   border: 2px solid var(--color-white);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--color-white);
   font-family: var(--font-heading);
   font-size: 0.95rem;
@@ -635,7 +633,7 @@
   padding: 0.5rem;
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   box-shadow: 3px 3px 0 #3a2f25;
   pointer-events: auto;
 }
@@ -798,7 +796,7 @@
   padding: 0 5px;
   vertical-align: middle;
   border: 1px solid rgba(58, 47, 37, 0.55);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-accent);
   color: var(--color-ink);
   font-family: var(--font-body);
@@ -853,11 +851,10 @@
      namnen placeras (se landskapNameWidth i MapPage.jsx). */
   padding: 0 0.35em;
   line-height: 1.1;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--map-paper, var(--color-bg)) 85%, transparent);
   box-shadow: 0 0 6px 3px color-mix(in srgb, var(--map-paper, var(--color-bg)) 85%, transparent);
 }
-
 
 .map-sketch-compass {
   position: absolute;
@@ -886,7 +883,6 @@
   stroke: none;
   text-anchor: middle;
 }
-
 
 /* Lapp för en plats, platt ovanpå kartan. Utseendet (vit, ojämna hörn,
    bläckkant, tejp) delas med anslagstavlans lappar, se .paper-note i index.css. */
@@ -1139,7 +1135,7 @@
   padding: 0.2rem 0;
   list-style: none;
   border: 1.5px solid #3a2f25;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-white);
   box-shadow: 2px 2px 0 #3a2f25;
 }
@@ -1187,7 +1183,7 @@
   padding: 0.35rem 0.6rem;
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   box-shadow: 2px 2px 0 #3a2f25;
   color: var(--color-text);
   font-family: var(--font-body);
@@ -1244,7 +1240,7 @@
   padding: 0.15rem 0.4rem 0.15rem 0.25rem;
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   box-shadow: 2px 2px 0 #3a2f25;
   color: #3a2f25;
   font-family: var(--font-body);
@@ -1315,7 +1311,7 @@
   gap: 0.35rem;
   padding: 0.3rem 0.7rem;
   border: 1.5px solid #3a2f25;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-white);
   box-shadow: 2px 2px 0 #3a2f25;
   color: var(--color-text);
@@ -1505,7 +1501,7 @@
   padding: 0 5px;
   background: #d0352f;
   border: 1.5px solid #3a2f25;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--color-white);
   font-family: var(--font-body);
   font-size: 0.72rem;
@@ -1683,7 +1679,7 @@
   width: 40px;
   height: 40px;
   border: 1.5px solid #3a2f25;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-line);
   object-fit: cover;
 }
@@ -1846,7 +1842,7 @@
   min-height: 2.1rem;
   margin-top: 0;
   padding: 0.25rem 0.85rem;
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -1992,7 +1988,7 @@
   padding: 0.15rem 0.6rem;
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   box-shadow: 2px 2px 0 #3a2f25;
   font-family: var(--font-heading);
   font-size: 1.3rem;
@@ -2166,7 +2162,7 @@
 
   .map-profile {
     padding: 0.2rem;
-    border-radius: 50%;
+    border-radius: var(--radius-round);
   }
 
   .map-profile-name {
@@ -2234,7 +2230,7 @@
   }
 
   .map-pin-tag {
-    font-size: 1rem;
+    font-size: var(--text-body);
   }
 
   /* Källhänvisningen till OpenStreetMap måste synas, men kan vara mindre. */
@@ -2271,7 +2267,7 @@
   position: absolute;
   left: 0;
   top: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: radial-gradient(closest-side, rgba(58, 47, 37, 0.32), rgba(58, 47, 37, 0));
 }
 
@@ -2475,7 +2471,7 @@
   border: 1.5px solid #3a2f25;
   background: #fffdf6;
   box-shadow: 2px 2px 0 #3a2f25;
-  font-size: 1.05rem;
+  font-size: var(--text-subheading);
   text-shadow: none;
 }
 
@@ -2484,7 +2480,7 @@
 }
 
 .map-sketch[data-map-names='sma'] .map-sketch-label {
-  font-size: 1.05rem;
+  font-size: var(--text-subheading);
 }
 
 .map-sketch[data-map-names='bla'] .map-sketch-label {
@@ -2516,7 +2512,7 @@
     box-sizing: border-box;
     padding: 6px;
     border: 1.5px solid color-mix(in srgb, var(--color-ink) 35%, transparent);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: color-mix(in srgb, var(--color-white) 60%, transparent);
     -webkit-backdrop-filter: blur(12px) saturate(1.2);
     backdrop-filter: blur(12px) saturate(1.2);
@@ -2529,7 +2525,7 @@
     height: auto;
     padding: 0;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: none;
     box-shadow: none;
   }
@@ -2564,7 +2560,7 @@
     height: 64px;
     margin: -9px 0 -3px;
     border: 2px solid var(--color-ink);
-    border-radius: 50%;
+    border-radius: var(--radius-round);
     background: var(--color-accent);
   }
 
@@ -2601,7 +2597,7 @@
     height: 48px;
     box-sizing: border-box;
     border: 1.5px solid color-mix(in srgb, var(--color-ink) 25%, transparent);
-    border-radius: 50%;
+    border-radius: var(--radius-round);
     background: color-mix(in srgb, var(--color-accent) 60%, transparent);
     transition:
       left 0.5s cubic-bezier(0.5, 1.5, 0.45, 1),

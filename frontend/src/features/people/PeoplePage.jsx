@@ -32,7 +32,7 @@ import {
   undoDismissSuggestion,
 } from '../../services/people'
 import { useConfirm } from '../../hooks/useConfirm'
-import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useIsMobile } from '../../hooks/useMediaQuery'
 import LoadError from '../../shared/LoadError'
 import { MAX_AGE, MIN_AGE } from '../../utils/age'
 import InfoTip from '../../shared/InfoTip'
@@ -127,7 +127,7 @@ function PeoplePage() {
   const [removed, setRemoved] = useState(null)
   // På en smal skärm står bara "Intresse", "Kommun" och "Kön" i tomma fält, så att de får plats (i Sök står kön på raden
   // under, se genderInAgeRow).
-  const narrow = useMediaQuery('(max-width: 767px)')
+  const narrow = useIsMobile()
 
   useEffect(() => {
     if (!removed) return undefined

@@ -145,7 +145,7 @@ function Panel() {
             )}
           </select>
 
-          {/* TILLFÄLLIGT: jämför utseenden (förvalt: som nu, pre-dev). */}
+          {/* Kartans utseende. */}
           <StylePickers />
 
           {user && scenarios.length > 0 && (

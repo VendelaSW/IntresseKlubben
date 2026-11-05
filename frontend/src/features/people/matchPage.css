@@ -177,12 +177,10 @@
   transform: scale(1.12);
 }
 
-
 /* Kortet med pilarna direkt på sidan under filtren (features/people/MatchPanel.jsx). */
 .match-stack .match-stage {
   max-width: 40rem;
 }
-
 
 /* Filterraden i Matcha och Sök under Medlemmar: som sökraden i Klubbar med utseendet "Papperslappar".
    Små rundade lappar i varmt papper med en tunn kant och en liten skugga nedåt, lagom stora, och alla på samma rad (de
@@ -206,7 +204,7 @@
   line-height: 1.2;
   padding: 0 0.75rem;
   border: 1.25px solid rgba(58, 47, 37, 0.3);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background-color: #fffdf8;
   box-shadow: 0 2px 0 rgba(58, 47, 37, 0.08);
 }
@@ -318,7 +316,6 @@
   outline: none;
 }
 
-
 /* ---------- Profilerna (features/profile/UserProfilePage.jsx och ProfilePage.jsx) ----------
    Ett stort affischkort (PosterCard med .profile-poster), som personkorten i Sök men utan matchningsdetaljerna: en bredare
    färgad rad och större rasterprickar, namnet stort (PosterName), åldern och orten i den svarta rutan (PlaceStamp) och Om
@@ -409,7 +406,7 @@
 
 .interview-summary h2,
 .interview-summary .poster-about-section h2 {
-  font-size: 1rem;
+  font-size: var(--text-body);
 }
 
 .interview-summary .poster-name {
@@ -495,7 +492,7 @@
     grid-column: 2;
     grid-row: 1;
     align-self: end;
-    font-size: 1rem;
+    font-size: var(--text-body);
   }
 
   .card-grid-compact .person-card.poster-card .person-card-link .poster-stamp {
@@ -512,7 +509,7 @@
 
   .card-grid-compact .person-card .card-actions > button.primary-button {
     flex: 1 1 auto;
-    font-size: 0.85rem;
+    font-size: var(--text-small);
   }
 
   .card-grid-compact .person-card .card-actions > button.secondary-button {
