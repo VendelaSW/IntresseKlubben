@@ -97,11 +97,16 @@ Backend är uppdelad i routes, scheman, modeller, CRUD och tjänster. Frontend s
 │   ├── src/
 │   │   ├── assets/         # Importerade bilder, ikoner och animationer
 │   │   │   └── startsida/  # Bilder och videoloopar på startsidan
-│   │   ├── pages/            # Sidvyer
-│   │   ├── components/       # Återanvändbara komponenter
+│   │   ├── app/              # Routes, ramen runt sidorna och inloggningsvakter
+│   │   ├── map/              # Kartan och blocken som sidorna öppnas i
+│   │   ├── features/         # En mapp per del av appen (sidor, komponenter och CSS)
+│   │   ├── shared/           # Komponenter som flera delar använder
 │   │   ├── services/         # API-klienter
 │   │   ├── hooks/            # React-hooks
-│   │   └── styles/           # Designsystem och CSS
+│   │   ├── utils/            # Små hjälpfunktioner
+│   │   ├── styles/           # Designsystem och gemensam CSS
+│   │   ├── demo/             # Klickbara demon på /demo
+│   │   └── devtools/         # Testläget
 │   └── package.json
 ├── CONTRIBUTING.md           # Arbetsflöde och kodkonventioner
 └── projektstruktur.md        # Infrastruktur och deployment

@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { CHOSEN_DESIGN } from '../chosenDesign'
-import { MAP_PICKERS } from '../pages/mapThemes'
-import './padBackgrounds.css'
-import './uiStyles.css'
+import { CHOSEN_DESIGN } from '../app/chosenDesign'
+import { MAP_PICKERS } from '../map/themes'
+import '../styles/padBackgrounds.css'
+import '../styles/uiStyles.css'
 
 // TILLFÄLLIGT, bara i testläget: välj utseenden att jämföra (klubbkorten, sökraden, blockets rubrik
 // och bakgrund, flikarna och Öppen/Privat-taggen). Varje val sparas i webbläsaren och läggs som ett data-attribut på
@@ -122,7 +122,7 @@ const PICKERS = [
   },
 ]
 
-// Förvalt är det valda utseendet (chosenDesign.js), så att testläget börjar med samma sak som alla andra ser.
+// Förvalt är det valda utseendet (app/chosenDesign.js), så att testläget börjar med samma sak som alla andra ser.
 function fallbackFor({ attr, fallback }) {
   return CHOSEN_DESIGN[attr] ?? fallback
 }

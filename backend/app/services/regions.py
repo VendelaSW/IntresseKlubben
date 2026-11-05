@@ -2,7 +2,7 @@
 Sveriges områden för klubbarnas räckvidd (SCRUM-282, se GroupScope i models/group.py): landsdelar,
 landskap, län och vilket län och landskap varje kommun hör till.
 
-Datan i data/regions.json är byggd ur kartans egna filer (frontend/src/pages/mapPrototype*.json), så att
+Datan i data/regions.json är byggd ur kartans egna filer (frontend/src/map/data/*.json), så att
 klubbarna hamnar i samma områden som kartan visar. En kommuns landskap är det landskap där störst del av
 kommunen ligger, utom där kartans förenklade landskapsytor ger fel: Stockholm räknas till Uppland, och
 Göteborg och Mölndal till Västergötland. Kommunernas namn finns i tabellen municipalities.
