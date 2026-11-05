@@ -6,8 +6,10 @@ import { useLocation, useNavigate } from 'react-router-dom'
 // inte att få så här (inte pekskärm, telefonens webbläsare, tangentbordet, adressfältet eller notchen): testa på
 // en riktig telefon för det, med `npm run dev:telefon`.
 export const SIZES = [
+  { id: 'minsta', label: 'Minsta mobil', width: 320, height: 568 },
   { id: 'liten', label: 'Liten mobil', width: 375, height: 667 },
   { id: 'mobil', label: 'Mobil', width: 390, height: 844 },
+  { id: 'liggande', label: 'Mobil på sidan', width: 844, height: 390 },
   { id: 'surfplatta', label: 'Surfplatta', width: 768, height: 1024 },
 ]
 
