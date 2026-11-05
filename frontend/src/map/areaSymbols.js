@@ -121,7 +121,18 @@ export function attachAreaSymbols(map, layer, { getView, onOpen }) {
     return []
   }
 
+  // Symbolerna som redan finns, efter hur de ser ut: kartan ritas om vid varje rörelse, och samma symbol (med samma
+  // bild) flyttas i stället för att byggas på nytt, så att ikonen inte blinkar när man zoomar (som lapparna i
+  // map/activities.js).
+  let built = new Map()
+
   function render() {
+    const using = new Map()
+    const reuse = (signature, create) => {
+      const el = built.get(signature) ?? create()
+      using.set(signature, el)
+      return el
+    }
     const shown = visible()
     if (!shown.some((a) => a.key === openKey)) openKey = null
     const width = layer.clientWidth
@@ -133,9 +144,12 @@ export function attachAreaSymbols(map, layer, { getView, onOpen }) {
       const point = map.project(center ?? area.lngLat)
       const y = center ? point.y - KOMMUN_LIFT_PX : point.y
       if (point.x < -200 || point.x > width + 200 || y < -200 || y > height + 200) continue
-      placed.push({ el: symbolEl(area, compact && area.key !== openKey), area, x: point.x, y })
+      const small = compact && area.key !== openKey
+      const el = reuse(`${area.key}:${area.items.length}:${small}:${area.key === openKey}`, () => symbolEl(area, small))
+      placed.push({ el, area, x: point.x, y })
     }
     layer.replaceChildren(...placed.map((p) => p.el))
+    built = using
     // Klubbarnas och eventens symbol för samma område står på samma punkt: lägg dem bredvid varandra.
     for (let i = 0; i < placed.length; i++) {
       const p = placed[i]
@@ -261,6 +275,7 @@ export function attachAreaSymbols(map, layer, { getView, onOpen }) {
 
   return {
     setAreas(next) {
+      built = new Map()
       areas = next
       render()
     },

@@ -195,10 +195,23 @@ export function attachActivityMarkers(map, layer, { getKommun, getLan = () => nu
     if (focused) layer.querySelector(`[data-key="${focused}"]`)?.focus({ preventScroll: true })
   }
 
+  // Lapparna som redan finns, efter hur de ser ut (se reuse). Kartan ritas om vid varje rörelse, och en ny lapp
+  // varje gång gav en ny bild, som telefonen hann visa tom en stund: ikonerna blinkade och försvann när man zoomade.
+  // Nu flyttas samma lapp, med samma bild, och bara de som inte syns längre tas bort.
+  let built = new Map()
+  let using = new Map()
+  function reuse(signature, create) {
+    const el = built.get(signature) ?? create()
+    using.set(signature, el)
+    return el
+  }
+
   function draw() {
+    using = new Map()
     const shown = scope()
     if (!shown || map.getZoom() < MIN_ZOOM) {
       layer.replaceChildren()
+      built = using
       return
     }
     const compact = map.getZoom() < FULL_ZOOM
@@ -216,9 +229,12 @@ export function attachActivityMarkers(map, layer, { getKommun, getLan = () => nu
         for (const feature of index.getClusters(bbox, zoom)) {
           const point = map.project(feature.geometry.coordinates)
           if (!onScreen(point)) continue
-          const el = feature.properties.cluster
-            ? clusterEl(type, feature)
-            : markerEl(feature.properties.item, compact)
+          const props = feature.properties
+          const el = props.cluster
+            ? reuse(`kluster:${type}:${props.cluster_id}:${props.point_count}:${props.mine}:${props.booked}`, () =>
+                clusterEl(type, feature),
+              )
+            : reuse(`${type}:${props.item.id}:${compact}`, () => markerEl(props.item, compact))
           placed.push({ x: point.x, y: point.y, el })
         }
       }
@@ -229,12 +245,15 @@ export function attachActivityMarkers(map, layer, { getKommun, getLan = () => nu
         if (!item.exact) continue
         const point = map.project(item.lngLat)
         if (!onScreen(point)) continue
-        placed.push({ item, x: point.x, y: point.y, el: markerEl(item, compact) })
+        placed.push({ item, x: point.x, y: point.y, el: reuse(`${item.type}:${item.id}:${compact}`, () => markerEl(item, compact)) })
       }
     }
     // Lägg ut lapparna för att kunna mäta dem, och knuffa sedan isär dem som
     // överlappar (uppifrån och ner, några varv).
-    layer.replaceChildren(...placed.map((p) => p.el))
+    // Samma lappar i samma ordning: låt dem ligga kvar (då behöver inget läggas om). Annars byt till de nya.
+    const els = placed.map((p) => p.el)
+    if (els.length !== layer.children.length || els.some((el, i) => layer.children[i] !== el)) layer.replaceChildren(...els)
+    built = using
     for (const p of placed) {
       p.w = p.el.offsetWidth
       p.h = p.el.offsetHeight
@@ -273,7 +292,7 @@ export function attachActivityMarkers(map, layer, { getKommun, getLan = () => nu
     }
     for (const p of placed) {
       p.el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`
-      if (p.el.dataset.key === highlighted) p.el.classList.add('is-highlighted')
+      p.el.classList.toggle('is-highlighted', p.el.dataset.key === highlighted)
     }
   }
 
@@ -379,12 +398,15 @@ export function attachActivityMarkers(map, layer, { getKommun, getLan = () => nu
   return {
     setItems(next) {
       items = next
+      // Nya uppgifter (namn, datum, ens svar): bygg lapparna på nytt.
+      built = new Map()
       render()
     },
     getItem: (type, id) => items.find((i) => i.type === type && i.id === id) ?? null,
     // Lägger till eller ersätter en lapp (t.ex. ett event som nyss skapats).
     putItem(item) {
       items = [...items.filter((i) => !(i.type === item.type && i.id === item.id)), item]
+      built = new Map()
       render()
     },
     highlight,
