@@ -1267,8 +1267,7 @@
   height: 100%;
 }
 
-.map-you svg,
-.map-find-me-icon {
+.map-you svg {
   fill: #f4c430;
   stroke: #3a2f25;
   stroke-width: 1.8;
@@ -1345,12 +1344,6 @@
   stroke-linejoin: round;
 }
 
-.map-find-me-icon {
-  display: block;
-  width: 1.15rem;
-  height: 1.15rem;
-}
-
 .map-find-me:disabled {
   opacity: 0.6;
   cursor: default;
@@ -1395,7 +1388,25 @@
   z-index: 0;
 }
 
-/* I raden med ikoner trycks den valda bara nedåt, så att den inte glider in under grannen. */
+/* I raden med ikoner står alla för sig, lika stora och med lika långt emellan, också växeln Karta | Att göra.
+   Den valda trycks bara nedåt, så att avståndet till grannarna inte ändras. */
+.map-view-row .map-tool-group {
+  gap: 0.4rem;
+}
+
+.map-view-row .map-tool-group .map-tool + .map-tool {
+  margin-left: 0;
+}
+
+.map-view-row .map-tool-group .map-tool:first-child,
+.map-view-row .map-tool-group .map-tool:last-child {
+  border-radius: var(--radius-sm);
+}
+
+.map-view-row .map-tool-icon-only {
+  justify-content: center;
+}
+
 .map-view-row .map-tool-group .map-tool.is-on {
   transform: translateY(2px);
 }

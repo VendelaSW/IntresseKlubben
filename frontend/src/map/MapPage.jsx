@@ -132,7 +132,7 @@ const DISTRICT_ZOOM = 15
 // plats): ända ner till gatorna och husen. Utan nål flygs det till FULL_ZOOM
 // (se map/activities.js), där lappen visas hel.
 const ACTIVITY_PLACE_ZOOM = 16
-// Figuren för var man är: på knappen Hitta mig och på kartan.
+// Figuren för var man är på kartan.
 const YOU_ICON_PATHS = [
   'M6.5 28.5c.4-6.6 3.8-10.3 9.6-10.2 5.6.1 9.2 3.7 9.5 10.1-6.2 1.1-12.8 1.2-19.1.1Z',
   'M16.3 3.6c3.4-.1 5.9 2.5 5.8 5.8-.1 3.4-2.7 5.8-6 5.7-3.3-.1-5.7-2.6-5.6-5.9.1-3.2 2.6-5.5 5.8-5.6Z',
@@ -1778,10 +1778,9 @@ function MapPage() {
                 disabled={findingMe}
                 onClick={findMe}
               >
-                <svg className="map-find-me-icon" viewBox="0 0 32 32" aria-hidden="true">
-                  {YOU_ICON_PATHS.map((d) => (
-                    <path key={d} d={d} />
-                  ))}
+                <svg className="map-tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 21c-3.6-4.2-6.6-7.4-6.6-11A6.6 6.6 0 0 1 12 3.4 6.6 6.6 0 0 1 18.6 10c0 3.6-3 6.8-6.6 11Z" />
+                  <circle cx="12" cy="10" r="2.3" />
                 </svg>
               </button>
             </div>
