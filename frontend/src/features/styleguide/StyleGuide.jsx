@@ -590,7 +590,7 @@ function StyleGuide() {
           Lediga platser (.envelope-empty)
         </p>
         <p className="hint-text">
-          Har man färre än åtta brev fylls platserna ut med tomma, streckade kuvert. Bara prydnad: de går inte att
+          Har man färre än åtta brev fylls den sista raden ut med tomma, streckade kuvert. Bara prydnad: de går inte att
           klicka på och läses inte upp.
         </p>
         <div className="envelope-rows" style={{ marginTop: '1rem' }}>
