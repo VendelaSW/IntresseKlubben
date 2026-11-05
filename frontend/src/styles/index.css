@@ -86,6 +86,14 @@
   --text-body: 1rem;
   --text-small: 0.85rem;
 
+  /* Rundade hörn */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-round: 50%;
+  --radius-pill: 999px;
+
   --content-width: 640px;
 }
 
@@ -297,7 +305,7 @@ button.info-link {
   letter-spacing: 0.03em;
   padding: 0.4rem 0.8rem;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-accent);
   color: var(--color-text);
   cursor: pointer;
@@ -434,7 +442,7 @@ button.info-link {
   width: 100%;
   max-width: 320px;
   padding: 0.75rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-accent-soft);
   text-align: left;
 }
@@ -489,7 +497,7 @@ span.tag-selected:hover {
   letter-spacing: 0.03em;
   padding: 0.4rem 0.8rem;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-accent);
   color: var(--color-text);
   cursor: pointer;
@@ -514,7 +522,7 @@ span.tag-selected:hover {
 .swatch-color {
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 2px solid var(--color-border);
 }
 
@@ -533,7 +541,7 @@ span.tag-selected:hover {
 .card {
   background: var(--color-white);
   border: 2px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 1.5rem;
   max-width: 320px;
 }
@@ -612,7 +620,7 @@ span.tag-selected:hover {
 .card-avatar {
   width: 64px;
   height: 64px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-line);
   object-fit: cover;
   margin-bottom: 1rem;
@@ -718,7 +726,7 @@ span.tag-selected:hover {
   font-size: var(--text-small);
   padding: 0.3rem 0.8rem;
   border: 2px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-text);
   cursor: pointer;
@@ -862,7 +870,7 @@ span.tag-selected:hover {
   background: none;
   color: inherit;
   font: inherit;
-  font-size: 1rem;
+  font-size: var(--text-body);
   line-height: 1;
   opacity: 0.6;
   cursor: pointer;
@@ -885,7 +893,7 @@ span.tag-selected:hover {
   width: 1.05rem;
   height: 1.05rem;
   border: 1.5px solid var(--tag-ink);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-accent)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b1d10' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4.5 4.5L19 7'/%3E%3C/svg%3E")
     center / 0.7rem no-repeat;
@@ -987,7 +995,7 @@ span.tag-selected:hover {
   letter-spacing: 0.03em;
   padding: 0.4rem 0.8rem;
   border: 2px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text);
   cursor: pointer;
@@ -1173,7 +1181,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   padding: 0.3rem 0.8rem;
   margin-top: 0;
   border: 2px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
 }
 
@@ -1187,7 +1195,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   font-size: var(--text-small);
   font-weight: 700;
   padding: 0.15rem 0.6rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-bg);
   border: 2px solid var(--color-border);
 }
@@ -1263,7 +1271,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   flex-shrink: 0;
   padding: 0 0.6rem;
   border: 2px solid currentColor;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--color-ink);
   font-family: var(--font-heading);
   font-size: 1.3rem;
@@ -1290,7 +1298,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1.25rem;
+  font-size: var(--text-h2);
 }
 
 .demo-card .card-title,
@@ -1361,7 +1369,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   .card-grid-compact .person-card .card-avatar {
       width: 44px;
       height: 44px;
-      font-size: 1rem;
+      font-size: var(--text-body);
     }
 
   .card-grid-compact .person-card .card-title {
@@ -1614,7 +1622,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   color: var(--color-text);
   text-decoration: none;
   padding: 0.3rem clamp(0.2rem, 1.8vw, 0.9rem) 0.1rem;
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   white-space: nowrap;
 }
 
@@ -1657,7 +1665,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   min-width: 1.25rem;
   height: 1.25rem;
   padding: 0 0.3rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-text);
   color: var(--color-white);
   font-size: 0.75rem;
@@ -1792,7 +1800,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   width: 2.4rem;
   height: 2.4rem;
   font-family: var(--font-body);
-  font-size: 1rem;
+  font-size: var(--text-body);
 }
 
 /* Raden med bild, namn och tid är exakt en linje hög, så att bilden inte gör
@@ -2019,7 +2027,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   max-width: 100%;
   background: var(--color-text);
   border: 2px solid var(--color-text);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -2058,7 +2066,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   margin-left: 0.4rem;
   padding: 0 0.3rem;
   border: 1px solid rgba(58, 47, 37, 0.55);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-accent);
   color: var(--color-ink);
   font-family: var(--font-body);
@@ -2550,7 +2558,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   font-size: var(--text-small);
   padding: 0.4rem 0.5rem;
   border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-white);
   color: var(--color-text);
   width: 100%;
@@ -2593,7 +2601,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   list-style: none;
   background: var(--color-white);
   border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   font-family: var(--font-body);
   font-size: var(--text-small);
@@ -2634,7 +2642,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   width: 100%;
   padding: 0.4rem 1.8rem 0.4rem 0.5rem;
   border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5 L5 6.5 L8 3.5' fill='none' stroke='%233a2f25' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.6rem center / 0.65rem;
   color: var(--color-text);
   font-family: var(--font-body);
@@ -2672,7 +2680,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   list-style: none;
   background: var(--color-white);
   border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   font-family: var(--font-body);
   font-size: var(--text-small);
@@ -2732,7 +2740,7 @@ label:has(> input[type='radio']:not(:disabled)) {
 
 .field-clear:focus-visible {
   outline: 2px solid var(--color-accent);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* Intresseväljaren (InterestPicker) har kommunfältets klasser och utseende. Det
@@ -2826,7 +2834,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   min-width: 0;
   padding: 0.3rem 0.6rem;
   border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-white);
   font-family: var(--font-body);
   font-size: var(--text-small);
@@ -2988,7 +2996,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   height: 1.15rem;
   padding: 0;
   border: 1.5px solid #3a2f25;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-white);
   color: #3a2f25;
   cursor: help;
@@ -3015,7 +3023,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   margin: 0;
   padding: 0.5rem 0.65rem;
   border: 1.5px solid #3a2f25;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-white);
   box-shadow: 2px 2px 0 #3a2f25;
   color: var(--color-text);
@@ -3065,7 +3073,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   min-height: 2.1rem;
   padding: 0.1rem 0.5rem;
   border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-white);
   color: var(--color-muted);
   cursor: text;
@@ -3112,7 +3120,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   height: 1.5rem;
   padding: 0;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: none;
   color: var(--color-muted);
   font-size: 1.1rem;
@@ -3156,7 +3164,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   height: 2.1rem;
   padding: 0;
   border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-white);
   color: var(--color-text);
   cursor: pointer;
@@ -3179,7 +3187,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   place-items: center;
   min-width: 1.05rem;
   height: 1.05rem;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-ink);
   color: var(--color-white);
   font-size: 0.65rem;
@@ -3720,7 +3728,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   padding: 0.3rem;
   overflow-y: auto;
   border: 1.5px solid var(--color-ink);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-white);
   box-shadow: 2px 2px 0 var(--color-ink);
   color: var(--color-text);
@@ -3742,7 +3750,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   width: 100%;
   margin: 0;
   padding: 0.4rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   font-size: var(--text-small);
   letter-spacing: normal;
@@ -3760,7 +3768,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   width: 100%;
   height: 240px;
   border: 1.5px solid var(--color-text);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--color-accent-soft);
 }
@@ -4045,7 +4053,7 @@ label:has(> input[type='radio']:not(:disabled)) {
   align-items: end;
   margin: -0.35rem -0.45rem;
   padding: 0.35rem 0.45rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-accent-soft);
 }
 
@@ -4286,7 +4294,7 @@ label:has(> input[type='radio']:not(:disabled)) {
 
 .profile-edit .form-poster .form-section-head h3 {
   padding: 0.3rem 0.7rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-pastel-blue);
   color: var(--color-ink);
   font-size: 0.8rem;
@@ -4415,7 +4423,7 @@ label:has(> input[type='radio']:not(:disabled)) {
 .person-list-avatar {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-line);
   object-fit: cover;
   flex-shrink: 0;
@@ -4652,7 +4660,7 @@ label.person-list-item {
   margin-top: -0.25em;
   margin-bottom: 0;
   font-family: var(--font-body);
-  font-size: 1.25rem;
+  font-size: var(--text-h2);
   line-height: 1.05;
   letter-spacing: -0.01em;
   text-transform: uppercase;
@@ -4736,7 +4744,7 @@ label.person-list-item {
 
 .event-ticket-when strong.is-range {
   padding-inline: 0.45rem;
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   letter-spacing: 0.03em;
 }
 
@@ -4791,7 +4799,7 @@ label.person-list-item {
   /* Långa ord bryts bara om de inte får plats på en egen rad, och då utan bindestreck mitt i. */
 
   .event-ticket .card-title {
-      font-size: 1.05rem;
+      font-size: var(--text-subheading);
       hyphens: manual;
     }
 
@@ -5100,7 +5108,7 @@ label.person-list-item {
   overflow: hidden;
   background: var(--color-ink);
   color: #fffdf7;
-  font-size: 1rem;
+  font-size: var(--text-body);
   font-weight: 700;
   letter-spacing: 0.06em;
   line-height: 1.15;

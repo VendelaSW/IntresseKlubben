@@ -109,7 +109,7 @@
   left: 50%;
   width: 18px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background:
     radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.75) 0 2px, transparent 3px),
     color-mix(in srgb, var(--poster) 80%, var(--color-ink));
@@ -184,7 +184,7 @@
 .club-style-5 .club-card-role {
   padding: 0 0.5rem;
   border: 2px solid var(--poster-ink);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--poster-ink);
   font-family: var(--font-heading);
   font-size: 1.15rem;

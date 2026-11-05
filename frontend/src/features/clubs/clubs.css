@@ -96,7 +96,7 @@
   min-height: 3.4rem;
   padding: 0.45rem 0.8rem;
   border: 1.5px solid var(--color-ink);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-accent-soft);
   box-shadow: 2px 2px 0 var(--color-ink);
   color: var(--color-text);
@@ -134,7 +134,7 @@
    som fälls ut med ett tryck (details). Chattens egen rubrik behövs inte då. */
 .group-chat-dropdown {
   border: 1.5px solid var(--color-ink);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-paper);
 }
 
@@ -222,7 +222,7 @@
   color: #2b1d10;
   background: var(--color-white);
   border: 1.5px solid #3a2f25;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   box-shadow: 2px 2px 0 #3a2f25;
 }
 
@@ -242,7 +242,7 @@
   display: inline-block;
   margin: 0;
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-white);
   font-size: var(--text-small);
 }
@@ -345,7 +345,7 @@ button.board-note:focus-visible {
   height: 16px;
   transform: translateX(-50%);
   border: 1.5px solid #3a2f25;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: #c0392b;
 }
 
@@ -452,7 +452,7 @@ button.board-note:focus-visible {
   min-height: 2.9rem;
   padding: 0 1.1rem;
   border: 1.5px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-white);
   color: var(--color-muted);
   cursor: text;
@@ -486,7 +486,7 @@ select.club-filter,
   min-height: 2.9rem;
   padding: 0 2.1rem 0 1.1rem;
   border: 1.5px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M3.5 2 L6.5 5 L3.5 8' fill='none' stroke='%233a2f25' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.9rem center / 0.7rem;
   color: var(--color-text);
   font-family: var(--font-body);
@@ -515,7 +515,7 @@ select.club-filter:focus-visible,
   width: 2.9rem;
   height: 2.9rem;
   border-width: 1.5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 @media (max-width: 767px) {
@@ -551,7 +551,7 @@ select.club-filter:focus-visible,
   min-height: 2rem;
   padding: 0;
   border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-white);
   color: var(--color-text);
   cursor: pointer;
@@ -571,7 +571,7 @@ select.club-filter:focus-visible,
   min-width: 11rem;
   padding: 0.4rem;
   border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-white);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
@@ -594,7 +594,7 @@ select.club-filter:focus-visible,
   width: 100%;
   padding: 0.3rem 0.5rem;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: none;
   color: var(--color-text);
   font-family: var(--font-body);
@@ -690,7 +690,7 @@ select.club-filter:focus-visible,
   margin-left: auto;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-text);
   cursor: pointer;

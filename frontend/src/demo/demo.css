@@ -23,7 +23,7 @@
   text-decoration: none;
   padding: 0.5rem 1.25rem;
   border: 2px solid var(--color-accent);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transition: border-color 0.15s ease;
 }
 
@@ -39,7 +39,7 @@
   color: var(--color-text);
   text-decoration: none;
   padding: 0.5rem 1.25rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-accent);
   transition: opacity 0.15s ease;
 }
@@ -67,7 +67,7 @@
   width: 100%;
   max-width: 380px;
   height: auto;
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
 }
 
 button.banner-button {

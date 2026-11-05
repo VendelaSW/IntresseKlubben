@@ -55,7 +55,7 @@
   
   :root[data-ui-style='handskrivet'] .filter-tabs > .tag {
     padding: 0.2rem 0.1rem;
-    font-size: 1.05rem;
+    font-size: var(--text-subheading);
   }
 
   :root[data-ui-style='handskrivet'] .filter-tabs {

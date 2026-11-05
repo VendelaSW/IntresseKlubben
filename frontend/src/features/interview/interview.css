@@ -130,7 +130,7 @@
   .interview-start {
       width: 100%;
       min-height: 44px;
-      font-size: 1.05rem;
+      font-size: var(--text-subheading);
     }
 
   /* Kompisen med det den säger i en pratbubbla bredvid, på startskärmen och medan frågorna ställs. "Spela upp", om den
@@ -170,9 +170,9 @@
       margin: 0;
       padding: 0.5rem 0.75rem;
       border: 2px solid var(--color-border);
-      border-radius: 12px;
+      border-radius: var(--radius-xl);
       background: var(--color-white);
-      font-size: 1rem;
+      font-size: var(--text-body);
       line-height: 1.35;
       text-align: left;
       text-wrap: balance;
@@ -231,7 +231,7 @@
 
 @media (max-width: 767px) {
   .interview-page .interview-card label {
-      font-size: 1rem;
+      font-size: var(--text-body);
     }
 
   .interview-page .interview-card input,
@@ -251,7 +251,7 @@
   .interview-page .interview-actions button {
       min-height: 44px;
       margin: 0;
-      font-size: 1rem;
+      font-size: var(--text-body);
     }
 
   .interview-page .interview-back:disabled {

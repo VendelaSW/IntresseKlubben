@@ -60,6 +60,6 @@
   margin: 0;
   padding: 0.5rem 0.75rem;
   border: 1.5px solid var(--color-accent);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--color-accent-soft);
 }

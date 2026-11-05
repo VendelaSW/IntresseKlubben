@@ -82,7 +82,7 @@ button.answer-summary-box:disabled {
 .attendee-face-link {
   position: relative;
   display: block;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   color: var(--color-ink);
   text-decoration: none;
 }
@@ -94,11 +94,11 @@ button.answer-summary-box:disabled {
   width: 2.6rem;
   height: 2.6rem;
   border: 2px solid var(--color-white);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   box-shadow: 0 0 0 1.5px var(--color-border);
   background: var(--color-line);
   object-fit: cover;
-  font-size: 1rem;
+  font-size: var(--text-body);
 }
 
 .attendee-face.is-blocked .attendee-face-avatar {
@@ -115,7 +115,7 @@ button.answer-summary-box:disabled {
   height: 1.25rem;
   padding: 0;
   border: 1.5px solid var(--color-ink);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-white);
   color: var(--color-muted);
   font-size: 0.75rem;
@@ -153,7 +153,7 @@ button.answer-summary-box:disabled {
   bottom: calc(100% + 6px);
   z-index: 5;
   padding: 0.2rem 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--color-ink);
   color: var(--color-white);
   font-size: 0.75rem;

@@ -203,7 +203,7 @@
 .profile-avatar {
   width: 128px;
   height: 128px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   object-fit: cover;
   border: 2px solid var(--color-border);
   background: var(--color-white);
