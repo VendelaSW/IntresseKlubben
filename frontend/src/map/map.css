@@ -2457,39 +2457,6 @@
   padding-inline: 0.6rem;
 }
 
-/* TILLFÄLLIGT (testläget, väljaren Karta: ortnamn), se map/themes.js. */
-.map-sketch[data-map-names='versaler'] .map-sketch-label {
-  font-family: var(--font-body);
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.map-sketch[data-map-names='lapp'] .map-sketch-label {
-  padding: 0.05rem 0.45rem;
-  border: 1.5px solid #3a2f25;
-  background: #fffdf6;
-  box-shadow: 2px 2px 0 #3a2f25;
-  font-size: var(--text-subheading);
-  text-shadow: none;
-}
-
-.map-sketch[data-map-names='stora'] .map-sketch-label {
-  font-size: 1.85rem;
-}
-
-.map-sketch[data-map-names='sma'] .map-sketch-label {
-  font-size: var(--text-subheading);
-}
-
-.map-sketch[data-map-names='bla'] .map-sketch-label {
-  color: #1f4a94;
-}
-
-.map-sketch[data-map-names='rod'] .map-sketch-label {
-  color: #a32d2d;
-}
-
 /* ---------- Mobilens meny ---------- */
 
 /* På telefonen blir sidornas lappar en flytande, halvgenomskinlig meny längst

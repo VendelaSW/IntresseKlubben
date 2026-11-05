@@ -29,7 +29,7 @@ function draw(size, paint, height = size) {
   return ctx.getImageData(0, 0, canvas.width, canvas.height)
 }
 
-// TILLFÄLLIGT (testläget): vattnets och granarnas färg i kartans tema, se map/themes.js.
+// Vattnets och granarnas färg i kartans tema, se map/theme.js.
 let waterColor = 'rgba(52, 110, 190, 0.55)'
 let pineColor = 'rgba(30, 80, 40, 0.9)'
 let waterPattern = 'hatch'

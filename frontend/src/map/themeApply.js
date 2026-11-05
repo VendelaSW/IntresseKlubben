@@ -1,7 +1,7 @@
 import { setBuildingTheme } from './buildings'
 import { setDoodleTheme } from './doodles'
 
-// TILLFÄLLIGT (testläget): lägger valen från map/themes.js på kartan som redan är igång. Linjerna är CSS-variabler på
+// Lägger kartans tema (map/theme.js) på kartan. Linjerna är CSS-variabler på
 // `root`, kartans lager får nya färger och husen ritas om. Papperet ändras aldrig.
 export function applyMapTheme(map, root, theme) {
   const css = {
