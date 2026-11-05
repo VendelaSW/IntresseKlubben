@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Avatar from './Avatar'
 import { getBlockedUsers, unblockUser } from '../services/contacts'
+import LoadError, { useRetry } from './LoadError'
 
 // De man själv har blockerat, med en knapp för att avblockera. Blockerade
 // personer syns annars ingenstans i appen (inte ens deras profil går att
@@ -10,12 +11,16 @@ function BlockedUsers() {
   const [blocked, setBlocked] = useState([])
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
+  // Listan gick inte att hämta (skilt från fel när man avblockerar, som visas i `error`).
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [attempt, retry] = useRetry()
 
   useEffect(() => {
+    setLoadFailed(false)
     getBlockedUsers()
       .then(setBlocked)
-      .catch(() => setError('Kunde inte hämta dina blockerade användare.'))
-  }, [])
+      .catch(() => setLoadFailed(true))
+  }, [attempt])
 
   async function handleUnblock(userId) {
     setBusyId(userId)
@@ -28,6 +33,15 @@ function BlockedUsers() {
     } finally {
       setBusyId(null)
     }
+  }
+
+  if (loadFailed) {
+    return (
+      <section className="person-list">
+        <h2>Blockerade användare</h2>
+        <LoadError text="Kunde inte hämta dina blockerade användare." onRetry={retry} className="form-error" />
+      </section>
+    )
   }
 
   if (blocked.length === 0 && !error) return null

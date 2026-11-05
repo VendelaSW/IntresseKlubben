@@ -1,4 +1,4 @@
-// Flikarna överst i ett block (Brev, Personer, Klubbar, Events, Moderering): en rad knappar ihop, den valda gul.
+// Flikarna överst i ett block (Personer, Klubbar, Events, Moderering): en rad knappar ihop, den valda gul.
 // `tabs` är [{ id, label, short, count }]: `short` är namnet på mobil, där alla flikar ska få plats på en rad
 // ("Mina" i stället för "Mina klubbar"), och `count` antalet, som visas efter namnet. Noll visas inte, så att bara
 // flikar med något i säger något ("Inbjudningar 2", inte "Förslag (0)"). `onChange(id)` byter flik. Hela namnet,

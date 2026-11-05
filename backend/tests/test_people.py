@@ -4,8 +4,10 @@ kommun, kön och/eller ålder (skrivskyddat, kräver inloggning)."""
 from datetime import date
 
 import pytest
+from sqlalchemy import event
 
 from app.crud.profile import calculate_age
+from app.models.contact import Contact
 from app.models.interest import Interest
 from app.models.profile import GenderEnum
 from app.models.user import User
@@ -69,6 +71,25 @@ def test_filters_by_municipality(client, db, user, municipalities):
     assert names == ["Bob"]
 
 
+def test_several_interests_municipalities_or_genders_find_anyone_with_one_of_them(client, db, user, municipalities):
+    # Flera val i samma filter räcker med ett av dem, och filtren gäller tillsammans.
+    climbing, chess, yoga = Interest(name="Klättring"), Interest(name="Schack"), Interest(name="Yoga")
+    db.add_all([climbing, chess, yoga])
+    db.commit()
+    _create_person(db, "bob", "Bob", interests=[climbing], gender=GenderEnum.man, gender_searchable=True)
+    _create_person(db, "sara", "Sara", interests=[chess], municipality_code="1481",
+                   gender=GenderEnum.kvinna, gender_searchable=True)
+    _create_person(db, "ylva", "Ylva", interests=[yoga], gender=GenderEnum.ickebinar, gender_searchable=True)
+
+    def names(params):
+        return sorted(p["name"] for p in client.get("/users/", params=params).json())
+
+    assert names({"interest_id": [climbing.id, chess.id]}) == ["Bob", "Sara"]
+    assert names({"municipality_code": ["1480", "1481"]}) == ["Bob", "Sara", "Ylva"]
+    assert names({"gender": ["kvinna", "man"]}) == ["Bob", "Sara"]
+    assert names({"gender": ["kvinna", "man"], "municipality_code": "1480"}) == ["Bob"]
+
+
 def test_includes_username_and_interests(client, db, user):
     climbing = Interest(name="Klättring")
     db.add(climbing)
@@ -98,8 +119,9 @@ def test_interests_on_person_cards_have_parent_id(client, db, user):
 
 def test_interests_on_person_cards_have_their_area_and_path(client, db, user):
     # Huvudområdet är det översta i trädet, också två nivåer ner, och ett huvudområde är sitt eget. path är alla
-    # namnen ovanför, också de som personen inte har valt (Fotografering).
-    creative = Interest(name="Skapande")
+    # namnen ovanför, också de som personen inte har valt (Fotografering). area_slug är huvudområdets slug, som
+    # taggens färg följer.
+    creative = Interest(name="Skapande", slug="kreativitet")
     db.add(creative)
     db.flush()
     photo = Interest(name="Fotografering", parent_id=creative.id)
@@ -114,6 +136,7 @@ def test_interests_on_person_cards_have_their_area_and_path(client, db, user):
 
     assert {i["name"]: i["area"] for i in body["interests"]} == {"Skapande": "Skapande", "Porträttfoto": "Skapande"}
     assert {i["name"]: i["path"] for i in body["interests"]} == {"Skapande": [], "Porträttfoto": ["Skapande", "Fotografering"]}
+    assert {i["name"]: i["area_slug"] for i in body["interests"]} == {"Skapande": "kreativitet", "Porträttfoto": "kreativitet"}
 
 
 def test_interests_are_sorted_by_name(client, db, user):
@@ -134,7 +157,7 @@ def test_private_fields_not_in_response(client, db, user):
 
     body = client.get("/users/").json()[0]
 
-    assert set(body) == {"id", "username", "name", "age", "municipality_name", "district", "image_url", "interests"}
+    assert set(body) == {"id", "username", "name", "age", "age_hidden", "municipality_name", "district", "image_url", "interests"}
 
 
 def test_excludes_dismissed_suggestions(client, db, user):
@@ -239,8 +262,9 @@ def test_min_age_above_max_age_gives_400(client, db, user):
 @pytest.mark.parametrize(
     ("params", "message"),
     [
-        ({"min_age": -1}, "Får inte vara lägre än 0"),
-        ({"max_age": 121}, "Får inte vara högre än 120"),
+        # Åldersgränsen 13–100 år (SCRUM-312).
+        ({"min_age": 12}, "Får inte vara lägre än 13"),
+        ({"max_age": 101}, "Får inte vara högre än 100"),
         ({"min_age": "tjugo"}, "Fältet måste vara ett heltal"),
     ],
 )
@@ -263,3 +287,128 @@ def test_filters_combine(client, db, user, municipalities, fixed_today):
     names = [p["name"] for p in client.get("/users/", params=params).json()]
 
     assert names == ["Sara"]
+
+
+# ---------- Ordningen: flest gemensamma intressen först ----------
+
+
+def _interests(db, *names):
+    interests = [Interest(name=name) for name in names]
+    db.add_all(interests)
+    db.commit()
+    return interests
+
+
+def _give_user_interests(db, user, interests):
+    db.add(make_profile(user.id, name="Jag"))
+    user.interests = interests
+    db.commit()
+
+
+def test_people_with_most_interests_in_common_come_first_then_by_name(client, db, user):
+    a, b, c, d = _interests(db, "A", "B", "C", "D")
+    _give_user_interests(db, user, [a, b, c])
+    _create_person(db, "anna", "Anna", interests=[d])  # inget gemensamt
+    _create_person(db, "bo", "Bo", interests=[a])
+    _create_person(db, "cia", "Cia", interests=[a, b])
+    _create_person(db, "dag", "Dag", interests=[a, b, c, d])
+    _create_person(db, "eva", "Eva", interests=[b, c])
+
+    names = [p["name"] for p in client.get("/users/").json()]
+
+    assert names == ["Dag", "Cia", "Eva", "Bo", "Anna"]  # Cia och Eva har lika många: namnordning
+
+
+def test_filters_choose_who_is_in_the_list_but_not_the_order(client, db, user, municipalities):
+    a, b = _interests(db, "A", "B")
+    _give_user_interests(db, user, [a, b])
+    _create_person(db, "ann", "Ann", interests=[a])
+    _create_person(db, "bea", "Bea", interests=[a, b])
+    _create_person(db, "cai", "Cai", interests=[a, b], municipality_code="1481")
+    _create_person(db, "dan", "Dan", interests=[a], municipality_code="1481")
+
+    everyone = [p["name"] for p in client.get("/users/").json()]
+    in_molndal = [p["name"] for p in client.get("/users/", params={"municipality_code": "1481"}).json()]
+
+    assert everyone == ["Bea", "Cai", "Ann", "Dan"]
+    assert in_molndal == ["Cai", "Dan"]
+
+
+def test_limit_and_offset_give_a_page_of_the_sorted_list(client, db, user):
+    # SCRUM-321: Sök visar 20 i taget. Sidan tas ut efter sorteringen på gemensamma intressen, inte i namnordning.
+    a, b, c, d = _interests(db, "A", "B", "C", "D")
+    _give_user_interests(db, user, [a, b, c])
+    _create_person(db, "anna", "Anna", interests=[d])
+    _create_person(db, "bo", "Bo", interests=[a])
+    _create_person(db, "cia", "Cia", interests=[a, b])
+    _create_person(db, "dag", "Dag", interests=[a, b, c, d])
+    _create_person(db, "eva", "Eva", interests=[b, c])
+
+    def page(**params):
+        return [p["name"] for p in client.get("/users/", params=params).json()]
+
+    assert page(limit=2) == ["Dag", "Cia"]
+    assert page(limit=2, offset=2) == ["Eva", "Bo"]
+    assert page(limit=2, offset=4) == ["Anna"]
+    assert page(offset=3) == ["Bo", "Anna"]
+    assert page(limit=2, offset=10) == []
+
+
+@pytest.mark.parametrize("params", [{"limit": 0}, {"limit": 101}, {"offset": -1}])
+def test_invalid_page_is_rejected(client, db, user, params):
+    assert client.get("/users/", params=params).status_code == 422
+
+
+def test_contacts_and_incoming_requests_are_left_out_but_sent_requests_stay(client, db, user):
+    # Kompisar och de som har skickat en förfrågan står redan under Kompisar och Kompisförfrågningar.
+    # Den man själv har skickat en förfrågan till står kvar under Sök, med Avbryt.
+    friend = _create_person(db, "friend", "Friend")
+    asker = _create_person(db, "asker", "Asker")
+    asked = _create_person(db, "asked", "Asked")
+    _create_person(db, "other", "Other")
+
+    def pair(a, b):
+        return f"{min(a, b)}:{max(a, b)}"
+
+    db.add_all([
+        Contact(requester_id=user.id, addressee_id=friend.id, pair_key=pair(user.id, friend.id), status="ACCEPTED"),
+        Contact(requester_id=asker.id, addressee_id=user.id, pair_key=pair(user.id, asker.id), status="PENDING"),
+        Contact(requester_id=user.id, addressee_id=asked.id, pair_key=pair(user.id, asked.id), status="PENDING"),
+    ])
+    db.commit()
+
+    assert [p["name"] for p in client.get("/users/").json()] == ["Asked", "Other"]
+
+
+def test_someone_without_interests_gets_the_list_in_name_order(client, db, user):
+    a, = _interests(db, "A")
+    _give_user_interests(db, user, [])
+    _create_person(db, "bo", "Bo", interests=[a])
+    _create_person(db, "anna", "Anna")
+
+    assert [p["name"] for p in client.get("/users/").json()] == ["Anna", "Bo"]
+
+
+def test_the_number_of_queries_does_not_grow_with_the_number_of_people(client, db, user):
+    a, b = _interests(db, "A", "B")
+    _give_user_interests(db, user, [a, b])
+    for i in range(2):
+        _create_person(db, f"first{i}", f"First{i}", interests=[a])
+    client.get("/users/")  # första anropet efter commit laddar om utgångna attribut: räknas inte
+
+    def count():
+        queries = []
+        listener = lambda *args, **kwargs: queries.append(1)  # noqa: E731
+        event.listen(db.get_bind(), "before_cursor_execute", listener)
+        try:
+            assert client.get("/users/").status_code == 200
+        finally:
+            event.remove(db.get_bind(), "before_cursor_execute", listener)
+        return len(queries)
+
+    few = count()
+    for i in range(6):
+        _create_person(db, f"more{i}", f"More{i}", interests=[a, b])
+    client.get("/users/")
+
+    assert count() == few

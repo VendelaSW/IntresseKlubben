@@ -1,7 +1,7 @@
 /* Kartprototypen (pages/MapPrototype.jsx och dess block och lappar). Laddas
    bara med kartan, som själv laddas först när man öppnar den. */
 
-/* ---------- Kartprototyp: skattkarta på ett gult block ---------- */
+/* ---------- Kartprototyp: skattkarta på ett block i samma färg som startsidan ---------- */
 
 .map-sketch {
   position: relative;
@@ -11,7 +11,7 @@
      verkliga höjden; vh står kvar för äldre webbläsare. */
   height: 100dvh;
   overflow: hidden;
-  background-color: #fbf0a9;
+  background-color: var(--map-paper, var(--color-bg));
   /* Samma perspektiv som MapLibres kamera (synfält ca 37 grader): höjden
      delat med 2 * tan(18,4°) ≈ 1,5 * höjden. Då hamnar de lutade linjerna i
      samma plan som den lutade kartan. */
@@ -36,8 +36,9 @@
   /* Marginallinjen 64 px in från skärmens vänsterkant, som ligger
      60 / 220 ≈ 27,3 % in på ytan. */
   background-image:
-    linear-gradient(to right, transparent calc(27.27% + 64px), rgba(214, 69, 65, 0.55) calc(27.27% + 64px), rgba(214, 69, 65, 0.55) calc(27.27% + 66px), transparent calc(27.27% + 66px)),
-    repeating-linear-gradient(to bottom, transparent 0, transparent 31px, rgba(80, 140, 200, 0.35) 31px, rgba(80, 140, 200, 0.35) 32px);
+    linear-gradient(to right, transparent calc(27.27% + 64px), var(--map-margin, rgba(214, 69, 65, 0.55)) calc(27.27% + 64px), var(--map-margin, rgba(214, 69, 65, 0.55)) calc(27.27% + 66px), transparent calc(27.27% + 66px)),
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--map-gap, 32px) - 1px), var(--map-line, rgba(80, 140, 200, 0.35)) calc(var(--map-gap, 32px) - 1px), var(--map-line, rgba(80, 140, 200, 0.35)) var(--map-gap, 32px)),
+    repeating-linear-gradient(to right, transparent 0, transparent calc(var(--map-gap, 32px) - 1px), var(--map-grid-line, transparent) calc(var(--map-gap, 32px) - 1px), var(--map-grid-line, transparent) var(--map-gap, 32px));
   pointer-events: none;
 }
 
@@ -47,8 +48,8 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  box-shadow: inset 0 0 120px 20px rgba(70, 45, 20, 0.25);
-  background: linear-gradient(to bottom, rgba(70, 45, 20, 0.1), transparent 35%);
+  box-shadow: inset 0 0 140px 30px var(--map-glow, rgba(190, 120, 40, 0.28));
+  background: linear-gradient(to bottom, var(--map-glow-top, rgba(230, 160, 60, 0.12)), transparent 40%);
 }
 
 
@@ -68,6 +69,7 @@
 .map-sketch.is-calm .map-sketch-compass,
 .map-sketch.is-calm .map-sketch-tools,
 .map-sketch.is-calm .map-place-search,
+.map-sketch.is-calm .map-view-tools,
 .map-sketch.is-calm .map-sketch-hint,
 .map-sketch.is-calm .map-levels {
   visibility: hidden;
@@ -100,8 +102,8 @@
   z-index: 3;
   overflow-y: auto;
   background-image:
-    linear-gradient(to right, transparent 64px, rgba(214, 69, 65, 0.55) 64px, rgba(214, 69, 65, 0.55) 66px, transparent 66px),
-    repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--calm-line) - 1px), rgba(80, 140, 200, 0.35) calc(var(--calm-line) - 1px), rgba(80, 140, 200, 0.35) var(--calm-line));
+    linear-gradient(to right, transparent 64px, var(--map-margin, rgba(214, 69, 65, 0.55)) 64px, var(--map-margin, rgba(214, 69, 65, 0.55)) 66px, transparent 66px),
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--calm-line) - 1px), var(--map-line, rgba(80, 140, 200, 0.35)) calc(var(--calm-line) - 1px), var(--map-line, rgba(80, 140, 200, 0.35)) var(--calm-line));
   background-attachment: local;
   color: #3a2f25;
 }
@@ -113,6 +115,8 @@
   font-family: var(--font-heading);
   font-size: 1.45rem;
   line-height: var(--calm-line);
+  /* Långa namn och titlar bryts inom sidan (SCRUM-314). */
+  overflow-wrap: anywhere;
 }
 
 .map-calm-page p,
@@ -377,7 +381,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background-color: #fbf0a9;
+  background-color: var(--map-paper, var(--color-bg));
   perspective: 150vh;
   perspective: 150dvh;
   pointer-events: none;
@@ -421,7 +425,7 @@
   gap: 0.3rem;
   max-width: 11rem;
   padding: 0.2rem 0.55rem 0.2rem 0.3rem;
-  background: var(--color-white);
+  background: var(--color-warm-white);
   border: 1.5px solid #3a2f25;
   border-radius: 4px;
   box-shadow: 2px 2px 0 #3a2f25;
@@ -507,6 +511,175 @@
   font-size: 0.68rem;
 }
 
+/* Klubbar utan nål: en symbol per område (se mapPrototypeAreaSymbols.js). En liten
+   hög med lappar: den översta vit och lite lutad, två färgade snett bakom, och
+   antalet klubbar i en rund stämpel i hörnet. */
+.map-activity.is-area {
+  padding: 0;
+  background: none;
+  border: 0;
+  rotate: -2deg;
+  box-shadow: none;
+}
+
+/* Den översta lappen. Som en vanlig lapp, ovanpå de två bakom. */
+.map-area-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 1.1rem 0.2rem 0.3rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+}
+
+.map-activity.is-area::before,
+.map-activity.is-area::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+}
+
+/* Klubbarnas gula (som appens accent) och kartans blå, så att högen syns mot kartan. */
+.map-activity.is-area::before {
+  background: var(--color-accent);
+  rotate: 8deg;
+  translate: 6px 4px;
+}
+
+.map-activity.is-area::after {
+  background: #9fbfdc;
+  rotate: -6deg;
+  translate: -5px 5px;
+}
+
+/* Events utan nål (SCRUM-294): samma hög, i eventens rosa. */
+.map-activity.is-area.is-event .map-area-card {
+  background: #ffd6e7;
+}
+
+.map-activity.is-area.is-event::before {
+  background: #ff6fae;
+}
+
+.map-activity.is-area.is-event::after {
+  background: #f7e1e1;
+}
+
+.map-activity.is-area.is-event .map-activity-sub {
+  color: #3a2f25;
+}
+
+/* Ens bokade events i listan står i fetstil rosa. */
+.map-area-list-club.is-booked span {
+  color: #b0306e;
+  font-weight: 700;
+}
+
+/* Utzoomat (is-compact) bara ikonen på högen, som lapparna; namnet syns när man hovrar. */
+.map-activity.is-area.is-compact {
+  padding: 0;
+}
+
+.map-activity.is-area.is-compact .map-area-card {
+  padding: 0.25rem 0.55rem 0.25rem 0.25rem;
+}
+
+.map-activity.is-area:hover,
+.map-activity.is-area.is-open {
+  rotate: 0deg;
+  translate: 0 -1px;
+}
+
+.map-activity.is-area.is-open {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.map-area-count {
+  position: absolute;
+  top: -0.55rem;
+  right: -0.55rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.3rem;
+  background: #3a2f25;
+  border: 2px solid var(--color-white);
+  border-radius: 999px;
+  color: var(--color-white);
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Listan med klubbarna i området, under symbolen. */
+.map-area-list {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  width: max-content;
+  max-width: min(16rem, 80vw);
+  max-height: 16rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.5rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 #3a2f25;
+  pointer-events: auto;
+}
+
+.map-area-list-title {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.map-area-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.map-area-list-club {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.3rem 0.4rem;
+  background: none;
+  border: 0;
+  border-radius: 3px;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-area-list-club span {
+  color: var(--color-muted);
+  font-size: var(--text-small);
+  font-weight: 400;
+}
+
+.map-area-list-club:hover,
+.map-area-list-club:focus-visible {
+  background: var(--color-accent-soft);
+}
+
 /* Lappen man nyss visade på kartan (från Klubbar eller Events). */
 .map-activity.is-highlighted {
   z-index: 3;
@@ -549,7 +722,13 @@
   font-weight: 700;
   color: #3a2f25;
   white-space: nowrap;
-  text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
+  text-shadow: 0 0 3px var(--map-paper, var(--color-bg)), 0 0 3px var(--map-paper, var(--color-bg));
+  /* En knapp som ser ut som text, och som släpper igenom musen till kartan (se placeLabelAt). */
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  pointer-events: none;
 }
 
 .map-sketch-label-big {
@@ -605,6 +784,42 @@
   letter-spacing: 0.06em;
 }
 
+/* Antalet användare i området (SCRUM-82) efter landskapens, länens och
+   kommunernas namn: en liten gul bricka med en person, som antalet på
+   flikarna (.filter-tab-count). I vanlig text och utan versaler, så att
+   siffran är lätt att läsa. Den följer namnets storlek, så att den inte blir
+   högre än raden i landskapslistan på mobil. Räknas med när namnen placeras
+   (countBadgeWidth i MapPrototype.jsx). */
+.map-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  margin-left: 0.4em;
+  padding: 0 5px;
+  vertical-align: middle;
+  border: 1px solid rgba(58, 47, 37, 0.55);
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: max(9px, 0.85em);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.map-count-badge svg {
+  width: 1em;
+  height: 1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
 /* Linjer från landskapsnamn som fått stå utanför sitt landskap (små landskap
    på smala skärmar) till landskapet, i samma rödbruna penna som gränserna. */
 .map-sketch-landskap-pointers {
@@ -639,8 +854,8 @@
   padding: 0 0.35em;
   line-height: 1.1;
   border-radius: 999px;
-  background: rgba(251, 240, 169, 0.85);
-  box-shadow: 0 0 6px 3px rgba(251, 240, 169, 0.85);
+  background: color-mix(in srgb, var(--map-paper, var(--color-bg)) 85%, transparent);
+  box-shadow: 0 0 6px 3px color-mix(in srgb, var(--map-paper, var(--color-bg)) 85%, transparent);
 }
 
 
@@ -813,7 +1028,7 @@
   font-family: var(--font-heading);
   font-size: 1.3rem;
   line-height: 1.1;
-  text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
+  text-shadow: 0 0 3px var(--map-paper, var(--color-bg)), 0 0 3px var(--map-paper, var(--color-bg));
   pointer-events: none;
 }
 
@@ -856,13 +1071,22 @@
   min-width: 0;
 }
 
-/* Växeln Karta | Att göra högst upp till vänster. Syns i båda lägena: ovanpå
-   att göra-sidan (z-index 3) men under ett öppet block (5). Nålknapparna (bara
-   på kartan) ligger på raden under. */
-.map-view-toggle {
+/* Översta raden till vänster: växeln Karta | Att göra, Min kommun och Hitta mig.
+   Syns i båda lägena: ovanpå att göra-sidan (z-index 3) men under ett öppet
+   block (5). Min kommun och Hitta mig bara på kartan (se .is-calm). Nålknapparna
+   (bara på kartan) ligger på raden under. */
+.map-view-row {
   position: relative;
   z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   pointer-events: auto;
+}
+
+.map-view-tools {
+  display: flex;
+  gap: 0.4rem;
 }
 
 .map-sketch-tools {
@@ -885,8 +1109,8 @@
   flex-wrap: wrap;
 }
 
-/* Sökrutan "Sök en ort" och Min kommun (MapPlaceSearch, SCRUM-220): under
-   växeln Karta | Att göra, med samma bläckkant och hårda skugga som knapparna.
+/* Sökrutan "Sök en ort" (MapPlaceSearch, SCRUM-220): under växeln
+   Karta | Att göra, med samma bläckkant och hårda skugga som knapparna.
    Förslagen fälls ut under rutan. */
 .map-place-search {
   position: relative;
@@ -900,20 +1124,6 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-}
-
-.map-place-search-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.3rem 0.6rem;
-  border: 1.5px solid #3a2f25;
-  border-radius: 4px;
-  background: var(--color-white);
-  box-shadow: 2px 2px 0 #3a2f25;
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: var(--text-small);
-  line-height: 1.2;
 }
 
 .map-place-search-list {
@@ -967,20 +1177,136 @@
   font-size: var(--text-small);
 }
 
-/* På pekskärm är fältet och Min kommun lättare att träffa (se CONTRIBUTING,
-   "Mobil"): fältet blir högre, och knappen får en osynlig yta (.touch-target). */
-@media (pointer: coarse) {
-  .map-place-search-input {
-    min-height: 44px;
-  }
+/* Besked under sökrutan: en lapp som knapparna, så att det går att läsa ovanpå kartan. */
+.map-place-search-message {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.4rem 0 0;
+  padding: 0.35rem 0.6rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #3a2f25;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  line-height: 1.3;
 }
 
-.map-place-search-message {
-  margin: 0.3rem 0 0;
+.map-place-search-message-close {
+  flex: none;
+  margin: 0;
+  padding: 0 0.15rem;
+  border: none;
+  background: none;
   color: #3a2f25;
-  font-family: var(--font-heading);
-  font-size: 1.15rem;
-  text-shadow: 0 0 3px #fbf0a9, 0 0 3px #fbf0a9;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Var man är, efter Hitta mig: en liten ritad figur, som inte tar några klick från kartan. */
+.map-you {
+  width: 30px;
+  height: 30px;
+  z-index: 2;
+  pointer-events: none;
+  filter: drop-shadow(2px 2px 0 #3a2f25);
+}
+
+.map-you.is-hidden {
+  display: none;
+}
+
+.map-you svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.map-you svg,
+.map-find-me-icon {
+  fill: #f4c430;
+  stroke: #3a2f25;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+/* Pilarna vid skärmens kant till det som är nära men utanför skärmen (se
+   mapPrototypeNearby.js), på samma papper som lapparna: vitt för klubbar, rosa för events. */
+.map-nearby {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.4rem 0.15rem 0.25rem;
+  background: var(--color-white);
+  border: 1.5px solid #3a2f25;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #3a2f25;
+  color: #3a2f25;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.map-nearby.is-event {
+  background: #ffd6e7;
+}
+
+.map-nearby:hover,
+.map-nearby:focus-visible {
+  box-shadow: none;
+  translate: 2px 2px;
+}
+
+.map-nearby img {
+  width: 18px;
+  height: 18px;
+}
+
+.map-nearby-arrow {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  fill: none;
+  stroke: #3a2f25;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Knappar med bara en ritad ikon: växeln Karta | Att göra och Min kommun (SCRUM-330, SCRUM-331). */
+.map-tool-icon-only {
+  padding: 0.2rem 0.45rem;
+}
+
+.map-tool-icon {
+  display: block;
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-find-me-icon {
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.map-find-me:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .map-tool {
@@ -990,7 +1316,7 @@
   padding: 0.3rem 0.7rem;
   border: 1.5px solid #3a2f25;
   border-radius: 4px;
-  background: var(--color-white);
+  background: var(--color-warm-white);
   box-shadow: 2px 2px 0 #3a2f25;
   color: var(--color-text);
   font-family: var(--font-body);
@@ -1052,11 +1378,18 @@
    lapparna. (:not(:empty) behövs, annars vinner MapLibres egen skugga, som
    har samma specificitet men laddas efter den här filen.) */
 .map-sketch .maplibregl-ctrl-group:not(:empty) {
-  background: var(--color-white);
+  background: var(--color-warm-white);
   border: 1.5px solid #3a2f25;
   border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
   box-shadow: 3px 3px 0 #3a2f25;
   overflow: hidden;
+}
+
+/* Håll in − för hela Sverige: inget textval eller meny från telefonen under tiden. */
+.map-sketch .maplibregl-ctrl-zoom-out {
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 .map-sketch .maplibregl-ctrl-group button + button {
@@ -1111,7 +1444,13 @@
 }
 
 /* Sidornas lappar (Brev, Personer, Klubbar, Events): som profillappen, med
-   appens ikoner. Den öppna sidans lapp är nedtryckt. */
+   appens ikoner. Den öppna sidans lapp är nedtryckt. Kartans knapp och
+   bubblan finns bara i mobilens meny (se slutet av filen). */
+.map-nav-blob,
+.map-page-widget.map-page-widget-home {
+  display: none;
+}
+
 .map-page-widgets {
   display: flex;
   flex-wrap: wrap;
@@ -1125,7 +1464,7 @@
   gap: 0.35rem;
   height: 52px;
   padding: 0 0.7rem 0 0.45rem;
-  background: var(--color-white);
+  background: var(--color-warm-white);
   border: 1.5px solid #3a2f25;
   border-radius: 12px 225px 12px 255px / 255px 12px 225px 12px;
   box-shadow: 3px 3px 0 #3a2f25;
@@ -1133,6 +1472,11 @@
   font-family: var(--font-heading);
   font-size: 1.35rem;
   cursor: pointer;
+}
+
+/* Kartans sökikon i samma varma vita som de andra knapparna på kartan (gul när sökningen är öppen). */
+.map-place-search .search-toggle-row .search-toggle:not(.is-open) {
+  background: var(--color-warm-white);
 }
 
 .map-page-widget:hover,
@@ -1256,7 +1600,7 @@
      om lappen. Smalare än så blir den ändå när raden är smal (flexraden). */
   max-width: 16rem;
   padding: 0.3rem 0.35rem 0.3rem 0.9rem;
-  background: var(--color-white);
+  background: var(--color-warm-white);
   border: 1.5px solid #3a2f25;
   border-radius: 225px 12px 255px 12px / 12px 255px 12px 225px;
   box-shadow: 3px 3px 0 #3a2f25;
@@ -1273,10 +1617,10 @@
 }
 
 /* Menyn: en liten lapp under profillappen, högerställd. Ligger ovanpå det som
-   finns under (nivåknapparna Sverige–Kommun) i stället för i flödet: annars
-   gjorde den raden bredare, så att lapparna Brev–Events flyttade sig åt
-   vänster, och knuffade ner nivåknapparna. Högerkanten i linje med
-   nivåknapparnas, som sitter 44 px längre ut än profillappen (där
+   finns under (områdets namn) i stället för i flödet: annars gjorde den raden
+   bredare, så att lapparna Brev–Events flyttade sig åt vänster, och knuffade
+   ner namnet. Högerkanten i linje med namnets, som sitter 44 px längre ut än
+   profillappen (där
    zoomknapparna står ovanför, se margin-right på .map-top-widgets och
    right på .map-profile-wrap på mobil), så att menyn täcker dem helt i stället
    för att de sticker ut vid sidan. */
@@ -1460,6 +1804,32 @@
   min-height: 0;
 }
 
+/* Ett formulär som ska få plats utan scroll (.form-fit, t.ex. skapa klubb)
+   fyller hela blockets höjd: sidan, kortet runt formuläret (.sheet-form, eller
+   .profile-edit i Redigera profil) och formuläret växer,
+   och fälten som kan växa (beskrivningen, kartan) tar det som blir över. Får det
+   inte plats (låg skärm, mobil) scrollar sidan som vanligt. */
+.map-pad-page:has(.form-fit),
+.map-pad-page:has(.form-fit) .map-pad-app-page,
+.map-pad-page:has(.form-fit) .app-section,
+.map-pad-page:has(.form-fit) .sheet-form,
+.map-pad-page:has(.form-fit) .profile-edit {
+  display: flex;
+  flex-direction: column;
+}
+
+.map-pad-page:has(.form-fit) .map-pad-app-page,
+.map-pad-page:has(.form-fit) .app-section,
+.map-pad-page:has(.form-fit) .sheet-form,
+.map-pad-page:has(.form-fit) .profile-edit {
+  flex: 1 0 auto;
+}
+
+/* Redigera profil fyller blockets bredd också, som skapa klubb och event. */
+.map-pad-page .card-wide.profile-edit {
+  max-width: none;
+}
+
 /* Knapparna i blocken: tre sorter, i en och samma storlek, så att det inte
    blandas stora och små knappar på samma sida (t.ex. Spara, Avbryt, Byt
    lösenord och Radera konto på samma rad i Redigera profil).
@@ -1608,11 +1978,6 @@
   gap: 0.4rem;
 }
 
-.map-levels .map-tool {
-  min-width: 6.6rem;
-  justify-content: center;
-}
-
 /* Med ett block öppet göms snabbzoomen (som på mobil, se nedan): man läser i
    blocket och navigerar inte på kartan, och namnet på området skulle annars
    hamna halvt bakom blocket. */
@@ -1624,7 +1989,7 @@
   max-width: 12rem;
   margin: 0.3rem 0 0;
   padding: 0.15rem 0.6rem;
-  background: var(--color-white);
+  background: var(--color-warm-white);
   border: 1.5px solid #3a2f25;
   border-radius: 4px;
   box-shadow: 2px 2px 0 #3a2f25;
@@ -1649,7 +2014,7 @@
     display: contents;
   }
 
-  .map-view-toggle,
+  .map-view-row,
   .map-sketch-tools,
   .map-place-search,
   .map-sketch-hint,
@@ -1663,13 +2028,13 @@
 
   /* Knapparna från kanten (inte efter marginallinjen), mindre, och utan att
      krocka med zoomknapparna uppe till höger. Tar hänsyn till skärmens hack. */
-  .map-view-toggle {
+  .map-view-row {
     top: calc(0.6rem + env(safe-area-inset-top));
     left: calc(0.6rem + env(safe-area-inset-left));
   }
 
   /* I att göra-läget syns loggan i hörnet, så växeln står bredvid den. */
-  .map-sketch.is-calm .map-view-toggle {
+  .map-sketch.is-calm .map-view-row {
     left: calc(4rem + env(safe-area-inset-left));
   }
 
@@ -2045,9 +2410,305 @@
   padding-inline: 0.75rem 1rem;
 }
 
+/* Sökikonen nere i vänstra hörnet på mobil (PadFloatAction med start), mitt emot skapa-knappen och nära tummen.
+   Öppen blir sök och filter en ruta längs nederkanten, ovanför ikonen, och skapa-knappen göms så länge. Listorna i
+   filtren öppnar sig uppåt, eftersom det inte finns plats under. */
+.map-pad-float-start {
+  right: auto;
+  left: 3rem;
+}
+
+@media (max-width: 767px) {
+  .map-pad-float-start {
+    left: 1.2rem;
+  }
+
+  .map-pad-float-start:has(.search-toggle.is-open) {
+    right: 1.2rem;
+  }
+
+  .map-pad-float-start .search-toggle-row {
+    flex-direction: column-reverse;
+  }
+
+  .map-pad-float-start .search-toggle-panel {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.7rem;
+    border: 1.5px solid var(--color-ink);
+    border-radius: 10px;
+    background: var(--color-white);
+    box-shadow:
+      2px 2px 0 var(--color-ink),
+      0 6px 14px color-mix(in srgb, var(--color-ink) 18%, transparent);
+  }
+
+  .map-pad:has(.map-pad-float-start .search-toggle.is-open) .map-pad-float:not(.map-pad-float-start) {
+    display: none;
+  }
+
+  .map-pad-float-start .municipality-picker-list,
+  .map-pad-float-start .sort-menu-list {
+    top: auto;
+    bottom: calc(100% + 4px);
+  }
+}
+
 /* TILLFÄLLIGT: Gå med och Avböj på de nya klubbkorten (testläget) lite smalare, så att båda och pilen får plats
    på smala kort. */
 .map-pad .club-card-buttons .primary-button,
 .map-pad .club-card-buttons .secondary-button {
   padding-inline: 0.6rem;
+}
+
+/* TILLFÄLLIGT (testläget, väljaren Karta: ortnamn), se mapThemes.js. */
+.map-sketch[data-map-names='versaler'] .map-sketch-label {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.map-sketch[data-map-names='lapp'] .map-sketch-label {
+  padding: 0.05rem 0.45rem;
+  border: 1.5px solid #3a2f25;
+  background: #fffdf6;
+  box-shadow: 2px 2px 0 #3a2f25;
+  font-size: 1.05rem;
+  text-shadow: none;
+}
+
+.map-sketch[data-map-names='stora'] .map-sketch-label {
+  font-size: 1.85rem;
+}
+
+.map-sketch[data-map-names='sma'] .map-sketch-label {
+  font-size: 1.05rem;
+}
+
+.map-sketch[data-map-names='bla'] .map-sketch-label {
+  color: #1f4a94;
+}
+
+.map-sketch[data-map-names='rod'] .map-sketch-label {
+  color: #a32d2d;
+}
+
+/* ---------- Mobilens meny ---------- */
+
+/* På telefonen blir sidornas lappar en flytande, halvgenomskinlig meny längst
+   ned med bara ikonerna (namnen finns för skärmläsare): Brev, Medlemmar,
+   kartan, Klubbar och Events. Kartan (inget block öppet) är en större gul
+   knapp i mitten. En gul bubbla (.map-nav-blob) glider till den öppna sidan
+   och töjs ut på vägen; på kartan växer den till en ring runt knappen.
+   Menyn ligger nära nederkanten, så att sidorna får mer plats. Källhänvisningen till kartan står ovanför den, och
+   blocken går ända ner under den. */
+@media (max-width: 767px) {
+  .map-page-widgets {
+    left: calc(18px + env(safe-area-inset-left));
+    right: calc(18px + env(safe-area-inset-right));
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
+    height: 64px;
+    box-sizing: border-box;
+    padding: 6px;
+    border: 1.5px solid color-mix(in srgb, var(--color-ink) 35%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-warm-white) 60%, transparent);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    backdrop-filter: blur(12px) saturate(1.2);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--color-ink) 22%, transparent);
+  }
+
+  .map-page-widget {
+    z-index: 1;
+    justify-content: center;
+    height: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    box-shadow: none;
+  }
+
+  .map-page-widget:hover,
+  .map-page-widget.is-open {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .map-page-widget-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .map-page-widget-icon {
+    width: 34px;
+    height: 32px;
+    aspect-ratio: auto;
+  }
+
+  .map-page-widget.map-page-widget-home {
+    display: flex;
+    z-index: 2;
+    justify-self: center;
+    align-self: center;
+    width: 64px;
+    height: 64px;
+    margin: -9px 0 -3px;
+    border: 2px solid var(--color-ink);
+    border-radius: 50%;
+    background: var(--color-accent);
+  }
+
+  .map-page-widget-home .map-page-widget-icon {
+    width: 42px;
+    height: 38px;
+  }
+
+  .map-page-widgets .map-widget-badge {
+    top: 2px;
+    right: 6px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-color: var(--color-white);
+    font-size: 10px;
+  }
+
+  /* Fokusramen i bläck, eftersom den gula inte syns mot den gula knappen och bubblan. */
+  .map-page-widget:focus-visible {
+    outline-color: var(--color-ink);
+  }
+
+  /* Bubblan mitt i den öppna sidans ruta: rutorna är en femtedel av menyns
+     bredd innanför kanten (6px) och mellanrummen (4 × 2px). */
+  .map-nav-blob {
+    --nav-cell: calc((100% - 20px) / 5);
+    display: block;
+    position: absolute;
+    z-index: 0;
+    top: 6px;
+    left: calc(6px + (var(--nav-cell) + 2px) * var(--nav-index) + var(--nav-cell) / 2 - 24px);
+    width: 48px;
+    height: 48px;
+    box-sizing: border-box;
+    border: 1.5px solid color-mix(in srgb, var(--color-ink) 25%, transparent);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-accent) 60%, transparent);
+    transition:
+      left 0.5s cubic-bezier(0.5, 1.5, 0.45, 1),
+      top 0.5s cubic-bezier(0.5, 1.5, 0.45, 1),
+      width 0.5s cubic-bezier(0.5, 1.5, 0.45, 1),
+      height 0.5s cubic-bezier(0.5, 1.5, 0.45, 1),
+      margin 0.5s cubic-bezier(0.5, 1.5, 0.45, 1),
+      opacity 0.2s ease;
+  }
+
+  /* På kartan: en ring runt den gula knappen. */
+  .map-nav-blob.is-home {
+    top: -10px;
+    width: 76px;
+    height: 76px;
+    margin-left: -14px;
+  }
+
+  .map-nav-blob.is-hidden {
+    opacity: 0;
+  }
+
+  .map-nav-blob.is-goo-a {
+    animation: map-nav-goo-a 0.5s ease-out;
+  }
+
+  .map-nav-blob.is-goo-b {
+    animation: map-nav-goo-b 0.5s ease-out;
+  }
+
+  /* Blocket går under menyn, så att det skymtar igenom, med plats att
+     scrolla fram det sista ovanför menyn. Kompassen och tipset ovanför den. */
+  .map-pad-stage {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  /* Raka hörn nertill: det handritade, snedställda hörnet nere till vänster (se .map-pad-page) ser avklippt ut när
+     blocket går ner under menyn. */
+  .map-pad-page {
+    padding-bottom: 5.5rem;
+    border-radius: 6px 6px 0 0;
+  }
+
+  /* Sökikonen och skapa-knappen (se .map-pad-float) ovanför menyn: menyns överkant ligger 72px över skärmens
+     nederkant och blockets nederkant 12px över den. Sidan får plats att scrolla fram det sista ovanför båda. */
+  .map-pad-float,
+  .map-pad-float-start {
+    bottom: 70px;
+  }
+
+  .map-pad:has(.map-pad-float:not(:empty)) .map-pad-page {
+    padding-bottom: 8rem;
+  }
+
+  .map-sketch-compass {
+    bottom: calc(86px + env(safe-area-inset-bottom));
+  }
+
+  .map-sketch-hint {
+    bottom: calc(156px + env(safe-area-inset-bottom));
+  }
+
+  /* Källhänvisningen till kartan (som måste synas) ovanför menyn i stället för bakom den. */
+  .map-sketch .maplibregl-ctrl-bottom-right {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Två likadana animationer, så att bytet mellan dem spelar om den. */
+@keyframes map-nav-goo-a {
+  0%,
+  100% {
+    scale: 1 1;
+  }
+  30% {
+    scale: 1.55 0.72;
+  }
+  60% {
+    scale: 0.88 1.12;
+  }
+  80% {
+    scale: 1.05 0.96;
+  }
+}
+
+@keyframes map-nav-goo-b {
+  0%,
+  100% {
+    scale: 1 1;
+  }
+  30% {
+    scale: 1.55 0.72;
+  }
+  60% {
+    scale: 0.88 1.12;
+  }
+  80% {
+    scale: 1.05 0.96;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-nav-blob {
+    transition: none;
+  }
+
+  .map-nav-blob.is-goo-a,
+  .map-nav-blob.is-goo-b {
+    animation: none;
+  }
 }

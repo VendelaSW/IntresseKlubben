@@ -176,6 +176,21 @@ def accepted_contact_ids(db: Session, user_id: int) -> set[int]:
     return {c.addressee_id if c.requester_id == user_id else c.requester_id for c in rows}
 
 
+def pending_request_ids(db: Session, user_id: int) -> set[int]:
+    """Id:n på dem user_id har en obesvarad förfrågan till eller från, så att de inte föreslås en gång till."""
+    rows = (db.query(Contact)
+            .filter(Contact.status == "PENDING",
+                    or_(Contact.requester_id == user_id, Contact.addressee_id == user_id))
+            .all())
+    return {c.addressee_id if c.requester_id == user_id else c.requester_id for c in rows}
+
+
+def incoming_request_ids(db: Session, user_id: int) -> set[int]:
+    """Id:n på dem som har skickat user_id en obesvarad förfrågan."""
+    rows = db.query(Contact.requester_id).filter(Contact.status == "PENDING", Contact.addressee_id == user_id).all()
+    return {row.requester_id for row in rows}
+
+
 def blocked_by_me_ids(db: Session, user_id: int) -> set[int]:
     """Id:n på dem user_id själv har blockerat, inte dem som har blockerat
     user_id. För varningar som bara den som blockerat ska se (t.ex. i events
@@ -207,3 +222,14 @@ def unblock_user(db: Session, blocker_id: int, blocked_id: int) -> None:
         raise ContactError(404, "Block not found")
     db.delete(contact)
     db.commit()
+
+
+def mutual_contact_names(db: Session, user_id: int, other_id: int, hidden: set[int]) -> list[str]:
+    """Namnen på dem som är kompis med både user_id och other_id (förtroendesignal på en profil, SCRUM-219), utan
+    dem i hidden. Bara user_id:s egna kompisar, så att man aldrig ser främlingar ur other_id:s kontaktlista.
+    Bara för en profil i taget: i en lista med personer blir det frågor per person, och då behövs en samlad fråga."""
+    ids = (accepted_contact_ids(db, user_id) & accepted_contact_ids(db, other_id)) - hidden - {user_id, other_id}
+    if not ids:
+        return []
+    users = db.query(User).options(selectinload(User.profile)).filter(User.id.in_(ids)).order_by(User.id)
+    return [(u.profile.name if u.profile else None) or u.username for u in users]

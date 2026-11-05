@@ -8,6 +8,11 @@ anmälts och om hen är eller har varit avstängd.
 POST /moderation/reports/{id}/handled - markerar anmälan som hanterad.
 DELETE /moderation/reports/{id}/handled - flyttar tillbaka den till de nya.
 
+POST /moderation/reports/{id}/warning - varnar den anmälda (SCRUM-268): personen får en
+notis om vilken regel som bröts, med moderatorns valfria meddelande, och anmälan markeras
+som hanterad. En anmälan ger högst en varning. Varningarna syns i historiken bredvid
+avstängningarna.
+
 PUT /moderation/users/{id}/suspension - stänger av användaren i 1, 7 eller 30
 dagar, eller tills vidare (days: null). En avstängning som redan gäller ersätts.
 DELETE /moderation/users/{id}/suspension - häver avstängningen.
@@ -22,6 +27,7 @@ from sqlalchemy.orm import Session
 from app.auth.security import get_current_user, require_moderator, require_profile
 from app.core import error_messages as msg
 from app.crud.moderation import (
+    has_warning,
     is_active,
     lift_suspension,
     list_reports,
@@ -29,6 +35,8 @@ from app.crud.moderation import (
     set_handled,
     suspend_user,
     suspension_history,
+    warn_user,
+    warning_history,
 )
 from app.db.session import get_db
 from app.models.group import Group
@@ -42,6 +50,8 @@ from app.schemas.moderation import (
     ReportedUser,
     SuspendIn,
     SuspensionOut,
+    WarningOut,
+    WarnIn,
 )
 
 router = APIRouter(
@@ -61,6 +71,12 @@ def _suspension_out(suspension) -> SuspensionOut:
     )
 
 
+def _warning_out(warning) -> WarningOut:
+    return WarningOut(
+        report_id=warning.report_id, created_at=warning.created_at, reason=warning.reason, message=warning.message
+    )
+
+
 def _group_name(db: Session, report: Report) -> str | None:
     model = {ReportTarget.group_message.value: GroupMessage, ReportTarget.group_post.value: GroupPost}.get(
         report.target_type
@@ -75,6 +91,7 @@ def read_reports(handled: bool = Query(False), db: Session = Depends(get_db)):
     reports = list_reports(db, handled)
     reported_ids = {r.reported_user_id for r in reports if r.reported_user_id is not None}
     history = suspension_history(db, reported_ids)
+    warnings = warning_history(db, reported_ids)
     counts = report_counts(db, reported_ids)
     out = []
     for report in reports:
@@ -89,6 +106,7 @@ def read_reports(handled: bool = Query(False), db: Session = Depends(get_db)):
                 report_count=counts.get(user.id, 0),
                 suspension=_suspension_out(current) if current else None,
                 previous_suspensions=[_suspension_out(s) for s in suspensions if s is not current],
+                warnings=[_warning_out(w) for w in warnings[user.id]],
             )
         reporter = db.get(User, report.reporter_id) if report.reporter_id is not None else None
         moderator = db.get(User, report.handled_by) if report.handled_by is not None else None
@@ -128,6 +146,18 @@ def mark_handled(report_id: int, current_user: User = Depends(get_current_user),
 def mark_new(report_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     set_handled(db, _report_or_404(db, report_id), current_user.id, handled=False)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/reports/{report_id}/warning", response_model=WarningOut, status_code=status.HTTP_201_CREATED)
+def warn(report_id: int, data: WarnIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    report = _report_or_404(db, report_id)
+    if report.reported_user_id is None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg.WARNING_NO_PERSON)
+    if report.reported_user_id == current_user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg.CANNOT_WARN_SELF)
+    if has_warning(db, report.id):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg.WARNING_ALREADY_GIVEN)
+    return _warning_out(warn_user(db, report, data.reason.value, data.message, current_user.id))
 
 
 def _user_or_404(db: Session, user_id: int) -> User:

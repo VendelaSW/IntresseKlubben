@@ -27,6 +27,13 @@ export async function markNotificationRead(id) {
   window.dispatchEvent(new Event(NOTIFICATIONS_READ))
 }
 
+// Notiserna har ändrats någon annanstans, t.ex. när en ansökan har besvarats (backend räknar då notisen om den som
+// läst): hämta om listan och märket.
+export function notificationsChanged() {
+  invalidate(NOTIFICATIONS_KEY)
+  window.dispatchEvent(new Event(NOTIFICATIONS_READ))
+}
+
 // Markerar alla notiser som lästa ("Markera alla som lästa").
 export async function markNotificationsRead() {
   await apiPost('/notifications/read')

@@ -230,4 +230,6 @@ node_modules/
 # originalen och HandBrake-filerna man arbetar med ligger kvar på datorn.
 frontend/public/video/*
 !frontend/public/video/*_fix.mp4
-!frontend/public/video/intervju1_srgb.mp4
+!frontend/public/video/intervju/
+frontend/public/video/intervju/*
+!frontend/public/video/intervju/*_fix.mp4

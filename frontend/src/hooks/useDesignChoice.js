@@ -2,8 +2,8 @@ import { useSyncExternalStore } from 'react'
 
 // TILLFÄLLIGT: vilket utseende som är valt i testpanelen för något som jämförs (se
 // devtools/PadBackgroundPicker.jsx), t.ex. useDesignChoice('clubCard'). Valet ligger som ett data-attribut på
-// <html> (data-club-card="3"). Utan val, och alltid utanför testläget (där finns ingen testpanel som sätter
-// attributen), är svaret 'pre-dev': utseendet som gäller nu. Tas bort när utseendena är valda.
+// <html> (data-club-card="3"). Utanför testläget kommer valen från chosenDesign.js. Utan val är svaret 'pre-dev'.
+// Tas bort när de andra utseendena är borttagna.
 export const PRE_DEV = 'pre-dev'
 
 function subscribe(onChange) {

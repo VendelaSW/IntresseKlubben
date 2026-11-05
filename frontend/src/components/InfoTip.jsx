@@ -1,0 +1,92 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+
+// En liten i-ikon med en förklaring (SCRUM-315), i stället för en hjälptext som alltid tar plats. Förklaringen syns
+// när man håller muspekaren över ikonen, när man tabbar till den och när man trycker på den, och den läses upp av
+// skärmläsare. Rutan ligger i webbläsarens översta lager (popover), så att den inte klipps av blocket eller en
+// popup. `items` ([{ label, text }]), i stället för `text`, gör förklaringen till en lista med
+// rubriken i fetstil och luft emellan, t.ex. vad varje val i en fråga betyder.
+function InfoTip({ text, items }) {
+  const [open, setOpen] = useState(false)
+  // Tryckt på (inte bara muspekaren över): då stängs den inte när pekaren lämnar ikonen.
+  const pinned = useRef(false)
+  const buttonRef = useRef(null)
+  const bubbleRef = useRef(null)
+
+  function close() {
+    pinned.current = false
+    setOpen(false)
+  }
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const bubble = bubbleRef.current
+    bubble.showPopover?.()
+    const icon = buttonRef.current.getBoundingClientRect()
+    const { width, height } = bubble.getBoundingClientRect()
+    const margin = 8
+    const below = icon.bottom + 6
+    const top = below + height > window.innerHeight - margin ? icon.top - height - 6 : below
+    // I ett formulär som är krympt (zoom, se useFitToHeight) räknas top och left i rutans egna, krympta mått.
+    const zoom = bubble.currentCSSZoom ?? 1
+    bubble.style.top = `${Math.max(margin, top) / zoom}px`
+    const centered = icon.left + icon.width / 2 - width / 2
+    bubble.style.left = `${Math.max(margin, Math.min(centered, window.innerWidth - width - margin)) / zoom}px`
+  }, [open])
+
+  // Rutan står still medan sidan rör sig, så den stängs när man scrollar. Esc stänger bara förklaringen, inte ett öppet
+  // block eller en popup: lyssnaren ligger på hela sidan (rutan kan vara öppnad med muspekaren, utan fokus på knappen)
+  // och i capture, så att den hinner före de andra.
+  useEffect(() => {
+    if (!open) return undefined
+    function onKeyDown(event) {
+      if (event.key !== 'Escape') return
+      event.stopPropagation()
+      event.preventDefault()
+      close()
+    }
+    window.addEventListener('scroll', close, true)
+    document.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      document.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [open])
+
+  return (
+    <span className="info-tip">
+      <button
+        ref={buttonRef}
+        type="button"
+        className="info-tip-button"
+        aria-label={`Förklaring: ${items ? items.map((i) => `${i.label}: ${i.text}`).join(' ') : text}`}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => !pinned.current && setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={close}
+        onClick={() => {
+          pinned.current = !pinned.current
+          setOpen(pinned.current)
+        }}
+      >
+        {/* Ett ritat litet i, så att det inte ser ut som ett I eller ett snedstreck i något typsnitt. */}
+        <svg viewBox="0 0 16 16" width="100%" height="100%" aria-hidden="true">
+          <circle cx="8" cy="3.9" r="1.3" fill="currentColor" />
+          <path d="M8 7.8v4.6" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+        </svg>
+      </button>
+      {open && (
+        <span ref={bubbleRef} className="info-tip-bubble" popover="manual" aria-hidden="true">
+          {items
+            ? items.map((i) => (
+                <span key={i.label} className="info-tip-item">
+                  <strong>{i.label}</strong> {i.text}
+                </span>
+              ))
+            : text}
+        </span>
+      )}
+    </span>
+  )
+}
+
+export default InfoTip

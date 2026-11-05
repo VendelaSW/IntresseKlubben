@@ -1,6 +1,7 @@
 import enum
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.orm import relationship
 
 from app.db.base import Base
 from app.models.email_token import utc_now
@@ -11,6 +12,17 @@ class NotificationKind(str, enum.Enum):
 
     event_cancelled = "event_cancelled"  # eventet man skulle gå på är inställt (raderat)
     event_changed = "event_changed"  # eventet har fått ny tid och/eller plats
+    group_join_request = "group_join_request"  # någon ansöker till ens klubb (till ägaren)
+    group_request_approved = "group_request_approved"  # ens ansökan till en klubb är godkänd
+    group_request_declined = "group_request_declined"  # ens ansökan till en klubb fick nej
+    group_role_changed = "group_role_changed"  # man har blivit (eller inte längre är) administratör i en klubb
+    group_member_removed = "group_member_removed"  # man har tagits bort ur en klubb
+    group_deleted = "group_deleted"  # klubben man var med i har tagits bort av ägaren
+    event_join_request = "event_join_request"  # någon ansöker till ens event (till skaparen och medarrangörerna)
+    event_request_approved = "event_request_approved"  # ens ansökan till ett event är godkänd
+    event_request_declined = "event_request_declined"  # ens ansökan till ett event fick nej
+    event_host_changed = "event_host_changed"  # man har blivit (eller inte längre är) medarrangör
+    moderation_warning = "moderation_warning"  # en moderator har varnat en för att ha brutit mot reglerna
 
 
 class Notification(Base):
@@ -39,9 +51,15 @@ class Notification(Base):
     quote_by = Column(String(100), nullable=True)
     # Sidan i appen notisen gäller, t.ex. "/events?event=3". None om det inte finns något att visa.
     link = Column(String(200), nullable=True)
+    # Personen notisen gäller, t.ex. den som ansökte eller som svarade på ens ansökan, så att Notiser kan visa hens
+    # profilbild. None när notisen inte gäller någon särskild (ett inställt event, en varning från en moderator, som
+    # inte ska avslöjas) eller när kontot har raderats.
+    actor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     # I Python och inte i databasen, så att tiden har tidszon även i testerna (SQLite).
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
     read_at = Column(DateTime(timezone=True), nullable=True)
+
+    actor = relationship("User", foreign_keys=[actor_id])
 
     @property
     def read(self) -> bool:

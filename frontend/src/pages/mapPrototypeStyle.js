@@ -39,6 +39,66 @@ export function inSweden(lng, lat) {
   return inside
 }
 
+// Ligger rektangeln helt i Sverige ('inside'), helt utanför ('outside') eller
+// över gränsen ('border')? Ett test per kartruta i stället för ett per hus:
+// inSweden går igenom hela konturen och kostade mest när tusentals hus syns.
+export function boxInSweden(west, south, east, north) {
+  const crosses = (x1, y1, x2, y2) => {
+    // Nästan alla kanter ligger helt på ena sidan om rektangeln.
+    if ((x1 < west && x2 < west) || (x1 > east && x2 > east)) return false
+    if ((y1 < south && y2 < south) || (y1 > north && y2 > north)) return false
+    // Liang-Barsky: går sträckan genom rektangeln?
+    let t0 = 0
+    let t1 = 1
+    const dx = x2 - x1
+    const dy = y2 - y1
+    for (const [p, q] of [
+      [-dx, x1 - west],
+      [dx, east - x1],
+      [-dy, y1 - south],
+      [dy, north - y1],
+    ]) {
+      if (p === 0) {
+        if (q < 0) return false
+      } else {
+        const t = q / p
+        if (p < 0) t0 = Math.max(t0, t)
+        else t1 = Math.min(t1, t)
+        if (t0 > t1) return false
+      }
+    }
+    return true
+  }
+  for (const ring of SWEDEN_RINGS) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      if (crosses(ring[j][0], ring[j][1], ring[i][0], ring[i][1])) return 'border'
+    }
+  }
+  return inSweden((west + east) / 2, (south + north) / 2) ? 'inside' : 'outside'
+}
+
+// Kartan och husens rityta ritas i högst dubbel upplösning. En telefon med
+// 3x-skärm ritar annars mer än dubbelt så många pixlar som med 2x, och i
+// blyertsstrecken syns knappt skillnaden.
+export const pixelRatio = () => Math.min(window.devicePixelRatio || 1, 2)
+
+// Hus, skyltar och ortnamn hämtas från kartan när den har stannat. Medan den
+// rör sig hämtas de också, men högst så här ofta: annars syns inget nytt
+// förrän kartan stannar, och när man åker bil (eller drar länge) stannar den
+// aldrig. Kopplas före lagrets egen move-ritning, så att det som hämtas ritas
+// i samma bildruta.
+const MOVING_REFRESH_MS = 300
+
+export function refreshWhileMoving(map, refresh) {
+  let last = 0
+  map.on('move', () => {
+    const now = performance.now()
+    if (now - last < MOVING_REFRESH_MS) return
+    last = now
+    refresh()
+  })
+}
+
 // Sveriges gräns, som en linje ovanpå kartan.
 const SWEDEN_BORDER = { type: 'Feature', properties: {}, geometry: SWEDEN_OUTLINE }
 

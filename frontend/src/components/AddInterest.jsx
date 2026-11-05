@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../services/api'
+import CheckMark from './CheckMark'
 import { searchInterests, similarInterests, suggestInterest } from '../services/interests'
+import SearchField from './SearchField'
 
 // Lägg till ett intresse som inte finns i biblioteket. Samma funktion överallt, i två lägen:
 //
@@ -254,21 +256,20 @@ function AddInterest({ selectedIds = [], onPickExisting, onAddNew }) {
         disabled={busyId === item.id || chosen.has(item.id)}
         onClick={() => pick(item)}
       >
-        {chosen.has(item.id) ? '✓' : '+'}
+        {chosen.has(item.id) ? <CheckMark /> : '+'}
       </button>
     )
   }
 
   return (
     <div className="explorer">
-      <input
-        type="search"
-        className="explorer-search"
+      <SearchField
         aria-label="Lägg till ett intresse"
         placeholder="Lägg till ett intresse"
         maxLength={MAX_INTEREST_LENGTH}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
+        onClear={() => setQuery('')}
       />
       {error && <p className="form-error">{error}</p>}
       {/* Träfflistan (och erbjudandet) visas först när sökningen gäller texten som står i rutan, annars skulle man kunna

@@ -62,7 +62,7 @@ function RegisterFields({ onSwitchToLogin, onRegistered }) {
           {submitting ? 'Registrerar…' : 'Registrera dig'}
         </button>
       </form>
-      <button type="button" className="text-button" onClick={onSwitchToLogin}>
+      <button type="button" className="quiet-link" onClick={onSwitchToLogin}>
         Har du redan ett konto? Logga in
       </button>
     </>

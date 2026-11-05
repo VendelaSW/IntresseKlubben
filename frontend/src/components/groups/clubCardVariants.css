@@ -313,15 +313,10 @@
     linear-gradient(var(--poster), var(--poster)) top / 100% 7px no-repeat,
     linear-gradient(#fffdf7, #fffdf7) top / 100% calc(100% - var(--tabs-height)) no-repeat;
   box-shadow: 1px 3px 5px rgba(58, 47, 37, 0.18);
-  transform: rotate(-0.6deg);
 }
 
 .club-grid.club-style-5 .card.club-card {
   padding-bottom: calc(var(--tabs-height) + 0.9rem);
-}
-
-.club-style-5 .card.club-card:nth-child(even) {
-  transform: rotate(0.7deg);
 }
 
 /* Tryckfärgen: en stark ton av kortets färg. */
@@ -425,7 +420,6 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transform: rotate(-1.5deg);
 }
 
 .club-style-5 .club-card .card-text {
@@ -610,6 +604,80 @@
   text-transform: uppercase;
 }
 
+/* ---------- 7. Affisch, Nicklas variant ----------
+   Som Affisch (5), som klassen club-style-5 också ger, med några ändringar: inget häftstift, klubbikonen som stämpel i hörnet i stället för pilen, den färgade
+   raden överst har intressets färg (--poster sätts på kortet, se ClubCards), rivlapparna med den streckade
+   perforeringen nederst är borta, och meta-raden visar bara antalet medlemmar. Ligger efter 5, så att den vinner. */
+.club-style-7 .card.club-card {
+  --tabs-height: 0px;
+  background:
+    linear-gradient(var(--poster), var(--poster)) top / 100% 7px no-repeat,
+    #fffdf7;
+}
+
+.club-grid.club-style-7 .card.club-card {
+  /* Texten börjar under "Öppen"/"Privat" uppe i hörnet (den satt förut bredvid ikonen, som nu är borta). */
+  padding-top: 2.7rem;
+  padding-bottom: 1.1rem;
+}
+
+/* Prickarna över Ö, Å och Ä klipps annars: titeln har overflow: hidden (för "…" efter två rader) och line-height: 1 i
+   Affisch (5), så versalerna med prickar går över radens överkant. Luft ovanför inuti klippet, och lika mycket negativ
+   marginal, så att kortet inte blir högre (samma knep som .list-card-link .card-title i index.css). Inte under: där
+   skulle en bit av en tredje rad synas under de två som visas. */
+.club-style-7 .club-card .card-title {
+  padding-top: 0.25em;
+  margin-top: -0.25em;
+}
+
+/* Ingen häftstift. */
+.club-style-7 .club-card::before {
+  display: none;
+}
+
+.club-style-7 .club-card::after {
+  display: none;
+}
+
+/* "KLUBB" uppe till vänster, i små tryckta versaler som "EVENT" på eventbiljetten, på samma rad som Öppen/Privat uppe till höger. */
+.club-style-7 .club-card-kind {
+  position: absolute;
+  top: 1.35rem;
+  left: 1.05rem;
+  color: #5a5148;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+/* Klubbikonen sitter som en stämpel i hörnet nere till höger, i stället för pilen och i stället för ikonen överst. */
+.club-style-7 .club-card-icon,
+.club-style-7 .club-card-open {
+  display: none;
+}
+
+.club-style-7 .club-card-stamp {
+  display: block;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin-left: auto;
+  object-fit: contain;
+  opacity: 0.85;
+  rotate: -9deg;
+}
+
+/* Mörkare skugga än i Affisch (5): 0.18 och 0.2 där. */
+.club-style-7 .card.club-card {
+  box-shadow: 1px 3px 6px rgba(58, 47, 37, 0.32);
+}
+
+.club-style-7 .card.club-card.card-interactive:hover,
+.club-style-7 .card.club-card.card-interactive:focus-within {
+  box-shadow: 2px 8px 12px rgba(58, 47, 37, 0.38);
+}
+
 /* Affischerna: intresset lite upp från rivlapparna och perforeringen, som
    annars ligger tätt under det (kortets text tar all plats ovanför, se
    .list-card-link i index.css). .tags nu, .interest-tags med Emmys taggar. */
@@ -629,5 +697,59 @@
 
   .club-grid .card.club-card {
     padding: 1.05rem 1.05rem 0.9rem;
+  }
+}
+
+/* Bilden är inte kvadratisk (200 x 224): utan detta pressas den ihop till 30 x 30 och ser utdragen ut. */
+.club-style-7 .club-card-icon {
+  object-fit: contain;
+  object-position: left center;
+}
+
+/* Mobil: ett kort per rad över hela bredden, utan lutning, så att namnet och beskrivningen får plats. "KLUBB" överst är
+   borta, och Öppen/Privat står kvar uppe i högra hörnet, så namnet börjar högst upp och slutar före märket. Namnet
+   kortas med "…" efter två rader (se .list-card-link .card-title i index.css), och beskrivningen efter tre. Gå med är
+   lägre än de vanliga små knapparna. */
+@media (max-width: 767px) {
+  .club-grid.card-grid-compact {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: auto;
+    gap: 0.9rem;
+  }
+
+  .club-grid .card.club-card,
+  .club-grid .card.club-card:nth-child(even) {
+    transform: none;
+  }
+
+  .club-grid.club-style-7 .card.club-card {
+    min-height: 0;
+    padding: 1.1rem 1rem 0.9rem;
+  }
+
+  .club-style-7 .club-card-kind {
+    display: none;
+  }
+
+  .club-style-7 .club-card .card-title {
+    padding-right: 5.5rem;
+    font-size: 1.15rem;
+    hyphens: manual;
+  }
+
+  .club-style-7 .club-card .list-card-description {
+    -webkit-line-clamp: 3;
+  }
+
+  .club-style-7 .club-card-stamp {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+
+  .map-pad .club-grid .club-card-buttons .primary-button,
+  .map-pad .club-grid .club-card-buttons .secondary-button {
+    min-height: 1.75rem;
+    padding-block: 0;
+    font-size: var(--text-small);
   }
 }

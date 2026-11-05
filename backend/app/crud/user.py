@@ -15,13 +15,13 @@ from app.auth.security import hash_password
 from app.crud.email_token import delete_user_tokens
 from app.crud.group import list_user_groups, remove_member
 from app.crud.moderation import delete_user_moderation
-from app.crud.notification import delete_user_notifications
+from app.crud.notification import delete_link_notifications, delete_user_notifications
 from app.crud.report import anonymize_user_reports
 from app.models.contact import Contact
 from app.models.conversation_read import ConversationRead
 from app.models.dismissed_suggestion import DismissedSuggestion
-from app.models.event import Event, EventInvitation, EventResponse
-from app.models.group import GroupInvitation
+from app.models.event import Event, EventHost, EventInvitation, EventJoinRequest, EventResponse
+from app.models.group import GroupInvitation, GroupJoinRequest
 from app.models.group_message import GroupMessage
 from app.models.group_post import GroupPost
 from app.models.interest import Interest
@@ -197,8 +197,9 @@ def delete_user(db: Session, user: User) -> str | None:
     for group in list_user_groups(db, user_id):
         remove_member(db, group, user_id)
 
-    # Egna events via ORM, så att deras inbjudningar och svar följer med.
+    # Egna events via ORM, så att deras inbjudningar och svar följer med. Notiserna som leder till dem tas också bort.
     for event in db.query(Event).filter(Event.created_by == user_id).all():
+        delete_link_notifications(db, f"/events?event={event.id}")
         db.delete(event)
     # Skriv medlemskapen och eventen till databasen innan kontot raderas.
     # GroupMember har ingen relation till User, så annars vet SQLAlchemy inte
@@ -207,10 +208,13 @@ def delete_user(db: Session, user: User) -> str | None:
     db.flush()
     db.query(EventInvitation).filter(EventInvitation.user_id == user_id).delete(synchronize_session=False)
     db.query(GroupInvitation).filter(GroupInvitation.user_id == user_id).delete(synchronize_session=False)
+    db.query(GroupJoinRequest).filter(GroupJoinRequest.user_id == user_id).delete(synchronize_session=False)
     db.query(GroupInvitation).filter(GroupInvitation.invited_by == user_id).update(
         {GroupInvitation.invited_by: None}, synchronize_session=False
     )
     db.query(EventResponse).filter(EventResponse.user_id == user_id).delete(synchronize_session=False)
+    db.query(EventJoinRequest).filter(EventJoinRequest.user_id == user_id).delete(synchronize_session=False)
+    db.query(EventHost).filter(EventHost.user_id == user_id).delete(synchronize_session=False)
 
     db.query(Message).filter(
         or_(Message.sender_id == user_id, Message.recipient_id == user_id)

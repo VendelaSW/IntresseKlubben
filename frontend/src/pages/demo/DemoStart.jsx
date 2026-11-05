@@ -26,7 +26,7 @@ function DemoStart() {
         <section className="map-section">
           <img
             src={mapImage}
-            alt="Karta som visar personer med olika intressen, som dykning, keramik och fotboll, utplacerade i en stad"
+            alt="Karta som visar medlemmar med olika intressen, som dykning, keramik och fotboll, utplacerade i en stad"
             className="map-image"
           />
         </section>

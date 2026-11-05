@@ -1,8 +1,10 @@
+from collections.abc import Collection
 from datetime import date
 
 from sqlalchemy import and_, case, distinct, func
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.age import age_on
 from app.crud.interest import set_user_interests
 from app.models.interest import Interest, InterestStatus
 from app.models.profile import GenderEnum, Profile
@@ -24,9 +26,7 @@ class UnknownInterestError(Exception):
 
 
 def calculate_age(birth_date: date) -> int:
-    today = date.today()
-    had_birthday_this_year = (today.month, today.day) >= (birth_date.month, birth_date.day)
-    return today.year - birth_date.year - (0 if had_birthday_this_year else 1)
+    return age_on(birth_date, date.today())
 
 
 def _latest_birth_date_for_age(age: int) -> date:
@@ -68,6 +68,7 @@ def create_profile(db: Session, user_id: int, data: ProfileCreate) -> Profile:
         profile_text=data.profile_text,
         district=data.district,
         gender_searchable=data.gender_searchable,
+        age_hidden=data.age_hidden,
     )
     db.add(profile)
     # Inte user.interests = interests: det kraschar om användaren redan har
@@ -102,6 +103,8 @@ def update_profile(db: Session, user_id: int, data: ProfileUpdate) -> Profile:
         profile.profile_text = data.profile_text
     if data.gender_searchable is not None:
         profile.gender_searchable = data.gender_searchable
+    if data.age_hidden is not None:
+        profile.age_hidden = data.age_hidden
 
     db.commit()
     db.refresh(profile)
@@ -112,9 +115,9 @@ def _people_query(
     db: Session,
     exclude_user_id: int,
     interest_ids: set[int] | None = None,
-    municipality_code: str | None = None,
+    municipality_codes: Collection[str] | None = None,
     exclude_user_ids: set[int] | None = None,
-    gender: GenderEnum | None = None,
+    genders: Collection[GenderEnum] | None = None,
     min_age: int | None = None,
     max_age: int | None = None,
 ):
@@ -130,10 +133,27 @@ def _people_query(
         query = query.filter(Profile.user_id.notin_(exclude_user_ids))
     if interest_ids:
         query = query.filter(User.interests.any(Interest.id.in_(interest_ids)))
-    if municipality_code is not None:
-        query = query.filter(Profile.municipality_code == municipality_code)
-    if gender is not None:
-        query = query.filter(Profile.gender == gender, Profile.gender_searchable.is_(True))
+    return filter_by_profile(query, municipality_codes, genders, min_age, max_age)
+
+
+def filter_by_profile(
+    query,
+    municipality_codes: Collection[str] | None = None,
+    genders: Collection[GenderEnum] | None = None,
+    min_age: int | None = None,
+    max_age: int | None = None,
+):
+    """Filtret på kommun, kön och ålder för en fråga över Profile. Det delas av listan (list_people) och förslagen (GET /matches),
+    så att de aldrig kan skilja sig, och det är det som hindrar filtret från att avslöja något man har valt att dölja.
+    Flera kommuner eller kön räcker med ett av dem (kvinna eller man), och tomt betyder inget filter."""
+    if municipality_codes:
+        query = query.filter(Profile.municipality_code.in_(municipality_codes))
+    if genders:
+        query = query.filter(Profile.gender.in_(genders), Profile.gender_searchable.is_(True))
+    if min_age is not None or max_age is not None:
+        # Den som har dolt sin ålder kommer inte med när man filtrerar på ålder, så att filtret inte avslöjar
+        # åldern (SCRUM-134), på samma sätt som kön och gender_searchable.
+        query = query.filter(Profile.age_hidden.is_(False))
     if min_age is not None:
         query = query.filter(Profile.birth_date <= _latest_birth_date_for_age(min_age))
     if max_age is not None:
@@ -144,14 +164,13 @@ def _people_query(
 def list_people(
     db: Session,
     exclude_user_id: int,
-    interest_id: int | None = None,
-    municipality_code: str | None = None,
-    exclude_user_ids: set[int] | None = None,
-    gender: GenderEnum | None = None,
-    min_age: int | None = None,
-    max_age: int | None = None,
     *,
     interest_ids: set[int] | None = None,
+    municipality_codes: Collection[str] | None = None,
+    exclude_user_ids: set[int] | None = None,
+    genders: Collection[GenderEnum] | None = None,
+    min_age: int | None = None,
+    max_age: int | None = None,
     limit: int | None = None,
     offset: int = 0,
 ) -> list[Profile]:
@@ -159,15 +178,14 @@ def list_people(
     kommun, kön och ålder (min_age och max_age räknas med, som calculate_age).
     exclude_user_ids är en extra uteslutningslista utöver dig själv -
     används för tidigare borttagna förslag (se crud/dismissed_suggestion.py).
-    interest_ids tar personer som har något av flera intressen (ett intresse och dess underintressen,
-    se crud/interest_people.py), och limit och offset sidindelar listan.
+    interest_ids, municipality_codes och genders tar personer som har något av dem (t.ex. ett intresse och dess
+    underintressen, se crud/interest_people.py), och limit och offset sidindelar listan.
 
     Filtret på kön tar bara med dem som valt gender_searchable, eftersom
     träffarna annars avslöjar könet hos alla andra."""
-    ids = set(interest_ids or ())
-    if interest_id is not None:
-        ids.add(interest_id)
-    query = _people_query(db, exclude_user_id, ids or None, municipality_code, exclude_user_ids, gender, min_age, max_age).options(
+    query = _people_query(
+        db, exclude_user_id, interest_ids or None, municipality_codes, exclude_user_ids, genders, min_age, max_age
+    ).options(
         selectinload(Profile.municipality),
         selectinload(Profile.user).selectinload(User.interest_links).selectinload(UserInterest.interest),
         selectinload(Profile.user).selectinload(User.profile),  # annars hämtas profilen en gång till per person (to_person_response)
@@ -176,6 +194,30 @@ def list_people(
     if limit is not None:
         query = query.limit(limit)
     return query.all()
+
+
+def count_people_by_municipality(
+    db: Session, exclude_user_id: int, exclude_user_ids: set[int] | None = None
+) -> dict[str, int]:
+    """Hur många andra personer med profil som bor i varje kommun (kommunkod -> antal), med samma filter som list_people.
+    Kommuner där ingen bor finns inte med. Bara antal, aldrig vilka (SCRUM-82)."""
+    rows = (
+        _people_query(db, exclude_user_id, None, None, exclude_user_ids)
+        .with_entities(Profile.municipality_code, func.count(Profile.id))
+        .group_by(Profile.municipality_code)
+        .all()
+    )
+    return {code: count for code, count in rows if code}
+
+
+def sort_by_shared_interests(profiles: list[Profile], my_interest_ids: set[int]) -> list[Profile]:
+    """Flest intressen gemensamt med mig först. Lika många behåller den ordning de kom i (list_people ger namnordning). Intressena
+    ligger redan inladdade på profilerna (se list_people), så sorteringen kostar inga fler databasfrågor."""
+
+    def shared(profile: Profile) -> int:
+        return len({link.interest_id for link in profile.user.interest_links} & my_interest_ids)
+
+    return sorted(profiles, key=lambda profile: -shared(profile))  # sorted är stabil
 
 
 def count_people_by_node(

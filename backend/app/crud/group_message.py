@@ -12,6 +12,15 @@ def send_group_message(db: Session, group_id: int, sender_id: int, content: str)
     return message
 
 
+def get_group_message(db: Session, group_id: int, message_id: int) -> GroupMessage | None:
+    return db.query(GroupMessage).filter(GroupMessage.group_id == group_id, GroupMessage.id == message_id).first()
+
+
+def delete_group_message(db: Session, message: GroupMessage) -> None:
+    db.delete(message)
+    db.commit()
+
+
 def get_group_messages(db: Session, group_id: int, viewer_id: int) -> list[GroupMessage]:
     """Gruppens meddelanden i tidsordning, utan dem från användare som är blockerade åt något håll."""
     query = db.query(GroupMessage).filter(GroupMessage.group_id == group_id)

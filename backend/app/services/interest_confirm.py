@@ -29,7 +29,7 @@ from app.core.profanity import contains_profanity
 from app.crud.interest import load_library_index
 from app.models.interest import Interest, InterestSource, InterestStatus
 from app.models.user import User
-from app.models.user_interest import UserInterest
+from app.models.user_interest import PRACTISES, UserInterest, practice_from
 from app.services.analysis_token import AnalysisTokenUnavailable, InvalidAnalysisToken, read_token
 from app.services.interest_embeddings import embed_interests
 from app.services.interest_matching import normalize
@@ -244,14 +244,21 @@ def apply_batches(db: Session, user: User, batches: list[Batch], source: str) ->
     # går det inte fyller `python -m app.sync_embeddings` i dem senare.
     embed_interests(db, created)
 
-    existing_rows = {(link.interest_id, link.activity) for link in user.interest_links}
+    # En rad per intresse (SCRUM-271): utövar om någon av aktiviteterna är en där man själv håller på, annars
+    # intresserad. Har personen redan intresset och säger nu att hen själv håller på med det, uppgraderas raden
+    # (men aldrig tvärtom: ett tidigare val som utövar står kvar).
+    existing = {link.interest_id: link for link in user.interest_links}
     for target, activities in wanted.resolved().items():
         interest_id = target[1] if target[0] == "id" else _root(news[target[1]]).id
-        for activity in activities:
-            if (interest_id, activity) in existing_rows:
-                continue
-            existing_rows.add((interest_id, activity))
-            user.interest_links.append(UserInterest(interest=db.get(Interest, interest_id), activity=activity, source=source))
+        activity = practice_from(activities)
+        link = existing.get(interest_id)
+        if link is None:
+            existing[interest_id] = link = UserInterest(
+                interest=db.get(Interest, interest_id), activity=activity, source=source
+            )
+            user.interest_links.append(link)
+        elif activity == PRACTISES:
+            link.activity = PRACTISES
     db.flush()
 
 

@@ -6,9 +6,10 @@ import pytest
 from app.auth.security import get_current_user
 from app.main import app
 from app.models import EventResponse, Interest, User
-from app.models.event import EventAnswer
+from app.models.event import EventAnswer, EventVisibility
 from app.models.notification import Notification
-from tests.event_helpers import add_contact, add_event, future
+from tests.event_helpers import add_contact, add_event, add_group, future
+from tests.helpers import make_profile
 
 
 @pytest.fixture(autouse=True)
@@ -64,7 +65,7 @@ def test_the_notification_says_which_event_and_carries_the_message(client, db, e
     login_as(people[2])
     [notice] = client.get("/notifications").json()
     assert notice["kind"] == "event_cancelled"
-    assert notice["title"] == "«Fotbollsträffen» har ställts in"
+    assert notice["title"] == "Eventet ”Fotbollsträffen” har ställts in"
     assert notice["body"] == "testuser har tagit bort eventet som du skulle gå på."
     assert notice["quote"] == "Inställt pga sjukdom"
     assert notice["quote_by"] == "testuser"
@@ -108,6 +109,41 @@ def test_only_the_creator_can_cancel(client, db, event, people):
     assert db.query(Notification).count() == 0
 
 
+def notice_to(db, user_id):
+    return db.query(Notification).filter(Notification.user_id == user_id).one()
+
+
+def test_when_the_club_owner_removes_it_the_attendees_see_the_owners_name(client, db, event, people):
+    event.group_id = add_group(db, 5, members=[1, 2, 3]).id
+    db.commit()
+
+    login_as(people[5])
+    assert client.request("DELETE", f"/events/{event.id}", json={"message": "Fel klubb"}).status_code == 204
+
+    # De som skulle gå och skaparen, inte ägaren själv.
+    assert recipients(db) == [1, 2, 3]
+    notice = notice_to(db, 2)
+    assert notice.body == "person5 har tagit bort eventet som du skulle gå på."
+    assert notice.quote == "Fel klubb"
+    assert notice.quote_by == "person5"
+    assert notice_to(db, 1).body == "person5, som äger klubben, har tagit bort ditt event."
+
+
+def test_someone_with_a_block_against_the_owner_never_sees_the_owners_name(client, db, event, people):
+    event.group_id = add_group(db, 5, members=[1, 2, 3]).id
+    db.commit()
+    add_contact(db, 2, 5, status="BLOCKED")  # en som skulle gå har blockerat ägaren
+
+    login_as(people[5])
+    assert client.request("DELETE", f"/events/{event.id}", json={"message": "Fel klubb"}).status_code == 204
+
+    notice = notice_to(db, 2)
+    assert notice.body == "Eventet som du skulle gå på har tagits bort."
+    assert notice.quote is None
+    assert notice.quote_by is None
+    assert notice_to(db, 3).quote_by == "person5"
+
+
 # ---------- Ändrat ----------
 
 
@@ -119,21 +155,21 @@ def test_a_new_time_notifies_the_attendees(client, db, event, people):
     login_as(people[3])
     [notice] = client.get("/notifications").json()
     assert notice["kind"] == "event_changed"
-    assert notice["title"] == "«Fotbollsträffen» har fått ny tid"
+    assert notice["title"] == "Eventet ”Fotbollsträffen” har fått ny tid"
     assert notice["link"] == f"/events?event={event.id}"
 
 
 def test_a_new_place_notifies_the_attendees(client, db, event, people):
     client.patch(f"/events/{event.id}", json={"latitude": 57.69, "longitude": 11.97})
     login_as(people[2])
-    assert client.get("/notifications").json()[0]["title"] == "«Fotbollsträffen» har fått ny plats"
+    assert client.get("/notifications").json()[0]["title"] == "Eventet ”Fotbollsträffen” har fått ny plats"
 
 
 def test_new_time_and_place_give_one_notification_each(client, db, event, people):
     client.patch(f"/events/{event.id}", json={"starts_at": future(days=6).isoformat(), "place_name": "Ullevi"})
     assert recipients(db) == [2, 3]
     login_as(people[2])
-    assert client.get("/notifications").json()[0]["title"] == "«Fotbollsträffen» har fått ny tid och plats"
+    assert client.get("/notifications").json()[0]["title"] == "Eventet ”Fotbollsträffen” har fått ny tid och plats"
 
 
 def test_other_changes_give_no_notification(client, db, event):
@@ -189,7 +225,7 @@ def test_newest_first(client, db, user, people, event):
 
     login_as(people[2])
     titles = [n["title"] for n in client.get("/notifications").json()]
-    assert titles == ["«Schackkvällen» har ställts in", "«Fotbollsträffen» har ställts in"]
+    assert titles == ["Eventet ”Schackkvällen” har ställts in", "Eventet ”Fotbollsträffen” har ställts in"]
 
 
 def test_deleting_an_account_removes_its_notifications(client, db, event, people):
@@ -285,3 +321,123 @@ def test_you_cannot_mark_someone_elses_notification_read(client, db, event, peop
     assert client.post(f"/notifications/{notice['id']}/read").status_code == 404
     login_as(people[2])
     assert client.get("/notifications").json()[0]["read"] is False
+
+
+# ---------- Personen notisen gäller ----------
+
+GRETA_IMAGE = "https://bilder.example/greta.jpg"
+
+
+@pytest.fixture
+def applied(client, db, user, people):
+    """Greta (person 2, med profilbild) har ansökt till Annas (user, id 1) event."""
+    db.add(make_profile(1, name="Anna"))
+    db.add(make_profile(2, name="Greta", profile_image_url=GRETA_IMAGE))
+    db.commit()
+    event = add_event(db, user.id, title="Ostprovning", visibility=EventVisibility.application)
+    login_as(people[2])
+    assert client.put(f"/events/{event.id}/requests/me", json={}).status_code == 200
+    login_as(user)
+    return event
+
+
+def test_an_application_shows_who_applied(client, applied):
+    [notice] = client.get("/notifications").json()
+    # Bara det som andra användare får se: inget privat som e-post, födelsedatum eller kön.
+    assert notice["actor"] == {"id": 2, "name": "Greta", "profile_image_url": GRETA_IMAGE}
+
+
+def test_an_answer_shows_who_answered(client, user, people, applied):
+    assert client.put(f"/events/{applied.id}/requests/2").status_code == 204
+    login_as(people[2])
+    [notice] = client.get("/notifications").json()
+    assert notice["actor"] == {"id": 1, "name": "Anna", "profile_image_url": None}
+
+
+def test_a_role_change_shows_the_owner(client, db, user, people):
+    db.add(make_profile(1, name="Anna"))
+    db.commit()
+    group = add_group(db, user.id, members=(2,))
+    assert client.put(f"/groups/{group.id}/members/2/role", json={"role": "admin"}).status_code == 204
+    login_as(people[2])
+    [notice] = client.get("/notifications").json()
+    assert notice["actor"]["id"] == 1
+
+
+def test_a_cancelled_event_shows_no_person(client, db, event, people):
+    client.request("DELETE", f"/events/{event.id}")
+    login_as(people[2])
+    [notice] = client.get("/notifications").json()
+    assert notice["actor"] is None
+
+
+def test_a_blocked_person_is_not_shown(client, db, applied):
+    add_contact(db, 1, 2, status="BLOCKED")
+    [notice] = client.get("/notifications").json()
+    # Notisen finns kvar, men utan personen, så att blockeringen inte avslöjas.
+    assert notice["title"] == "Greta vill vara med på ditt event ”Ostprovning”"
+    assert notice["actor"] is None
+
+
+def test_a_deleted_account_is_not_shown(client, db, applied):
+    from app.crud.user import delete_user
+
+    delete_user(db, db.get(User, 2))
+    [notice] = client.get("/notifications").json()
+    assert notice["actor"] is None
+    assert db.query(Notification).filter(Notification.actor_id == 2).count() == 0
+
+
+def test_answering_an_application_marks_its_notification_read(client, db, applied):
+    assert client.get("/users/me/badges").json()["unread_notifications"] == 1
+    assert client.put(f"/events/{applied.id}/requests/2").status_code == 204
+    # Ansökan är besvarad, så notisen om den står inte kvar som ny.
+    assert client.get("/notifications").json()[0]["read"] is True
+    assert client.get("/users/me/badges").json()["unread_notifications"] == 0
+
+
+def test_withdrawing_an_application_marks_its_notification_read(client, db, people, applied):
+    login_as(people[2])
+    client.delete(f"/events/{applied.id}/requests/me")
+    db.expire_all()
+    assert db.query(Notification).filter_by(user_id=1, read_at=None).count() == 0
+
+
+# ---------- Det notisen gäller har raderats ----------
+
+
+def test_cancelling_removes_the_old_notifications_about_the_event(client, db, user, event, people):
+    other = add_event(db, user.id, title="Andra träffen", starts_at=future(days=7))
+    db.add(EventResponse(event_id=other.id, user_id=2, answer=EventAnswer.yes))
+    db.commit()
+    client.patch(f"/events/{event.id}", json={"starts_at": future(days=6).isoformat()})
+    client.patch(f"/events/{other.id}", json={"starts_at": future(days=8).isoformat()})
+
+    assert client.request("DELETE", f"/events/{event.id}").status_code == 204
+    login_as(people[2])
+    # Bara beskedet om att eventet är inställt finns kvar om det, och notiserna om andra events står kvar.
+    titles = [n["title"] for n in client.get("/notifications").json()]
+    assert sorted(titles) == ["Eventet ”Andra träffen” har fått ny tid", "Eventet ”Fotbollsträffen” har ställts in"]
+
+
+def test_deleting_a_group_tells_the_members_and_removes_the_old_notifications(client, db, user, people):
+    group = add_group(db, user.id, members=(2, 3), name="Löparna")
+    assert client.put(f"/groups/{group.id}/members/2/role", json={"role": "admin"}).status_code == 204
+
+    assert client.delete(f"/groups/{group.id}").status_code == 204
+    assert recipients(db) == [2, 3]
+    login_as(people[2])
+    [notice] = client.get("/notifications").json()
+    assert notice["kind"] == "group_deleted"
+    assert notice["title"] == "Klubben ”Löparna” har tagits bort"
+    assert notice["link"] is None
+    assert notice["actor"] is None
+
+
+def test_deleting_an_account_removes_the_notifications_about_its_events(client, db, user, event, people):
+    from app.crud.user import delete_user
+
+    client.patch(f"/events/{event.id}", json={"starts_at": future(days=6).isoformat()})
+    assert recipients(db) == [2, 3]
+    delete_user(db, db.get(User, user.id))
+    assert recipients(db) == []

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { eventWhenWhereText } from '../events/EventList'
 import { getEvents } from '../../services/events'
+import LoadError, { useRetry } from '../LoadError'
 
 // Klubbens kommande events i klubbens vy: titel, tid och plats, och ett klick
 // öppnar eventets egen vy på eventsidan (med klubben i adressen, så att Tillbaka
@@ -10,6 +11,7 @@ import { getEvents } from '../../services/events'
 function GroupEvents({ groupId }) {
   const [events, setEvents] = useState(null) // null = laddar
   const [failed, setFailed] = useState(false)
+  const [attempt, retry] = useRetry()
 
   useEffect(() => {
     setEvents(null)
@@ -17,17 +19,16 @@ function GroupEvents({ groupId }) {
     getEvents(groupId)
       .then(setEvents)
       .catch(() => setFailed(true))
-  }, [groupId])
+  }, [groupId, attempt])
+
+  // Inga kommande events: ingen tom rubrik heller (SCRUM-328). Inte heller medan de laddas, så att den inte blinkar till.
+  if (!failed && !events?.length) return null
 
   return (
     <div className="person-list person-list-compact person-list-marker">
       <p className="card-subheading">Kommande events</p>
       {failed ? (
-        <p className="hint-text">Kunde inte hämta events.</p>
-      ) : events === null ? (
-        <p className="hint-text">Laddar events...</p>
-      ) : events.length === 0 ? (
-        <p className="hint-text">Inga kommande events.</p>
+        <LoadError text="Kunde inte hämta events." onRetry={retry} className="hint-text" />
       ) : (
         <ul>
           {events.map((event) => (
