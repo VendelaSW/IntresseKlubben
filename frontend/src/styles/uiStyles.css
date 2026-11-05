@@ -25,6 +25,13 @@
   background: none;
 }
 
+/* Mobil: fördelas med justify-content, så att flikarna får plats på en rad också på de smalaste telefonerna. */
+@media (max-width: 767px) {
+  :root[data-ui-style='handskrivet'] .filter-tabs {
+    gap: 0.25rem;
+  }
+}
+
 :root[data-ui-style='handskrivet'] .filter-tabs > .tag {
   padding: 0 0.25rem;
   border-radius: var(--radius-sm);
