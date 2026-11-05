@@ -1137,7 +1137,8 @@ function MapPage() {
   const keepZoomOutEnabledRef = useRef(keepZoomOutEnabled)
   keepZoomOutEnabledRef.current = keepZoomOutEnabled
 
-  // Byt nivå: lås eller släpp zoomen med mus, fingrar och tangentbord.
+  // Byt nivå: lås eller släpp zoomen och flytten med mus, fingrar och tangentbord. På de låsta nivåerna syns hela
+  // området redan, och man ska inte kunna dra bort det.
   // `lan`: länskoden på fri nivå (länsvyn och kommuner i den), annars null.
   function setMode(next, landskap = null, lan = null, kommun = null) {
     if (next === 'free') leftFreeAtRef.current = null
@@ -1157,7 +1158,7 @@ function MapPage() {
     const map = mapRef.current
     if (!map) return
     const locked = next !== 'free'
-    for (const handler of [map.scrollZoom, map.boxZoom, map.doubleClickZoom, map.touchZoomRotate, map.keyboard]) {
+    for (const handler of [map.scrollZoom, map.boxZoom, map.doubleClickZoom, map.touchZoomRotate, map.keyboard, map.dragPan]) {
       if (locked) handler.disable()
       else handler.enable()
     }
