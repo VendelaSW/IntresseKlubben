@@ -22,7 +22,7 @@
 // Husen växer upp mellan zoom 14 och 15, som innan, så att de inte poppar.
 
 import { mapDefaultTheme } from './themes'
-import { boxInSweden, inSweden, pixelRatio, refreshWhileMoving } from './style'
+import { boxInSweden, inSweden, pixelRatio, refreshWhileMoving, pixelsPerMeter } from './style'
 
 const LAYER_ID = 'building-shapes'
 // Blyerts på blocket: varm brun grafit på husen i varma akvarellfärger. Ytorna är
@@ -139,14 +139,6 @@ function squareToQuad(p0, p1, p2, p3) {
     const w = g * s + h * t + 1
     return [(a * s + b * t + p0.x) / w, (d * s + e * t + p0.y) / w]
   }
-}
-
-// Pixlar per meter österut vid en plats.
-function pixelsPerMeter(map, lngLat) {
-  const east = [lngLat[0] + 1 / (111320 * Math.cos((lngLat[1] * Math.PI) / 180)), lngLat[1]]
-  const a = map.project(lngLat)
-  const b = map.project(east)
-  return Math.hypot(b.x - a.x, b.y - a.y)
 }
 
 
