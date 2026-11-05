@@ -5365,32 +5365,57 @@ label.person-list-item {
     }
 }
 
-/* Eventets egen vy på mobil: kvittot (datum, tid, plats och Skapat av) överst, så att det viktigaste syns direkt,
-   avdelat med en perforerad linje och urtagen under sig. */
+/* Eventets egen vy på mobil: samma ordning som på datorn, med titeln överst och kvittot (datum, tid, plats och
+   Skapat av) längst ner. Titeln får hela bredden, och stämpeln (Öppet för alla, Endast inbjudna eller Ansökan) står
+   längst till höger i raden efter titeln, bredvid pennan om den inte får plats bredvid titeln, i stället för i hörnet.
+   Annars fick titeln bara halva bredden och långa ord bröts mitt i. */
 @media (max-width: 767px) {
-  .event-ticket-sheet.card {
-      background: #fffdf7;
-      mask:
-        radial-gradient(circle at left var(--stub-h), #0000 var(--notch), #000 calc(var(--notch) + 0.5px)) left / 51%
-          100% no-repeat,
-        radial-gradient(circle at right var(--stub-h), #0000 var(--notch), #000 calc(var(--notch) + 0.5px)) right / 51%
-          100% no-repeat;
-    }
-
   .event-ticket-sheet .detail-view {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
     }
 
+  .event-ticket-sheet .title-row {
+      flex-wrap: wrap;
+      align-items: center;
+      row-gap: 0.4rem;
+      padding-right: 0;
+    }
+
+  .event-ticket-sheet .event-title-edit {
+      margin-left: 0;
+    }
+
+  .event-ticket-sheet .event-stamps {
+      position: static;
+      margin-left: auto;
+    }
+
+  /* Kvittot: datumet till vänster, tiden och platsen under varandra bredvid, och Skapat av under, så att det får
+     plats i kvittots fasta höjd (--stub-h) också på den smalaste telefonen. Annars hamnade allt på fyra rader och
+     datumet gick upp över den perforerade linjen. */
   .event-ticket-sheet-stub {
-      order: -1;
-      margin: -1.1rem -1.5rem 0.9rem;
-      border-top: 0;
-      border-bottom: 2px dashed rgba(58, 47, 37, 0.4);
-      background:
-        linear-gradient(var(--poster), var(--poster)) top / 100% 8px no-repeat,
-        var(--poster-soft);
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      justify-items: start;
+      gap: 0.35rem 0.75rem;
+    }
+
+  .event-ticket-sheet-stub .event-ticket-date {
+      grid-row: span 2;
+      margin-right: 0;
+    }
+
+  /* Lite mindre text i de svarta rutorna, så att hela tiden får plats också bredvid datumet på 320 bredd. */
+  .event-ticket-sheet-stub .event-ticket-box {
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+    }
+
+  .event-ticket-sheet .event-created-by {
+      grid-column: 1 / -1;
+      justify-self: end;
     }
 }
 
