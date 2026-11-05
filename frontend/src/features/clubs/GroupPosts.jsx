@@ -173,7 +173,7 @@ function GroupPosts({ groupId, isOwner, full = false }) {
             </button>
           )}
           {!writing && (
-            <button type="button" className="primary-button button-small" onClick={() => setWriting(true)}>
+            <button type="button" className="primary-button button-small touch-target" onClick={() => setWriting(true)}>
               + Sätt upp en lapp
             </button>
           )}
@@ -184,7 +184,7 @@ function GroupPosts({ groupId, isOwner, full = false }) {
           {error}
         </p>
       )}
-      {status === 'loading' && <p className="board-empty">Laddar lappar...</p>}
+      {status === 'loading' && <p className="board-hint">Laddar lappar...</p>}
       {status === 'error' && <LoadError text="Kunde inte hämta lapparna." onRetry={retry} className="board-empty" />}
 
       <div className={`board-notes${showAll ? ' is-all' : ''}`}>
@@ -216,7 +216,11 @@ function GroupPosts({ groupId, isOwner, full = false }) {
         {posts.slice(pinnedCount).map(renderNote)}
       </div>
       {status === 'ready' && posts.length === 0 && !writing && (
-        <p className="board-empty">Inga lappar än. Sätt upp den första!</p>
+        <p className="board-hint">
+          Inga lappar än.
+          <br />
+          Sätt upp den första!
+        </p>
       )}
 
       {openPost && (
