@@ -687,6 +687,11 @@ select.club-filter:focus-visible,
   .group-chat-slot {
       min-height: 22rem;
     }
+
+  /* Laddar och inga lappar lite större på dator, där tavlan är stor. */
+  .board-hint {
+      font-size: var(--text-body);
+    }
 }
 
 @media (max-width: 767px) {
