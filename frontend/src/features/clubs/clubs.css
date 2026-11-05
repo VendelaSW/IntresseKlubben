@@ -733,3 +733,24 @@ select.club-filter:focus-visible,
       background-position: right 0.65rem center;
     }
 }
+
+/* Mobil: sökikonen och sökfältet på en rad, och filtren på en egen rad under i hela bredden. Annars kapas deras text. */
+@media (max-width: 767px) {
+  .search-toggle-row:has(.club-filters) {
+    flex-wrap: wrap;
+  }
+
+  .search-toggle-panel:has(.club-filters),
+  .search-toggle-panel .club-filters {
+    display: contents;
+  }
+
+  .search-toggle-panel .club-filters .club-search {
+    flex: 1 1 0;
+    width: auto;
+  }
+
+  .search-toggle-panel .club-filters .club-filter-pills {
+    flex: 0 0 100%;
+  }
+}

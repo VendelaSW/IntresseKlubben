@@ -1267,8 +1267,7 @@
   height: 100%;
 }
 
-.map-you svg,
-.map-find-me-icon {
+.map-you svg {
   fill: #f4c430;
   stroke: #3a2f25;
   stroke-width: 1.8;
@@ -1345,12 +1344,6 @@
   stroke-linejoin: round;
 }
 
-.map-find-me-icon {
-  display: block;
-  width: 1.15rem;
-  height: 1.15rem;
-}
-
 .map-find-me:disabled {
   opacity: 0.6;
   cursor: default;
@@ -1395,7 +1388,25 @@
   z-index: 0;
 }
 
-/* I raden med ikoner trycks den valda bara nedåt, så att den inte glider in under grannen. */
+/* I raden med ikoner står alla för sig, lika stora och med lika långt emellan, också växeln Karta | Att göra.
+   Den valda trycks bara nedåt, så att avståndet till grannarna inte ändras. */
+.map-view-row .map-tool-group {
+  gap: 0.4rem;
+}
+
+.map-view-row .map-tool-group .map-tool + .map-tool {
+  margin-left: 0;
+}
+
+.map-view-row .map-tool-group .map-tool:first-child,
+.map-view-row .map-tool-group .map-tool:last-child {
+  border-radius: var(--radius-sm);
+}
+
+.map-view-row .map-tool-icon-only {
+  justify-content: center;
+}
+
 .map-view-row .map-tool-group .map-tool.is-on {
   transform: translateY(2px);
 }
@@ -2486,50 +2497,6 @@
   padding-inline: 0.75rem 1rem;
 }
 
-/* Sökikonen nere i vänstra hörnet på mobil (PadFloatAction med start), mitt emot skapa-knappen och nära tummen.
-   Öppen blir sök och filter en ruta längs nederkanten, ovanför ikonen, och skapa-knappen göms så länge. Listorna i
-   filtren öppnar sig uppåt, eftersom det inte finns plats under. */
-.map-pad-float-start {
-  right: auto;
-  left: 3rem;
-}
-
-@media (max-width: 767px) {
-  .map-pad-float-start {
-    left: 1.2rem;
-  }
-
-  .map-pad-float-start:has(.search-toggle.is-open) {
-    right: 1.2rem;
-  }
-
-  .map-pad-float-start .search-toggle-row {
-    flex-direction: column-reverse;
-  }
-
-  .map-pad-float-start .search-toggle-panel {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.7rem;
-    border: 1.5px solid var(--color-ink);
-    border-radius: var(--radius-xl);
-    background: var(--color-white);
-    box-shadow:
-      2px 2px 0 var(--color-ink),
-      0 6px 14px color-mix(in srgb, var(--color-ink) 18%, transparent);
-  }
-
-  .map-pad:has(.map-pad-float-start .search-toggle.is-open) .map-pad-float:not(.map-pad-float-start) {
-    display: none;
-  }
-
-  .map-pad-float-start .municipality-picker-list,
-  .map-pad-float-start .sort-menu-list {
-    top: auto;
-    bottom: calc(100% + 4px);
-  }
-}
-
 /* TILLFÄLLIGT: Gå med och Avböj på de nya klubbkorten (testläget) lite smalare, så att båda och pilen får plats
    på smala kort. */
 .map-pad .club-card-buttons .primary-button,
@@ -2693,10 +2660,9 @@
     border-radius: 6px 6px 0 0;
   }
 
-  /* Sökikonen och skapa-knappen (se .map-pad-float) ovanför menyn: menyns överkant ligger 72px över skärmens
+  /* Skapa-knappen (se .map-pad-float) ovanför menyn: menyns överkant ligger 72px över skärmens
      nederkant och blockets nederkant 12px över den. Sidan får plats att scrolla fram det sista ovanför båda. */
-  .map-pad-float,
-  .map-pad-float-start {
+  .map-pad-float {
     bottom: 70px;
   }
 
