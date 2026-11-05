@@ -373,6 +373,14 @@ export function attachPlaceNotes(map, layerId, layer, { onCreateEvent } = {}) {
     removePreview()
   })
 
+  // Ett klick på kartan utanför en plats stänger den öppna lappen (ett klick på en plats öppnar dess, nedan).
+  map.on('click', (e) => {
+    if (stuck.size === 0) return
+    if (map.queryRenderedFeatures(e.point, { layers: [layerId] }).length > 0) return
+    for (const other of stuck.values()) other.remove()
+    stuck.clear()
+  })
+
   map.on('click', layerId, (e) => {
     const feature = e.features[0]
     const id = feature.id
