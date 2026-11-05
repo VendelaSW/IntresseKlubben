@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import logo from '../../assets/intresseklubben.png'
 import eventIcon from '../../assets/event.png'
@@ -82,6 +82,9 @@ function pickPolaroids(shown = []) {
 // vänds fram och framkallas. Samma tider som i startPage.css.
 const FLIP_OUT_MS = 260 + 3 * 90
 const FLIP_IN_MS = 3 * 90 + 200 + 1200
+// Hur länge introt håller på när polaroiderna har kommit: alla har fallit ned och framkallats (sista polaroiden
+// räknad). Samma tider som i startPage.css.
+const INTRO_MS = 3 * 150 + 350 + 1800
 
 const playClips = () => alwaysWrite() || !window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -289,9 +292,9 @@ function StartPage() {
   const [openEvent, setOpenEvent] = useState(null)
   // Sidan får röra sig (intressena glider, pilen gungar), utom med "minska rörelse" (.is-animated i startPage.css).
   // Polaroiderna och klottret kommer fram med en animation bara första gången per session, som rubriken (.is-intro);
-  // går man tillbaka till sidan ligger de redan där.
+  // går man tillbaka till sidan ligger de redan där. Introt tas bort när polaroiderna har landat (se nedan).
   const [animated] = useState(() => alwaysWrite() || !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  const [intro] = useState(() => animated && !alreadyWritten(WRITTEN_KEY))
+  const [intro, setIntro] = useState(() => animated && !alreadyWritten(WRITTEN_KEY))
   const events = useMemo(demoEvents, [])
   // Polaroiderna som syns. Nya väljs varje gång de byts (se nedan).
   const [polaroids, setPolaroids] = useState(() => pickPolaroids())
@@ -351,6 +354,20 @@ function StartPage() {
     return () => clearTimeout(timer)
   }, [flip])
 
+  // När polaroiderna har landat och framkallats är introt slut, och .is-intro tas bort. Annars gäller regeln för
+  // landningen fortfarande, och den börjar om så fort något annat släpper polaroiden (t.ex. när en vändning är klar
+  // och .is-flip-in tas bort): då försvann de ett ögonblick och landade igen. Vänds de innan introt är slut tas det
+  // bort direkt, eftersom vändningen ändå tar över.
+  useEffect(() => {
+    if (!intro || !shown) return undefined
+    if (flip) {
+      setIntro(false)
+      return undefined
+    }
+    const timer = setTimeout(() => setIntro(false), INTRO_MS)
+    return () => clearTimeout(timer)
+  }, [intro, shown, flip])
+
   // Lappen ligger överst: öppnas den längre ned (t.ex. Logga in i sidfoten) scrollar sidan upp till den.
   useEffect(() => {
     if (!authMode) return
@@ -403,11 +420,14 @@ function StartPage() {
               className={`start-polaroid start-polaroid-${i + 1}`}
               style={{ '--tilt': `${POLAROID_TILTS[i]}deg`, '--order': i }}
             >
-              {playClips() ? (
-                <video src={clip} poster={image} autoPlay muted loop playsInline />
-              ) : (
-                <img src={image} alt="" />
-              )}
+              {/* Bilden i en egen ram, så att framkallningen kan ligga som ett blekt lager ovanpå (se startPage.css). */}
+              <span className="start-polaroid-photo">
+                {playClips() ? (
+                  <PolaroidClip clip={clip} image={image} />
+                ) : (
+                  <img src={image} alt="" />
+                )}
+              </span>
               <span className="start-polaroid-caption">{caption}</span>
             </li>
           ))}
@@ -557,6 +577,32 @@ function StartPage() {
       </footer>
     </div>
   )
+}
+
+// En av polaroidernas filmer, utan ljud och i en slinga. iPhone spelar bara upp en film av sig själv om den har
+// attributet muted redan när den läggs in, och React sätter bara egenskapen. Då visar telefonen en play-knapp i
+// stället, tills man har rört skärmen (därför spelade de efter Logga in). Här sätts attributet innan filmen startas,
+// och filmen startas också uttryckligen. Säger telefonen ändå nej (t.ex. i strömsparläge) försöker den igen vid
+// första trycket, och tills dess syns stillbilden utan play-knapp (se .start-polaroid video i startPage.css).
+function PolaroidClip({ clip, image }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const video = ref.current
+    video.muted = true
+    video.defaultMuted = true
+    video.setAttribute('muted', '')
+    const play = () => video.play().catch(() => {})
+    play()
+    // Bara händelser som räknas som att man har rört sidan (inte pointerdown på en pekskärm).
+    const GESTURES = ['touchend', 'click', 'keydown']
+    const retry = () => {
+      if (video.paused) play()
+      GESTURES.forEach((name) => window.removeEventListener(name, retry))
+    }
+    GESTURES.forEach((name) => window.addEventListener(name, retry))
+    return () => GESTURES.forEach((name) => window.removeEventListener(name, retry))
+  }, [clip])
+  return <video ref={ref} src={clip} poster={image} autoPlay muted loop playsInline preload="auto" />
 }
 
 // Klotter i marginalerna kring rubriken, som när man ritar med tusch i kanten av ett anteckningsblock: en smiley, ett
