@@ -1949,14 +1949,9 @@
 }
 
 /* Den lilla studsen när sidan når sin början eller sitt slut (se usePadBounce). Bara medan den pågår,
-   eftersom en transform annars påverkar hur menyer och popups i sidan ligger. */
+   eftersom ett eget lager annars påverkar hur menyer och popups i sidan ligger. */
 .map-pad-page.is-bouncing > * {
-  transform: translateY(var(--pad-bounce, 0));
-  transition: transform var(--pad-bounce-ms, 280ms) cubic-bezier(0.2, 0.8, 0.3, 1);
-}
-
-.map-pad-page.is-bounce-pull > * {
-  transition: none;
+  will-change: transform;
 }
 
 /* Sidan: vitt rutat papper med bläckkant, som lapparna på kartan. */

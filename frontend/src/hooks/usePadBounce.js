@@ -1,20 +1,25 @@
 import { useEffect, useRef } from 'react'
 
 // Hur långt innehållet som mest följer fingret förbi början eller slutet, i pixlar.
-const MAX_PULL = 28
+const MAX_PULL = 48
 // Hur långt man drar innan rörelsen planar ut. Större tal ger ett tyngre motstånd.
-const PULL_DISTANCE = 90
+const PULL_DISTANCE = 140
 // Studsen när en svepning rullar hela vägen fram till kanten, utan att fingret är kvar.
-const MAX_KICK = 14
-const KICK_PER_SPEED = 7
+const MAX_KICK = 26
+const KICK_PER_SPEED = 12
 const MIN_KICK_SPEED = 0.4
-const KICK_OUT_MS = 110
-const RETURN_MS = 280
+const KICK_MS = 420
+const RETURN_MS = 320
+const RETURN_EASING = 'cubic-bezier(0.2, 0.8, 0.3, 1)'
 // Hur länge efter att fingret släppt en svepning fortfarande kan räknas som samma svepning.
 const MOMENTUM_MS = 1500
 
 function canScroll(element) {
   return element.scrollHeight > element.clientHeight + 1
+}
+
+function shifted(px) {
+  return `translate3d(0, ${px}px, 0)`
 }
 
 // Närmaste ruta inuti sidan som kan scrolla själv, till exempel en chatt eller ett textfält.
@@ -29,6 +34,8 @@ function innerScroller(target, page) {
 // En liten studs när en sida i ett block når sin början eller sitt slut på en pekskärm. Webbläsarens egen
 // studs går inte att göra mindre, så den är avstängd (overscroll-behavior i map.css) och den här ersätter den.
 // Sidor som inte går att scrolla står stilla, och en ruta som scrollar själv får göra klart sitt först.
+// Innehållet flyttas direkt med transform och högst en gång per bildruta, och återgången körs som en animation
+// i webbläsaren, så att studsen inte behöver räkna om stilarna för allt i sidan.
 function usePadBounce() {
   const pageRef = useRef(null)
 
@@ -39,40 +46,68 @@ function usePadBounce() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
 
     let touch = null
-    let timer = null
+    let animations = []
+    let frame = null
+    let offset = 0
     let momentumUntil = 0
     let lastTop = page.scrollTop
     let lastTime = 0
     let speed = 0
 
-    function clearTimer() {
-      clearTimeout(timer)
-      timer = null
+    function stopAnimations() {
+      animations.forEach((animation) => animation.cancel())
+      animations = []
+    }
+
+    function place() {
+      frame = null
+      const transform = shifted(offset)
+      for (const part of page.children) part.style.transform = transform
     }
 
     function setOffset(px) {
-      page.style.setProperty('--pad-bounce', `${px}px`)
+      offset = px
+      if (frame === null) frame = requestAnimationFrame(place)
     }
 
-    function settle() {
-      page.classList.remove('is-bounce-pull')
-      setOffset(0)
-      clearTimer()
-      timer = setTimeout(() => {
-        page.classList.remove('is-bouncing')
-        page.style.removeProperty('--pad-bounce')
-      }, RETURN_MS)
+    function clearOffset() {
+      cancelAnimationFrame(frame)
+      frame = null
+      offset = 0
+      for (const part of page.children) part.style.transform = ''
+    }
+
+    function play(keyframes, options) {
+      stopAnimations()
+      page.classList.add('is-bouncing')
+      animations = [...page.children].map((part) => part.animate(keyframes, options))
+      const current = animations
+      Promise.all(current.map((animation) => animation.finished))
+        .then(() => {
+          if (animations === current) {
+            animations = []
+            page.classList.remove('is-bouncing')
+          }
+        })
+        .catch(() => {})
+    }
+
+    function release() {
+      const from = offset
+      clearOffset()
+      play([{ transform: shifted(from) }, { transform: shifted(0) }], { duration: RETURN_MS, easing: RETURN_EASING })
     }
 
     function kick(direction, currentSpeed) {
-      clearTimer()
-      page.classList.add('is-bouncing')
-      page.style.setProperty('--pad-bounce-ms', `${KICK_OUT_MS}ms`)
-      setOffset(direction * Math.min(MAX_KICK, Math.abs(currentSpeed) * KICK_PER_SPEED))
-      timer = setTimeout(() => {
-        page.style.removeProperty('--pad-bounce-ms')
-        settle()
-      }, KICK_OUT_MS)
+      const size = direction * Math.min(MAX_KICK, Math.abs(currentSpeed) * KICK_PER_SPEED)
+      play(
+        [
+          { transform: shifted(0), easing: 'cubic-bezier(0.2, 0.7, 0.4, 1)' },
+          { transform: shifted(size), offset: 0.3, easing: RETURN_EASING },
+          { transform: shifted(0) },
+        ],
+        { duration: KICK_MS },
+      )
     }
 
     function onTouchStart(event) {
@@ -99,21 +134,21 @@ function usePadBounce() {
 
       const down = clientY > (touch.lastY ?? touch.startY)
       touch.lastY = clientY
-      const max = page.scrollHeight - page.clientHeight
-      const atTop = page.scrollTop <= 0
-      const atBottom = page.scrollTop >= max - 1
-      const { scroller } = touch
-      const innerBusy =
-        scroller &&
-        (down ? scroller.scrollTop > 0 : scroller.scrollTop < scroller.scrollHeight - scroller.clientHeight - 1)
 
       if (touch.anchorY === null) {
+        const max = page.scrollHeight - page.clientHeight
+        const atTop = page.scrollTop <= 0
+        const atBottom = page.scrollTop >= max - 1
+        const { scroller } = touch
+        const innerBusy =
+          scroller &&
+          (down ? scroller.scrollTop > 0 : scroller.scrollTop < scroller.scrollHeight - scroller.clientHeight - 1)
         // Börja studsa först när fingret drar vidare från kanten.
         if (innerBusy || !((down && atTop) || (!down && atBottom))) return
         touch.anchorY = clientY
         touch.top = atTop && down
-        clearTimer()
-        page.classList.add('is-bouncing', 'is-bounce-pull')
+        stopAnimations()
+        page.classList.add('is-bouncing')
       }
 
       const pulled = clientY - touch.anchorY
@@ -121,7 +156,7 @@ function usePadBounce() {
       if (touch.top ? pulled < 0 : pulled > 0) {
         // Fingret är på väg tillbaka förbi där studsen började: sidan scrollar som vanligt igen.
         touch.anchorY = null
-        settle()
+        release()
         return
       }
       setOffset(Math.sign(pulled) * MAX_PULL * (1 - Math.exp(-Math.abs(pulled) / PULL_DISTANCE)))
@@ -129,7 +164,7 @@ function usePadBounce() {
 
     function onTouchEnd(event) {
       if (event.touches.length > 0) return
-      if (touch?.anchorY != null) settle()
+      if (touch?.anchorY != null) release()
       else if (touch?.axis === 'y') momentumUntil = performance.now() + MOMENTUM_MS
       touch = null
     }
@@ -157,7 +192,8 @@ function usePadBounce() {
     page.addEventListener('touchcancel', onTouchEnd, { passive: true })
     page.addEventListener('scroll', onScroll, { passive: true })
     return () => {
-      clearTimer()
+      stopAnimations()
+      cancelAnimationFrame(frame)
       page.removeEventListener('touchstart', onTouchStart)
       page.removeEventListener('touchmove', onTouchMove)
       page.removeEventListener('touchend', onTouchEnd)
