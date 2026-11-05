@@ -1439,54 +1439,33 @@
   stroke-linejoin: round;
 }
 
-/* Knappar med bara en ritad ikon: växeln Karta | Att göra och Min kommun (SCRUM-330, SCRUM-331). */
-/* Knappen för hur långt fram events visas (MapEventRange): kalendern, det valda och en liten ritad pil, som de
-   andra knapparna i raden. Listan med valen fälls ut under, på samma papper med bläckkant och hård skugga. */
+/* Knappen för hur långt fram events visas (MapEventRange): en ikonknapp som de andra i raden, med antalet dagar i
+   hörnet. Listan med valen fälls ut under, på samma papper med bläckkant och hård skugga. */
 .map-event-range {
   position: relative;
 }
 
+/* Antalet dagar i en liten svart etikett i knappens nedre högra hörn, så att det går att läsa. */
 .map-event-range-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
+  position: relative;
 }
 
-/* "14 dagar", inte "14 DAGAR" som de andra knapparnas text (.map-tool, längre ned): det är ett val, inte en
-   uppmaning. */
-.map-tool.map-event-range-button {
-  text-transform: none;
-}
-
-/* Alla val på samma plats (rutnät), bara det valda syns: knappen blir lika bred som det längsta. */
-.map-event-range-label {
-  display: grid;
-  text-align: left;
-}
-
-.map-event-range-label > span {
-  grid-area: 1 / 1;
-  visibility: hidden;
-}
-
-.map-event-range-label > .is-current {
-  visibility: visible;
-}
-
-.map-event-range-chevron {
-  flex: none;
-  width: 0.6rem;
-  height: 0.4rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: rotate 0.15s ease;
-}
-
-.map-event-range-button[aria-expanded='true'] .map-event-range-chevron {
-  rotate: 180deg;
+.map-event-range-days {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  min-width: 1.05rem;
+  padding: 0.05rem 0.2rem;
+  box-sizing: border-box;
+  border-radius: 0.6rem;
+  background: #3a2f25;
+  color: #fffdf7;
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  pointer-events: none;
 }
 
 .map-event-range-menu {
@@ -1548,6 +1527,7 @@
   font-weight: 700;
 }
 
+/* Knappar med bara en ritad ikon: växeln Karta | Att göra och Min kommun (SCRUM-330, SCRUM-331). */
 .map-tool-icon-only {
   padding: 0.2rem 0.45rem;
 }
@@ -2339,17 +2319,6 @@
     gap: 0.35rem;
   }
 
-  /* Knappen för hur långt fram events visas: bara kalendern, som de andra ikonknapparna i raden, så att raden får
-     plats bredvid profilbilden. Valet står i knappens namn och i listan som fälls ut. */
-  .map-event-range-button {
-    padding: 0.2rem 0.45rem;
-  }
-
-  .map-event-range-label,
-  .map-event-range-chevron {
-    display: none;
-  }
-
   /* Bara profilbilden på smala skärmar; namnet finns för skärmläsare i aria-label. */
   /* Raden uppe till höger upplöses: profillappen stannar där, och sidornas
      lappar blir en rad längst ned, som en flikrad. */
@@ -3014,8 +2983,7 @@
     margin: -6px -10px;
   }
 
-  .map-tool-icon-only,
-  .map-event-range-button {
+  .map-tool-icon-only {
     min-width: 44px;
     min-height: 44px;
   }
