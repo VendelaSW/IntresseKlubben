@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { DidYouMean, MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest'
+import { DidYouMean, hasExactName, MAX_INTEREST_LENGTH, NewInterestOffer } from './AddInterest'
 import CheckMark from '../../shared/CheckMark'
 import InterestInfo from './InterestInfo'
 import InterestLibrary, { PickTag } from './InterestLibrary'
@@ -25,8 +25,9 @@ const SEARCH_DELAY_MS = 300
 // intressena ({ id, name, parent_id, path, area_slug }, eller { id, name, path, area_slug } från
 // sökningen och biblioteket när profilen skapas), som visas som taggar
 // (InterestTree, se utils/interestGroups.js). Med `onAddNew(result)` erbjuds man
-// att lägga till ett intresse som inte finns när sökningen inte ger någon träff
-// (se AddInterest.jsx); utan den visas bara att inget matchar.
+// att lägga till ett intresse som inte finns när ingen träff har exakt det namnet,
+// också under träffar som bara innehåller texten (se AddInterest.jsx); utan den
+// visas bara att inget matchar.
 //
 // `mode`:
 // - 'card' (profilen): ett eget vitt kort med intressena, sökrutan direkt och en
@@ -154,21 +155,34 @@ function InterestExplorer({ selected, onAdd, onRemove, onAddNew, mode = 'card', 
             )
           ) : (
             // Träffarna som taggar att trycka på. Var de hör hemma (t.ex. "Sport och träning › Löpning") syns när
-            // man håller över dem, och i färgen.
-            <ul className="interest-tags">
-              {results.map((item) => (
-                <PickTag
-                  key={item.id}
-                  interest={item}
-                  areaSlug={item.area_slug}
-                  title={[...item.path, item.name].join(' › ')}
-                  on={selectedIds.has(item.id)}
-                  busy={busyId === item.id}
-                  onToggle={toggle}
-                  onInfo={onInfo}
+            // man håller över dem, och i färgen. Har ingen av dem exakt det namnet man skrev erbjuds man under dem att
+            // lägga till det som nytt intresse.
+            <>
+              <ul className="interest-tags">
+                {results.map((item) => (
+                  <PickTag
+                    key={item.id}
+                    interest={item}
+                    areaSlug={item.area_slug}
+                    title={[...item.path, item.name].join(' › ')}
+                    on={selectedIds.has(item.id)}
+                    busy={busyId === item.id}
+                    onToggle={toggle}
+                    onInfo={onInfo}
+                  />
+                ))}
+              </ul>
+              {onAddNew && resultsFor === query.trim() && !hasExactName(results, resultsFor) && (
+                <NewInterestOffer
+                  text={resultsFor}
+                  hits={results}
+                  onAddNew={onAddNew}
+                  onDone={() => setQuery('')}
+                  boxed={false}
+                  similarAction={addButton}
                 />
-              ))}
-            </ul>
+              )}
+            </>
           )}
         </div>
       )}
