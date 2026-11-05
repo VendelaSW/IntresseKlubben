@@ -6,14 +6,15 @@ import SearchField from '../../shared/SearchField'
 
 // Lägg till ett intresse som inte finns i biblioteket. Samma funktion överallt, i två lägen:
 //
-//  - NewInterestOffer (profilen): den utforskaren visar när sökningen inte ger någon träff (se InterestExplorer).
+//  - NewInterestOffer (profilen): den utforskaren visar när ingen träff har exakt det namnet (se InterestExplorer).
 //  - AddInterest (intervjun): en egen ruta med sökning bland befintliga intressen, och samma erbjudande när det inte finns.
 //
-// Flödet: man skriver ett intresse (högst MAX_INTEREST_LENGTH tecken). Finns det inte får man "Lägg till ... som nytt
-// intresse?". Då kontrollerar backend det (ordfilter, moderation, granskning) och väljer en förälder. Godkänns det visas
-// InterestPrompt: "Vill du lägga till ... som intresse?". Godkänns det inte visas bara ett felmeddelande. Vad som händer
-// när man trycker "Lägg till" bestämmer sidan, med `onAddNew(result)`: profilen sparar direkt (confirmInterests), intervjun
-// lägger förslaget i sin lista och sparar i slutet.
+// Flödet: man skriver ett intresse (högst MAX_INTEREST_LENGTH tecken). Har ingen träff exakt det namnet får man "Lägg
+// till ... som nytt intresse?", också när det finns träffar som innehåller texten (en sökning på "Spa" ger t.ex.
+// "Spanska", men Spa är ett eget intresse). Då kontrollerar backend det (ordfilter, moderation, granskning) och väljer en
+// förälder. Godkänns det visas InterestPrompt: "Vill du lägga till ... som intresse?". Godkänns det inte visas bara ett
+// felmeddelande. Vad som händer när man trycker "Lägg till" bestämmer sidan, med `onAddNew(result)`: profilen sparar
+// direkt (confirmInterests), intervjun lägger förslaget i sin lista och sparar i slutet.
 
 // Måste stämma med backend (MAX_PHRASE_LENGTH i schemas/analysis.py).
 export const MAX_INTEREST_LENGTH = 40
@@ -23,6 +24,18 @@ const MIN_SIMILAR_LENGTH = 3
 
 // Så länge sökningen väntar efter senaste tangenttrycket, så att inte varje bokstav blir ett anrop.
 const SEARCH_DELAY_MS = 300
+
+// Texten som den jämförs: utan skillnad på stora och små bokstäver, och med mellanslagen ihopslagna (som backend gör).
+function normalized(text) {
+  return text.split(/\s+/).filter(Boolean).join(' ').toLowerCase()
+}
+
+// Har någon av träffarna exakt det namnet? Då erbjuds inte att lägga till det som nytt intresse. Ett alias räknas inte
+// här: lägger man till något som redan finns som alias tar backend det befintliga intresset (se InterestPrompt).
+export function hasExactName(items, text) {
+  const wanted = normalized(text)
+  return items.some((item) => normalized(item.name) === wanted)
+}
 
 // Ett fel med ett meddelande som ska visas som det är (t.ex. att intresset redan finns bland de valda), från sidan som tar
 // emot ett nytt intresse i onAddNew.
@@ -36,7 +49,7 @@ function messageOf(error) {
     : 'Något gick fel. Kontrollera anslutningen och försök igen.'
 }
 
-// Förslagen till en text som inte gav någon träff (GET /interests/similar): intressen som liknar i stavning eller betydelse.
+// Förslagen till en text (GET /interests/similar): intressen som liknar i stavning eller betydelse.
 // Hämtas en gång per text. Inget medan de hämtas, eller om texten är för kort, och ett fel ger inga förslag: det är en hjälp,
 // aldrig ett hinder.
 function useSimilar(text) {
@@ -116,13 +129,16 @@ export function InterestPrompt({ proposals, busy = false, error = '', boxed = tr
   )
 }
 
-// Kärnan: erbjudandet för en text som inte gav någon träff. `onAddNew(result)` får { token, proposals, text } och returnerar ett
-// promise (misslyckas det visas felet här). `onDone` anropas när intresset är tillagt. `boxed` = egen ruta (utforskaren har
-// redan en runt träfflistan och visar den utan). `similarAction(item)` ger knappen vid varje förslag i "Menade du:". Liknar något
-// i stavning (felstavning eller annat skrivsätt) är det troligen det man menade, så "lägg till som nytt" blir en liten länk
-// i stället för en knapp. Det går fortfarande att lägga till, så ingen fastnar om det ändå är ett eget intresse.
-export function NewInterestOffer({ text, onAddNew, onDone, boxed = true, similarAction }) {
-  const similar = useSimilar(similarAction ? text : '')
+// Kärnan: erbjudandet för en text som ingen träff har exakt namnet på. `hits` är träffarna som redan visas (de som
+// innehåller texten): finns det några står inte "Inget intresse matchar", och de visas inte igen i "Menade du:".
+// `onAddNew(result)` får { token, proposals, text } och returnerar ett promise (misslyckas det visas felet här). `onDone`
+// anropas när intresset är tillagt. `boxed` = egen ruta (utforskaren har redan en runt träfflistan och visar den utan).
+// `similarAction(item)` ger knappen vid varje förslag i "Menade du:". Liknar något i stavning (felstavning eller annat
+// skrivsätt) är det troligen det man menade, så "lägg till som nytt" blir en liten länk i stället för en knapp. Det går
+// fortfarande att lägga till, så ingen fastnar om det ändå är ett eget intresse.
+export function NewInterestOffer({ text, hits = [], onAddNew, onDone, boxed = true, similarAction }) {
+  const shownIds = new Set(hits.map((item) => item.id))
+  const similar = useSimilar(similarAction ? text : '').filter((item) => !shownIds.has(item.id))
   const [phase, setPhase] = useState('idle') // idle, checking, ask, saving
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
@@ -187,7 +203,7 @@ export function NewInterestOffer({ text, onAddNew, onDone, boxed = true, similar
 
   return (
     <div className={boxed ? 'explorer-box' : undefined} aria-live="polite">
-      <p className="hint-text">Inget intresse matchar "{text}" än.</p>
+      {hits.length === 0 && <p className="hint-text">Inget intresse matchar "{text}" än.</p>}
       {similar.length > 0 && <SuggestionList items={similar} action={similarAction} />}
       <button
         type="button"
@@ -207,8 +223,9 @@ export function NewInterestOffer({ text, onAddNew, onDone, boxed = true, similar
 }
 
 // Intervjuns version: en ruta där man skriver ett intresse, med träffar bland befintliga intressen medan man skriver, och
-// erbjudandet när det inte finns. `selectedIds` är intressena som redan är valda (de visas som valda). `onPickExisting(interest)`
-// anropas när man väljer ett befintligt, och `onAddNew(result)` när man lägger till ett nytt. Båda får returnera ett promise.
+// erbjudandet under dem när ingen träff har exakt det namnet. `selectedIds` är intressena som redan är valda (de visas som
+// valda). `onPickExisting(interest)` anropas när man väljer ett befintligt, och `onAddNew(result)` när man lägger till ett
+// nytt. Båda får returnera ett promise.
 function AddInterest({ selectedIds = [], onPickExisting, onAddNew }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null) // null = ingen sökning, annars { text, items } för texten som söktes
@@ -291,6 +308,16 @@ function AddInterest({ selectedIds = [], onPickExisting, onAddNew }) {
                 </li>
               ))}
             </ul>
+            {!hasExactName(results.items, results.text) && (
+              <NewInterestOffer
+                text={results.text}
+                hits={results.items}
+                onAddNew={onAddNew}
+                onDone={() => setQuery('')}
+                boxed={false}
+                similarAction={pickButton}
+              />
+            )}
           </div>
         ))}
     </div>
