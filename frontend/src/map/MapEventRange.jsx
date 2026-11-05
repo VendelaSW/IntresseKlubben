@@ -9,6 +9,10 @@ function MapEventRange({ value, onChange }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
   const current = EVENT_RANGES.find((range) => range.id === value) ?? EVENT_RANGES[0]
+  // Vad knappen gör, när man håller muspekaren över den (och för skärmläsare): "Visar events som börjar inom
+  // 14 dagar. Klicka för att välja ett annat tidsspann."
+  const span = current.id === 'idag' ? 'idag' : `inom ${current.label.replace(/^1 /, 'en ')}`
+  const description = `Visar events som börjar ${span}. Klicka för att välja ett annat tidsspann.`
 
   useEffect(() => {
     if (!open) return undefined
@@ -33,8 +37,8 @@ function MapEventRange({ value, onChange }) {
         className="map-tool touch-target map-event-range-button"
         aria-haspopup="true"
         aria-expanded={open}
-        aria-label={`Events på kartan: ${current.label}`}
-        title={`Events på kartan: ${current.label}`}
+        aria-label={description}
+        title={description}
         onClick={() => setOpen((isOpen) => !isOpen)}
       >
         <svg className="map-tool-icon" viewBox="0 0 24 24" aria-hidden="true">
