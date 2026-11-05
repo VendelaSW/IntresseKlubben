@@ -689,7 +689,22 @@ select.club-filter:focus-visible,
     }
 }
 
+/* På pekskärm blir listrader annars minst 44 px höga (.person-list-item), men medlemmarna står lika tätt som på
+   dator (se .person-list.group-members i styles/index.css): med 44 px blev det för mycket luft mellan namnen. */
+@media (pointer: coarse) {
+  .person-list.group-members .person-list-item {
+      min-height: 0;
+    }
+}
+
 @media (max-width: 767px) {
+  /* Medlemmarna i en spalt över hela bredden, så att namnen får plats (i två spalter kortades de till "Maja …"). Sex
+     rader, sedan scrollar listan (se .person-list.group-members i styles/index.css). */
+  .person-list.group-members ul {
+      grid-template-columns: minmax(0, 1fr);
+      max-height: calc(6 * 1.45rem + 5 * 0.2rem);
+    }
+
   /* Raden till anslagstavlan lite lägre och smalare, så att den tar mindre plats i klubbens ruta. */
   .club-board-link {
       width: auto;
