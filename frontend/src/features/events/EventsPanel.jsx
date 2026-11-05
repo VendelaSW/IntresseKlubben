@@ -376,20 +376,18 @@ function EventsPanel() {
               )}
               {!showCalendar && (
                 <>
-                  <PadFloatAction start when={mobile}>
-                    <SearchToggle count={(interestFilter ? 1 : 0) + (dayFilter ? 1 : 0)} defaultOpen={!mobile}>
-                      <div className="filter-select-row filter-select-row-compact">
-                        <InterestPicker
-                          aria-label="Filtrera på intresse"
-                          placeholder="Alla intressen"
-                          myInterests={myInterests}
-                          value={interestFilter}
-                          onChange={setInterestFilter}
-                        />
-                        <EventDayFilter value={dayFilter} onChange={setDayFilter} />
-                      </div>
-                    </SearchToggle>
-                  </PadFloatAction>
+                  <SearchToggle count={(interestFilter ? 1 : 0) + (dayFilter ? 1 : 0)} defaultOpen>
+                    <div className="filter-select-row filter-select-row-compact">
+                      <InterestPicker
+                        aria-label="Filtrera på intresse"
+                        placeholder="Alla intressen"
+                        myInterests={myInterests}
+                        value={interestFilter}
+                        onChange={setInterestFilter}
+                      />
+                      <EventDayFilter value={dayFilter} onChange={setDayFilter} />
+                    </div>
+                  </SearchToggle>
                   {shown[tab].length === 0 && interestFilter ? (
                     <CreateOffer
                       text={`Det finns inga events för ${interestFilter.name}. Vill du skapa ett?`}

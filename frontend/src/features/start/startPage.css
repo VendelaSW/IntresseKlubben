@@ -19,24 +19,41 @@
   white-space: nowrap;
 }
 
+/* Caveat lutar, och svansarna sticker ut till höger om tecknet (upp till 0,22 em, t.ex. f och V) och lite över och
+   under raden. Rutan görs så stor att hela tecknet ryms i den (padding), utan att något flyttar sig (lika mycket
+   negativ marginal). Annars ligger delar av tecknet utanför rutan, och dem klipper telefonerna bort tills rubriken är
+   klar och klippet tas bort. HandwrittenHeadline räknar bort rutans padding när pennan följer tecknet. */
 .hw-letter {
+  --hw-pad-right: 0.3em;
   display: inline-block;
+  padding: 0.2em var(--hw-pad-right) 0.2em 0;
+  margin: -0.2em calc(-1 * var(--hw-pad-right)) -0.2em 0;
 }
 
-/* Tecknet skrivs från vänster till höger, ett i taget. När det är klart går klippet en bit utanför tecknets ruta,
-   eftersom Caveat lutar och svansarna sticker ut (se stilguiden). Innan dess syns inget av det. */
+/* Tecknet skrivs från vänster till höger, ett i taget, i samma takt som pennan: klippet går över själva tecknet (inte
+   paddingen till höger), och när tecknet är skrivet släpps resten av rutan fram, så att svansen syns
+   (hw-write-tail). Annars skulle pennan och klippet fortsätta en bit in i nästa tecken och hoppa tillbaka när det
+   börjar. Innan dess syns inget av tecknet. */
 .hw-headline.is-waiting .hw-letter,
 .hw-headline.is-writing .hw-letter {
-  clip-path: inset(-0.4em 100% -0.4em 0);
+  clip-path: inset(0 100% 0 0);
 }
 
 .hw-headline.is-writing .hw-letter {
-  animation: hw-write var(--hw-dur) var(--hw-delay) ease-in-out forwards;
+  animation:
+    hw-write var(--hw-dur) var(--hw-delay) ease-in-out forwards,
+    hw-write-tail 1ms calc(var(--hw-delay) + var(--hw-dur)) forwards;
 }
 
 @keyframes hw-write {
   to {
-    clip-path: inset(-0.4em -0.4em -0.4em -0.4em);
+    clip-path: inset(0 var(--hw-pad-right) 0 0);
+  }
+}
+
+@keyframes hw-write-tail {
+  to {
+    clip-path: inset(0);
   }
 }
 
@@ -398,7 +415,7 @@
   animation: start-polaroid-drop 650ms cubic-bezier(0.3, 0.7, 0.4, 1) calc(var(--order) * 150ms) backwards;
 }
 
-.start-page.is-intro .start-polaroids.is-shown .start-polaroid :is(img, video) {
+.start-page.is-intro .start-polaroids.is-shown .start-polaroid-photo::after {
   animation: start-polaroid-develop 1.8s ease-out calc(var(--order) * 150ms + 350ms) backwards;
 }
 
@@ -429,17 +446,19 @@
   }
 }
 
+/* Framkallningen är ett blekt lager ovanpå bilden som tonas bort (.start-polaroid-photo::after), inte ett filter på
+   själva filmen: telefoner ritar filter på video dåligt, och färgfiltret och oskärpan gav en rosa kant runt bilden. */
 @keyframes start-polaroid-develop {
   0% {
-    filter: sepia(0.6) brightness(1.6) contrast(0.35) saturate(0) blur(1px);
+    opacity: 0.92;
   }
 
   60% {
-    filter: sepia(0.3) brightness(1.15) contrast(0.8) saturate(0.6) blur(0);
+    opacity: 0.3;
   }
 
   100% {
-    filter: none;
+    opacity: 0;
   }
 }
 
@@ -456,7 +475,7 @@
   animation: start-polaroid-flip-in 420ms cubic-bezier(0.3, 0.7, 0.4, 1) calc(var(--order) * 90ms) backwards;
 }
 
-.start-page .start-polaroids.is-shown.is-flip-in .start-polaroid :is(img, video) {
+.start-page .start-polaroids.is-shown.is-flip-in .start-polaroid-photo::after {
   animation: start-polaroid-develop 1.2s ease-out calc(var(--order) * 90ms + 200ms) backwards;
 }
 
@@ -484,12 +503,34 @@
   }
 }
 
+/* Bilden, med lagret för framkallningen ovanpå (se start-polaroid-develop). Lagret syns bara medan den framkallas. */
+.start-polaroid-photo {
+  position: relative;
+  display: block;
+}
+
+.start-polaroid-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #ece6da;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .start-polaroid img,
 .start-polaroid video {
   display: block;
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
+}
+
+/* Får filmen inte spela av sig själv (t.ex. iPhone i strömsparläge) visar Safari en play-knapp över den. Stillbilden
+   räcker då, och filmen startar vid första trycket (se PolaroidClip i StartPage). */
+.start-polaroid video::-webkit-media-controls-start-playback-button,
+.start-polaroid video::-webkit-media-controls {
+  display: none !important;
 }
 
 .start-polaroid-caption {
