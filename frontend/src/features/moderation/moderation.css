@@ -1,0 +1,65 @@
+/* Moderering. Allt här används bara här, det gemensamma ligger i styles/index.css. */
+
+/* Röd: något stängt eller begränsat, t.ex. ett event som bara är för inbjudna. */
+.status-pill-error {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+/* Moderering (features/moderation/ModerationPage.jsx, bara för moderatorer): ett kort per
+   anmälan med vem, var, varför, en kopia av texten (.report-quote) och
+   knapparna. Avstängd står i rött, och påminnelsen om tidigare avstängningar i
+   rutan "Stäng av" står i en gul ruta. */
+.moderation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 640px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Hela listans bredd (vanliga .card är smalare, max 320px). */
+.moderation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: none;
+  padding: 1rem 1.25rem;
+}
+
+.moderation-card p {
+  margin: 0;
+}
+
+.moderation-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.moderation-who {
+  overflow-wrap: anywhere;
+}
+
+.moderation-status {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.moderation-comment {
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.moderation-reminder {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+}

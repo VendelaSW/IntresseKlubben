@@ -80,6 +80,14 @@ export function boxInSweden(west, south, east, north) {
 // Kartan och husens rityta ritas i högst dubbel upplösning. En telefon med
 // 3x-skärm ritar annars mer än dubbelt så många pixlar som med 2x, och i
 // blyertsstrecken syns knappt skillnaden.
+// Skärmpixlar per meter österut vid en plats [lng, lat].
+export function pixelsPerMeter(map, lngLat) {
+  const east = [lngLat[0] + 1 / (111320 * Math.cos((lngLat[1] * Math.PI) / 180)), lngLat[1]]
+  const a = map.project(lngLat)
+  const b = map.project(east)
+  return Math.hypot(b.x - a.x, b.y - a.y)
+}
+
 export const pixelRatio = () => Math.min(window.devicePixelRatio || 1, 2)
 
 // Hus, skyltar och ortnamn hämtas från kartan när den har stannat. Medan den

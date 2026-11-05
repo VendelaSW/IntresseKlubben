@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PadHeadContext } from './PadHead'
-import { PRE_DEV, useDesignChoice } from '../hooks/useDesignChoice'
 
 // Hur länge blocket lyfter innan det tas bort (samma som .map-pad.is-leaving).
 const LEAVE_MS = 260
@@ -10,20 +9,14 @@ const LEAVE_MS = 260
 // och lutar lite, som bordet. "Stäng", Escape eller ett klick bredvid lyfter
 // bort det igen. `wide` ger ett bredare block, för sidor med kort i rutnät
 // (Brev, Personer, Klubbar, Events).
-// TILLFÄLLIGT: med den nya rubriken i testläget (useDesignChoice('padHead')) kan sidorna i blocket lägga knappar i
-// rubrikraden och göra rubriken till en tillbaka-knapp (se PadHead.jsx). Annars, och utanför testläget, står de
-// där de står på sidan, som vanligt.
+// Sidorna i blocket kan lägga knappar i rubrikraden och göra rubriken till en tillbaka-knapp (se PadHead.jsx).
 function MapPad({ title, wide = false, onClose, children }) {
   const [leaving, setLeaving] = useState(false)
-  const newHead = useDesignChoice('padHead') !== PRE_DEV
   const [actions, setActions] = useState(null)
   const [float, setFloat] = useState(null)
   const [floatStart, setFloatStart] = useState(null)
   const [back, setBack] = useState(null)
-  const head = useMemo(
-    () => (newHead ? { actions, float, floatStart, setBack } : null),
-    [newHead, actions, float, floatStart],
-  )
+  const head = useMemo(() => ({ actions, float, floatStart, setBack }), [actions, float, floatStart])
 
   // Lyft blocket och ta bort det när det har lyft.
   function close() {
@@ -55,7 +48,7 @@ function MapPad({ title, wide = false, onClose, children }) {
         <div className="map-pad-page">
           <div className="map-pad-head">
             <h2 id="map-pad-title" className="map-pad-title">
-              {newHead && back ? (
+              {back ? (
                 <button type="button" className="map-pad-back" onClick={back} aria-label={`Tillbaka till ${title}`}>
                   <span aria-hidden="true">←</span> {title}
                 </button>
@@ -63,7 +56,7 @@ function MapPad({ title, wide = false, onClose, children }) {
                 title
               )}
             </h2>
-            {newHead && <div ref={setActions} className="map-pad-head-actions" />}
+            <div ref={setActions} className="map-pad-head-actions" />
             <button type="button" className="map-pad-close" onClick={close} aria-label="Stäng">
               ×
             </button>
@@ -71,8 +64,8 @@ function MapPad({ title, wide = false, onClose, children }) {
           <PadHeadContext.Provider value={head}>{children}</PadHeadContext.Provider>
         </div>
         {/* Knappar som flyter nere i högra och vänstra hörnet, utanför sidan som scrollar (se PadFloatAction). */}
-        {newHead && <div ref={setFloat} className="map-pad-float" />}
-        {newHead && <div ref={setFloatStart} className="map-pad-float map-pad-float-start" />}
+        <div ref={setFloat} className="map-pad-float" />
+        <div ref={setFloatStart} className="map-pad-float map-pad-float-start" />
       </section>
     </div>
   )

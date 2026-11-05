@@ -7,13 +7,22 @@ import { AuthProvider } from './hooks/useAuth.jsx'
 import { ConfirmProvider } from './hooks/useConfirm.jsx'
 import { queryClient } from './services/queryClient'
 import './styles/index.css'
+import './features/clubs/clubs.css'
+import './demo/demo.css'
+import './features/events/events.css'
+import './features/interests/interests.css'
+import './features/interview/interview.css'
+import './features/letters/letters.css'
+import './features/moderation/moderation.css'
+import './features/notifications/notifications.css'
+import './features/people/people.css'
+import './features/profile/profile.css'
+import './features/start/start.css'
 import './features/profile/poster.css'
 import './features/people/matchPage.css'
 import { applyChosenDesign } from './app/chosenDesign'
-import { DEV_MODE } from './devtools/devMode'
 
-// I testläget sätter testpanelen valen (se devtools/PadBackgroundPicker.jsx).
-if (!DEV_MODE) applyChosenDesign()
+applyChosenDesign()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

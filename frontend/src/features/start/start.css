@@ -1,0 +1,39 @@
+/* Startsidan. Allt här används bara här, det gemensamma ligger i styles/index.css. */
+
+/* Centrerad variant, på startsidan (se ProblemStatement). */
+.problem-statement-centered {
+  text-align: center;
+}
+
+/* "Läs mer om tjänsten" (features/start/ServiceDetails.jsx): på startsidan och /om,
+   lika bred som texten ovanför. */
+.service-details {
+  max-width: var(--content-width);
+  width: 100%;
+  text-align: left;
+}
+
+.service-details-heading {
+  font-size: var(--text-body);
+  margin: 0 0 0.4rem;
+}
+
+.service-details ol {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+}
+
+.service-details li {
+  margin-bottom: 0.3rem;
+}
+
+.service-details p {
+  margin: 0;
+}
+
+.account-choice-links {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}

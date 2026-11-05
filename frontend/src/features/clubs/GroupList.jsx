@@ -2,7 +2,6 @@ import klubbarIcon from '../../assets/klubbar.png'
 import './clubCardVariants.css'
 import EmptyState from '../../shared/EmptyState'
 import InterestTags from '../interests/InterestTags'
-import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
 import { areaColors } from '../../utils/interestColors'
 
 export function memberCountText(count) {
@@ -57,95 +56,42 @@ export function RoleBadge({ group }) {
 // "Avböj" visas bara om `onDecline` skickas med och man är inbjuden till klubben.
 // `myInterestIds` (en Set) markerar intresset om det är ett av ens egna.
 // `emptyAction` (valfri) är en knapp vidare under texten när listan är tom.
-// TILLFÄLLIGT: i testläget kan man välja en av sex nya kortstilar (useDesignChoice('clubCard'), se ClubCards).
 function GroupList({ groups, emptyText, emptyAction, myInterestIds, busy, onSelect, onJoin, onDecline }) {
-  const cardStyle = useDesignChoice('clubCard')
-
   if (groups.length === 0) {
     return <EmptyState text={emptyText}>{emptyAction}</EmptyState>
   }
 
-  if (cardStyle !== PRE_DEV) {
-    return (
-      <ClubCards
-        style={cardStyle}
-        groups={groups}
-        myInterestIds={myInterestIds}
-        busy={busy}
-        onSelect={onSelect}
-        onJoin={onJoin}
-        onDecline={onDecline}
-      />
-    )
-  }
-
   return (
-    <div className="card-grid card-grid-compact">
-      {groups.map((group) => (
-        <article key={group.id} className="card card-interactive list-card">
-          <button type="button" className="list-card-link" onClick={() => onSelect(group)}>
-            <span className="card-title">{group.name}</span>
-            {/* En rad, längre kortas med "…" (se .list-card-meta). */}
-            <span className="card-subheading list-card-meta">
-              {group.scope_name ?? group.municipality_name} · {memberCountText(group.member_count)}
-            </span>
-            {group.description && <span className="card-text list-card-description">{group.description}</span>}
-          </button>
-          <InterestTags
-            interests={[{ id: group.interest_id, name: group.interest_name, area_slug: group.interest_area_slug }]}
-            highlight={myInterestIds}
-          />
-          <div className="card-actions">
-            {group.is_member ? (
-              <RoleBadge group={group} />
-            ) : (
-              <>
-                <JoinCardButton group={group} busy={busy} onJoin={onJoin} onSelect={onSelect} />
-                {onDecline && group.is_invited && (
-                  <button
-                    type="button"
-                    className="secondary-button button-small"
-                    disabled={busy}
-                    onClick={() => onDecline(group)}
-                  >
-                    Avböj
-                  </button>
-                )}
-              </>
-            )}
-            {group.visibility === 'private' && <span className="status-pill">Privat</span>}
-          </div>
-        </article>
-      ))}
-    </div>
+    <ClubCards
+      groups={groups}
+      myInterestIds={myInterestIds}
+      busy={busy}
+      onSelect={onSelect}
+      onJoin={onJoin}
+      onDecline={onDecline}
+    />
   )
 }
 
-// TILLFÄLLIGT, bara i testläget: klubbkorten i en av sex nya stilar att jämföra (style '1'–'6', se
-// clubCardVariants.css). Mjuk färg efter klubbens id, så att korten skiljer sig åt men en klubb alltid har samma
+// Klubbkorten (se clubCardVariants.css). Mjuk färg efter klubbens id, så att korten skiljer sig åt men en klubb alltid har samma
 // färg. Klubbikonen och om klubben är öppen eller privat, namnet, hur många och var, beskrivningen och intresset,
 // och nertill ens roll (Ägare eller Medlem) eller Gå med (och Avböj), och en pil. Hela kortet (och pilen) öppnar
 // klubbens vy; Gå med och Avböj ligger utanför den klickbara delen.
 const TONES = ['green', 'peach', 'blue', 'yellow', 'lilac', 'rose']
 
-function ClubCards({ style, groups, myInterestIds, busy, onSelect, onJoin, onDecline }) {
+function ClubCards({ groups, myInterestIds, busy, onSelect, onJoin, onDecline }) {
   return (
-    // Variant 7 (Affisch, Nicklas variant) bygger på 5 (Affisch) och ändrar några saker, se clubCardVariants.css.
-    <div className={`card-grid card-grid-compact club-grid club-style-${style}${style === '7' ? ' club-style-5' : ''}`}>
+    <div className="card-grid card-grid-compact club-grid club-style-7 club-style-5">
       {groups.map((group) => (
         <article
           key={group.id}
           className={`card card-interactive list-card club-card club-card-${TONES[group.id % TONES.length]}`}
-          // Variant 7: den färgade raden överst har intressets färg (samma som taggen).
-          style={style === '7' ? { '--poster': areaColors(group.interest_area_slug)['--tag-fill'] } : undefined}
+          // Den färgade raden överst har intressets färg (samma som taggen).
+          style={{ '--poster': areaColors(group.interest_area_slug)['--tag-fill'] }}
         >
-          {/* Variant 7: "KLUBB" uppe till vänster i små tryckta versaler, som "EVENT" på eventbiljetten
-              (.event-ticket-head i index.css). */}
-          {style === '7' && (
-            <span className="club-card-kind" aria-hidden="true">
-              Klubb
-            </span>
-          )}
+          <span className="club-card-kind" aria-hidden="true">
+            Klubb
+          </span>
           {/* Öppen eller privat, uppe i högra hörnet mitt emot ikonen. */}
           <span className={`club-card-visibility${group.visibility === 'private' ? ' is-private' : ' is-open'}`}>
             <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
@@ -158,7 +104,7 @@ function ClubCards({ style, groups, myInterestIds, busy, onSelect, onJoin, onDec
             <img src={klubbarIcon} alt="" className="club-card-icon" />
             <span className="card-title">{group.name}</span>
             {/* Variant 7 visar bara antalet, utan var. */}
-            <span className="club-card-meta">{style === '7' ? groupCountText(group) : groupMembersText(group)}</span>
+            <span className="club-card-meta">{groupCountText(group)}</span>
             {group.description && <span className="card-text list-card-description">{group.description}</span>}
           </button>
           <InterestTags
@@ -184,7 +130,7 @@ function ClubCards({ style, groups, myInterestIds, busy, onSelect, onJoin, onDec
               </span>
             )}
             {/* Variant 7: klubbikonen som en stämpel i hörnet, där pilen annars sitter (pilen döljs i CSS). */}
-            {style === '7' && <img src={klubbarIcon} alt="" className="club-card-stamp" />}
+            <img src={klubbarIcon} alt="" className="club-card-stamp" />
             {/* Pilen öppnar också klubben (samma som kortet), därför inte i tabbordningen. */}
             <button type="button" className="club-card-open" tabIndex={-1} aria-hidden="true" onClick={() => onSelect(group)}>
               {/* En handritad pil, lite ojämn. */}

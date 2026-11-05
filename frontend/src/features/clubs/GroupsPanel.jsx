@@ -6,8 +6,7 @@ import { useResetOnTabChange, useTabParam } from '../../hooks/useTabParam'
 import SearchField from '../../shared/SearchField'
 import SearchToggle from '../../shared/SearchToggle'
 import { useConfirm } from '../../hooks/useConfirm'
-import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
-import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useIsMobile } from '../../hooks/useMediaQuery'
 import CreateGroupForm from './CreateGroupForm'
 import CreateOffer from '../../shared/CreateOffer'
 import { PadFloatAction } from '../../map/PadHead'
@@ -80,10 +79,8 @@ const NONE = []
 
 function GroupsPanel() {
   const confirm = useConfirm()
-  const searchStyle = useDesignChoice('searchStyle')
-  const newPadHead = useDesignChoice('padHead') !== PRE_DEV
   // På mobil flyter sökikonen nere i blockets vänstra hörn, mitt emot skapa-knappen (se .map-pad-float i map.css).
-  const mobile = useMediaQuery('(max-width: 767px)')
+  const mobile = useIsMobile()
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
@@ -440,9 +437,7 @@ function GroupsPanel() {
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Klubbar</h1>
-        {/* TILLFÄLLIGT: med den nya rubriken i testläget (useDesignChoice('padHead')) flyter knappen nere i blockets
-            hörn, så att den alltid syns, och visas inte i en klubbs vy. Annars här, som vanligt. */}
-        {view !== 'create' && !(newPadHead && selected) && (
+        {view !== 'create' && !selected && (
           <PadFloatAction>
             <CreateButton label="Skapa klubb" onClick={() => setView('create')} />
           </PadFloatAction>
@@ -565,83 +560,45 @@ function GroupsPanel() {
             </>
           ) : (
             <>
-              {/* TILLFÄLLIGT: i testläget kan sökraden bytas mot ett runt sökfält med intresse, kommun och sortering
-                  som rundade knappar bredvid (useDesignChoice('searchStyle')). På mobil hamnar filtren under. */}
               <PadFloatAction start when={mobile}>
-                {searchStyle === PRE_DEV ? (
-                  <SearchToggle
-                    count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
-                    // Sök och filter öppna från början på dator; på mobil flyter de över listan, så där bara ikonen.
-                    defaultOpen={!mobile}
-                  >
-                    <div className="search-row">
-                      <SearchField
-                        aria-label="Sök klubbar"
-                        placeholder="Sök på namn eller beskrivning"
-                        maxLength={100}
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        onClear={() => setSearch('')}
-                      />
+                <SearchToggle
+                  count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
+                  // Sök och filter öppna från början på dator; på mobil flyter de över listan, så där bara ikonen.
+                  defaultOpen={!mobile}
+                >
+                  <div className="club-filters">
+                    <SearchField
+                      className="club-search"
+                      aria-label="Sök klubbar"
+                      placeholder="Sök på namn eller beskrivning"
+                      maxLength={100}
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      onClear={() => setSearch('')}
+                    />
+                    <div className="club-filter-pills">
+                      <div className="club-filter club-filter-interest">
+                        <InterestPicker
+                          aria-label="Filtrera på intresse"
+                          placeholder="Alla intressen"
+                          myInterests={myInterests}
+                          value={filters.interest}
+                          onChange={(interest) => setFilters({ ...filters, interest })}
+                        />
+                      </div>
+                      <div className="club-filter club-filter-kommun">
+                        <MunicipalityPicker
+                          aria-label="Filtrera på kommun"
+                          municipalities={municipalities}
+                          value={filters.municipalityCode}
+                          onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                          emptyLabel="Alla kommuner"
+                        />
+                      </div>
                       <GroupSortMenu {...sortMenu} />
                     </div>
-                    <div className="filter-select-row filter-select-row-compact">
-                      <InterestPicker
-                        aria-label="Filtrera på intresse"
-                        placeholder="Alla intressen"
-                        myInterests={myInterests}
-                        value={filters.interest}
-                        onChange={(interest) => setFilters({ ...filters, interest })}
-                      />
-                      <MunicipalityPicker
-                        aria-label="Filtrera på kommun"
-                        municipalities={municipalities}
-                        value={filters.municipalityCode}
-                        onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
-                        emptyLabel="Alla kommuner"
-                      />
-                    </div>
-                  </SearchToggle>
-                ) : (
-                  <SearchToggle
-                    count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
-                    // Sök och filter öppna från början på dator; på mobil flyter de över listan, så där bara ikonen.
-                    defaultOpen={!mobile}
-                  >
-                    <div className="club-filters">
-                      <SearchField
-                        className="club-search"
-                        aria-label="Sök klubbar"
-                        placeholder="Sök på namn eller beskrivning"
-                        maxLength={100}
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        onClear={() => setSearch('')}
-                      />
-                      <div className="club-filter-pills">
-                        <div className="club-filter club-filter-interest">
-                          <InterestPicker
-                            aria-label="Filtrera på intresse"
-                            placeholder="Alla intressen"
-                            myInterests={myInterests}
-                            value={filters.interest}
-                            onChange={(interest) => setFilters({ ...filters, interest })}
-                          />
-                        </div>
-                        <div className="club-filter club-filter-kommun">
-                          <MunicipalityPicker
-                            aria-label="Filtrera på kommun"
-                            municipalities={municipalities}
-                            value={filters.municipalityCode}
-                            onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
-                            emptyLabel="Alla kommuner"
-                          />
-                        </div>
-                        <GroupSortMenu {...sortMenu} />
-                      </div>
-                    </div>
-                  </SearchToggle>
-                )}
+                  </div>
+                </SearchToggle>
               </PadFloatAction>
               {shown[tab].length === 0 && offerToCreate && tab !== 'invitations' ? (
                 <CreateOffer

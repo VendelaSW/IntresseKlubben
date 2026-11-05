@@ -3,8 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
 import { useResetOnTabChange, useTabParam } from '../../hooks/useTabParam'
-import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
-import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useIsMobile } from '../../hooks/useMediaQuery'
 import CreateEventForm from './CreateEventForm'
 import BackButton from '../../shared/BackButton'
 import CreateButton from '../../shared/CreateButton'
@@ -32,6 +31,7 @@ const EventCalendar = lazy(() => import('./EventCalendar'))
 
 const TABS = [
   { id: 'mine', label: 'Mina events', short: 'Mina' },
+  { id: 'calendar', label: 'Kalender' },
   { id: 'invitations', label: 'Inbjudningar' },
   { id: 'suggested', label: 'Förslag' },
 ]
@@ -74,13 +74,9 @@ function EventsPanel() {
   // ur minnet.
   const [interestsStatus, setInterestsStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
-  // En flik Kalender efter Mina events, om väljaren "Events: kalender" står på det (se app/chosenDesign.js).
-  const calendarChoice = useDesignChoice('eventCalendar')
-  const calendarOn = calendarChoice === 'kalender'
-  const tabs = calendarOn ? [TABS[0], { id: 'calendar', label: 'Kalender' }, ...TABS.slice(1)] : TABS
-  const [urlTab, setTab] = useTabParam(tabs)
+  const [urlTab, setTab] = useTabParam(TABS)
   const tab = urlTab ?? 'mine'
-  const showCalendar = calendarOn && tab === 'calendar'
+  const showCalendar = tab === 'calendar'
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   // 'list', 'create' eller id för det event som visas. Vyn står i adressen
@@ -235,18 +231,15 @@ function EventsPanel() {
   // eller passerat. Visas med en förklaring i stället för att listan dyker upp
   // utan att man förstår varför (t.ex. via en gammal länk eller kartan).
   const missing = typeof view === 'number' && !selected && eventsResult.isSuccess
-  const newPadHead = useDesignChoice('padHead') !== PRE_DEV
   // På mobil flyter skapa-knappen och sökikonen nere i blockets hörn, nära tummen (se .map-pad-float i map.css).
-  const mobile = useMediaQuery('(max-width: 767px)')
+  const mobile = useIsMobile()
 
   return (
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Events</h1>
-        {/* TILLFÄLLIGT: med den nya rubriken i testläget (useDesignChoice('padHead')) står knappen i blockets
-            rubrikrad (på mobil nere i blockets högra hörn), och inte i ett events vy. Annars här, som vanligt. */}
         {view !== 'create' &&
-          !(newPadHead && (selected || missing)) &&
+          !(selected || missing) &&
           (mobile ? (
             <PadFloatAction>
               <CreateButton label="Skapa event" onClick={() => openCreate()} />
@@ -289,7 +282,7 @@ function EventsPanel() {
           {!selected && !missing && (
             // Antalet bara där det är något nytt att se (Inbjudningar och Förslag), inte på Mina events.
             <FilterTabs
-              tabs={tabs.map((t) => ({ ...t, count: t.id === 'mine' || t.id === 'calendar' ? undefined : lists[t.id].length }))}
+              tabs={TABS.map((t) => ({ ...t, count: t.id === 'mine' || t.id === 'calendar' ? undefined : lists[t.id].length }))}
               active={tab}
               onChange={setTab}
             />
@@ -354,7 +347,6 @@ function EventsPanel() {
             </>
           ) : (
             <>
-              {/* TILLFÄLLIGT (testläget): kalendern, på fliken Kalender. */}
               {showCalendar && (
                 <Suspense fallback={null}>
                   <EventCalendar events={unfiltered.mine} myInterestIds={myInterestIds} onSelect={(e) => setView(e.id)} />

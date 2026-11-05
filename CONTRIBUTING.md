@@ -221,6 +221,25 @@ De flesta använder appen på telefonen. Vi följer de vanliga riktlinjerna för
 
 Testa på en riktig telefon innan merge (se [testa-pa-mobilen.md](testa-pa-mobilen.md)).
 
+### CSS och skärmstorlekar
+
+**Var CSS:en ligger**
+- Något som bara en del av appen använder ligger i dess mapp, t.ex. `features/clubs/clubs.css`, med mobilreglerna i samma fil.
+- `styles/index.css` har det gemensamma: tokens, typsnitt, knappar, formulär och det som flera delar använder. Lägg inte funktionsspecifika regler där.
+- Använd tokens (`var(--text-small)`, `var(--radius-sm)`, färgerna) i stället för egna värden, och återanvänd knappklasserna i stället för att skapa nya.
+
+**Vad som ska styra vad**
+| Fråga | Använd |
+|---|---|
+| Hur ser sidans ram ut på telefon? | `@media (max-width: 767px)`, och `useIsMobile()` i React |
+| Hur ser något ut inuti blocket på kartan? | `@container`: blocket kan vara smalare än skärmen |
+| Är det en pekskärm? | `@media (pointer: coarse)` eller `(hover: hover)`, inte bredden |
+| Ska en sida fylla skärmen? | `dvh` i stället för `vh`, så att adressfältet räknas med |
+
+Skriv aldrig `767px` i JS: gränsen finns på ett ställe, i `hooks/useMediaQuery.js`. Ändra helst layouten i CSS, och rita olika i React bara när innehållet verkligen skiljer sig.
+
+Snabbkollen i testpanelen har 320, 375 och 390 bred, mobil på sidan och surfplatta.
+
 ---
 
 ## 4. Tester och CI

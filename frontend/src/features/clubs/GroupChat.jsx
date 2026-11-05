@@ -9,13 +9,12 @@ import { startsGroup } from '../../utils/messageGroups'
 import ChatSender from '../letters/ChatSender'
 import { REPORT_TARGET } from '../../services/reports'
 import ReportButton from '../../shared/ReportButton'
+import { isMobile } from '../../hooks/useMediaQuery'
 
 // Hur ofta chatten hämtas igen medan den är öppen, så att nya meddelanden syns utan att man laddar om sidan.
 // Inte när ingen har rört appen på ett tag (se services/activity.js).
 const POLL_MS = 5000
 
-// Samma brytpunkt som i index.css: under den vill man se det senaste och svarsraden.
-const MOBILE_QUERY = '(max-width: 767px)'
 
 // Klubbens chatt på ett linjerat anteckningspapper (.notepad i stilguiden), som brevtråden. Ligger bredvid klubbens
 // ruta på dator och under den på mobil (se GroupsPanel). Bara för medlemmar, och servern kontrollerar medlemskapet.
@@ -118,7 +117,7 @@ function GroupChat({ groupId, canModerate = false }) {
       loadedOnce.current = true
       return
     }
-    if (window.matchMedia(MOBILE_QUERY).matches) {
+    if (isMobile()) {
       replyRef.current?.scrollIntoView({ block: 'nearest' })
     }
   }, [messages.length, status])

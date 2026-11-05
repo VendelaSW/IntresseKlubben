@@ -32,7 +32,7 @@ import {
   undoDismissSuggestion,
 } from '../../services/people'
 import { useConfirm } from '../../hooks/useConfirm'
-import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useIsMobile } from '../../hooks/useMediaQuery'
 import LoadError from '../../shared/LoadError'
 import { MAX_AGE, MIN_AGE } from '../../utils/age'
 import InfoTip from '../../shared/InfoTip'
@@ -126,7 +126,7 @@ function PeoplePage() {
   // Den man nyss tog bort från Sök ({ id, name }), med "Ångra" en stund.
   const [removed, setRemoved] = useState(null)
   // På en smal skärm står bara "Intresse", "Kommun" och "Kön" i tomma fält, så att alla tre får plats på en rad.
-  const narrow = useMediaQuery('(max-width: 767px)')
+  const narrow = useIsMobile()
 
   useEffect(() => {
     if (!removed) return undefined

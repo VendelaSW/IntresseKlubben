@@ -1,0 +1,174 @@
+/* Events. Allt här används bara här, det gemensamma ligger i styles/index.css. */
+
+/* Svaren på ett event i siffror: en ruta per svar med siffran stor och vad den
+   gäller under. Rutorna är knappar som visar vilka som har svarat så (se
+   .attendee-faces); den öppna är gul, och en ruta med 0 går inte att trycka på. */
+.answer-summary {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.answer-summary-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0.4rem 0.3rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+  text-align: center;
+  box-shadow: none;
+  transform: none;
+}
+
+button.answer-summary-box {
+  cursor: pointer;
+}
+
+button.answer-summary-box:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+button.answer-summary-box:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.answer-summary-box.is-open {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.answer-summary-count {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.answer-summary-label {
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  line-height: 1.2;
+}
+
+/* Vilka som har svarat (EventDetails), när man har tryckt på en ruta i
+   .answer-summary: profilbilderna på en rad som bryts. Namnet står i en liten
+   bubbla ovanför när man pekar på eller tabbar till en bild (data-tooltip). En
+   stjärna i hörnet är en medarrangör; för skaparen är den knappen som gör någon
+   till medarrangör, och syns på de andra när man pekar. */
+.attendee-faces {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 0.75rem;
+  padding: 0.35rem 0 0;
+}
+
+.attendee-face {
+  position: relative;
+}
+
+.attendee-face-link {
+  position: relative;
+  display: block;
+  border-radius: var(--radius-round);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.attendee-face-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 2px solid var(--color-white);
+  border-radius: var(--radius-round);
+  box-shadow: 0 0 0 1.5px var(--color-border);
+  background: var(--color-line);
+  object-fit: cover;
+  font-size: var(--text-body);
+}
+
+.attendee-face.is-blocked .attendee-face-avatar {
+  box-shadow: 0 0 0 2px var(--color-error);
+}
+
+.attendee-face-badge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 1.5px solid var(--color-ink);
+  border-radius: var(--radius-round);
+  background: var(--color-white);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.attendee-face-badge.is-host {
+  background: var(--color-accent);
+  color: var(--color-ink);
+}
+
+.attendee-host-toggle {
+  cursor: pointer;
+  opacity: 0;
+}
+
+.attendee-face:hover .attendee-host-toggle,
+.attendee-host-toggle:focus-visible,
+.attendee-host-toggle.is-host {
+  opacity: 1;
+}
+
+/* Pekskärm: ingen hovring, så knappen syns alltid. */
+@media (hover: none) {
+  .attendee-host-toggle {
+      opacity: 1;
+    }
+}
+
+.attendee-face [data-tooltip]:hover::after,
+.attendee-face [data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  z-index: 5;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-md);
+  background: var(--color-ink);
+  color: var(--color-white);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* Ett avsnitt i en posts egen vy med en rad luft ovanför, t.ex. "Kommer du?" med
+   sina knappar. Läggs i .detail-view. */
+.detail-view-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}

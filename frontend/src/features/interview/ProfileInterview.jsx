@@ -15,6 +15,7 @@ import { ApiError } from '../../services/api'
 import { analyzeInterests, completeInterview } from '../../services/interview'
 import { sealInterest, suggestInterest } from '../../services/interests'
 import { ABOUT_AI_NOTE, ABOUT_LABEL_SHORT, ABOUT_PLACEHOLDER, GENDER_OPTIONS, checkProfileText, genderLabel, getMunicipalities, getProfile, uploadResizedImage } from '../../services/profile'
+import { isMobile } from '../../hooks/useMediaQuery'
 
 // Klippen ligger i frontend/public/video/intervju (och nås som /video/intervju/...).
 const VIDEO_DIR = '/video/intervju/'
@@ -203,7 +204,7 @@ function ProfileInterview() {
     const bubble = captionRef.current
     if (!bubble) return
     bubble.style.width = ''
-    if (!caption || !window.matchMedia('(max-width: 767px)').matches) return
+    if (!caption || !isMobile()) return
     const range = document.createRange()
     range.selectNodeContents(bubble)
     const rects = [...range.getClientRects()]

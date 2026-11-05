@@ -86,7 +86,7 @@
   border-right: 1px solid var(--cal-line);
   text-align: center;
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: var(--text-h2);
   line-height: 1.1;
   color: var(--color-ink);
 }
@@ -149,7 +149,7 @@
   box-shadow: 1px 2px 0 rgba(58, 47, 37, 0.25);
   transform: rotate(var(--note-tilt, -2deg));
   font-family: var(--font-heading);
-  font-size: 1rem;
+  font-size: var(--text-body);
   line-height: 1;
   font-weight: 700;
   text-align: left;
