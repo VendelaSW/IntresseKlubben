@@ -30,6 +30,7 @@ from app.schemas.profile import (
     ProfileUpdate,
 )
 from app.services.text_policy import TextCheckUnavailable, TextNotAllowed, check_text
+from app.services.profile_embeddings import EmbeddingJob, embedding_needed
 from app.services.text_moderation import check_fields
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -76,16 +77,20 @@ def _already_checked(user_id: int, text: str) -> bool:
     return found is not None and time.monotonic() - found[1] <= CHECKED_TEXT_SECONDS and found[0] == _fingerprint(text)
 
 
-def _check_profile_text(text: str, user_id: int | None = None) -> None:
+def _check_profile_text(text: str, user_id: int | None = None, on_ai_check=None) -> None:
     """Om mig-texten får inte vara nazistisk, pedofil eller hatisk eller våldsam (se
     app/services/text_policy.py). Kontrollen är fail-closed: går den inte att köra sparas inget. Är det
-    samma text som användaren nyss har fått godkänd av förhandskontrollen (user_id) görs den inte om."""
+    samma text som användaren nyss har fått godkänd av förhandskontrollen (user_id) görs den inte om.
+    `on_ai_check` anropas precis innan AI-kontrollen körs, och inte alls när kontrollen hoppas över eller spärren säger nej:
+    vektorn för texten startar där, så att den räknas samtidigt (se services/profile_embeddings.py)."""
     if user_id is not None:
         if _already_checked(user_id, text):
             return
         # En ny kontroll kostar ett AI-anrop, så den räknas mot samma minutgräns som förhandskontrollen. En text som
         # redan är godkänd (ovan) räknas inte. Förhandskontrollen själv (utan user_id) räknar redan i sin route.
         _check_text_rate_limit(user_id)
+    if on_ai_check is not None:
+        on_ai_check()
     try:
         check_text(text)
     except TextNotAllowed:
@@ -101,6 +106,7 @@ def _to_response(profile) -> ProfileResponse:
         age=calculate_age(profile.birth_date) if profile.birth_date else None,
         gender=profile.gender,
         gender_searchable=profile.gender_searchable,
+        age_hidden=profile.age_hidden,
         municipality_code=profile.municipality_code,
         municipality_name=profile.municipality.name if profile.municipality else None,
         district=profile.district,
@@ -134,13 +140,15 @@ def add_profile(
     if get_profile(db, current_user.id) is not None:
         raise HTTPException(status_code=409, detail=msg.PROFILE_ALREADY_EXISTS)
     check_fields(name=data.name, profile_text=data.profile_text, district=data.district)
-    _check_profile_text(data.profile_text, current_user.id)
+    embedding = EmbeddingJob(data.profile_text)  # vektorn räknas samtidigt som AI-kontrollen (se services/profile_embeddings.py)
+    _check_profile_text(data.profile_text, current_user.id, on_ai_check=embedding.start)
     try:
         profile = create_profile(db, current_user.id, data)
     except ProfileExistsError:
         raise HTTPException(status_code=409, detail=msg.PROFILE_ALREADY_EXISTS)
     except UnknownInterestError:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_INTEREST)
+    embedding.finish(db, profile)  # kastar aldrig: profilen är sparad
     return _to_response(profile)
 
 
@@ -167,12 +175,17 @@ def edit_profile(
     if data.municipality_code is not None and db.get(Municipality, data.municipality_code) is None:
         raise HTTPException(status_code=422, detail=msg.UNKNOWN_MUNICIPALITY)
     check_fields(name=data.name, profile_text=data.profile_text, district=data.district)
+    # Ändras Om mig-texten (eller saknas vektorn) räknas en ny vektor samtidigt som AI-kontrollen. Skickas inte texten med, saknas
+    # profilen, eller är texten oförändrad och har en vektor, görs inget anrop.
+    embedding = EmbeddingJob("", enabled=False)
     if data.profile_text is not None:
-        _check_profile_text(data.profile_text, current_user.id)
+        embedding = EmbeddingJob(data.profile_text, enabled=embedding_needed(db, get_profile(db, current_user.id), data.profile_text))
+        _check_profile_text(data.profile_text, current_user.id, on_ai_check=embedding.start)
     try:
-        profile = update_profile(db, current_user.id, data)
+        profile = update_profile(db, current_user.id, data)  # tar bort den gamla vektorn i samma transaktion när texten ändras
     except ProfileNotFoundError:
         raise HTTPException(status_code=404, detail=msg.PROFILE_NOT_FOUND)
+    embedding.finish(db, profile)
     return _to_response(profile)
 
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { deleteAccount } from '../services/api'
 import Modal from './Modal'
+import IconButton from './IconButton'
 
 // Längst ner under Redigera profil. Först en liten röd knapp (inte större än de
 // andra valen, SCRUM-255), sedan en bekräftelse i en popup där lösenordet krävs,
@@ -38,13 +39,7 @@ function DeleteAccount() {
 
   return (
     <>
-      <button
-        type="button"
-        className="secondary-button button-small button-danger touch-target"
-        onClick={() => setOpen(true)}
-      >
-        Radera konto
-      </button>
+      <IconButton icon="delete" label="Radera konto" className="touch-target" onClick={() => setOpen(true)} />
       {open && (
         // Medan kontot raderas går popupen inte att stänga (inte heller med Esc).
         <Modal title="Radera konto" onClose={close} locked={busy}>

@@ -4,15 +4,19 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
 import InterestTree, { profileTree } from '../components/InterestTree'
 import ProfileAbout from '../components/ProfileAbout'
+import { PosterCard } from '../components/Poster'
+import ProfileHeader, { profileFacts } from '../components/ProfileHeader'
 import ReportButton from '../components/ReportButton'
-import { eventTimeText } from '../components/events/EventList'
-import { memberCountText } from '../components/groups/GroupList'
+import { eventWhenWhereText } from '../components/events/EventList'
+import { groupMembersText } from '../components/groups/GroupList'
 import { useAuth } from '../hooks/useAuth'
 import { useCanGoBack } from '../hooks/useCanGoBack'
 import {
   answerContactRequest,
-  blockQuestion,
+  blockConfirm,
   blockUser,
+  CANCEL_REQUEST,
+  removeContactConfirm,
   cancelContactRequest,
   contactsQuery,
   removeContact,
@@ -24,6 +28,10 @@ import { memberGroupsQuery } from '../services/groups'
 import { getMyInterests } from '../services/interests'
 import { getUserProfile } from '../services/profile'
 import { REPORT_TARGET } from '../services/reports'
+import { useConfirm } from '../hooks/useConfirm'
+import { joinNames } from '../utils/joinNames'
+import Modal from '../components/Modal'
+import LoadError, { useRetry } from '../components/LoadError'
 
 // Vem man är i förhållande till personen man tittar på, hämtat från
 // GET /contacts och matchat på id. contactId pekar på själva
@@ -53,6 +61,7 @@ function useRelation(userId) {
 // relationsknappar delar samma utseende (secondary-button), bara
 // texten och vad de gör skiljer sig åt beroende på relation.type.
 function RelationButtons({ userId, name, blocked, onBlockedChange }) {
+  const confirm = useConfirm()
   const [relation, refresh] = useRelation(userId)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -75,13 +84,18 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
   }
 
   async function handleBlock() {
-    if (!window.confirm(blockQuestion(displayName))) return
+    if (!(await confirm(blockConfirm(displayName)))) return
     if (await run(() => blockUser(userId))) onBlockedChange(true)
   }
 
-  function handleCancelRequest() {
-    if (!window.confirm('Ångrar du denna kompisförfrågan?')) return
+  async function handleCancelRequest() {
+    if (!(await confirm(CANCEL_REQUEST))) return
     run(() => cancelContactRequest(relation.contactId))
+  }
+
+  async function handleRemoveContact() {
+    if (!(await confirm(removeContactConfirm(displayName)))) return
+    run(() => removeContact(relation.contactId))
   }
 
   async function handleUnblock() {
@@ -149,26 +163,24 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
           type="button"
           className="secondary-button"
           disabled={busy}
-          onClick={() => run(() => removeContact(relation.contactId))}
+          onClick={handleRemoveContact}
         >
           Ta bort kompis
         </button>
       )}
-      <button
-        type="button"
-        className="text-button"
-        disabled={busy}
-        onClick={handleBlock}
-      >
-        Blockera
-      </button>
-      <ReportButton
-        targetType={REPORT_TARGET.profile}
-        targetId={userId}
-        userId={userId}
-        name={displayName}
-        onBlocked={() => onBlockedChange(true)}
-      />
+      {/* Blockera och Anmäl på en egen rad under knapparna, så att de inte trängs med dem. */}
+      <div className="profile-actions-secondary">
+        <button type="button" className="text-button" disabled={busy} onClick={handleBlock}>
+          Blockera
+        </button>
+        <ReportButton
+          targetType={REPORT_TARGET.profile}
+          targetId={userId}
+          userId={userId}
+          name={displayName}
+          onBlocked={() => onBlockedChange(true)}
+        />
+      </div>
       {error && <p className="form-error">{error}</p>}
     </>
   )
@@ -178,12 +190,12 @@ function RelationButtons({ userId, name, blocked, onBlockedChange }) {
 // sak med namn och en detalj under. `items` är [{ key, to, title, detail }],
 // eller undefined medan listan laddas. Ett klick öppnar saken, och Tillbaka går
 // hit igen.
-function ProfileLinkList({ title, items, isError, errorText, loadingText, emptyText }) {
+function ProfileLinkList({ title, items, isError, errorText, onRetry, retrying, loadingText, emptyText }) {
   return (
     <section className="profile-events">
       <h2>{title}</h2>
       {isError ? (
-        <p className="hint-text">{errorText}</p>
+        <LoadError text={errorText} onRetry={onRetry} retrying={retrying} className="hint-text" />
       ) : items === undefined ? (
         <p className="hint-text">{loadingText}</p>
       ) : items.length === 0 ? (
@@ -211,7 +223,7 @@ function ProfileLinkList({ title, items, isError, errorText, loadingText, emptyT
 // event bara för inbjudna eller för en klubb man inte är med i syns inte här
 // heller.
 function CreatedEvents({ userId, isMe }) {
-  const { data: events, isError } = useQuery(eventsQuery)
+  const { data: events, isError, refetch, isFetching } = useQuery(eventsQuery)
   const created = events?.filter((event) => event.creator_id === userId)
 
   return (
@@ -221,10 +233,12 @@ function CreatedEvents({ userId, isMe }) {
         key: event.id,
         to: `/events?event=${event.id}`,
         title: event.title,
-        detail: `${eventTimeText(event)} · ${event.place_name}`,
+        detail: eventWhenWhereText(event),
       }))}
       isError={isError}
       errorText="Kunde inte hämta events."
+      onRetry={() => refetch()}
+      retrying={isFetching}
       loadingText="Laddar events..."
       emptyText="Inga kommande events."
     />
@@ -235,7 +249,7 @@ function CreatedEvents({ userId, isMe }) {
 // Servern visar bara öppna klubbar, och privata som man själv är med i (se
 // GET /groups/member/{id}).
 function MemberClubs({ userId, isMe }) {
-  const { data: groups, isError } = useQuery(memberGroupsQuery(userId))
+  const { data: groups, isError, refetch, isFetching } = useQuery(memberGroupsQuery(userId))
 
   return (
     <ProfileLinkList
@@ -244,13 +258,72 @@ function MemberClubs({ userId, isMe }) {
         key: group.id,
         to: `/klubbar?klubb=${group.id}`,
         title: group.name,
-        detail: `${group.municipality_name} · ${memberCountText(group.member_count)}`,
+        detail: groupMembersText(group),
       }))}
       isError={isError}
       errorText="Kunde inte hämta klubbar."
+      onRetry={() => refetch()}
+      retrying={isFetching}
       loadingText="Laddar klubbar..."
       emptyText={isMe ? 'Du är inte med i någon klubb än.' : 'Inga klubbar att visa.'}
     />
+  )
+}
+
+const swedishOrder = new Intl.Collator('sv')
+const monthAndYear = new Intl.DateTimeFormat('sv-SE', { month: 'long', year: 'numeric' })
+// Fler namn än så skrivs som "och 4 till", så att raden inte blir en hel lista.
+const MAX_NAMES = 3
+
+// Förtroendesignaler på någon annans profil (SCRUM-219): stämplar för bekräftad e-post och hur länge personen har
+// varit med, och vilka kompisar och klubbar ni har gemensamt. Bara det som finns visas, inget "0 gemensamma" eller
+// "ej bekräftad", så att en ny användare inte ser misstänkt ut.
+// Fler namn än MAX_NAMES ger en knapp "och 4 till" som öppnar en ruta med hela listan.
+function TrustSignals({ profile }) {
+  const [list, setList] = useState(null) // { title, names } medan rutan är öppen
+  const friends = [...profile.mutual_friends].sort(swedishOrder.compare)
+  const clubs = [...profile.shared_clubs].sort(swedishOrder.compare)
+  // member_since är bara "2026-03" (månad och år), som datum i den egna tidszonen.
+  const [year, month] = profile.member_since?.split('-') ?? []
+  const shown = (names, title) =>
+    joinNames(
+      names.slice(0, MAX_NAMES),
+      names.length > MAX_NAMES && (
+        <button type="button" className="info-link" onClick={() => setList({ title, names })}>
+          {names.length - MAX_NAMES} till
+        </button>
+      ),
+    )
+
+  return (
+    <>
+      <div className="trust-stamps">
+        {profile.email_verified && <span className="stamp stamp-success">E-post bekräftad</span>}
+        {year && <span className="stamp">Medlem sedan {monthAndYear.format(new Date(year, month - 1))}</span>}
+      </div>
+      {friends.length > 0 && (
+        <p className="profile-header-facts">
+          {friends.length === 1 ? '1 gemensam kompis' : `${friends.length} gemensamma kompisar`}:{' '}
+          {shown(friends, 'Gemensamma kompisar')}
+        </p>
+      )}
+      {clubs.length > 0 && (
+        <p className="profile-header-facts">Ni är båda med i {shown(clubs, 'Gemensamma klubbar')}</p>
+      )}
+      {list && (
+        <Modal title={list.title} onClose={() => setList(null)}>
+          <div className="modal-scroll person-list">
+            <ul>
+              {list.names.map((name, i) => (
+                <li key={i} className="person-list-item">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Modal>
+      )}
+    </>
   )
 }
 
@@ -271,6 +344,7 @@ function UserProfilePage() {
   // Den egna profilen kan öppnas via adressen, men man ska inte kunna
   // skicka kompisförfrågan, meddelande eller blockera sig själv.
   const isMe = user?.id === userId
+  const [attempt, retry] = useRetry()
 
   useEffect(() => {
     setStatus('loading')
@@ -281,15 +355,13 @@ function UserProfilePage() {
         setStatus(data === null ? 'not-found' : 'ready')
       })
       .catch(() => setStatus('error'))
-  }, [userId])
+  }, [userId, attempt])
 
   useEffect(() => {
     getMyInterests()
       .then((mine) => setMyInterestIds(new Set(mine.map((interest) => interest.id))))
       .catch(() => {})
   }, [])
-
-  const initial = profile?.name?.trim()?.[0]?.toUpperCase() ?? '?'
 
   // Går tillbaka dit man kom ifrån. Om sidan öppnades direkt (t.ex. en
   // delad länk) finns ingen tidigare sida i appen att gå tillbaka till,
@@ -303,74 +375,76 @@ function UserProfilePage() {
     }
   }
 
+  // Andras profil är ett stort affischkort (PosterCard, se components/Poster.jsx), som personkorten i Sök: raden överst
+  // har färgerna på personens områden, de ni har gemensamt först. Den egna profilen (öppnad via adressen) ser ut som Min
+  // profil.
+  const poster = !isMe
+  const Card = poster ? PosterCard : 'div'
+  const cardProps = poster && profile ? { interests: profile.interests, sharedIds: myInterestIds } : {}
+
   return (
     <div className="content-stack">
       {/* Ovanför kortet, som i Klubbar och Events. */}
       <BackButton onClick={handleBack} />
       {status === 'loading' && <p>Laddar profil...</p>}
       {status === 'not-found' && <p className="form-error">Den profilen finns inte.</p>}
-      {status === 'error' && <p className="form-error">Kunde inte hämta profilen. Försök igen senare.</p>}
+      {status === 'error' && <LoadError text="Kunde inte hämta profilen." onRetry={retry} className="form-error" />}
 
       {status === 'ready' && (
-        <div className="card card-wide content-stack">
-          <h1>{profile.name ?? 'Profil'}</h1>
-          <div className="profile-image">
-            {profile.image_url ? (
-              <img
-                src={profile.image_url}
-                alt={`Profilbild för ${profile.name ?? 'användaren'}`}
-                className="profile-avatar"
-              />
-            ) : (
-              <div className="profile-avatar profile-avatar-empty" aria-hidden="true">
-                {initial}
-              </div>
-            )}
-          </div>
-          <dl className="profile-details">
-            <dt>Namn</dt>
-            <dd>{profile.name ?? '–'}</dd>
-            <dt>Ålder</dt>
-            <dd>{profile.age ?? '–'}</dd>
-            <dt>Kommun</dt>
-            <dd>{profile.municipality_name ?? '–'}</dd>
-            <dt>Stadsdel</dt>
-            <dd>{profile.district ?? '–'}</dd>
-          </dl>
-          <ProfileAbout text={profile.profile_text} />
-          <section className="profile-interests">
-            <h2>Intressen</h2>
-            {/* Som på Min profil: underintressen bakom ▼, gemensamma intressen med en bock (inga på den egna). */}
-            {profile.interests.length > 0 ? (
-              <InterestTree
-                proposals={profileTree(profile.interests)}
-                align="start"
-                highlight={isMe ? undefined : new Set([...(myInterestIds ?? [])].map((id) => `id:${id}`))}
-              />
-            ) : (
-              <p className="hint-text">Inga intressen valda än.</p>
-            )}
-          </section>
-          <CreatedEvents userId={userId} isMe={isMe} />
-          <MemberClubs userId={userId} isMe={isMe} />
-          {!isMe && (
-            <>
-              {/* Tydligast: att man kan skriva till personen, även innan ni är
-                  kompisar. Brevtråden visar tidigare brev och svarsraden. */}
-              {!blocked && (
-                <Link to={`/meddelanden/${userId}`} className="primary-button profile-write">
-                  Skriv ett brev
-                </Link>
+        <Card className={`card card-wide content-stack profile-card${poster ? ' profile-poster' : ''}`} {...cardProps}>
+          {/* Överst bild, namn och det viktigaste på en rad (tomma uppgifter syns inte). */}
+          <ProfileHeader
+            name={profile.name ?? 'Profil'}
+            imageUrl={profile.image_url}
+            facts={profileFacts(profile)}
+            heading="h1"
+            maxLetters={poster ? 2 : 1}
+            poster={poster}
+          >
+            {!isMe && <TrustSignals profile={profile} />}
+          </ProfileHeader>
+          {/* Två spalter på dator, så att det mesta syns utan att scrolla: personen och knapparna till
+              vänster, intressen, events och klubbar till höger. Under varandra på mobil. */}
+          <div className="profile-columns">
+            <div className="profile-column">
+              <ProfileAbout text={profile.profile_text} poster={poster} />
+              {!isMe && (
+                <div className="profile-actions">
+                  {/* Tydligast: att man kan skriva till personen, även innan ni är
+                      kompisar. Brevtråden visar tidigare brev och svarsraden. */}
+                  {!blocked && (
+                    <Link to={`/meddelanden/${userId}`} className="primary-button profile-write">
+                      Skriv ett brev
+                    </Link>
+                  )}
+                  <RelationButtons
+                    userId={userId}
+                    name={profile.name}
+                    blocked={blocked}
+                    onBlockedChange={setBlocked}
+                  />
+                </div>
               )}
-              <RelationButtons
-                userId={userId}
-                name={profile.name}
-                blocked={blocked}
-                onBlockedChange={setBlocked}
-              />
-            </>
-          )}
-        </div>
+            </div>
+            <div className="profile-column">
+              <section className="profile-interests">
+                <h2>Intressen</h2>
+                {/* Som på Min profil: underintressen bakom ▼, gemensamma intressen med en bock (inga på den egna). */}
+                {profile.interests.length > 0 ? (
+                  <InterestTree
+                    proposals={profileTree(profile.interests)}
+                    align="start"
+                    highlight={isMe ? undefined : new Set([...(myInterestIds ?? [])].map((id) => `id:${id}`))}
+                  />
+                ) : (
+                  <p className="hint-text">Inga intressen valda än.</p>
+                )}
+              </section>
+              <CreatedEvents userId={userId} isMe={isMe} />
+              <MemberClubs userId={userId} isMe={isMe} />
+            </div>
+          </div>
+        </Card>
       )}
 
     </div>

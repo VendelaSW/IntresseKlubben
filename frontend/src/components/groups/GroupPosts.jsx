@@ -14,6 +14,8 @@ import Avatar from '../Avatar'
 import ChatSender from '../ChatSender'
 import Modal from '../Modal'
 import ReportButton from '../ReportButton'
+import { useConfirm } from '../../hooks/useConfirm'
+import LoadError, { useRetry } from '../LoadError'
 
 // Samma gräns som i backend (schemas/group_post.py).
 const MAX_LENGTH = 2000
@@ -32,14 +34,17 @@ function sortPosts(list) {
   )
 }
 
-// Klubbens anslagstavla överst på klubbsidan (se GroupsPanel): lappar med
-// nyheter och regler som ligger kvar, nyaste först, till skillnad från chatten.
+// Klubbens anslagstavla, en egen vy i klubben (knappen Anslagstavla, se
+// GroupsPanel): lappar med nyheter och regler som ligger kvar, nyaste först,
+// till skillnad från chatten. `full` = hela tavlan med alla lappar, som en stor
+// kork som fyller blocket.
 // Lapparna ser ut som kartans lappar (.paper-note). En lapp visar högst tre
 // rader; ett klick öppnar hela lappen i en popup, där den som satte upp den och
 // klubbens ägare (`isOwner`) kan ta ner den. Ägaren kan också nåla fast en lapp
 // i taget, som då alltid ligger först och bara ägaren kan ta ner. Bara för
 // medlemmar, och servern kontrollerar medlemskapet.
-function GroupPosts({ groupId, isOwner }) {
+function GroupPosts({ groupId, isOwner, full = false }) {
+  const confirm = useConfirm()
   const { user } = useAuth()
   const [posts, setPosts] = useState([])
   const [members, setMembers] = useState([])
@@ -48,9 +53,10 @@ function GroupPosts({ groupId, isOwner }) {
   const [content, setContent] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
-  const [showAll, setShowAll] = useState(false)
+  const [showAll, setShowAll] = useState(full)
   // Lappen som visas i popupen, eller null.
   const [openPost, setOpenPost] = useState(null)
+  const [attempt, retry] = useRetry()
 
   useEffect(() => {
     let cancelled = false
@@ -69,7 +75,7 @@ function GroupPosts({ groupId, isOwner }) {
     return () => {
       cancelled = true
     }
-  }, [groupId])
+  }, [groupId, attempt])
 
   function stopWriting() {
     setWriting(false)
@@ -94,7 +100,8 @@ function GroupPosts({ groupId, isOwner }) {
   }
 
   async function handleDelete(post) {
-    if (!window.confirm('Ta ner lappen? Det går inte att ångra.')) return
+    if (!(await confirm({ title: 'Ta ner lappen', text: 'Det går inte att ångra.', confirmLabel: 'Ta ner', danger: true })))
+      return
     setError('')
     try {
       await deleteGroupPost(groupId, post.id)
@@ -147,20 +154,20 @@ function GroupPosts({ groupId, isOwner }) {
         <span className="board-note-text">{post.content}</span>
         <span className="board-note-meta">
           <Avatar name={name} imageUrl={author?.image_url} className="person-list-avatar" />
-          {post.author_id === user?.id ? 'Du' : name} · {formatSentAt(post.created_at)}
+          {post.author_id === user?.id ? 'Du' : name}, {formatSentAt(post.created_at)}
         </span>
       </button>
     )
   }
 
   return (
-    <section className="board" aria-labelledby={titleId}>
+    <section className={`board${full ? ' board-full' : ''}`} aria-labelledby={titleId}>
       <div className="board-head">
         <h2 id={titleId} className="board-title">
           Anslagstavla
         </h2>
         <div className="board-actions">
-          {posts.length > SHOWN_ON_DESKTOP && (
+          {!full && posts.length > SHOWN_ON_DESKTOP && (
             <button type="button" className="secondary-button button-small board-show-all" onClick={() => setShowAll((all) => !all)}>
               {showAll ? 'Visa färre' : `Visa alla (${posts.length})`}
             </button>
@@ -178,7 +185,7 @@ function GroupPosts({ groupId, isOwner }) {
         </p>
       )}
       {status === 'loading' && <p className="board-empty">Laddar lappar...</p>}
-      {status === 'error' && <p className="board-empty">Kunde inte hämta lapparna. Försök igen senare.</p>}
+      {status === 'error' && <LoadError text="Kunde inte hämta lapparna." onRetry={retry} className="board-empty" />}
 
       <div className={`board-notes${showAll ? ' is-all' : ''}`}>
         {posts.slice(0, pinnedCount).map(renderNote)}

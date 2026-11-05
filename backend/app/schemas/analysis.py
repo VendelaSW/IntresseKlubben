@@ -48,10 +48,12 @@ class SuggestRequest(BaseModel):
 class InterestRef(BaseModel):
     # Intresset ett förslag pekar på. id är None för ett nytt intresse. path är namnen ovanför i trädet, uppifrån.
     # parent_key är nyckeln på förslaget ett nytt intresse ska ligga under, när det är en sub under ett annat nytt
-    # förslag i samma analys (Fyrmodeller under det nya Modellbygge), annars None.
+    # förslag i samma analys (Fyrmodeller under det nya Modellbygge), annars None. area_slug är huvudområdets slug,
+    # som taggens färg följer (ett nytt intresse får sin förälders).
     id: int | None
     name: str
     path: list[str]
+    area_slug: str | None = None
     is_new: bool
     parent_key: str | None
 

@@ -10,7 +10,7 @@ import { useAuth } from '../hooks/useAuth'
 const NAV_ITEMS = [
   { label: 'Hem', icon: hemIcon },
   { label: 'Brev', icon: brevIcon },
-  { label: 'Personer', icon: personerIcon },
+  { label: 'Medlemmar', icon: personerIcon },
   { label: 'Klubbar', icon: klubbarIcon },
   { label: 'Events', icon: eventIcon },
 ]
@@ -26,7 +26,8 @@ function AppShell() {
 
   function handleLogout() {
     logout()
-    navigate('/')
+    // Den nya startsidan säger "Ha det!" (se StartPage), bara när man själv har loggat ut.
+    navigate('/', { state: { loggedOut: true } })
   }
 
   return (

@@ -8,12 +8,13 @@ import { createContext, useContext } from 'react'
 export const MapActionsContext = createContext(null)
 
 // "Visa på kartan" för en klubb eller ett event, men bara när sidan ligger på
-// kartan och klubben/eventet har en plats där.
-function ShowOnMapButton({ type, id, data }) {
+// kartan och klubben/eventet har en plats där. `className` ger utseendet, en liten
+// sekundär knapp om inget annat anges (t.ex. "info-link" för en länk).
+function ShowOnMapButton({ type, id, data, className = 'secondary-button button-small' }) {
   const map = useContext(MapActionsContext)
   if (!map?.hasLocation(type, id, data)) return null
   return (
-    <button type="button" className="secondary-button button-small" onClick={() => map.showOnMap(type, id, data)}>
+    <button type="button" className={className} onClick={() => map.showOnMap(type, id, data)}>
       Visa på kartan
     </button>
   )

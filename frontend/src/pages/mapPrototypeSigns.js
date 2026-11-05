@@ -1,5 +1,5 @@
 import { FIGURE_HEIGHT_PX, FIGURE_WIDTH_PX, figureUrl } from './mapPrototypeDoodles'
-import { placeGroup } from './mapPrototypeStyle'
+import { placeGroup, refreshWhileMoving } from './mapPrototypeStyle'
 
 // PROTOTYP: platsernas pop-up-figurer (pappkort på en fot), stående i samma
 // perspektiv som 3D-husen.
@@ -37,6 +37,7 @@ export function attachPlaceSigns(map, layerId, layer) {
   // Hämtar vilka platser kartan har placerat, och lägger till eller tar bort
   // skyltar så att de stämmer.
   function refresh() {
+    if (!map.getLayer(layerId)) return // stilen har inte laddats än
     const placed = new Map()
     for (const feature of map.queryRenderedFeatures({ layers: [layerId] })) {
       const group = placeGroup(feature.properties)
@@ -59,7 +60,8 @@ export function attachPlaceSigns(map, layerId, layer) {
       layer.append(shadow, card)
       signs.set(id, { lngLat, group, card, shadow })
     }
-    render()
+    // Medan kartan rör sig ritas de av move strax efter.
+    if (!map.isMoving()) render()
   }
 
   function render() {
@@ -99,6 +101,7 @@ export function attachPlaceSigns(map, layerId, layer) {
     }
   }
 
+  refreshWhileMoving(map, () => map.getZoom() >= 14 && refresh())
   map.on('move', render)
   map.on('idle', refresh)
   // Hovring ändrar inte kartan, så rita om när man pekar på eller lämnar en

@@ -28,6 +28,20 @@ export function getChildInterests(id) {
   return cached(['interests', 'children', id], () => apiGet(`/interests/${id}/children`), HOUR)
 }
 
+// Antalet till rutan om ett intresse i biblioteket (SCRUM-306, InterestInfo): hur många som har det eller något under
+// det, i landet och i kommunen (GET /interests/{id}/people). Personerna behövs inte, så bara en hämtas. Utan kommun är
+// municipality null. 404 betyder att intresset inte finns eller inte syns för en.
+export const interestCountsQuery = (id, municipalityCode) => ({
+  queryKey: ['interests', 'counts', id, municipalityCode ?? null],
+  queryFn: () => {
+    const params = new URLSearchParams({ limit: '1' })
+    if (municipalityCode) params.set('municipality_code', municipalityCode)
+    return apiGet(`/interests/${id}/people?${params}`)
+  },
+  staleTime: 5 * MINUTE,
+  retry: (count, error) => !(error instanceof ApiError && error.status === 404) && count < 2,
+})
+
 export function searchInterests(query) {
   return apiGet(`/interests/search?${new URLSearchParams({ q: query })}`).then((items) => items.filter(hasContent))
 }
@@ -56,7 +70,7 @@ export function getMyInterests() {
   )
 }
 
-// Båda returnerar användarens uppdaterade lista med intressen, som också
+// Alla tre returnerar användarens uppdaterade lista med intressen, som också
 // ersätter den i minnet.
 export async function addInterest(id) {
   return queryClient.setQueryData(MY_INTERESTS_KEY, await apiPut(`/profile/interests/${id}`))

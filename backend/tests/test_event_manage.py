@@ -5,7 +5,10 @@ import pytest
 from app.auth.security import get_current_user
 from app.main import app
 from app.models import Event, EventInvitation, EventResponse, Group, Interest, User
+from app.models.group import GroupRole
+from app.models.notification import Notification
 from app.models.event import EventAnswer, EventVisibility
+from app.schemas.event import EVENT_MAX_DAYS_AHEAD
 from tests.event_helpers import add_event, add_group, future
 
 
@@ -125,6 +128,17 @@ def test_times_must_make_sense_together(client, db, user, event):
     assert both.status_code == 200
 
 
+def test_new_times_can_be_at_most_a_year_ahead(client, db, user, event):
+    too_far = future(days=EVENT_MAX_DAYS_AHEAD + 1).isoformat()
+    response = patch(client, event, starts_at=too_far, ends_at=future(days=EVENT_MAX_DAYS_AHEAD + 2).isoformat())
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Value error, Starttiden kan vara högst ett år fram i tiden"
+    response = patch(client, event, ends_at=too_far)
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Value error, Sluttiden kan vara högst ett år fram i tiden"
+    assert db.get(Event, event.id).starts_at.date() == future(days=5).date()
+
+
 def test_unknown_interest_is_rejected(client, db, user, event):
     response = patch(client, event, interest_id=999)
     assert response.status_code == 422
@@ -204,6 +218,42 @@ def test_a_past_event_can_still_be_deleted_by_its_creator(client, db, user):
 
 def test_only_the_creator_can_delete(client, db, user, other):
     event = add_event(db, other.id, visibility=EventVisibility.open)
+    assert client.delete(f"/events/{event.id}").status_code == 403
+    assert db.query(Event).count() == 1
+
+
+def test_the_club_owner_can_delete_any_event_in_the_club(client, db, user, other):
+    group = add_group(db, user.id, members=[other.id])
+    event = add_event(db, other.id, group_id=group.id, title="Spelkväll", visibility=EventVisibility.invite_only)
+
+    assert client.get("/events/").json()[0]["can_delete"] is True
+    assert client.request("DELETE", f"/events/{event.id}", json={"message": "Fel klubb"}).status_code == 204
+    assert db.query(Event).count() == 0
+
+    # Skaparen får veta det, och ägaren får ingen notis själv.
+    [notice] = db.query(Notification).all()
+    assert notice.user_id == other.id
+    assert notice.title == "«Spelkväll» har tagits bort"
+    assert notice.quote == "Fel klubb"
+
+
+def test_only_the_owner_of_the_club_can_delete_someone_elses_event(client, db, user, other):
+    group = add_group(db, other.id, members=[user.id])
+    event = add_event(db, other.id, group_id=group.id, visibility=EventVisibility.open)
+
+    # Vanlig medlem.
+    assert client.get("/events/").json()[0]["can_delete"] is False
+    response = client.delete(f"/events/{event.id}")
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Bara den som skapat eventet och klubbens ägare kan ta bort det"
+
+    # Administratör.
+    next(m for m in group.members if m.user_id == user.id).role = GroupRole.admin
+    db.commit()
+    assert client.delete(f"/events/{event.id}").status_code == 403
+
+    # Ägare av en annan klubb.
+    add_group(db, user.id, name="Min klubb")
     assert client.delete(f"/events/{event.id}").status_code == 403
     assert db.query(Event).count() == 1
 

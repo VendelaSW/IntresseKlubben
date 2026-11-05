@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import Avatar from '../Avatar'
+import SearchField from '../SearchField'
+import SearchToggle from '../SearchToggle'
 import { memberCountText } from '../groups/GroupList'
 
 // Innehållet i popupen "Bjud in": en sökbar lista över ens kompisar och en lista
@@ -22,13 +24,15 @@ function InvitePicker({ contacts, groups, initial, submitLabel, busy, error, onS
   return (
     <>
       <div className="auth-form form-wide form-compact">
-        <input
-          type="search"
-          aria-label="Sök bland kompisar"
-          placeholder="Sök bland kompisar..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <SearchToggle label="Sök bland kompisar" count={query ? 1 : 0}>
+          <SearchField
+            aria-label="Sök bland kompisar"
+            placeholder="Sök bland kompisar..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onClear={() => setQuery('')}
+          />
+        </SearchToggle>
       </div>
 
       <div className="modal-scroll">

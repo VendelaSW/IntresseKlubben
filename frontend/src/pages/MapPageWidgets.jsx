@@ -1,39 +1,47 @@
 import { useEffect, useRef, useState } from 'react'
 import brevIcon from '../assets/brev.png'
 import eventIcon from '../assets/event.png'
+import hemIcon from '../assets/hem.png'
 import klubbarIcon from '../assets/klubbar.png'
-import notiserIcon from '../assets/notiser.svg'
 import personerIcon from '../assets/personer.png'
-import { useBadgeCounts } from '../hooks/useBadgeCounts'
 
-// Appens sidor som små lappar bredvid profillappen (på mobil som en rad
+// Appens sidor som små lappar bredvid profillappen (på surfplattan som en rad
 // längst ned), med samma ikoner som appens meny. Ett klick lägger sidan som
 // ett block på kartan (se MapPagePad); klickar man på den öppna sidans lapp
-// igen stängs blocket.
+// igen stängs blocket. Notiserna ligger i profillappens meny (se MapProfileWidget).
 //
 // Lapparna har samma märken som appens meny (se useBadgeCounts), och när en
 // siffra går upp medan man är på kartan studsar lappen till, så att man ser
 // att något har hänt. `badge` säger vilken siffra lappen visar och hur den
 // läses upp.
+//
+// På mobil är lapparna en flytande meny längst ned (se map.css), med kartan (inget block öppet) som en större knapp i
+// mitten. En gul bubbla glider till den öppna sidan och töjs ut på vägen.
 const WIDGETS = [
   { id: 'brev', label: 'Brev', icon: brevIcon, badge: ['unseenMessages', 'konversationer med nya brev'] },
-  { id: 'personer', label: 'Personer', icon: personerIcon, badge: ['contactRequests', 'nya kompisförfrågningar'] },
+  { id: 'personer', label: 'Medlemmar', icon: personerIcon, badge: ['contactRequests', 'nya kompisförfrågningar'] },
+  { id: null, label: 'Kartan', icon: hemIcon, badge: [] },
   { id: 'klubbar', label: 'Klubbar', icon: klubbarIcon, badge: ['clubInvitations', 'klubbinbjudningar'] },
   { id: 'events', label: 'Events', icon: eventIcon, badge: ['eventNews', 'nya events och inbjudningar'] },
-  { id: 'notiser', label: 'Notiser', icon: notiserIcon, badge: ['notifications', 'nya notiser'] },
 ]
 
 // Hur länge en lapp studsar (samma som animationen map-widget-ping).
 const PING_MS = 1200
 
-function MapPageWidgets({ openPage, onOpen }) {
-  // Räknas om när ett block öppnas eller stängs, eftersom man kan ha läst brev
-  // eller svarat på en inbjudan i det.
-  // null tills första hämtningen är klar (se useBadgeCounts).
-  const counts = useBadgeCounts({ refreshKey: openPage })
+// `counts` är siffrorna från useBadgeCounts (i MapPrototype, som delar dem med profillappen), null tills första
+// hämtningen är klar.
+function MapPageWidgets({ openPage, onOpen, counts }) {
   const [pinged, setPinged] = useState(() => new Set())
   const previous = useRef(null)
   const pingTimer = useRef(null)
+  // Bubblan på mobil: var den står och hur många gånger den har flyttat (två likadana animationer byts av, så att den
+  // spelas om vid varje byte). Ett block som inte har någon lapp (t.ex. Notiser från profillappen) döljer bubblan där
+  // den står. Räknas om under renderingen när en annan sida öppnas, som Reacts mönster för state som följer en prop.
+  const openIndex = WIDGETS.findIndex(({ id }) => id === openPage)
+  const [blob, setBlob] = useState({ page: openPage, index: openIndex, moves: 0 })
+  if (blob.page !== openPage) {
+    setBlob({ page: openPage, index: openIndex < 0 ? blob.index : openIndex, moves: blob.moves + 1 })
+  }
 
   useEffect(() => {
     if (!counts) return
@@ -41,7 +49,7 @@ function MapPageWidgets({ openPage, onOpen }) {
     previous.current = counts
     // Första hämtningen är inget nytt, bara läget när kartan öppnades.
     if (!before) return
-    const up = WIDGETS.filter(({ badge: [key] }) => counts[key] > before[key]).map(({ id }) => id)
+    const up = WIDGETS.filter(({ badge: [key] }) => key && counts[key] > before[key]).map(({ id }) => id)
     if (up.length === 0) return
     setPinged(new Set(up))
     clearTimeout(pingTimer.current)
@@ -50,18 +58,25 @@ function MapPageWidgets({ openPage, onOpen }) {
 
   useEffect(() => () => clearTimeout(pingTimer.current), [])
 
+  const goo = blob.moves === 0 ? '' : blob.moves % 2 ? ' is-goo-a' : ' is-goo-b'
+
   return (
     <nav className="map-page-widgets" aria-label="Sidor">
+      <span
+        className={`map-nav-blob${openPage ? '' : ' is-home'}${openIndex < 0 ? ' is-hidden' : ''}${goo}`}
+        style={{ '--nav-index': blob.index }}
+        aria-hidden="true"
+      />
       {WIDGETS.map(({ id, label, icon, badge: [key, badgeLabel] }) => (
         <button
-          key={id}
+          key={id ?? 'karta'}
           type="button"
-          className={`map-page-widget${openPage === id ? ' is-open' : ''}${pinged.has(id) ? ' is-pinged' : ''}`}
+          className={`map-page-widget${id ? '' : ' map-page-widget-home'}${openPage === id ? ' is-open' : ''}${pinged.has(id) ? ' is-pinged' : ''}`}
           aria-pressed={openPage === id}
           title={label}
-          onClick={() => onOpen(openPage === id ? null : id)}
+          onClick={() => onOpen(id && openPage === id ? null : id)}
         >
-          {counts?.[key] > 0 && (
+          {key && counts?.[key] > 0 && (
             <span className="map-widget-badge" aria-label={`${counts[key]} ${badgeLabel}`}>
               {counts[key]}
             </span>

@@ -1,0 +1,1391 @@
+{
+ "landsdelar": [
+  {
+   "kod": "gotaland",
+   "namn": "Götaland"
+  },
+  {
+   "kod": "svealand",
+   "namn": "Svealand"
+  },
+  {
+   "kod": "norrland",
+   "namn": "Norrland"
+  }
+ ],
+ "landskap": [
+  {
+   "kod": "1",
+   "namn": "Skåne",
+   "landsdel": "gotaland"
+  },
+  {
+   "kod": "2",
+   "namn": "Blekinge",
+   "landsdel": "gotaland"
+  },
+  {
+   "kod": "3",
+   "namn": "Öland",
+   "landsdel": "gotaland"
+  },
+  {
+   "kod": "4",
+   "namn": "Halland",
+   "landsdel": "gotaland"
+  },
+  {
+   "kod": "5",
+   "namn": "Småland",
+   "landsdel": "gotaland"
+  },
+  {
+   "kod": "6",
+   "namn": "Gotland",
+   "landsdel": "gotaland"
+  },
+  {
+   "kod": "7",
+   "namn": "Västergötland",
+   "landsdel": "gotaland"
+  },
+  {
+   "kod": "8",
+   "namn": "Östergötland",
+   "landsdel": "gotaland"
+  },
+  {
+   "kod": "9",
+   "namn": "Bohuslän",
+   "landsdel": "gotaland"
+  },
+  {
+   "kod": "10",
+   "namn": "Dalsland",
+   "landsdel": "gotaland"
+  },
+  {
+   "kod": "11",
+   "namn": "Närke",
+   "landsdel": "svealand"
+  },
+  {
+   "kod": "12",
+   "namn": "Södermanland",
+   "landsdel": "svealand"
+  },
+  {
+   "kod": "13",
+   "namn": "Värmland",
+   "landsdel": "svealand"
+  },
+  {
+   "kod": "14",
+   "namn": "Västmanland",
+   "landsdel": "svealand"
+  },
+  {
+   "kod": "15",
+   "namn": "Uppland",
+   "landsdel": "svealand"
+  },
+  {
+   "kod": "16",
+   "namn": "Gästrikland",
+   "landsdel": "norrland"
+  },
+  {
+   "kod": "17",
+   "namn": "Dalarna",
+   "landsdel": "svealand"
+  },
+  {
+   "kod": "18",
+   "namn": "Hälsingland",
+   "landsdel": "norrland"
+  },
+  {
+   "kod": "19",
+   "namn": "Härjedalen",
+   "landsdel": "norrland"
+  },
+  {
+   "kod": "20",
+   "namn": "Medelpad",
+   "landsdel": "norrland"
+  },
+  {
+   "kod": "21",
+   "namn": "Ångermanland",
+   "landsdel": "norrland"
+  },
+  {
+   "kod": "22",
+   "namn": "Jämtland",
+   "landsdel": "norrland"
+  },
+  {
+   "kod": "23",
+   "namn": "Västerbotten",
+   "landsdel": "norrland"
+  },
+  {
+   "kod": "24",
+   "namn": "Lappland",
+   "landsdel": "norrland"
+  },
+  {
+   "kod": "25",
+   "namn": "Norrbotten",
+   "landsdel": "norrland"
+  }
+ ],
+ "lan": [
+  {
+   "kod": "01",
+   "namn": "Stockholms län"
+  },
+  {
+   "kod": "03",
+   "namn": "Uppsala län"
+  },
+  {
+   "kod": "04",
+   "namn": "Södermanlands län"
+  },
+  {
+   "kod": "05",
+   "namn": "Östergötlands län"
+  },
+  {
+   "kod": "06",
+   "namn": "Jönköpings län"
+  },
+  {
+   "kod": "07",
+   "namn": "Kronobergs län"
+  },
+  {
+   "kod": "08",
+   "namn": "Kalmar län"
+  },
+  {
+   "kod": "09",
+   "namn": "Gotlands län"
+  },
+  {
+   "kod": "10",
+   "namn": "Blekinge län"
+  },
+  {
+   "kod": "12",
+   "namn": "Skåne län"
+  },
+  {
+   "kod": "13",
+   "namn": "Hallands län"
+  },
+  {
+   "kod": "14",
+   "namn": "Västra Götalands län"
+  },
+  {
+   "kod": "17",
+   "namn": "Värmlands län"
+  },
+  {
+   "kod": "18",
+   "namn": "Örebro län"
+  },
+  {
+   "kod": "19",
+   "namn": "Västmanlands län"
+  },
+  {
+   "kod": "20",
+   "namn": "Dalarnas län"
+  },
+  {
+   "kod": "21",
+   "namn": "Gävleborgs län"
+  },
+  {
+   "kod": "22",
+   "namn": "Västernorrlands län"
+  },
+  {
+   "kod": "23",
+   "namn": "Jämtlands län"
+  },
+  {
+   "kod": "24",
+   "namn": "Västerbottens län"
+  },
+  {
+   "kod": "25",
+   "namn": "Norrbottens län"
+  }
+ ],
+ "kommuner": {
+  "0114": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0115": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0117": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0120": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0123": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0125": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0126": {
+   "lan": "01",
+   "landskap": "12"
+  },
+  "0127": {
+   "lan": "01",
+   "landskap": "12"
+  },
+  "0128": {
+   "lan": "01",
+   "landskap": "12"
+  },
+  "0136": {
+   "lan": "01",
+   "landskap": "12"
+  },
+  "0138": {
+   "lan": "01",
+   "landskap": "12"
+  },
+  "0139": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0140": {
+   "lan": "01",
+   "landskap": "12"
+  },
+  "0160": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0162": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0163": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0180": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0181": {
+   "lan": "01",
+   "landskap": "12"
+  },
+  "0182": {
+   "lan": "01",
+   "landskap": "12"
+  },
+  "0183": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0184": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0186": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0187": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0188": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0191": {
+   "lan": "01",
+   "landskap": "15"
+  },
+  "0192": {
+   "lan": "01",
+   "landskap": "12"
+  },
+  "0305": {
+   "lan": "03",
+   "landskap": "15"
+  },
+  "0319": {
+   "lan": "03",
+   "landskap": "15"
+  },
+  "0330": {
+   "lan": "03",
+   "landskap": "15"
+  },
+  "0331": {
+   "lan": "03",
+   "landskap": "15"
+  },
+  "0360": {
+   "lan": "03",
+   "landskap": "15"
+  },
+  "0380": {
+   "lan": "03",
+   "landskap": "15"
+  },
+  "0381": {
+   "lan": "03",
+   "landskap": "15"
+  },
+  "0382": {
+   "lan": "03",
+   "landskap": "15"
+  },
+  "0428": {
+   "lan": "04",
+   "landskap": "12"
+  },
+  "0461": {
+   "lan": "04",
+   "landskap": "12"
+  },
+  "0480": {
+   "lan": "04",
+   "landskap": "12"
+  },
+  "0481": {
+   "lan": "04",
+   "landskap": "12"
+  },
+  "0482": {
+   "lan": "04",
+   "landskap": "12"
+  },
+  "0483": {
+   "lan": "04",
+   "landskap": "12"
+  },
+  "0484": {
+   "lan": "04",
+   "landskap": "12"
+  },
+  "0486": {
+   "lan": "04",
+   "landskap": "12"
+  },
+  "0488": {
+   "lan": "04",
+   "landskap": "12"
+  },
+  "0509": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0512": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0513": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0560": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0561": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0562": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0563": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0580": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0581": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0582": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0583": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0584": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0586": {
+   "lan": "05",
+   "landskap": "8"
+  },
+  "0604": {
+   "lan": "06",
+   "landskap": "5"
+  },
+  "0617": {
+   "lan": "06",
+   "landskap": "5"
+  },
+  "0642": {
+   "lan": "06",
+   "landskap": "7"
+  },
+  "0643": {
+   "lan": "06",
+   "landskap": "7"
+  },
+  "0662": {
+   "lan": "06",
+   "landskap": "5"
+  },
+  "0665": {
+   "lan": "06",
+   "landskap": "5"
+  },
+  "0680": {
+   "lan": "06",
+   "landskap": "5"
+  },
+  "0682": {
+   "lan": "06",
+   "landskap": "5"
+  },
+  "0683": {
+   "lan": "06",
+   "landskap": "5"
+  },
+  "0684": {
+   "lan": "06",
+   "landskap": "5"
+  },
+  "0685": {
+   "lan": "06",
+   "landskap": "5"
+  },
+  "0686": {
+   "lan": "06",
+   "landskap": "5"
+  },
+  "0687": {
+   "lan": "06",
+   "landskap": "5"
+  },
+  "0760": {
+   "lan": "07",
+   "landskap": "5"
+  },
+  "0761": {
+   "lan": "07",
+   "landskap": "5"
+  },
+  "0763": {
+   "lan": "07",
+   "landskap": "5"
+  },
+  "0764": {
+   "lan": "07",
+   "landskap": "5"
+  },
+  "0765": {
+   "lan": "07",
+   "landskap": "5"
+  },
+  "0767": {
+   "lan": "07",
+   "landskap": "5"
+  },
+  "0780": {
+   "lan": "07",
+   "landskap": "5"
+  },
+  "0781": {
+   "lan": "07",
+   "landskap": "5"
+  },
+  "0821": {
+   "lan": "08",
+   "landskap": "5"
+  },
+  "0834": {
+   "lan": "08",
+   "landskap": "5"
+  },
+  "0840": {
+   "lan": "08",
+   "landskap": "3"
+  },
+  "0860": {
+   "lan": "08",
+   "landskap": "5"
+  },
+  "0861": {
+   "lan": "08",
+   "landskap": "5"
+  },
+  "0862": {
+   "lan": "08",
+   "landskap": "5"
+  },
+  "0880": {
+   "lan": "08",
+   "landskap": "5"
+  },
+  "0881": {
+   "lan": "08",
+   "landskap": "5"
+  },
+  "0882": {
+   "lan": "08",
+   "landskap": "5"
+  },
+  "0883": {
+   "lan": "08",
+   "landskap": "5"
+  },
+  "0884": {
+   "lan": "08",
+   "landskap": "5"
+  },
+  "0885": {
+   "lan": "08",
+   "landskap": "3"
+  },
+  "0980": {
+   "lan": "09",
+   "landskap": "6"
+  },
+  "1060": {
+   "lan": "10",
+   "landskap": "2"
+  },
+  "1080": {
+   "lan": "10",
+   "landskap": "2"
+  },
+  "1081": {
+   "lan": "10",
+   "landskap": "2"
+  },
+  "1082": {
+   "lan": "10",
+   "landskap": "2"
+  },
+  "1083": {
+   "lan": "10",
+   "landskap": "2"
+  },
+  "1214": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1230": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1231": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1233": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1256": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1257": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1260": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1261": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1262": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1263": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1264": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1265": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1266": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1267": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1270": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1272": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1273": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1275": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1276": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1277": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1278": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1280": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1281": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1282": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1283": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1284": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1285": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1286": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1287": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1290": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1291": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1292": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1293": {
+   "lan": "12",
+   "landskap": "1"
+  },
+  "1315": {
+   "lan": "13",
+   "landskap": "5"
+  },
+  "1380": {
+   "lan": "13",
+   "landskap": "4"
+  },
+  "1381": {
+   "lan": "13",
+   "landskap": "4"
+  },
+  "1382": {
+   "lan": "13",
+   "landskap": "4"
+  },
+  "1383": {
+   "lan": "13",
+   "landskap": "4"
+  },
+  "1384": {
+   "lan": "13",
+   "landskap": "4"
+  },
+  "1401": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1402": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1407": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1415": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1419": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1421": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1427": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1430": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1435": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1438": {
+   "lan": "14",
+   "landskap": "10"
+  },
+  "1439": {
+   "lan": "14",
+   "landskap": "10"
+  },
+  "1440": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1441": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1442": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1443": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1444": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1445": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1446": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1447": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1452": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1460": {
+   "lan": "14",
+   "landskap": "10"
+  },
+  "1461": {
+   "lan": "14",
+   "landskap": "10"
+  },
+  "1462": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1463": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1465": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1466": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1470": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1471": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1472": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1473": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1480": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1481": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1482": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1484": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1485": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1486": {
+   "lan": "14",
+   "landskap": "9"
+  },
+  "1487": {
+   "lan": "14",
+   "landskap": "10"
+  },
+  "1488": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1489": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1490": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1491": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1492": {
+   "lan": "14",
+   "landskap": "10"
+  },
+  "1493": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1494": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1495": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1496": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1497": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1498": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1499": {
+   "lan": "14",
+   "landskap": "7"
+  },
+  "1715": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1730": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1737": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1760": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1761": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1762": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1763": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1764": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1765": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1766": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1780": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1781": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1782": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1783": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1784": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1785": {
+   "lan": "17",
+   "landskap": "13"
+  },
+  "1814": {
+   "lan": "18",
+   "landskap": "11"
+  },
+  "1860": {
+   "lan": "18",
+   "landskap": "7"
+  },
+  "1861": {
+   "lan": "18",
+   "landskap": "11"
+  },
+  "1862": {
+   "lan": "18",
+   "landskap": "11"
+  },
+  "1863": {
+   "lan": "18",
+   "landskap": "14"
+  },
+  "1864": {
+   "lan": "18",
+   "landskap": "14"
+  },
+  "1880": {
+   "lan": "18",
+   "landskap": "11"
+  },
+  "1881": {
+   "lan": "18",
+   "landskap": "11"
+  },
+  "1882": {
+   "lan": "18",
+   "landskap": "11"
+  },
+  "1883": {
+   "lan": "18",
+   "landskap": "13"
+  },
+  "1884": {
+   "lan": "18",
+   "landskap": "14"
+  },
+  "1885": {
+   "lan": "18",
+   "landskap": "14"
+  },
+  "1904": {
+   "lan": "19",
+   "landskap": "14"
+  },
+  "1907": {
+   "lan": "19",
+   "landskap": "14"
+  },
+  "1960": {
+   "lan": "19",
+   "landskap": "12"
+  },
+  "1961": {
+   "lan": "19",
+   "landskap": "14"
+  },
+  "1962": {
+   "lan": "19",
+   "landskap": "14"
+  },
+  "1980": {
+   "lan": "19",
+   "landskap": "14"
+  },
+  "1981": {
+   "lan": "19",
+   "landskap": "14"
+  },
+  "1982": {
+   "lan": "19",
+   "landskap": "14"
+  },
+  "1983": {
+   "lan": "19",
+   "landskap": "14"
+  },
+  "1984": {
+   "lan": "19",
+   "landskap": "14"
+  },
+  "2021": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2023": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2026": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2029": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2031": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2034": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2039": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2061": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2062": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2080": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2081": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2082": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2083": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2084": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2085": {
+   "lan": "20",
+   "landskap": "17"
+  },
+  "2101": {
+   "lan": "21",
+   "landskap": "16"
+  },
+  "2104": {
+   "lan": "21",
+   "landskap": "16"
+  },
+  "2121": {
+   "lan": "21",
+   "landskap": "18"
+  },
+  "2132": {
+   "lan": "21",
+   "landskap": "18"
+  },
+  "2161": {
+   "lan": "21",
+   "landskap": "18"
+  },
+  "2180": {
+   "lan": "21",
+   "landskap": "16"
+  },
+  "2181": {
+   "lan": "21",
+   "landskap": "16"
+  },
+  "2182": {
+   "lan": "21",
+   "landskap": "18"
+  },
+  "2183": {
+   "lan": "21",
+   "landskap": "18"
+  },
+  "2184": {
+   "lan": "21",
+   "landskap": "18"
+  },
+  "2260": {
+   "lan": "22",
+   "landskap": "20"
+  },
+  "2262": {
+   "lan": "22",
+   "landskap": "20"
+  },
+  "2280": {
+   "lan": "22",
+   "landskap": "21"
+  },
+  "2281": {
+   "lan": "22",
+   "landskap": "20"
+  },
+  "2282": {
+   "lan": "22",
+   "landskap": "21"
+  },
+  "2283": {
+   "lan": "22",
+   "landskap": "21"
+  },
+  "2284": {
+   "lan": "22",
+   "landskap": "21"
+  },
+  "2303": {
+   "lan": "23",
+   "landskap": "22"
+  },
+  "2305": {
+   "lan": "23",
+   "landskap": "22"
+  },
+  "2309": {
+   "lan": "23",
+   "landskap": "22"
+  },
+  "2313": {
+   "lan": "23",
+   "landskap": "22"
+  },
+  "2321": {
+   "lan": "23",
+   "landskap": "22"
+  },
+  "2326": {
+   "lan": "23",
+   "landskap": "22"
+  },
+  "2361": {
+   "lan": "23",
+   "landskap": "19"
+  },
+  "2380": {
+   "lan": "23",
+   "landskap": "22"
+  },
+  "2401": {
+   "lan": "24",
+   "landskap": "21"
+  },
+  "2403": {
+   "lan": "24",
+   "landskap": "21"
+  },
+  "2404": {
+   "lan": "24",
+   "landskap": "23"
+  },
+  "2409": {
+   "lan": "24",
+   "landskap": "23"
+  },
+  "2417": {
+   "lan": "24",
+   "landskap": "23"
+  },
+  "2418": {
+   "lan": "24",
+   "landskap": "24"
+  },
+  "2421": {
+   "lan": "24",
+   "landskap": "24"
+  },
+  "2422": {
+   "lan": "24",
+   "landskap": "24"
+  },
+  "2425": {
+   "lan": "24",
+   "landskap": "24"
+  },
+  "2460": {
+   "lan": "24",
+   "landskap": "23"
+  },
+  "2462": {
+   "lan": "24",
+   "landskap": "24"
+  },
+  "2463": {
+   "lan": "24",
+   "landskap": "24"
+  },
+  "2480": {
+   "lan": "24",
+   "landskap": "23"
+  },
+  "2481": {
+   "lan": "24",
+   "landskap": "24"
+  },
+  "2482": {
+   "lan": "24",
+   "landskap": "23"
+  },
+  "2505": {
+   "lan": "25",
+   "landskap": "24"
+  },
+  "2506": {
+   "lan": "25",
+   "landskap": "24"
+  },
+  "2510": {
+   "lan": "25",
+   "landskap": "24"
+  },
+  "2513": {
+   "lan": "25",
+   "landskap": "25"
+  },
+  "2514": {
+   "lan": "25",
+   "landskap": "25"
+  },
+  "2518": {
+   "lan": "25",
+   "landskap": "25"
+  },
+  "2521": {
+   "lan": "25",
+   "landskap": "25"
+  },
+  "2523": {
+   "lan": "25",
+   "landskap": "24"
+  },
+  "2560": {
+   "lan": "25",
+   "landskap": "25"
+  },
+  "2580": {
+   "lan": "25",
+   "landskap": "25"
+  },
+  "2581": {
+   "lan": "25",
+   "landskap": "25"
+  },
+  "2582": {
+   "lan": "25",
+   "landskap": "25"
+  },
+  "2583": {
+   "lan": "25",
+   "landskap": "25"
+  },
+  "2584": {
+   "lan": "25",
+   "landskap": "24"
+  }
+ }
+}

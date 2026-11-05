@@ -1,10 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useGoBack } from '../../hooks/useCanGoBack'
-import { useTabParam } from '../../hooks/useTabParam'
+import { useResetOnTabChange, useTabParam } from '../../hooks/useTabParam'
+import SearchField from '../SearchField'
+import SearchToggle from '../SearchToggle'
+import { useConfirm } from '../../hooks/useConfirm'
+import { PRE_DEV, useDesignChoice } from '../../hooks/useDesignChoice'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import CreateGroupForm from './CreateGroupForm'
 import CreateOffer from '../CreateOffer'
+import { PadFloatAction } from '../PadHead'
+import { areaColors } from '../../utils/interestColors'
+import FilterTabs from '../FilterTabs'
 import BackButton from '../BackButton'
 import CreateButton from '../CreateButton'
 import GroupChat from './GroupChat'
@@ -12,35 +20,48 @@ import GroupDetails from './GroupDetails'
 import GroupList from './GroupList'
 import GroupPosts from './GroupPosts'
 import GroupSortMenu from './GroupSortMenu'
+import InterestPicker from '../InterestPicker'
 import MunicipalityPicker from '../MunicipalityPicker'
 import { getContacts } from '../../services/contacts'
 import {
+  appliesToKommun,
+  applyToGroup,
   declineGroupInvitation,
   deleteGroup,
   getGroups,
+  getRegions,
   groupsOverviewQuery,
   joinGroup,
   leaveGroup,
   matchesSearch,
   notifyInvitationsChanged,
+  SUGGESTED_SORTS,
   sortGroups,
+  withdrawApplication,
 } from '../../services/groups'
 import { getAllInterests, getMyInterests } from '../../services/interests'
 import { getMunicipalities, getProfile } from '../../services/profile'
+import LoadError from '../LoadError'
 
 const TABS = [
-  { id: 'mine', label: 'Mina klubbar' },
+  { id: 'mine', label: 'Mina klubbar', short: 'Mina' },
   { id: 'suggested', label: 'Förslag' },
   { id: 'all', label: 'Alla' },
   { id: 'invitations', label: 'Inbjudningar' },
 ]
 
 // Tomma flikar har en knapp vidare (se emptyAction nedan).
+// Flikarna som visar antalet.
+const COUNTED_TABS = new Set(['suggested', 'invitations'])
+
+// Vad fliken är till för, när den är tom (se EmptyState).
 const EMPTY_TEXT = {
-  mine: 'Du är inte med i någon klubb än.',
-  suggested: 'Inga förslag just nu. Lägg till fler intressen på din profil för att få fler.',
-  all: 'Inga klubbar hittades.',
-  invitations: 'Du har inga inbjudningar just nu.',
+  mine: 'Här samlas klubbarna du är med i. Hitta en klubb för något du gillar under Alla, eller starta en egen.',
+  suggested:
+    'Här föreslår vi klubbar för dina intressen och sådant som ligger nära dem. ' +
+    'Lägg till fler intressen på din profil för att få fler förslag.',
+  all: 'Här finns alla klubbar, men det finns inga än. Starta den första!',
+  invitations: 'När någon bjuder in dig till en klubb hamnar inbjudan här.',
 }
 
 // "Alla" hämtas så här många åt gången, med "Visa fler" för nästa.
@@ -51,13 +72,18 @@ const SEARCH_DELAY_MS = 300
 
 // Allt innehåll för klubbar (intressegrupper): flikar, filter och klubbarna
 // som kort i samma rutnät som Personer-sidan. Klick på ett kort visar mer
-// information. Sökning, filter och sortering gäller alla flikar. "Alla"
-// filtreras av backend och hämtas PAGE_SIZE åt gången, de andra två finns
-// redan här.
+// information. Sökning och filter nollställs när man byter flik, sorteringen
+// ligger kvar. "Alla" filtreras av backend och hämtas PAGE_SIZE åt gången, de
+// andra två finns redan här.
 // Utgången inloggning hanteras globalt i services/api.js.
 const NONE = []
 
 function GroupsPanel() {
+  const confirm = useConfirm()
+  const searchStyle = useDesignChoice('searchStyle')
+  const newPadHead = useDesignChoice('padHead') !== PRE_DEV
+  // På mobil flyter sökikonen nere i blockets vänstra hörn, mitt emot skapa-knappen (se .map-pad-float i map.css).
+  const mobile = useMediaQuery('(max-width: 767px)')
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   // Fliken står i adressen, så att Tillbaka till listan kommer till samma flik (se useTabParam).
   const [urlTab, setTab] = useTabParam(TABS)
@@ -83,16 +109,20 @@ function GroupsPanel() {
   // Finns det fler i "Alla" än de som hämtats?
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
-  // Sökning, filter och sortering, gemensamma för alla flikar. Ofiltrerat från
-  // början, så att ingen flik döljer klubbar utan att man valt det. Satt redan
-  // från start, så att "Alla" hämtas samtidigt som resten i stället för efter.
+  // Sökning, filter och sortering. Sökning och filter nollställs när man byter
+  // flik (se clearFilters). Ofiltrerat från början, så att ingen flik döljer
+  // klubbar utan att man valt det. Satt redan från start, så att "Alla" hämtas
+  // samtidigt som resten i stället för efter. `interest` är intresset man
+  // filtrerar på ({ id, name }, se InterestPicker) eller null.
   const [filters, setFilters] = useState({
-    interestId: '',
+    interest: null,
     municipalityCode: '',
     q: '',
     sort: 'name',
     reverse: false,
   })
+  // Sorteringen i Förslag (se sortMenu).
+  const [suggestedSort, setSuggestedSort] = useState({ sort: 'fit', reverse: false })
   // Ens egen kommun, förvald när man skapar en klubb.
   const [myMunicipality, setMyMunicipality] = useState('')
   // Det som står i sökfältet. Skickas vidare till filters.q efter SEARCH_DELAY_MS.
@@ -100,10 +130,17 @@ function GroupsPanel() {
   // Numret på senaste hämtningen av "Alla". Ett svar på en äldre hämtning
   // (t.ex. en sökning man hunnit skriva vidare på) kastas.
   const allRequest = useRef(0)
+  // Hela biblioteket, för att hitta intresset till ett sökord och namnet på intresset i adressen (?intresse=ID), när
+  // formuläret ska fyllas i (se openCreateFromSearch). Det listas inte; intressen väljs med InterestPicker.
   const [interests, setInterests] = useState([])
-  // Ens egna intressen, för att markera klubbarnas intresse om det är ett av dem.
-  const [myInterestIds, setMyInterestIds] = useState(new Set())
+  const createInterest = interests.find((i) => i.id === createInterestId) ?? null
+  // Ens egna intressen, för att markera klubbarnas intresse om det är ett av dem och som snabbval i intressefiltret.
+  const [myInterests, setMyInterests] = useState([])
+  const myInterestIds = useMemo(() => new Set(myInterests.map((interest) => interest.id)), [myInterests])
   const [municipalities, setMunicipalities] = useState([])
+  // Vilka områden kommunerna ligger i (se getRegions), så att filtret på kommun i Mina klubbar och
+  // Förslag också visar klubbar för länet, landskapet, landsdelen och hela Sverige, som "Alla" (SCRUM-282).
+  const [regions, setRegions] = useState(null)
   // Ens kompisar, för "Bjud in" i en klubb. Hämtas först när en klubb öppnas
   // (null = inte hämtade än), eftersom listan inte behövs förrän då.
   const [contacts, setContacts] = useState(null)
@@ -111,18 +148,27 @@ function GroupsPanel() {
   const [error, setError] = useState('')
   // Klubben man nyss gick med i, för bekräftelsen "Du är med i …!" (tills nästa åtgärd eller flikbyte).
   const [joined, setJoined] = useState(null)
+  // Klubbens anslagstavla, en egen vy inne i klubben. Stängs när man går till en annan klubb eller listan.
+  const [boardOpen, setBoardOpen] = useState(false)
+  useEffect(() => setBoardOpen(false), [view])
 
   const handleError = (err) => setError(err.message)
 
+  // Det som filtren, markeringen av ens intressen och Skapa klubb behöver. Inget av
+  // det är klubbarna själva, så går något inte att hämta visas sidan ändå, bara
+  // utan det (t.ex. utan intressen i filtret). "Försök igen" hämtar om det.
+  const loadExtras = useCallback(() => {
+    getAllInterests().then(setInterests, () => {})
+    getMunicipalities().then(setMunicipalities, () => {})
+    getProfile().then((profile) => setMyMunicipality(profile?.municipality_code ?? ''), () => {})
+    getMyInterests().then(setMyInterests, () => {})
+  }, [])
+
+  useEffect(() => loadExtras(), [loadExtras])
+
+  // Utan områdena fungerar filtret ändå, då bara på klubbar i själva kommunen.
   useEffect(() => {
-    Promise.all([getAllInterests(), getMunicipalities(), getProfile(), getMyInterests()])
-      .then(([i, m, profile, mine]) => {
-        setInterests(i)
-        setMunicipalities(m)
-        setMyInterestIds(new Set(mine.map((interest) => interest.id)))
-        setMyMunicipality(profile?.municipality_code ?? '')
-      })
-      .catch(() => setStatus('error'))
+    getRegions().then(setRegions, () => {})
   }, [])
 
   useEffect(() => {
@@ -150,6 +196,9 @@ function GroupsPanel() {
   // Utan vald flik: Mina klubbar, eller Förslag för den som inte är med i någon
   // klubb än (en tom flik är ingen bra början).
   const tab = urlTab ?? (overview.data && mine.length === 0 ? 'suggested' : 'mine')
+  // Först när klubbarna har kommit: innan dess kan fliken ändras från Mina klubbar
+  // till Förslag av sig själv, och det är inget byte man har gjort.
+  useResetOnTabChange(view === 'list' && overview.data ? tab : null, clearFilters)
   const overviewFailed = overview.isError && overview.data === undefined
   const { refetch: refetchOverview } = overview
   const loadMineAndSuggested = useCallback(() => refetchOverview(), [refetchOverview])
@@ -160,7 +209,13 @@ function GroupsPanel() {
   const loadAll = useCallback(
     async (offset = 0) => {
       const request = ++allRequest.current
-      const page = await getGroups({ ...filters, excludeMine: true, limit: PAGE_SIZE + 1, offset })
+      const page = await getGroups({
+        ...filters,
+        interestId: filters.interest?.id,
+        excludeMine: true,
+        limit: PAGE_SIZE + 1,
+        offset,
+      })
       if (request !== allRequest.current) return
       const shown = page.slice(0, PAGE_SIZE)
       setLists((current) => {
@@ -200,7 +255,7 @@ function GroupsPanel() {
     const word = q.toLocaleLowerCase('sv')
     const name = (i) => i.name.toLocaleLowerCase('sv')
     const interestId =
-      filters.interestId ||
+      filters.interest?.id ||
       (word &&
         (interests.find((i) => name(i) === word) ?? interests.find((i) => name(i).startsWith(`${word} `)))?.id)
     setSearchParams({
@@ -210,9 +265,14 @@ function GroupsPanel() {
     })
   }
 
+  // Samma filter tillbaka om inget var valt, så att "Alla" inte hämtas om i onödan (t.ex. när fliken byts).
   function clearFilters() {
     setSearch('')
-    setFilters({ ...filters, interestId: '', municipalityCode: '', q: '' })
+    setFilters((current) =>
+      current.interest || current.municipalityCode || current.q
+        ? { ...current, interest: null, municipalityCode: '', q: '' }
+        : current,
+    )
   }
 
   // Efter gå med, gå ur eller radera. Gick man med försvinner klubben ur
@@ -243,13 +303,43 @@ function GroupsPanel() {
   }
 
   // Är någon man själv har blockerat med, frågar vi först. Vem det är syns inte.
-  function handleJoin(group) {
-    if (group.has_blocked_member && !window.confirm('Någon du har blockerat är med i klubben. Gå med ändå?')) return
+  async function handleJoin(group) {
+    if (
+      group.has_blocked_member &&
+      !(await confirm({
+        title: `Gå med i ${group.name}`,
+        text: 'Någon du har blockerat är med i klubben. Gå med ändå?',
+        confirmLabel: 'Gå med',
+      }))
+    )
+      return
     runAction(group, joinGroup)
   }
 
-  function handleLeave(group) {
-    if (!window.confirm(`Gå ur ${group.name}?`)) return
+  // Ansök till en klubb man ansöker till (SCRUM-159), med ett meddelande till ägaren. Ger om det gick,
+  // så att rutan med meddelandet kan stängas (ett fel visas under klubben och rutan ligger kvar).
+  async function handleApply(group, message) {
+    setBusy(true)
+    setError('')
+    try {
+      await applyToGroup(group.id, message)
+      await Promise.all([loadMineAndSuggested(), loadAll()])
+      return true
+    } catch (err) {
+      handleError(err)
+      return false
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleWithdraw(group) {
+    await runAction(group, withdrawApplication)
+  }
+
+  async function handleLeave(group) {
+    if (!(await confirm({ title: `Gå ur ${group.name}`, text: 'Vill du gå ur klubben?', confirmLabel: 'Gå ur', danger: true })))
+      return
     runAction(group, leaveGroup)
   }
 
@@ -261,7 +351,15 @@ function GroupsPanel() {
   }
 
   async function handleDelete(group) {
-    if (!window.confirm(`Radera ${group.name}? Det går inte att ångra.`)) return
+    if (
+      !(await confirm({
+        title: `Radera ${group.name}`,
+        text: 'Klubben tas bort för alla. Det går inte att ångra.',
+        confirmLabel: 'Radera klubben',
+        danger: true,
+      }))
+    )
+      return
     await runAction(group, deleteGroup)
     setView('list', { replace: true })
   }
@@ -272,37 +370,64 @@ function GroupsPanel() {
     setView(group.id, { replace: true })
   }
 
-  if (status === 'error' || overviewFailed) {
-    return <p className="status-error">Kunde inte hämta klubbarna. Försök igen senare.</p>
+  // Hämtar om allt efter ett fel (SCRUM-286), så att man inte behöver gå ut och in på sidan.
+  function retry() {
+    setStatus('loading')
+    loadExtras()
+    refetchOverview()
+    loadAll()
+      .then(() => setStatus('ready'))
+      .catch(() => setStatus('error'))
   }
+
+  // Medan översikten hämtas om efter ett fel visas "Laddar klubbar..." i stället för felet.
+  if (status === 'error' || (overviewFailed && !overview.isFetching)) {
+    return (
+      <LoadError
+        text="Kunde inte hämta klubbarna."
+        onRetry={retry}
+        retrying={status === 'loading' || overview.isFetching}
+      />
+    )
+  }
+
+  // Förslag har en egen sortering, förvald Passar dig: närmast först, som backend ger dem (SCRUM-240, se
+  // SUGGESTED_SORTS). Mina klubbar och Alla delar på filters.sort.
+  const sortMenu =
+    tab === 'suggested'
+      ? { sorts: SUGGESTED_SORTS, ...suggestedSort, onChange: (sort, reverse) => setSuggestedSort({ sort, reverse }) }
+      : {
+          sort: filters.sort,
+          reverse: filters.reverse,
+          onChange: (sort, reverse) => setFilters({ ...filters, sort, reverse }),
+        }
 
   // Mina klubbar och Förslag söks, filtreras och sorteras här. I Mina klubbar
   // ligger de man äger först (sort är stabil, så den valda ordningen behålls
   // inom varje del).
-  const searchAndSort = (groups) =>
+  const searchAndSort = (groups, { sort, reverse } = filters) =>
     sortGroups(
       groups.filter(
         (g) =>
           matchesSearch(g, filters.q) &&
-          (!filters.interestId || g.interest_id === Number(filters.interestId)) &&
-          (!filters.municipalityCode || g.municipality_code === filters.municipalityCode),
+          (!filters.interest || g.interest_id === filters.interest.id) &&
+          (!filters.municipalityCode || appliesToKommun(g, filters.municipalityCode, regions)),
       ),
-      filters.sort,
-      filters.reverse,
+      sort,
+      reverse,
     )
   const shown = filters && {
     mine: searchAndSort(mine).sort((a, b) => Number(b.is_owner) - Number(a.is_owner)),
-    suggested: searchAndSort(suggested),
+    suggested: searchAndSort(suggested, suggestedSort),
     all: lists.all,
     // Inbjudningarna visas alla, nyaste först, utan sökning och filter.
     invitations,
   }
-  const filtering = filters && (filters.q || filters.interestId || filters.municipalityCode)
+  const filtering = filters && (filters.q || filters.interest || filters.municipalityCode)
   // Vad man letade efter, för "Det finns inga klubbar för … Vill du skapa en?": intresset man filtrerat på,
   // annars sökordet. Erbjuds bara när ingen klubb alls matchar (varken bland ens egna eller under Alla, som
   // har alla andra), så att den inte säger "inga klubbar" när det finns en på en annan flik.
-  const searchedFor =
-    filters && (interests.find((i) => i.id === Number(filters.interestId))?.name ?? filters.q.trim())
+  const searchedFor = filters && (filters.interest?.name ?? filters.q.trim())
   const offerToCreate = Boolean(searchedFor) && shown.mine.length === 0 && shown.all.length === 0
 
   // Leta upp gruppen i listorna, så att den visar senaste antal medlemmar och roll.
@@ -315,7 +440,13 @@ function GroupsPanel() {
     <section className="app-section app-section-centered">
       <div className="page-header">
         <h1 className="app-title">Klubbar</h1>
-        {view !== 'create' && <CreateButton label="Skapa klubb" onClick={() => setView('create')} />}
+        {/* TILLFÄLLIGT: med den nya rubriken i testläget (useDesignChoice('padHead')) flyter knappen nere i blockets
+            hörn, så att den alltid syns, och visas inte i en klubbs vy. Annars här, som vanligt. */}
+        {view !== 'create' && !(newPadHead && selected) && (
+          <PadFloatAction>
+            <CreateButton label="Skapa klubb" onClick={() => setView('create')} />
+          </PadFloatAction>
+        )}
       </div>
 
       {/* Finns Mina klubbar redan i minnet visas sidan direkt, och "Alla" fylls i när den kommer. */}
@@ -324,13 +455,16 @@ function GroupsPanel() {
       ) : view === 'create' ? (
         <>
           <BackButton onClick={goBack} />
-          <div className="card sheet">
+          <div className="card sheet sheet-form">
             <CreateGroupForm
-              interests={interests}
+              // Ett nytt formulär när intresset från adressen har hittats i biblioteket, om formuläret öppnades innan
+              // biblioteket hade hämtats.
+              key={createInterest?.id ?? 'inget'}
+              myInterests={myInterests}
               municipalities={municipalities}
               defaultMunicipality={myMunicipality}
               initialName={createName}
-              initialInterestId={createInterestId}
+              initialInterest={createInterest}
               onCreated={handleCreated}
               onCancel={goBack}
             />
@@ -338,24 +472,18 @@ function GroupsPanel() {
         </>
       ) : (
         <>
-          <div className="filter-tabs" role="tablist">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.id}
-                className={`tag${tab === t.id ? ' tag-selected' : ''}`}
-                onClick={() => {
-                  setJoined(null)
-                  setTab(t.id)
-                }}
-              >
-                {t.label} ({shown[t.id].length}
-                {t.id === 'all' && hasMore ? '+' : ''})
-              </button>
-            ))}
-          </div>
+          {/* Flikarna bara i listan. I en klubbs vy går man tillbaka till dem med "← Klubbar". */}
+          {!selected && (
+            <FilterTabs
+              // Antalet bara där det är något nytt att se (Förslag och Inbjudningar), inte på Mina klubbar och Alla.
+              tabs={TABS.map((t) => ({ ...t, count: COUNTED_TABS.has(t.id) ? shown[t.id].length : undefined }))}
+              active={tab}
+              onChange={(id) => {
+                setJoined(null)
+                setTab(id)
+              }}
+            />
+          )}
 
           {error && <p className="status-error">{error}</p>}
           {joined && (
@@ -378,68 +506,143 @@ function GroupsPanel() {
             </div>
           )}
 
-          {selected ? (
+          {selected && boardOpen && selected.is_member ? (
+            <>
+              {/* "← Klubbar" går tillbaka till klubben. */}
+              <BackButton onClick={() => setBoardOpen(false)} />
+              <GroupPosts key={selected.id} groupId={selected.id} isOwner={selected.is_owner} full />
+            </>
+          ) : selected ? (
             <>
               <BackButton onClick={goBack} />
-              {/* Anslagstavlan överst, bara för medlemmar. Under den klubben till vänster och
-                  chatten bredvid på dator, chatten under på mobil. */}
-              {selected.is_member && (
-                <GroupPosts key={selected.id} groupId={selected.id} isOwner={selected.is_owner} />
-              )}
+              {/* Klubben till vänster och för medlemmar chatten till höger på dator, lika höga (chatten scrollar
+                  i sin ruta). På mobil ligger chatten i klubbens ruta (se GroupDetails). Anslagstavlan öppnas med en
+                  rad i klubbens ruta. Den som inte är med ser bara klubben, i hela bredden med events och medlemmar
+                  i en egen spalt. */}
               <div className="group-layout">
-                <div className="card sheet">
+                {/* Intressets färg som en rad överst på rutan, som på klubbkorten (används på mobil, se .club-detail). */}
+                <div
+                  className="card sheet detail-sheet"
+                  style={{ '--poster': areaColors(selected.interest_area_slug)['--tag-fill'] }}
+                >
                   <GroupDetails
                     group={selected}
                     contacts={contacts ?? []}
                     busy={busy}
                     onJoin={handleJoin}
+                    onApply={handleApply}
+                    onWithdraw={handleWithdraw}
+                    onMembersChanged={loadMineAndSuggested}
                     onLeave={handleLeave}
                     onDelete={handleDelete}
                     onDecline={handleDecline}
+                    onOpenBoard={() => setBoardOpen(true)}
+                    // På mobil ligger chatten i klubbens ruta, under medlemmarna, och fälls ut med ett tryck.
+                    chat={
+                      mobile && selected.is_member ? (
+                        <details className="group-chat-dropdown">
+                          <summary>Klubbchatt</summary>
+                          <GroupChat
+                            key={selected.id}
+                            groupId={selected.id}
+                            canModerate={selected.is_owner || selected.is_admin}
+                          />
+                        </details>
+                      ) : null
+                    }
                   />
                 </div>
-                {selected.is_member && <GroupChat key={selected.id} groupId={selected.id} />}
+                {!mobile && selected.is_member && (
+                  <div className="group-chat-slot">
+                    <GroupChat
+                      key={selected.id}
+                      groupId={selected.id}
+                      canModerate={selected.is_owner || selected.is_admin}
+                    />
+                  </div>
+                )}
               </div>
             </>
           ) : (
             <>
-              <div className="search-row">
-                <input
-                  type="search"
-                  className="filter-search"
-                  aria-label="Sök klubbar"
-                  placeholder="Sök på namn eller beskrivning"
-                  maxLength={100}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                <GroupSortMenu
-                  sort={filters.sort}
-                  reverse={filters.reverse}
-                  onChange={(sort, reverse) => setFilters({ ...filters, sort, reverse })}
-                />
-              </div>
-              <div className="filter-select-row filter-select-row-compact">
-                <select
-                  aria-label="Filtrera på intresse"
-                  value={filters.interestId}
-                  onChange={(e) => setFilters({ ...filters, interestId: e.target.value })}
-                >
-                  <option value="">Alla intressen</option>
-                  {interests.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}
-                    </option>
-                  ))}
-                </select>
-                <MunicipalityPicker
-                  aria-label="Filtrera på kommun"
-                  municipalities={municipalities}
-                  value={filters.municipalityCode}
-                  onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
-                  emptyLabel="Alla kommuner"
-                />
-              </div>
+              {/* TILLFÄLLIGT: i testläget kan sökraden bytas mot ett runt sökfält med intresse, kommun och sortering
+                  som rundade knappar bredvid (useDesignChoice('searchStyle')). På mobil hamnar filtren under. */}
+              <PadFloatAction start when={mobile}>
+                {searchStyle === PRE_DEV ? (
+                  <SearchToggle
+                    count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
+                    // Sök och filter öppna från början på dator; på mobil flyter de över listan, så där bara ikonen.
+                    defaultOpen={!mobile}
+                  >
+                    <div className="search-row">
+                      <SearchField
+                        aria-label="Sök klubbar"
+                        placeholder="Sök på namn eller beskrivning"
+                        maxLength={100}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onClear={() => setSearch('')}
+                      />
+                      <GroupSortMenu {...sortMenu} />
+                    </div>
+                    <div className="filter-select-row filter-select-row-compact">
+                      <InterestPicker
+                        aria-label="Filtrera på intresse"
+                        placeholder="Alla intressen"
+                        myInterests={myInterests}
+                        value={filters.interest}
+                        onChange={(interest) => setFilters({ ...filters, interest })}
+                      />
+                      <MunicipalityPicker
+                        aria-label="Filtrera på kommun"
+                        municipalities={municipalities}
+                        value={filters.municipalityCode}
+                        onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                        emptyLabel="Alla kommuner"
+                      />
+                    </div>
+                  </SearchToggle>
+                ) : (
+                  <SearchToggle
+                    count={(search ? 1 : 0) + (filters.interest ? 1 : 0) + (filters.municipalityCode ? 1 : 0)}
+                    // Sök och filter öppna från början på dator; på mobil flyter de över listan, så där bara ikonen.
+                    defaultOpen={!mobile}
+                  >
+                    <div className="club-filters">
+                      <SearchField
+                        className="club-search"
+                        aria-label="Sök klubbar"
+                        placeholder="Sök på namn eller beskrivning"
+                        maxLength={100}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onClear={() => setSearch('')}
+                      />
+                      <div className="club-filter-pills">
+                        <div className="club-filter club-filter-interest">
+                          <InterestPicker
+                            aria-label="Filtrera på intresse"
+                            placeholder="Alla intressen"
+                            myInterests={myInterests}
+                            value={filters.interest}
+                            onChange={(interest) => setFilters({ ...filters, interest })}
+                          />
+                        </div>
+                        <div className="club-filter club-filter-kommun">
+                          <MunicipalityPicker
+                            aria-label="Filtrera på kommun"
+                            municipalities={municipalities}
+                            value={filters.municipalityCode}
+                            onChange={(code) => setFilters({ ...filters, municipalityCode: code })}
+                            emptyLabel="Alla kommuner"
+                          />
+                        </div>
+                        <GroupSortMenu {...sortMenu} />
+                      </div>
+                    </div>
+                  </SearchToggle>
+                )}
+              </PadFloatAction>
               {shown[tab].length === 0 && offerToCreate && tab !== 'invitations' ? (
                 <CreateOffer
                   text={`Det finns inga klubbar för ${searchedFor}. Vill du skapa en?`}
@@ -472,7 +675,12 @@ function GroupsPanel() {
                 />
               )}
               {tab === 'all' && hasMore && (
-                <button type="button" className="secondary-button" disabled={loadingMore} onClick={handleShowMore}>
+                <button
+                  type="button"
+                  className="secondary-button show-more-button"
+                  disabled={loadingMore}
+                  onClick={handleShowMore}
+                >
                   {loadingMore ? 'Hämtar...' : 'Visa fler'}
                 </button>
               )}

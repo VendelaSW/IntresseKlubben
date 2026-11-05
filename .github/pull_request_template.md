@@ -2,10 +2,6 @@
 
 <!-- Kort beskrivning och vilken ticket det gäller. -->
 
-## Skärmdumpar
-
-<!-- Ändrar PR:en något man ser? Lägg en skärmdump i mobilbredd (375 px) och en på dator. -->
-
 ## Testat i testläget (`npm run dev:test`)
 
 - [ ] På en riktig telefon (`npm run dev:telefon`) och på dator

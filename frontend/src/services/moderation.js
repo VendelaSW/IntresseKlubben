@@ -31,11 +31,20 @@ export const SUSPENSION_LENGTHS = [
 ]
 
 // Det förvalda steget efter hur många gånger personen har varit avstängd förut:
-// första gången 1 dag, andra gången 30 dagar, sedan tills vidare.
-export function suggestedDays(previousCount) {
-  if (previousCount === 0) return 1
+// första gången 1 dag (7 dagar om hen redan har fått en varning, SCRUM-268, som
+// då var första steget), andra gången 30 dagar, sedan tills vidare.
+export function suggestedDays(previousCount, warningCount = 0) {
+  if (previousCount === 0) return warningCount > 0 ? 7 : 1
   if (previousCount === 1) return 30
   return null
+}
+
+// Varnar den anmälda från en anmälan (SCRUM-268): personen får en notis om vilken
+// regel som bröts, med det valfria meddelandet, och anmälan blir hanterad.
+export async function warnUser(reportId, reason, message) {
+  const result = await apiPost(`/moderation/reports/${reportId}/warning`, { reason, message })
+  invalidate(MODERATION_KEY)
+  return result
 }
 
 export async function suspendUser(userId, days, reason) {

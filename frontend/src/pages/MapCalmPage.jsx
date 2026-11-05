@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { getBadges } from '../services/badges'
 import { getEvents } from '../services/events'
-import { getGroups, getMyGroups } from '../services/groups'
+import { getAllGroups, getGroupsOverview, getMyGroups } from '../services/groups'
 import { getMyInterests } from '../services/interests'
 import { getProfile } from '../services/profile'
 import { activitiesFrom } from './mapPrototypeActivities'
@@ -22,6 +22,7 @@ const MAX_LINES = 3
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 const notOver = (event, now) => new Date(event.ends_at ?? event.starts_at).getTime() >= now
+const startsThisWeek = (event, now) => new Date(event.starts_at).getTime() < now + WEEK_MS
 const byStart = (a, b) => new Date(a.starts_at) - new Date(b.starts_at)
 
 // Ens bokade events: samma som "Mina events" i appen (skapat, eller svarat Ja
@@ -38,20 +39,26 @@ function unansweredInvitations(events, now) {
   return events.filter((e) => !e.is_owner && e.is_invited && e.my_answer === null && notOver(e, now))
 }
 
+// De bokade eventen som är att göra nu: de som pågår eller börjar de närmaste sju dagarna (SCRUM-333). Resten finns
+// under Mina events.
+const bookedThisWeek = (booked, now) => booked.filter((e) => startsThisWeek(e, now))
+// Börjar eventet senast i dag? De bokade eventen har inte tagit slut, så de pågår i så fall i dag.
+const startsByToday = (event, now) => new Date(event.starts_at).getTime() < new Date(now).setHours(24, 0, 0, 0)
+
 // "I närheten den här veckan": öppna events i ens kommun som pågår någon gång de
 // närmaste sju dagarna och som man varken har skapat, blivit inbjuden till eller
 // svarat på. Kommunen räknas ut som på kartan (se activitiesFrom): nålen,
 // klubbens kommun eller ett kommunnamn i adressen. De som har ett av ens
-// intressen först, sedan närmast först.
-function nearbyEvents({ events, groups, kommuner, municipalityCode, interestIds, now }) {
+// intressen först, sedan närmast först. Med `anyTime` gäller alla kommande events.
+function nearbyEvents({ events, groups, kommuner, municipalityCode, interestIds, now, anyTime = false }) {
   const candidates = events.filter(
     (e) =>
-      e.visibility === 'open' &&
+      (e.visibility === 'open' || e.visibility === 'application') &&
       !e.is_owner &&
       !e.is_invited &&
       e.my_answer === null &&
       notOver(e, now) &&
-      new Date(e.starts_at).getTime() < now + WEEK_MS,
+      (anyTime || startsThisWeek(e, now)),
   )
   const inMyKommun = new Set(
     activitiesFrom({ groups, events: candidates, kommuner })
@@ -62,14 +69,38 @@ function nearbyEvents({ events, groups, kommuner, municipalityCode, interestIds,
   return [...nearby.filter((e) => interestIds.has(e.interest_id)), ...nearby.filter((e) => !interestIds.has(e.interest_id))]
 }
 
+// "Förslag för dig" (SCRUM-218): när det inte finns något annat på sidan. Högst MAX_LINES rader: de klubbar som passar
+// bäst (ordningen kommer från GET /groups/overview: närmast först, sedan det intresse som ligger närmast ens egna), och
+// kommande events i ens kommun för ens egna intressen. Varje rad säger varför den föreslås.
+function suggestionsForYou({ clubs, events, interestIds }) {
+  const reason = (id, name) => (interestIds.has(id) ? `du gillar ${name}` : 'nära dina intressen')
+  const clubLines = clubs
+    .filter((club) => !club.is_full)
+    .slice(0, 2)
+    .map((club) => ({
+      key: `klubb-${club.id}`,
+      club,
+      why: reason(club.interest_id, club.interest_name),
+    }))
+  const eventLines = events
+    .filter((event) => interestIds.has(event.interest_id))
+    .slice(0, MAX_LINES - clubLines.length)
+    .map((event) => ({
+      key: `event-${event.id}`,
+      event,
+      why: reason(event.interest_id, event.interest_name),
+    }))
+  return [...clubLines, ...eventLines]
+}
+
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 
 // Att göra-läget (se MapPrototype.jsx): i stället för kartan en sida i ett
 // anteckningsblock. Överst en hälsning och dagens datum, och på linjerna
-// dagens att göra: de närmaste bokade eventen (och en länk till Mina events),
+// dagens att göra: de närmaste bokade eventen den här veckan (och en länk till Mina events),
 // obesvarade eventinbjudningar, nya brev, klubbinbjudningar och
 // kompisförfrågningar. Under det "I närheten den här veckan", tips på events i
-// ens kommun. Varje rad öppnar rätt block (`onOpen(sida, adress)` eller
+// ens kommun, eller "Förslag för dig" när sidan annars är tom. Varje rad öppnar rätt block (`onOpen(sida, adress)` eller
 // `onOpenEvent(id)`). Runt omkring några klotter i marginalen.
 function MapCalmPage({ onOpen, onOpenEvent }) {
   const { user } = useAuth()
@@ -85,32 +116,45 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
       getEvents(),
       getBadges(),
       getMyInterests(),
-      getGroups(),
+      // Ur det delade minnet: kartan har oftast redan hämtat dem (SCRUM-276).
+      getAllGroups(),
       getMyGroups(),
       allKommuner(),
-    ]).then(([profile, events, badges, interests, publicGroups, myGroups, kommuner]) => {
+      getGroupsOverview(),
+    ]).then(([profile, events, badges, interests, publicGroups, myGroups, kommuner, overview]) => {
       if (cancelled) return
       const value = (result, fallback) => (result.status === 'fulfilled' ? result.value : fallback)
       const counts = value(badges, null)
       const me = value(profile, null)
       const allEvents = value(events, [])
       const now = Date.now()
+      const booked = bookedEvents(allEvents, now)
+      const interestIds = new Set(value(interests, []).map((i) => i.id))
+      // Utan kommunerna eller ens kommun går det inte att veta vad som är i närheten.
+      const nearbyFrom = (anyTime) =>
+        kommuner.status === 'fulfilled' && me?.municipality_code
+          ? nearbyEvents({
+              events: allEvents,
+              groups: [...value(publicGroups, []), ...value(myGroups, [])],
+              kommuner: kommuner.value,
+              municipalityCode: me.municipality_code,
+              interestIds,
+              now,
+              anyTime,
+            })
+          : []
       setName(me?.name ?? null)
       setTodo({
-        booked: bookedEvents(allEvents, now),
+        booked: bookedThisWeek(booked, now),
+        hasBookedLater: booked.length > 0,
+        hasBookedToday: booked.some((e) => startsByToday(e, now)),
         eventInvitations: unansweredInvitations(allEvents, now).length,
-        // Utan kommunerna eller ens kommun går det inte att veta vad som är i närheten.
-        nearby:
-          kommuner.status === 'fulfilled' && me?.municipality_code
-            ? nearbyEvents({
-                events: allEvents,
-                groups: [...value(publicGroups, []), ...value(myGroups, [])],
-                kommuner: kommuner.value,
-                municipalityCode: me.municipality_code,
-                interestIds: new Set(value(interests, []).map((i) => i.id)),
-                now,
-              })
-            : [],
+        nearby: nearbyFrom(false),
+        suggestions: suggestionsForYou({
+          clubs: value(overview, null)?.suggested ?? [],
+          events: nearbyFrom(true),
+          interestIds,
+        }),
         letters: counts?.unread_conversations ?? 0,
         invitations: counts?.club_invitations ?? 0,
         requests: counts?.contact_requests ?? 0,
@@ -123,6 +167,19 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
   }, [])
 
   const firstName = (name ?? user.username).trim().split(/\s+/)[0]
+  // Inget att göra i dag, men bokade events senare i veckan. Annat att göra (brev, inbjudningar...) är att göra i dag.
+  const nothingUntilLater =
+    todo !== null &&
+    todo.booked.length > 0 &&
+    !todo.hasBookedToday &&
+    !(todo.eventInvitations || todo.letters || todo.invitations || todo.requests || todo.notifications)
+
+  // Förslagen bara när det inte finns något annat på sidan, så att den inte blir full (SCRUM-218).
+  const nothingAtAll =
+    todo !== null &&
+    todo.booked.length === 0 &&
+    todo.nearby.length === 0 &&
+    !(todo.eventInvitations || todo.letters || todo.invitations || todo.requests || todo.notifications)
 
   return (
     <div className="map-calm">
@@ -136,6 +193,7 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
           <p className="map-calm-muted">Bläddrar i blocket...</p>
         ) : (
           <>
+            {nothingUntilLater && <p className="map-calm-muted">Ingenting att göra idag, men...</p>}
             <ul className="map-calm-todo">
               {todo.booked.length > 0 ? (
                 <>
@@ -148,6 +206,10 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
                     Alla mina events →
                   </TodoLine>
                 </>
+              ) : todo.hasBookedLater ? (
+                <TodoLine onClick={() => onOpen('events', '/events?flik=mina-events')} done={false}>
+                  Inga bokade events den här veckan. Alla mina events →
+                </TodoLine>
               ) : (
                 <TodoLine onClick={() => onOpen('events')} done={false}>
                   Inga bokade events. Kika på Events?
@@ -168,7 +230,7 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
               )}
               {todo.requests > 0 && (
                 <TodoLine onClick={() => onOpen('personer')} done={false}>
-                  {plural(todo.requests, 'person vill', 'personer vill')} bli din kompis
+                  {plural(todo.requests, 'medlem vill', 'medlemmar vill')} bli din kompis
                 </TodoLine>
               )}
               {todo.notifications > 0 && (
@@ -186,6 +248,24 @@ function MapCalmPage({ onOpen, onOpenEvent }) {
                       {event.title}, {eventTime.format(new Date(event.starts_at))}
                     </TipLine>
                   ))}
+                </ul>
+              </>
+            )}
+            {nothingAtAll && todo.suggestions.length > 0 && (
+              <>
+                <p className="map-calm-heading map-calm-heading-next">Förslag för dig</p>
+                <ul className="map-calm-todo">
+                  {todo.suggestions.map(({ key, club, event, why }) =>
+                    club ? (
+                      <TipLine key={key} onClick={() => onOpen('klubbar', `/klubbar?klubb=${club.id}`)}>
+                        {club.name}, {why}
+                      </TipLine>
+                    ) : (
+                      <TipLine key={key} onClick={() => onOpenEvent(event.id)}>
+                        {event.title}, {why}
+                      </TipLine>
+                    ),
+                  )}
                 </ul>
               </>
             )}

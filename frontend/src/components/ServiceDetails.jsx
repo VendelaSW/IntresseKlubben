@@ -11,7 +11,7 @@ function ServiceDetails({ id }) {
           dina intressen åt dig.
         </li>
         <li>
-          Få förslag på personer med gemensamma intressen och skicka en kompisförfrågan, eller skriv
+          Få förslag på medlemmar med gemensamma intressen och skicka en kompisförfrågan, eller skriv
           ett brev.
         </li>
         <li>Gå med i en klubb eller starta en egen, och bjud in till events där ni ses.</li>

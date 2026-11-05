@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useChatScroll } from '../../hooks/useChatScroll'
 import { isIdle, onUserActive } from '../../services/activity'
-import { getGroupMembers, getGroupMessages, sendGroupMessage } from '../../services/groups'
+import { deleteGroupMessage, getGroupMembers, getGroupMessages, sendGroupMessage } from '../../services/groups'
+import { useConfirm } from '../../hooks/useConfirm'
 import { formatSentAt } from '../../utils/formatSentAt'
 import { startsGroup } from '../../utils/messageGroups'
 import ChatSender from '../ChatSender'
@@ -19,8 +20,10 @@ const MOBILE_QUERY = '(max-width: 767px)'
 // Klubbens chatt på ett linjerat anteckningspapper (.notepad i stilguiden), som brevtråden. Ligger bredvid klubbens
 // ruta på dator och under den på mobil (se GroupsPanel). Bara för medlemmar, och servern kontrollerar medlemskapet.
 // Meddelandena scrollar i sin ruta och öppnas vid det senaste (se useChatScroll).
-function GroupChat({ groupId }) {
+// `canModerate` (ägaren och administratörer, SCRUM-160): får ta bort andras meddelanden. Sina egna får alla ta bort.
+function GroupChat({ groupId, canModerate = false }) {
   const { user } = useAuth()
+  const confirm = useConfirm()
   const [messages, setMessages] = useState([])
   const [members, setMembers] = useState([])
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error' | 'denied'
@@ -148,6 +151,27 @@ function GroupChat({ groupId }) {
     }
   }
 
+  async function handleDelete(message, name) {
+    if (
+      !(await confirm({
+        title: 'Ta bort meddelandet',
+        text: message.sender_id === user?.id ? 'Meddelandet tas bort för alla.' : `Meddelandet från ${name} tas bort för alla.`,
+        confirmLabel: 'Ta bort',
+        danger: true,
+      }))
+    )
+      return
+    setError('')
+    try {
+      await deleteGroupMessage(groupId, message.id)
+      // En hämtning som redan pågår får inte lägga tillbaka det (se revision).
+      revision.current += 1
+      setMessages((current) => current.filter((item) => item.id !== message.id))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   function senderOf(senderId) {
     return members.find((person) => person.id === senderId)
   }
@@ -180,10 +204,12 @@ function GroupChat({ groupId }) {
             const sender = senderOf(message.sender_id)
             const name = sender ? (sender.name ?? sender.username) : 'Tidigare medlem'
             const reportable = !mine && sender
+            // Sina egna meddelanden får man ta bort, och ägaren och administratörer alla (SCRUM-160).
+            const deletable = mine || canModerate
             return (
               <li
                 key={message.id}
-                className={`notepad-message${first ? '' : ' notepad-message-continued'}${reportable ? ' notepad-message-reportable' : ''}`}
+                className={`notepad-message${first ? '' : ' notepad-message-continued'}${reportable || deletable ? ' notepad-message-reportable' : ''}`}
               >
                 {first && (
                   <p className="notepad-message-head">
@@ -194,17 +220,32 @@ function GroupChat({ groupId }) {
                   </p>
                 )}
                 <p title={first ? undefined : formatSentAt(message.created_at)}>{message.content}</p>
-                {/* Andras meddelanden går att anmäla (se .report-link). */}
-                {reportable && (
-                  <ReportButton
-                    className="report-link"
-                    label={`Anmäl meddelandet från ${name}`}
-                    targetType={REPORT_TARGET.groupMessage}
-                    targetId={message.id}
-                    userId={sender.id}
-                    name={name}
-                    quote={message.content}
-                  />
+                {/* Ta bort (eget meddelande, eller som ägare och administratör) och Anmäl (andras), uppe till
+                    höger när man hovrar (se .notepad-message-actions och .report-link). */}
+                {(deletable || reportable) && (
+                  <span className="notepad-message-actions">
+                    {deletable && (
+                      <button
+                        type="button"
+                        className="report-link"
+                        aria-label={mine ? 'Ta bort ditt meddelande' : `Ta bort meddelandet från ${name}`}
+                        onClick={() => handleDelete(message, name)}
+                      >
+                        Ta bort
+                      </button>
+                    )}
+                    {reportable && (
+                      <ReportButton
+                        className="report-link"
+                        label={`Anmäl meddelandet från ${name}`}
+                        targetType={REPORT_TARGET.groupMessage}
+                        targetId={message.id}
+                        userId={sender.id}
+                        name={name}
+                        quote={message.content}
+                      />
+                    )}
+                  </span>
                 )}
               </li>
             )

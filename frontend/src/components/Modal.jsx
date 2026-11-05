@@ -12,7 +12,12 @@ import { createPortal } from 'react-dom'
 // <dialog> av sig själv, utan att fråga onClose, och då skulle popupen försvinna
 // medan sidan tror att den är öppen (ett fel visas inte, och knappen som öppnar
 // den slutar fungera).
-function Modal({ title, onClose, locked = false, children }) {
+//
+// `closeIcon`: ett × i stället för texten Stäng (t.ex. rutan om ett intresse, SCRUM-306).
+//
+// `showClose={false}`: ingen Stäng-knapp, när rutan har en egen (t.ex. Avbryt i useConfirm). Esc och ett klick
+// bredvid stänger ändå.
+function Modal({ title, onClose, locked = false, closeIcon = false, showClose = true, children }) {
   const dialogRef = useRef(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
@@ -48,7 +53,7 @@ function Modal({ title, onClose, locked = false, children }) {
   return createPortal(
     <dialog
       ref={dialogRef}
-      className="card modal"
+      className="card card-soft modal"
       aria-label={title}
       onClick={(e) => {
         if (e.target === dialogRef.current) requestClose()
@@ -57,9 +62,21 @@ function Modal({ title, onClose, locked = false, children }) {
       <div className="modal-content">
         <div className="modal-header">
           <h2>{title}</h2>
-          <button type="button" className="text-button" onClick={requestClose} disabled={locked}>
-            Stäng
-          </button>
+          {!showClose ? null : closeIcon ? (
+            <button
+              type="button"
+              className="modal-close-icon"
+              aria-label="Stäng"
+              onClick={requestClose}
+              disabled={locked}
+            >
+              ×
+            </button>
+          ) : (
+            <button type="button" className="text-button" onClick={requestClose} disabled={locked}>
+              Stäng
+            </button>
+          )}
         </div>
         {children}
       </div>

@@ -9,12 +9,14 @@ interest_matching.exact_match), aldrig en gissning:
    matchning. Biblioteket är redan granskat, och egna intressen granskades när de skapades.
 2. Skyddsnät (local_tree): hittade utläsningen ingen tagg alls (modellen hoppar ibland över ett verb som
    "bada" fast det är alias till Bad och bastu) letar vi namn och alias i själva texten, också i enkla böjningar
-   ("springer" -> "springa"). Träffarna är intressen ur biblioteket och går genom moderationen som modellens
-   taggar, och användaren bekräftar förslagen som vanligt. Har granskningen eller moderationen tagit bort något
+   ("springer" -> "springa"). En modell kontrollerar att personen faktiskt har träffarna i dag (se
+   interest_analysis._safety_net), och de går genom moderationen som modellens taggar. Användaren bekräftar
+   förslagen som vanligt. Har granskningen eller moderationen tagit bort något
    körs inte skyddsnätet, så deras beslut gäller (se extract_interests, on_nothing).
 
 Texter som visar tvivel eller negation ("jag hatar fotboll", "jag drömmer om att prova klättring", "jag har slutat
-spela fotboll") används aldrig: då avgör modellen. Tvetydiga namn avgörs inte här heller (exact_match ger då inget svar).
+spela fotboll", "jag spelade fotboll förr") används aldrig: då avgör modellen. Ordlistan blir aldrig komplett, så
+skyddsnätets träffar kontrolleras dessutom av en modell (det fångar också ord som betyder något annat, som "kör"). Tvetydiga namn avgörs inte här heller (exact_match ger då inget svar).
 """
 
 import re
@@ -28,7 +30,8 @@ MAX_SAFETY_NET = 5  # så många träffar tas högst med i skyddsnätet
 
 # Ord som gör att texten kan säga motsatsen, något man slutat med eller något som inte är ett intresse man har.
 _DOUBT = re.compile(
-    r"\b(?:hatar|hata|ogillar|inte|aldrig|tråkigt|tråkig|drömmer|kanske|vill lära|slutat|slutade|slutar|lagt av|gav upp|brukade)\b",
+    r"\b(?:hatar|hata|ogillar|inte|aldrig|tråkigt|tråkig|drömmer|kanske|vill lära|slutat|slutade|slutar|lagt av|gav upp|brukade"
+    r"|förr|tidigare)\b",
     re.IGNORECASE,
 )
 _SPLIT = re.compile(r",|;|/|\s+och\s+|\s+&\s+|\s+samt\s+", re.IGNORECASE)

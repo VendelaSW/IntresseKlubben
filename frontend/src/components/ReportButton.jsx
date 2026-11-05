@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { blockQuestion, blockUser } from '../services/contacts'
+import { blockConfirm, blockUser } from '../services/contacts'
 import { REPORT_REASONS, sendReport } from '../services/reports'
 import Modal from './Modal'
 import TextareaWithCount from './TextareaWithCount'
+import { useConfirm } from '../hooks/useConfirm'
 
 // Samma gräns som i backend (schemas/report.py).
 const MAX_COMMENT = 500
@@ -16,6 +17,7 @@ const MAX_COMMENT = 500
 // rutan. `onBlocked` anropas om man blockerar personen härifrån. `className`
 // styr knappens utseende (t.ex. text-button eller report-link i chatten).
 function ReportButton({ targetType, targetId, userId, name, quote, onBlocked, className = 'text-button', label }) {
+  const confirm = useConfirm()
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
   const [comment, setComment] = useState('')
@@ -51,7 +53,7 @@ function ReportButton({ targetType, targetId, userId, name, quote, onBlocked, cl
   }
 
   async function handleBlock() {
-    if (!window.confirm(blockQuestion(name))) return
+    if (!(await confirm(blockConfirm(name)))) return
     setError('')
     try {
       await blockUser(userId)

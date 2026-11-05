@@ -63,11 +63,11 @@ function LoginFields({ onSwitchToRegister, onForgotPassword, notice }) {
         </button>
       </form>
       {onForgotPassword && (
-        <button type="button" className="text-button" onClick={onForgotPassword}>
+        <button type="button" className="quiet-link" onClick={onForgotPassword}>
           Glömt lösenord?
         </button>
       )}
-      <button type="button" className="text-button" onClick={onSwitchToRegister}>
+      <button type="button" className="quiet-link" onClick={onSwitchToRegister}>
         Har du inget konto? Registrera dig
       </button>
     </>

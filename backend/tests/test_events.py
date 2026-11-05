@@ -6,7 +6,8 @@ from app.auth.security import get_current_user
 from app.main import app
 from app.models import Contact, Event, EventInvitation, GroupMember, Interest, User
 from app.models.event import EventVisibility
-from app.models.group import GroupVisibility
+from app.models.group import GroupRole, GroupVisibility
+from app.schemas.event import EVENT_MAX_DAYS_AHEAD
 from tests.event_helpers import add_contact, add_event, add_group, future, payload
 
 
@@ -49,6 +50,7 @@ def test_create_event_defaults_to_invite_only(client, user, interest):
     assert body["group_id"] is None
     assert body["interest_name"] == "Löpning"
     assert body["interest_area"] == "Löpning"
+    assert body["interest_area_slug"] is None  # intresset i testet har ingen slug
     assert body["creator_id"] == user.id
     assert body["creator_username"] == "testuser"
     assert body["is_owner"] is True
@@ -95,6 +97,25 @@ def test_required_fields_are_required(client, user, interest, missing):
 )
 def test_invalid_values_are_rejected(client, user, interest, overrides):
     assert client.post("/events/", json=payload(**overrides)).status_code == 422
+
+
+def test_event_can_be_at_most_a_year_ahead(client, user, interest):
+    # SCRUM-313: år 2188 gick att välja och syntes sedan under Att göra idag.
+    response = client.post("/events/", json=payload(starts_at=future(days=EVENT_MAX_DAYS_AHEAD + 1).isoformat()))
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Value error, Starttiden kan vara högst ett år fram i tiden"
+
+    response = client.post(
+        "/events/",
+        json=payload(starts_at=future().isoformat(), ends_at=future(days=EVENT_MAX_DAYS_AHEAD + 1).isoformat()),
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Value error, Sluttiden kan vara högst ett år fram i tiden"
+
+    # Precis innanför gränsen går det bra.
+    edge = future(days=EVENT_MAX_DAYS_AHEAD, hours=-1)
+    response = client.post("/events/", json=payload(starts_at=edge.isoformat()))
+    assert response.status_code == 201
 
 
 def test_unknown_interest_is_rejected(client, user, interest):
@@ -164,6 +185,26 @@ def test_event_in_private_group_is_invite_only_when_visibility_is_left_out(
     assert response.json()["visibility"] == "invite_only"
     explicit = client.post("/events/", json=payload(group_id=group.id, visibility="invite_only"))
     assert explicit.status_code == 201
+
+
+def test_a_regular_member_cannot_create_an_event_for_the_club(client, db, user, other, interest, municipalities):
+    group = add_group(db, other.id, members=[user.id])
+    response = client.post("/events/", json=payload(group_id=group.id))
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Bara klubbens ägare och administratörer kan skapa event för klubben"
+    assert db.query(Event).count() == 0
+
+    # Ett eget event utan klubb går fortfarande bra.
+    assert client.post("/events/", json=payload()).status_code == 201
+
+
+def test_a_club_admin_can_create_an_event_for_the_club(client, db, user, other, interest, municipalities):
+    group = add_group(db, other.id, members=[user.id])
+    next(m for m in group.members if m.user_id == user.id).role = GroupRole.admin
+    db.commit()
+    response = client.post("/events/", json=payload(group_id=group.id))
+    assert response.status_code == 201
+    assert response.json()["group_id"] == group.id
 
 
 def test_cannot_create_event_in_a_group_you_are_not_in(client, db, user, other, interest, municipalities):
@@ -312,3 +353,15 @@ def test_the_creator_can_turn_the_setting_on_and_off_but_nobody_else(client, db,
 
     theirs = add_event(db, other.id, visibility=EventVisibility.open)
     assert client.patch(f"/events/{theirs.id}", json={"guests_can_invite": True}).status_code == 403
+
+
+def test_event_interest_has_its_areas_name_and_slug(client, user, db):
+    # Taggens färg följer huvudområdet och slås upp på sluggen, så att den håller när området byter namn.
+    creative = Interest(name="Kreativitet", slug="kreativitet")
+    db.add(creative)
+    db.flush()
+    photo = Interest(name="Fotografering", slug="fotografering", parent_id=creative.id)
+    db.add(photo)
+    db.commit()
+    body = client.post("/events/", json=payload(interest_id=photo.id)).json()
+    assert (body["interest_area"], body["interest_area_slug"]) == ("Kreativitet", "kreativitet")

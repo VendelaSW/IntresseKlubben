@@ -7,7 +7,7 @@
 //   - kartan ger husens form och höjd via ett osynligt lager ("building-shapes"),
 //   - varje hus ritas med väggarna som vetter mot betraktaren och taket överst,
 //   - hus längre bort ritas först och närmare ovanpå (målarens algoritm),
-//   - allt ser blyertsritat ut på det gula blocket, som vattnet och Emmys
+//   - allt ser blyertsritat ut på blocket, som vattnet och Emmys
 //     platta hus: tydliga grafitkanter som darrar en aning, och sned
 //     skraffering på tak (glest) och väggar (glest mot ljuset, tätare bort
 //     från det),
@@ -21,26 +21,50 @@
 //
 // Husen växer upp mellan zoom 14 och 15, som innan, så att de inte poppar.
 
-import { inSweden } from './mapPrototypeStyle'
+import { mapDefaultTheme } from './mapThemes'
+import { boxInSweden, inSweden, pixelRatio, refreshWhileMoving } from './mapPrototypeStyle'
 
 const LAYER_ID = 'building-shapes'
-// Blyerts på det gula blocket: grå grafit, så att husen blir mörkare än
-// pappret. Ytorna är papprets gula färg med lite grafit i (täckande, så att
-// hus längre bort inte syns igenom), taken ljusast och väggarna mörkare.
-const GRAPHITE = '55, 53, 50'
-const INK = 'rgba(40, 38, 35, 0.85)'
-const ROOF = '#fbf0a9' // samma som blocket; taket får sin ton av skrafferingen
-const WALL_LIT = '#f3e7a1'
-const WALL_DARK = '#e3d592'
-const SHADOW_FILL = `rgba(${GRAPHITE}, 0.16)`
+// Blyerts på blocket: varm brun grafit på husen i varma akvarellfärger. Ytorna är
+// täckande, så att hus längre bort inte syns igenom, med taken ljusast och
+// väggarna mörkare.
+let INK
+// Som putsade hus: ljusa tak med en aning färg, och väggar i en mjuk ton, så att husen inte ser ut som containrar.
+let PALETTES
+// Hur ofta varje färg kommer: mest grädde och honung, så att det ser ut som en stad och inte som konfetti.
+const PALETTE_ODDS = [0, 0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 5]
+let SHADOW_FILL
 // Skrafferingen: ungefärligt avstånd i pixlar mellan strecken (som vattnet),
 // och hur mörka strecken är på tak, ljusa väggar och mörka väggar.
 const HATCH_PX = 4.5
-const HATCH = {
-  roof: { every: 1.3, color: `rgba(${GRAPHITE}, 0.35)` },
-  lit: { every: 1.4, color: `rgba(${GRAPHITE}, 0.4)` },
-  dark: { every: 0.7, color: `rgba(${GRAPHITE}, 0.55)` },
+let HATCH
+
+// Ritar om husen när temat byts (se attachSketchedBuildings).
+let redraw = null
+
+let LINE_WIDTH = 1.2
+let HEIGHT_SCALE = 1
+let WALL_PATTERN = null
+let ROOF_PATTERN = null
+let OUTLINE = 'normal'
+let GRAPHITE = '84, 58, 36'
+
+// TILLFÄLLIGT (testläget): husens färger och stil, se mapThemes.js.
+export function setBuildingTheme(theme) {
+  PALETTES = theme.palettes
+  INK = theme.ink
+  GRAPHITE = theme.graphite
+  SHADOW_FILL = `rgba(${theme.graphite}, ${theme.shadow})`
+  WALL_PATTERN = theme.wallPattern
+  ROOF_PATTERN = theme.roofPattern
+  OUTLINE = theme.outline
+  const stroke = ([every, alpha]) => ({ every, color: `rgba(${theme.graphite}, ${alpha})` })
+  HATCH = theme.hatch && { roof: stroke(theme.hatch.roof), lit: stroke(theme.hatch.lit), dark: stroke(theme.hatch.dark) }
+  LINE_WIDTH = theme.lineWidth
+  HEIGHT_SCALE = theme.heightScale
+  redraw?.()
 }
+setBuildingTheme(mapDefaultTheme())
 
 // Platta "kartmeter" kring Gustavsberg, så att takens streck ligger fast på
 // kartan och fortsätter jämnt från hus till hus.
@@ -58,6 +82,14 @@ const SHADOW = { x: 0.55, y: 0.18 }
 function jitter(lng, lat, salt) {
   const n = Math.sin(lng * 12.9898e3 + lat * 78.233e3 + salt * 37.719) * 43758.5453
   return (n - Math.floor(n) - 0.5) * 0.8
+}
+
+// Husets färg: fast per hus, så att den inte byts när kartan rör sig. Ett hus som delas av en kartruta har samma id i
+// båda delarna, och får därför samma färg.
+function paletteFor(feature, lng, lat) {
+  const seed = feature.id ?? Math.round(lng * 1e4) * 31 + Math.round(lat * 1e4)
+  const n = Math.sin(Number(seed) * 12.9898) * 43758.5453
+  return PALETTE_ODDS[Math.floor((n - Math.floor(n)) * PALETTE_ODDS.length)]
 }
 
 // Är kanten en klippkant från kartrutorna (husen delas där rutorna möts), och
@@ -125,8 +157,11 @@ const MIN_HATCH_PX = 3
 // ritas platt (tak med kontur), alla sådana i ett enda anrop. Under
 // DETAIL_PX: väggar och tak utan skraffering. Annars allt. Antalet
 // ritanrop, inte räknandet, är det som kostar när tusentals hus syns.
+// Strecken är ungefär hälften av ritanropen, så bara större hus (nära eller
+// höga) skrafferas: i tät stad 20-25 % fler bilder/s än när alla hus
+// skrafferades. Samma gräns gäller när kartan rör sig, så att inget blinkar.
 const FLAT_PX = 3
-const DETAIL_PX = 6
+const DETAIL_PX = 14
 
 // Förbereder ett hus för ritning: allt som inte beror på kameran (meter,
 // klippkanter mellan kartrutor, väggarnas längd, darret i linjerna och takets
@@ -164,7 +199,8 @@ function prepare(feature) {
       roof.y0 = Math.min(roof.y0, my)
       roof.y1 = Math.max(roof.y1, my)
     }
-    return { rings: ringData, roof }
+    const first = ringData[0]?.pts[0]
+    return { rings: ringData, roof, palette: paletteFor(feature, first?.lng ?? 0, first?.lat ?? 0) }
   })
   return { polygons, height, base }
 }
@@ -195,29 +231,82 @@ function makeProjector(map) {
   }
 }
 
+// Ett hus (en grupp hus med samma höjd i en kartruta) känns igen på rutan och
+// sitt id. Samma hus kommer tillbaka varje gång kartan stannar i samma
+// område. Rutan är intern i MapLibre, så finns den inte används första
+// hörnet, antalet hörn och höjden (då måste formen läsas, vilket kostar mer).
+function cacheKey(feature) {
+  if (feature._z !== undefined && feature.id !== undefined) {
+    return `${feature._z}/${feature._x}/${feature._y}/${feature.id}`
+  }
+  const { coordinates, type } = feature.geometry
+  const flat = coordinates.flat(type === 'MultiPolygon' ? 2 : 1)
+  const first = flat[0] ?? []
+  const { render_height: height, render_min_height: base } = feature.properties
+  return `${first[0]},${first[1]},${flat.length},${height},${base}`
+}
+
+// Bara hus i Sverige ritas. Hela gruppens rektangel testas först, och bara
+// grupper som ligger över gränsen testas hus för hus.
+function keepInSweden(polygons) {
+  let west = Infinity
+  let south = Infinity
+  let east = -Infinity
+  let north = -Infinity
+  for (const { rings } of polygons) {
+    for (const { lng, lat } of rings[0]?.pts ?? []) {
+      if (lng < west) west = lng
+      if (lng > east) east = lng
+      if (lat < south) south = lat
+      if (lat > north) north = lat
+    }
+  }
+  if (west > east) return []
+  const where = boxInSweden(west, south, east, north)
+  if (where !== 'border') return where === 'inside' ? polygons : []
+  return polygons.filter(({ rings }) => {
+    const first = rings[0]?.pts[0]
+    return first && inSweden(first.lng, first.lat)
+  })
+}
+
+// Så många förberedda grupper sparas (en vy på zoom 15 har ett par hundra).
+// Fler än så: cachen töms och fylls på nytt med det som syns.
+const CACHE_SIZE = 3000
+
 // Kopplar de skissade husen till kartan. `canvas` är ritytan ovanpå kartan.
 export function attachSketchedBuildings(map, canvas) {
   const ctx = canvas.getContext('2d')
   let buildings = [] // från prepare()
+  // prepare() är det som kostar mest när kartan stannar, och det mesta av
+  // det som syns har oftast förberetts förut.
+  const prepared = new Map()
 
-  // Hämtar husen som kartan har i bild.
+  function prepareCached(feature) {
+    const key = cacheKey(feature)
+    let building = prepared.get(key)
+    if (!building) {
+      building = prepare(feature)
+      building.polygons = keepInSweden(building.polygons)
+      if (prepared.size >= CACHE_SIZE) prepared.clear()
+      prepared.set(key, building)
+    }
+    return building
+  }
+
+  // Hämtar husen som kartan har i bild. Samma hus som förra gången (samma
+  // objekt ur cachen) ritas inte om: kartan har redan ritat dem vid move.
+  // Medan kartan rör sig ritas de av move strax efter.
   function refresh() {
     if (!map.getLayer(LAYER_ID)) return
-    buildings = map
-      .queryRenderedFeatures({ layers: [LAYER_ID] })
-      .map(prepare)
-      .map((building) => ({
-        ...building,
-        polygons: building.polygons.filter(({ rings }) => {
-          const first = rings[0]?.pts[0]
-          return first && inSweden(first.lng, first.lat)
-        }),
-      }))
-    render()
+    const next = map.queryRenderedFeatures({ layers: [LAYER_ID] }).map(prepareCached)
+    if (next.length === buildings.length && next.every((building, i) => building === buildings[i])) return
+    buildings = next
+    if (!map.isMoving()) render()
   }
 
   function resize() {
-    const ratio = window.devicePixelRatio || 1
+    const ratio = pixelRatio()
     const { clientWidth: w, clientHeight: h } = canvas
     if (canvas.width !== Math.round(w * ratio) || canvas.height !== Math.round(h * ratio)) {
       canvas.width = Math.round(w * ratio)
@@ -246,6 +335,20 @@ export function attachSketchedBuildings(map, canvas) {
   }
   const fillPath = (rule = 'nonzero') => path && ctx.fill(new Path2D(path), rule)
   const strokePath = () => path && ctx.stroke(new Path2D(path))
+  // Husens kontur i vald stil: vanlig, ingen, streckad eller dubbel (samma linje två gånger, lite förskjuten).
+  const outlinePath = () => {
+    if (!path || OUTLINE === 'none') return
+    const line = new Path2D(path)
+    if (OUTLINE === 'dashed') ctx.setLineDash([5, 3])
+    ctx.stroke(line)
+    if (OUTLINE === 'dashed') ctx.setLineDash([])
+    if (OUTLINE === 'double') {
+      ctx.save()
+      ctx.translate(1.3, -0.9)
+      ctx.stroke(line)
+      ctx.restore()
+    }
+  }
   const clipPath = (rule) => ctx.clip(new Path2D(path), rule)
 
   function render() {
@@ -295,8 +398,8 @@ export function attachSketchedBuildings(map, canvas) {
         if (!p0 || !p1) continue
         const depth = Math.hypot(p1.x - p0.x, p1.y - p0.y) / centerScale
         const lift = upAtCenter * depth
-        const top = building.height * lift
-        const bottom = building.base * lift
+        const top = building.height * HEIGHT_SCALE * lift
+        const bottom = building.base * HEIGHT_SCALE * lift
         let tooFar = false
         let minX = Infinity
         let maxX = -Infinity
@@ -332,7 +435,7 @@ export function attachSketchedBuildings(map, canvas) {
           polygon,
           screenRings,
           height: top - bottom,
-          meters: (building.height - building.base) * grown,
+          meters: (building.height - building.base) * HEIGHT_SCALE * grown,
           top,
           maxY,
           // Hus längre bort är mindre på skärmen. Med samma avstånd i meter
@@ -388,17 +491,24 @@ export function attachSketchedBuildings(map, canvas) {
     // 2. Platta hus (långt bort eller utzoomat): alla tak i ett anrop.
     ctx.lineJoin = 'round'
     ctx.lineCap = 'round'
+    // Ett anrop per färg, och kanterna ovanpå alla.
+    for (const [index, colors] of PALETTES.entries()) {
+      begin()
+      for (const { polygon, screenRings, detail } of projected) {
+        if (detail === 'flat' && polygon.palette === index) roofPath(screenRings)
+      }
+      // nonzero: samma hus kan komma två gånger (från två kartrutor), och med
+      // evenodd skulle de ta ut varandra. Innergårdar syns inte så här små.
+      ctx.fillStyle = colors.roof
+      fillPath('nonzero')
+    }
     begin()
     for (const { screenRings, detail } of projected) {
       if (detail === 'flat') roofPath(screenRings)
     }
-    // nonzero: samma hus kan komma två gånger (från två kartrutor), och med
-    // evenodd skulle de ta ut varandra. Innergårdar syns inte så här små.
-    ctx.fillStyle = ROOF
-    fillPath('nonzero')
     ctx.strokeStyle = INK
-    ctx.lineWidth = 1.2
-    strokePath()
+    ctx.lineWidth = LINE_WIDTH
+    outlinePath()
 
     // 3. Övriga hus, ett i taget bakifrån och fram.
     for (const building of projected) {
@@ -431,38 +541,42 @@ export function attachSketchedBuildings(map, canvas) {
         for (const lit of [false, true]) {
           begin()
           for (const w of walls) if (w.lit === lit) wallPath(w.a, w.b)
-          ctx.fillStyle = lit ? WALL_LIT : WALL_DARK
+          ctx.fillStyle = lit ? PALETTES[polygon.palette].lit : PALETTES[polygon.palette].dark
           fillPath()
         }
         begin()
         for (const w of walls) wallOutline(w.a, w.b)
         ctx.strokeStyle = INK
-        ctx.lineWidth = 1.2
-        strokePath()
+        ctx.lineWidth = LINE_WIDTH
+        outlinePath()
       } else {
         walls.sort((w1, w2) => w1.depth - w2.depth)
         for (const { a, b, length, lit } of walls) {
           begin()
           wallPath(a, b)
-          ctx.fillStyle = lit ? WALL_LIT : WALL_DARK
+          ctx.fillStyle = lit ? PALETTES[polygon.palette].lit : PALETTES[polygon.palette].dark
           fillPath()
-          const style = lit ? HATCH.lit : HATCH.dark
-          hatchWall(a, b, length, building.meters, spacing * building.sparser * style.every, style.color)
+          if (HATCH) {
+            const style = lit ? HATCH.lit : HATCH.dark
+            hatchWall(a, b, length, building.meters, spacing * building.sparser * style.every, style.color)
+          }
+          drawWallPattern(a, b, length, building.meters, spacing * building.sparser)
           begin()
           wallOutline(a, b)
           ctx.strokeStyle = INK
-          ctx.lineWidth = 1.2
-          strokePath()
+          ctx.lineWidth = LINE_WIDTH
+          outlinePath()
         }
       }
 
       // Taket överst.
       begin()
       roofPath(screenRings)
-      ctx.fillStyle = ROOF
+      ctx.fillStyle = PALETTES[polygon.palette].roof
       fillPath('evenodd')
       if (detail === 'full') {
-        hatchRoof(polygon.roof, screenRings, building.top, spacing * building.sparser * HATCH.roof.every)
+        if (HATCH && !ROOF_PATTERN) hatchRoof(polygon.roof, screenRings, building.top, spacing * building.sparser * HATCH.roof.every)
+        if (ROOF_PATTERN) drawRoofPattern(polygon.roof, screenRings, building.top, building.sparser, spacing)
       }
       roofStroke(polygon, screenRings)
     }
@@ -483,6 +597,174 @@ export function attachSketchedBuildings(map, canvas) {
     L(b.x, b.ty)
     L(a.x, a.ty)
     Z()
+  }
+
+  // Mönstret på en vägg: fönster, tegel, panel eller korsskraffering. Bara när väggen är stor nog på skärmen, så att
+  // mönstret syns och det inte blir tusentals streck att rita långt bort.
+  function drawWallPattern(a, b, length, meters, spacing) {
+    if (!WALL_PATTERN) return
+    if (WALL_PATTERN === 'crosshatch') {
+      hatchWall(b, a, length, meters, spacing * 1.4, `rgba(${GRAPHITE}, 0.28)`)
+      return
+    }
+    const heightPx = Math.max(a.y - a.ty, b.y - b.ty)
+    const widthPx = Math.hypot(b.x - a.x, b.y - a.y)
+    if (length < 3 || meters < 2 || heightPx < 9 || widthPx < 9) return
+    const atX = (s) => a.x + (b.x - a.x) * s
+    const atY = (s, h) => {
+      const base = a.y + (b.y - a.y) * s
+      const roof = a.ty + (b.ty - a.ty) * s
+      return base + (roof - base) * h
+    }
+    begin()
+    if (WALL_PATTERN === 'windows' || WALL_PATTERN === 'litWindows') {
+      const floors = Math.max(1, Math.min(12, Math.round(meters / 3)))
+      const columns = Math.max(1, Math.min(24, Math.round(length / 4)))
+      if (heightPx / floors < 4 || widthPx / columns < 4) return
+      for (let floor = 0; floor < floors; floor++) {
+        const hLow = (floor + 0.3) / floors
+        const hHigh = (floor + 0.72) / floors
+        for (let column = 0; column < columns; column++) {
+          const sLeft = (column + 0.3) / columns
+          const sRight = (column + 0.7) / columns
+          // Ungefär vart tredje upplyst fönster är släckt, fast per fönster.
+          if (WALL_PATTERN === 'litWindows' && (floor * 7 + column * 13 + Math.round(length)) % 3 === 0) continue
+          M(atX(sLeft), atY(sLeft, hLow))
+          L(atX(sRight), atY(sRight, hLow))
+          L(atX(sRight), atY(sRight, hHigh))
+          L(atX(sLeft), atY(sLeft, hHigh))
+          Z()
+        }
+      }
+      ctx.fillStyle = WALL_PATTERN === 'litWindows' ? '#f7cf52' : `rgba(${GRAPHITE}, 0.5)`
+      fillPath()
+      return
+    }
+    if (WALL_PATTERN === 'panels') {
+      const lines = Math.min(60, Math.floor(widthPx / 4), Math.round(length / 1.2))
+      for (let i = 1; i < lines; i++) {
+        M(atX(i / lines), atY(i / lines, 0))
+        L(atX(i / lines), atY(i / lines, 1))
+      }
+    } else {
+      // Liggande panel och tegel: en linje per rad. Teglet får också korta stötfogar, förskjutna varannan rad.
+      const rows = Math.min(40, Math.floor(heightPx / 3.5), Math.round(meters / (WALL_PATTERN === 'brick' ? 0.75 : 0.6)))
+      const joints = Math.min(30, Math.floor(widthPx / 8))
+      for (let row = 1; row <= rows; row++) {
+        const h = row / rows
+        if (row < rows) {
+          M(atX(0), atY(0, h))
+          L(atX(1), atY(1, h))
+        }
+        if (WALL_PATTERN !== 'brick' || joints < 2) continue
+        for (let j = 0; j < joints; j++) {
+          const s = (j + (row % 2 ? 0.25 : 0.75)) / joints
+          M(atX(s), atY(s, (row - 1) / rows))
+          L(atX(s), atY(s, h))
+        }
+      }
+    }
+    ctx.strokeStyle = `rgba(${GRAPHITE}, 0.34)`
+    ctx.lineWidth = 0.7
+    strokePath()
+  }
+
+  // Mönstret på ett tak: ritas inom taket (clip), i takets egna mått, så att det ligger fast när kartan rör sig.
+  function drawRoofPattern(roof, screenRings, top, sparser, spacing) {
+    const { x0, x1, y0, y1 } = roof
+    const dx = x1 - x0
+    const dy = y1 - y0
+    if (dx < 0.1 || dy < 0.1) return
+    const corner = (x, y) => {
+      const p = map.project(fromMeters(x, y))
+      return { x: p.x, y: p.y - top }
+    }
+    const c00 = corner(x0, y0)
+    const c11 = corner(x1, y1)
+    if (Math.abs(c11.x - c00.x) < MIN_HATCH_PX * 2 && Math.abs(c11.y - c00.y) < MIN_HATCH_PX * 2) return
+    const toScreen = squareToQuad(c00, corner(x1, y0), c11, corner(x0, y1))
+    // Punkt i kartmeter på taket, till skärmen.
+    const at = (x, y) => toScreen((x - x0) / dx, (y - y0) / dy)
+    ctx.save()
+    begin()
+    for (const ring of screenRings) {
+      ring.forEach((p, i) => (i === 0 ? M(p.x, p.ty) : L(p.x, p.ty)))
+      Z()
+    }
+    clipPath('evenodd')
+    begin()
+    ctx.strokeStyle = `rgba(${GRAPHITE}, 0.32)`
+    ctx.lineWidth = 0.8
+    if (ROOF_PATTERN === 'gable') {
+      // Sadeltak: nocken längs takets långa sida, och ena halvan lite mörkare.
+      const alongX = dx >= dy
+      const ridge = alongX ? [at(x0, (y0 + y1) / 2), at(x1, (y0 + y1) / 2)] : [at((x0 + x1) / 2, y0), at((x0 + x1) / 2, y1)]
+      const far = alongX ? [at(x1, y1), at(x0, y1)] : [at(x1, y1), at(x1, y0)]
+      M(ridge[0][0], ridge[0][1])
+      L(ridge[1][0], ridge[1][1])
+      L(far[0][0], far[0][1])
+      L(far[1][0], far[1][1])
+      Z()
+      ctx.fillStyle = `rgba(${GRAPHITE}, 0.14)`
+      fillPath()
+      begin()
+      M(ridge[0][0], ridge[0][1])
+      L(ridge[1][0], ridge[1][1])
+      ctx.strokeStyle = INK
+      ctx.lineWidth = LINE_WIDTH
+      strokePath()
+    } else if (ROOF_PATTERN === 'tiles' || ROOF_PATTERN === 'dots') {
+      const step = Math.max(ROOF_PATTERN === 'tiles' ? 1.4 : 2, spacing * sparser * 0.8)
+      const rows = Math.ceil(dy / step)
+      const columns = Math.ceil(dx / step)
+      if (rows * columns <= 2500) {
+        for (let row = 0; row <= rows; row++) {
+          const y = y0 + row * step
+          if (ROOF_PATTERN === 'tiles') {
+            const [ax, ay] = at(x0, y)
+            const [bx, by] = at(x1, y)
+            M(ax, ay)
+            L(bx, by)
+          }
+          for (let column = 0; column <= columns; column++) {
+            const x = x0 + (column + (row % 2 ? 0.5 : 0)) * step
+            const [px, py] = at(x, y)
+            if (ROOF_PATTERN === 'tiles') {
+              const [qx, qy] = at(x, y + step)
+              M(px, py)
+              L(qx, qy)
+            } else {
+              M(px - 0.9, py)
+              L(px, py - 0.9)
+              L(px + 0.9, py)
+              L(px, py + 0.9)
+              Z()
+            }
+          }
+        }
+        if (ROOF_PATTERN === 'dots') {
+          ctx.fillStyle = `rgba(${GRAPHITE}, 0.42)`
+          fillPath()
+        } else {
+          strokePath()
+        }
+      }
+    } else if (ROOF_PATTERN === 'crosshatch') {
+      const step = Math.max(1.5, spacing * sparser * 1.3)
+      const size = Math.max(dx, dy)
+      if (size / step <= 300) {
+        for (let k = -size; k <= size; k += step) {
+          for (const sign of [1, -1]) {
+            const [ax, ay] = at(x0 + k, sign > 0 ? y0 : y1)
+            const [bx, by] = at(x0 + k + size, sign > 0 ? y0 + size : y1 - size)
+            M(ax, ay)
+            L(bx, by)
+          }
+        }
+        strokePath()
+      }
+    }
+    ctx.restore()
   }
 
   // Snedstreck på en vägg mellan fotens hörn a och b, `meters` hög och
@@ -579,7 +861,7 @@ export function attachSketchedBuildings(map, canvas) {
   // Takets kontur. Klippkanter mellan kartrutorna hoppas över.
   function roofStroke(polygon, screenRings) {
     ctx.strokeStyle = INK
-    ctx.lineWidth = 1.2
+    ctx.lineWidth = LINE_WIDTH
     begin()
     screenRings.forEach((ring, ringIndex) => {
       const { seam } = polygon.rings[ringIndex]
@@ -591,10 +873,27 @@ export function attachSketchedBuildings(map, canvas) {
         L(b.x + b.pt.jx, b.ty + b.pt.jy)
       }
     })
-    strokePath()
+    outlinePath()
   }
 
+  refreshWhileMoving(map, () => map.getZoom() >= 14 && refresh())
   map.on('move', render)
   map.on('resize', render)
+  redraw = render
+  // När kartan har stannat: husen hämtas i första bildrutan där rutorna i bild
+  // är klara, i stället för att vänta på idle (som också väntar på att namnen
+  // har tonat in, några tiondelar till). Inte vid själva moveend, för vid
+  // jumpTo kommer det innan kartan har bytt rutor.
+  function refreshWhenLoaded() {
+    if (!map.isMoving() && !map.areTilesLoaded()) return
+    map.off('render', refreshWhenLoaded)
+    if (!map.isMoving()) refresh()
+  }
+  map.on('moveend', () => {
+    if (map.getZoom() < 14) return
+    map.off('render', refreshWhenLoaded)
+    map.on('render', refreshWhenLoaded)
+  })
+  // Sista chansen, om rutorna kom medan kartan rörde sig.
   map.on('idle', refresh)
 }

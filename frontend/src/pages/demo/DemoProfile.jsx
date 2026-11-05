@@ -37,7 +37,7 @@ function DemoProfile() {
       <h1>{isNew ? 'Skapa din profil' : 'Redigera profil'}</h1>
       {isNew && (
         <p className="profile-intro">
-          Berätta lite om dig själv så hittar vi personer och klubbar nära dig med samma intressen.
+          Berätta lite om dig själv så hittar vi medlemmar och klubbar nära dig med samma intressen.
         </p>
       )}
       <form className="auth-form demo-profile-form" onSubmit={handleSubmit}>

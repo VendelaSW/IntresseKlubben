@@ -39,6 +39,13 @@ function LocationPickerMap({ value, onChange, onDrag, kommunCode }) {
       attributionControl: { compact: true },
     })
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right')
+    // Upphovsrätten (OpenFreeMap, OpenStreetMap) som en stängd i-knapp från början, så att den inte täcker den lilla
+    // kartan. MapLibre visar den öppen tills man drar i kartan; ett tryck på i-knappen öppnar den.
+    map.once('load', () => {
+      const attribution = map.getContainer().querySelector('.maplibregl-ctrl-attrib.maplibregl-compact')
+      attribution?.classList.remove('maplibregl-compact-show')
+      attribution?.removeAttribute('open')
+    })
     const round = (n) => Math.round(n * 1e6) / 1e6
     map.on('click', (event) => {
       onChangeRef.current({ latitude: round(event.lngLat.lat), longitude: round(event.lngLat.lng) })

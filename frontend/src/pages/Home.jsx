@@ -1,19 +1,32 @@
 import { lazy, Suspense, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import logo from '../assets/intresseklubben.png'
+import kompisHaDet from '../assets/kompis-ha-det.webp'
+import DrawnArrow from '../components/DrawnArrow'
+import EmptyState from '../components/EmptyState'
 import ForgotPasswordFields from '../components/ForgotPasswordFields'
 import LoginFields from '../components/LoginFields'
+import Modal from '../components/Modal'
 import ProblemStatement from '../components/ProblemStatement'
 import RegisterFields from '../components/RegisterFields'
 import ServiceDetails from '../components/ServiceDetails'
 import { DEV_MODE } from '../devtools/devMode'
 import { useAuth } from '../hooks/useAuth'
+import { useDesignChoice } from '../hooks/useDesignChoice'
 
 // "Logga in som ..." finns bara i testläget (npm run dev:test), och kommer inte ens med i en vanlig build.
 const DevLogin = DEV_MODE ? lazy(() => import('../devtools/DevLogin')) : null
+// TILLFÄLLIGT (testläget): startsidan med polaroider (väljaren "Förstasidan").
+const HomePolaroids = DEV_MODE ? lazy(() => import('../devtools/HomePolaroids')) : null
 
 function Home() {
   const { user, loading } = useAuth()
+  const homeChoice = useDesignChoice('homePage')
+  const polaroids = ['polaroider', 'utspridda', 'kollage'].includes(homeChoice) && HomePolaroids !== null
+  const collage = polaroids && homeChoice === 'kollage'
+  const scattered = polaroids && (homeChoice === 'utspridda' || collage)
+  // Precis utloggad (Logga ut i menyn skickar med det): kompisen säger "Ha det!" överst på startsidan.
+  const loggedOut = Boolean(useLocation().state?.loggedOut)
   const [view, setView] = useState(null) // null | 'login' | 'register' | 'forgot'
   // Har man precis skapat ett konto hamnar man direkt på inloggningen, med ett
   // meddelande om det. Byter man vy själv försvinner meddelandet.
@@ -31,7 +44,15 @@ function Home() {
   if (user) return <Navigate to="/hem" replace />
 
   return (
-    <div className="page" style={view === null ? undefined : { gap: '1.25rem' }}>
+    <div
+      className={`page home-page${polaroids && view === null ? ' home-page-polaroids' : ''}${scattered && view === null ? ' home-page-scattered' : ''}${view === null ? '' : ' home-page-form'}`}
+    >
+      {/* Tillbaka till startsidan: en pil uppe i vänstra hörnet i inloggnings-, registrerings- och glömt-lösenord-vyerna. */}
+      {view !== null && (
+        <button type="button" className="back-arrow" aria-label="Tillbaka" onClick={() => show(null)}>
+          <DrawnArrow className="back-arrow-icon" />
+        </button>
+      )}
       <section className="hero">
         {/* Mindre logga i inloggnings-/registreringsvyerna så att hela formuläret
             syns utan att man behöver scrolla. */}
@@ -42,7 +63,28 @@ function Home() {
         />
         {view === null && <p className="tagline">Vi antecknar, ni träffas.</p>}
       </section>
-      {view === null && <ProblemStatement centered />}
+      {loggedOut && view === null && (
+        <EmptyState
+          className="home-farewell"
+          image={kompisHaDet}
+          title="Du är utloggad"
+          text="Välkommen tillbaka när du vill!"
+        />
+      )}
+      {polaroids && view === null && (
+        <Suspense fallback={null}>
+          <HomePolaroids scattered={scattered} collage={collage} />
+        </Suspense>
+      )}
+      {view === null &&
+        (polaroids ? (
+          <div className="home-pitch-group">
+            <p className="home-pitch">Vi är ingen dejtingapp. Vi vill bara hjälpa dig att hitta på saker med andra!</p>
+            <p className="home-pitch-sub">Berätta vad som intresserar dig, så hittar vi fler som dig.</p>
+          </div>
+        ) : (
+          <ProblemStatement centered />
+        ))}
 
       {view === null && (
         <div className="account-choice-links">
@@ -72,46 +114,46 @@ function Home() {
                 : null
             }
           />
-          <button type="button" className="text-button" onClick={() => show(null)}>
-            ← Tillbaka
-          </button>
         </>
       )}
 
-      {view === 'forgot' && (
-        <>
-          <ForgotPasswordFields onSwitchToLogin={() => show('login')} />
-          <button type="button" className="text-button" onClick={() => show(null)}>
-            ← Tillbaka
-          </button>
-        </>
-      )}
+      {view === 'forgot' && <ForgotPasswordFields onSwitchToLogin={() => show('login')} />}
 
       {view === 'register' && (
-        <>
-          <RegisterFields
-            onSwitchToLogin={() => show('login')}
-            onRegistered={() => {
-              setView('login')
-              setJustRegistered(true)
-            }}
-          />
-          <button type="button" className="text-button" onClick={() => show(null)}>
-            ← Tillbaka
-          </button>
-        </>
+        <RegisterFields
+          onSwitchToLogin={() => show('login')}
+          onRegistered={() => {
+            setView('login')
+            setJustRegistered(true)
+          }}
+        />
       )}
 
-      <button
-        type="button"
-        className="info-link"
-        aria-expanded={aboutOpen}
-        aria-controls="service-details"
-        onClick={() => setAboutOpen((open) => !open)}
-      >
-        {aboutOpen ? 'Visa mindre' : 'Läs mer om tjänsten'}
-      </button>
-      {aboutOpen && <ServiceDetails id="service-details" />}
+      {/* "Läs mer om tjänsten" finns bara på startsidan, inte i inloggnings-/registreringsvyerna. */}
+      {view === null && (
+        <>
+          {/* TILLFÄLLIGT (testläget, förstasidan med polaroider): "Läs mer" öppnas i en ruta ovanpå sidan i stället för att
+              fällas ut nedåt, eftersom sidan fyller hela skärmen. */}
+          <button
+            type="button"
+            className="info-link"
+            {...(polaroids
+              ? { 'aria-haspopup': 'dialog' }
+              : { 'aria-expanded': aboutOpen, 'aria-controls': 'service-details' })}
+            onClick={() => setAboutOpen((open) => !open)}
+          >
+            {aboutOpen && !polaroids ? 'Visa mindre' : 'Läs mer om tjänsten'}
+          </button>
+          {aboutOpen && !polaroids && <ServiceDetails id="service-details" />}
+          {aboutOpen && polaroids && (
+            <Modal title="Läs mer om tjänsten" onClose={() => setAboutOpen(false)}>
+              <div className="modal-scroll">
+                <ServiceDetails id="service-details" />
+              </div>
+            </Modal>
+          )}
+        </>
+      )}
     </div>
   )
 }
