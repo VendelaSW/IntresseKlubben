@@ -415,12 +415,6 @@ button.info-link {
   max-width: none;
 }
 
-/* Min profil: allt vänsterställt och lika brett, som på andras profiler. */
-.profile-own {
-  align-items: stretch;
-  text-align: left;
-}
-
 /* Personens events: titeln, och tid och plats på raden under. */
 .profile-events .person-list-item {
   flex-direction: column;
@@ -2884,10 +2878,6 @@ label:has(> input[type='radio']:not(:disabled)) {
 /* Intresseväljaren (InterestPicker) har kommunfältets klasser och utseende. Det
    här är det den har utöver: plats för krysset, rubriken över ens egna intressen
    och var en träff hör hemma, under namnet. */
-.interest-picker input {
-  padding-right: 1.8rem;
-}
-
 /* Krysset ligger där filtren annars har en pil (Klubbar, papperslapparna i
    testläget), så pilen tas bort när ett intresse är valt. */
 .municipality-picker.interest-picker:has(.field-clear) input {
