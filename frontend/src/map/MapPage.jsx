@@ -1724,7 +1724,7 @@ function MapPage() {
       <div className="map-top-bar">
         <div className="map-top-left">
           {/* Översta raden, som ritade ikoner: kartan eller dagens att göra (se `calm`, den valda är nedtryckt),
-              Min kommun och Hitta mig. De två sista bara på kartan. */}
+              Min kommun, Hitta mig och sök. De tre sista bara på kartan. */}
           <div className="map-view-row">
             <div className="map-tool-group" role="group" aria-label="Visa">
               <button
@@ -1785,13 +1785,13 @@ function MapPage() {
                 </svg>
               </button>
             </div>
+            <MapPlaceSearch
+              activities={activityItems}
+              onPick={goToSearchResult}
+              findMeMessage={findMeMessage}
+              onCloseFindMeMessage={() => setFindMeMessage('')}
+            />
           </div>
-          <MapPlaceSearch
-            activities={activityItems}
-            onPick={goToSearchResult}
-            findMeMessage={findMeMessage}
-            onCloseFindMeMessage={() => setFindMeMessage('')}
-          />
           <div className="map-sketch-tools" role="toolbar" aria-label="Nålar och väg" hidden={!pinsShown}>
             <button
               type="button"
