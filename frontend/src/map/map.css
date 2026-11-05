@@ -776,7 +776,7 @@
 @media (hover: hover) {
   .map-sketch-landskap.is-listed:hover,
   .map-sketch-landskap.is-lan:hover,
-  .map-sketch-landskap.is-kommun:hover {
+  .map-sketch-landskap.is-kommun.is-hovered {
     text-decoration: underline;
   }
 }
@@ -803,9 +803,11 @@
 }
 
 /* Kommunernas namn i länsvyn: blyerts i stället för rödbrunt, som deras
-   gränser. */
+   gränser. De släpper igenom musen och fingrarna, så att man kan nypa och dra där
+   det står ett namn. Ett klick känns igen på kartan (se placeLabelAt). */
 .map-sketch-landskap.is-kommun {
   color: #3a2f25;
+  pointer-events: none;
   letter-spacing: 0.06em;
 }
 

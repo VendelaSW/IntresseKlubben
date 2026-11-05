@@ -788,19 +788,31 @@ function syncPlaceLabels(
     layer.replaceChildren(...landskapNames, ...placeEls(placeOpacity))
   }
 
-  // Ortnamnen går att klicka på: kartan zoomar in på orten (onPickPlace). De släpper igenom musen och
-  // fingrarna, annars skulle det inte gå att dra eller nypa kartan där det står ett namn. Därför känns ett
-  // klick igen på kartan, i stället för på namnet. Med tangentbordet är de vanliga knappar (se nedan).
+  // Ortnamnen och kommunnamnen går att klicka på: kartan zoomar in på orten (onPickPlace) eller kommunen
+  // (onPickKommun). De släpper igenom musen och fingrarna, annars skulle det inte gå att dra eller nypa kartan
+  // där det står ett namn. Därför känns ett klick igen på kartan, i stället för på namnet. Med tangentbordet
+  // är de vanliga knappar (se nedan).
   function pickPlace(el) {
-    onPickPlace(el.textContent, [Number(el.dataset.lng), Number(el.dataset.lat)])
+    const lngLat = [Number(el.dataset.lng), Number(el.dataset.lat)]
+    if (el.classList.contains('is-kommun')) onPickKommun(lngLat)
+    else onPickPlace(el.textContent, lngLat)
   }
 
   function placeLabelAt({ originalEvent: { clientX: x, clientY: y } }) {
     if (getMode() !== 'free') return null
-    return [...layer.querySelectorAll('.map-sketch-label')].find((el) => {
+    // Namnens rutor kan gå in i varandra: det närmaste fingret eller muspekaren är det man menade.
+    let nearest = null
+    let nearestDistance = Infinity
+    for (const el of layer.querySelectorAll('.map-sketch-label, .is-kommun')) {
       const box = el.getBoundingClientRect()
-      return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom
-    })
+      if (x < box.left || x > box.right || y < box.top || y > box.bottom) continue
+      const distance = (x - (box.left + box.right) / 2) ** 2 + (y - (box.top + box.bottom) / 2) ** 2
+      if (distance < nearestDistance) {
+        nearest = el
+        nearestDistance = distance
+      }
+    }
+    return nearest
   }
 
   map.on('click', (event) => {
@@ -808,21 +820,22 @@ function syncPlaceLabels(
     if (el) pickPlace(el)
   })
   map.on('mousemove', (event) => {
-    map.getCanvasContainer().style.cursor = placeLabelAt(event) ? 'pointer' : ''
+    const el = placeLabelAt(event)
+    map.getCanvasContainer().style.cursor = el ? 'pointer' : ''
+    layer.querySelector('.is-hovered')?.classList.remove('is-hovered')
+    el?.classList.add('is-hovered')
   })
 
   // Länens namn i landskapsvyn: klick zoomar till länet, hovring markerar det.
   layer.addEventListener('click', (event) => {
-    const place = event.target.closest('.map-sketch-label')
+    const place = event.target.closest('.map-sketch-label, .is-kommun')
     if (place) {
       pickPlace(place)
       return
     }
-    const item = event.target.closest('.is-lan, .is-kommun')
+    const item = event.target.closest('.is-lan')
     if (!item) return
-    const lngLat = [Number(item.dataset.lng), Number(item.dataset.lat)]
-    if (item.classList.contains('is-kommun')) onPickKommun(lngLat)
-    else onPickLan(lngLat)
+    onPickLan([Number(item.dataset.lng), Number(item.dataset.lat)])
   })
   // Fokus med tangentbordet markerar också, som hovring.
   for (const type of ['mouseover', 'focusin']) {
