@@ -9,8 +9,8 @@ import { contactsQuery } from '../../services/contacts'
 import { conversationsQuery } from '../../services/messages'
 import { shortNames } from '../../utils/shortNames'
 
-// Så många kuvert syns åt gången: fyra i bredd och två rader (två i bredd på mobil). Har man färre fylls platserna
-// ut med tomma, streckade kuvert, och fler än så scrollar man i sidled med pilarna.
+// Så många kuvert syns åt gången: fyra i bredd och två rader (två i bredd på mobil). Har man färre fylls bara den
+// sista raden ut med tomma, streckade kuvert, och fler än så scrollar man i sidled med pilarna.
 const PAGE_SIZE = 8
 
 // Alla konversationer som kuvert: de man inte har öppnat först och sedan de öppnade, nyast först i båda (SCRUM-319).
@@ -70,12 +70,15 @@ function InboxPage() {
 }
 
 // Kuverten i sidor om åtta, fyra i bredd och två rader (två i bredd på mobil), som man bläddrar mellan i sidled med en
-// pil åt det håll där det finns fler (samma pil som i Matcha). Får alla plats på en sida fylls de lediga platserna med
-// tomma, streckade kuvert.
+// pil åt det håll där det finns fler (samma pil som i Matcha). Får alla plats på en sida fylls de lediga 
+// platserna på den sista raden ut med tomma, streckade kuvert.
 function EnvelopeRows({ conversations, names }) {
   const pagesRef = useRef(null)
   const [more, setMore] = useState({ left: false, right: false })
-  const empty = Math.max(0, PAGE_SIZE - conversations.length)
+  // Hur många kuvert som står i bredd just nu (CSS:en avgör, se .envelope-pages > .envelopes).
+  const [columns, setColumns] = useState(4)
+  // Bara så många tomma kuvert att den sista raden blir hel. Fler sidor än en har inga tomma.
+  const empty = conversations.length > PAGE_SIZE ? 0 : (columns - (conversations.length % columns)) % columns
   const pages = []
   for (let start = 0; start < Math.max(conversations.length, 1); start += PAGE_SIZE) {
     pages.push(conversations.slice(start, start + PAGE_SIZE))
@@ -87,6 +90,8 @@ function EnvelopeRows({ conversations, names }) {
       left: scroller.scrollLeft > 1,
       right: scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1,
     })
+    const grid = scroller.querySelector('.envelopes')
+    if (grid) setColumns(getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length || 1)
   }
 
   useEffect(() => {

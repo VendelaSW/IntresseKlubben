@@ -14,8 +14,8 @@ import InfoTip from '../../shared/InfoTip'
 import IconButton from '../../shared/IconButton'
 
 // Mer information om en grupp, med knapparna som passar ens roll. Medlemmar kan
-// öppna anslagstavlan (`onOpenBoard`, en rad med dess ikon under knapparna), läsa
-// klubbchatten (`chat`, på mobil under medlemmarna) och skapa ett event i klubben
+// öppna anslagstavlan (`onOpenBoard`, en rad med dess ikon under knapparna), på mobil
+// klubbchatten (`onOpenChat`, en ruta bredvid tavlans) och skapa ett event i klubben
 // (öppnar eventformuläret med klubben vald), och "Gå ur"
 // och "Radera" (för ägaren) ligger längst ner i kortet. "Bjud in" syns för den som
 // får bjuda in (group.can_invite: ägaren, eller alla medlemmar om ägaren har slagit
@@ -38,7 +38,7 @@ function GroupDetails({
   onDelete,
   onDecline,
   onOpenBoard,
-  chat,
+  onOpenChat,
 }) {
   const navigate = useNavigate()
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -160,13 +160,25 @@ function GroupDetails({
           {inviteNotice && <span className="status-success">{inviteNotice}</span>}
         </div>
         {group.is_member && (
-          <button type="button" className="club-board-link" onClick={onOpenBoard}>
-            <img src={boardIcon} alt="" />
-            <span>Anslagstavla</span>
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-              <path d="m9 6 6 6-6 6" />
-            </svg>
-          </button>
+          <div className="club-view-links">
+            <button type="button" className="club-board-link is-board" onClick={onOpenBoard}>
+              <img src={boardIcon} alt="" />
+              <span>Anslagstavla</span>
+              <svg className="club-link-arrow" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="m9 6 6 6-6 6" />
+              </svg>
+            </button>
+            {onOpenChat && (
+              <button type="button" className="club-board-link is-chat lined-paper" onClick={onOpenChat}>
+                <svg className="club-link-icon" viewBox="4.5 3.5 23 24" aria-hidden="true">
+                  {/* Ojämna kanter och en böjd spets, som ritat för hand. */}
+                  <path d="M7.2 8.6c.2-1.9 1.4-3 3.3-3.1 3.9-.3 8.2-.4 12.3 0 1.8.2 2.9 1.4 2.9 3.2.1 3.1.1 6.3-.1 9.3-.1 1.7-1.3 2.8-3 2.9-2.6.1-5.2.1-7.8.2-1.6 1.4-3.3 2.9-5.2 4.3.3-1.4.6-2.8.8-4.3-1.9-.2-3.1-1.2-3.3-3.1-.3-3.2-.2-6.3.1-9.4z" />
+                  <path d="M11.2 11.3c2.6-.3 5.6-.2 8.7.1M11.4 15.1c1.8-.2 3.6-.2 5.4 0" />
+                </svg>
+                <span>Klubbchatt</span>
+              </button>
+            )}
+          </div>
         )}
         {applyOpen && (
           <Modal title={`Ansök till ${group.name}`} onClose={() => setApplyOpen(false)}>
@@ -214,7 +226,6 @@ function GroupDetails({
         )}
         <GroupEvents groupId={group.id} />
         <GroupMembers group={group} onChanged={onMembersChanged} />
-        {chat}
         {group.is_member && (
           <div className="card-actions">
             <button type="button" className="secondary-button button-small" disabled={busy} onClick={() => onLeave(group)}>

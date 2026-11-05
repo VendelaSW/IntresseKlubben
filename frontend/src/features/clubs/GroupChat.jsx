@@ -17,7 +17,7 @@ const POLL_MS = 5000
 
 
 // Klubbens chatt på ett linjerat anteckningspapper (.notepad i stilguiden), som brevtråden. Ligger bredvid klubbens
-// ruta på dator och under den på mobil (se GroupsPanel). Bara för medlemmar, och servern kontrollerar medlemskapet.
+// ruta på dator och på en egen sida på mobil (se GroupsPanel). Bara för medlemmar, och servern kontrollerar medlemskapet.
 // Meddelandena scrollar i sin ruta och öppnas vid det senaste (se useChatScroll).
 // `canModerate` (ägaren och administratörer, SCRUM-160): får ta bort andras meddelanden. Sina egna får alla ta bort.
 function GroupChat({ groupId, canModerate = false }) {

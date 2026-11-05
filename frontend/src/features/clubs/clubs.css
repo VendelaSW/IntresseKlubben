@@ -68,8 +68,9 @@
   min-height: 26rem;
 }
 
-/* Anslagstavlan i klubbens ruta (GroupDetails): en ljusgul rad med tavlans ikon (assets/anslagstavla.png), som
-   öppnar tavlan. Bläckkant och hård skugga som skapa-knapparna, och skuggan trycks ner vid hover och fokus. */
+/* En rad i klubbens ruta (GroupDetails) som öppnar en egen vy: anslagstavlan (med tavlans ikon
+   assets/anslagstavla.png) och på mobil klubbchatten. Bläckkant och hård skugga som skapa-knapparna, och skuggan
+   trycks ner vid hover och fokus. */
 .club-board-link {
   display: flex;
   align-items: center;
@@ -79,7 +80,7 @@
   padding: 0.45rem 0.8rem;
   border: 1.5px solid var(--color-ink);
   border-radius: var(--radius-lg);
-  background: var(--color-accent-soft);
+  background-color: var(--color-accent-soft);
   box-shadow: 2px 2px 0 var(--color-ink);
   color: var(--color-text);
   font-family: var(--font-heading);
@@ -88,6 +89,29 @@
   text-align: left;
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+/* Raderna i klubbens ruta, över hela bredden (rutan ställer annars sitt innehåll till vänster). */
+.club-view-links {
+  align-self: stretch;
+}
+
+/* Korken med sina prickar: tavlan (.board) och raden till tavlan, som ser ut som den. */
+.board,
+.club-board-link.is-board {
+  background-color: #efe0c2;
+  background-image:
+    radial-gradient(rgba(150, 110, 60, 0.22) 1px, transparent 1.4px),
+    radial-gradient(rgba(255, 250, 235, 0.5) 1px, transparent 1.4px);
+  background-size: 9px 9px, 13px 13px;
+  background-position: 0 0, 4px 6px;
+}
+
+/* Rutan till chatten ser ut som chatten: det linjerade pappret (.lined-paper), med marginalen närmare kanten så att
+   den inte går genom pratbubblan. */
+.club-board-link.is-chat {
+  --paper-margin: 1rem;
+  background-color: var(--color-paper);
 }
 
 .club-board-link:focus-visible {
@@ -102,7 +126,8 @@
   }
 }
 
-.club-board-link img {
+.club-board-link img,
+.club-board-link .club-link-icon {
   flex: none;
   width: 2.6rem;
   height: 2.6rem;
@@ -118,54 +143,19 @@
   stroke-linejoin: round;
 }
 
-/* Klubbchatten på mobil, i klubbens ruta under medlemmarna (GroupsPanel): ihopfälld till en rad med "Klubbchatt",
-   som fälls ut med ett tryck (details). Chattens egen rubrik behövs inte då. */
-.group-chat-dropdown {
-  border: 1.5px solid var(--color-ink);
-  border-radius: var(--radius-lg);
-  background: var(--color-paper);
-}
-
-.group-chat-dropdown > summary {
-  display: flex;
-  align-items: center;
-  min-height: 3rem;
-  padding: 0.3rem 0.9rem;
-  font-family: var(--font-heading);
-  font-size: 1.5rem;
-  font-weight: 700;
-  list-style: none;
-  cursor: pointer;
-}
-
-.group-chat-dropdown > summary::-webkit-details-marker {
-  display: none;
-}
-
-/* Pilen till höger, som vänds när chatten är utfälld. */
-.group-chat-dropdown > summary::after {
-  content: '';
-  width: 0.55rem;
-  height: 0.55rem;
-  margin-left: auto;
-  border-right: 2.4px solid currentColor;
-  border-bottom: 2.4px solid currentColor;
-  transform: translateY(-25%) rotate(45deg);
-  transition: transform 0.15s ease;
-}
-
-.group-chat-dropdown[open] > summary::after {
-  transform: translateY(25%) rotate(-135deg);
-}
-
-.group-chat-dropdown > summary:focus-visible {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 2px;
+/* Klubbchattens ruta på mobil (GroupDetails): en handritad pratbubbla i stället för tavlans bild, lika stor (se
+   .club-board-link img), och en aning längre ner, så att den står i höjd med tavlans bild. */
+.club-board-link .club-link-icon {
+  position: relative;
+  top: 2px;
+  margin-left: 0;
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 1.1;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .club-board-link,
-    .group-chat-dropdown > summary::after {
+  .club-board-link {
       transition: none;
     }
 
@@ -187,12 +177,6 @@
   padding: 0.55rem 0.75rem 0.85rem;
   border: 3px solid #d4b483;
   border-radius: var(--radius-xl);
-  background-color: #efe0c2;
-  background-image:
-    radial-gradient(rgba(150, 110, 60, 0.22) 1px, transparent 1.4px),
-    radial-gradient(rgba(255, 250, 235, 0.5) 1px, transparent 1.4px);
-  background-size: 9px 9px, 13px 13px;
-  background-position: 0 0, 4px 6px;
   box-shadow: 0 4px 0 var(--color-border);
   text-align: left;
 }
@@ -229,7 +213,7 @@
   background: var(--color-white);
 }
 
-/* Text på korken (laddar, tomt, fel): på en vit bit, så att den går att läsa. */
+/* Fel på korken: på en vit bit, så att det syns. */
 .board-empty,
 .board-error {
   display: inline-block;
@@ -240,10 +224,29 @@
   font-size: var(--text-small);
 }
 
+/* Laddar och inga lappar: en dämpad informationstext direkt på korken, mitt på tavlan. Varmare och mörkare grå än
+   --color-muted, som blir för svag mot korken. */
+.board-hint {
+  margin: 0;
+  color: #5a5148;
+  font-size: var(--text-small);
+  text-align: center;
+}
+
 /* Hela anslagstavlan, som en egen vy i klubben (GroupPosts med `full`): en stor
    kork som fyller blocket, med alla lappar. */
 .board-full {
+  position: relative;
   min-height: 34rem;
+}
+
+/* Laddar och inga lappar mitt på hela tavlan (inte bara under rubriken). Texten försvinner när första lappen sätts upp. */
+.board-full .board-hint {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  transform: translateY(-50%);
 }
 
 /* Dator: de fyra senaste lapparna på en rad, resten med "Visa alla". */
@@ -679,11 +682,103 @@ select.club-filter:focus-visible,
   .group-chat-slot {
       min-height: 22rem;
     }
+
+  /* Laddar och inga lappar lite större på dator, där tavlan är stor. */
+  .board-hint {
+      font-size: var(--text-body);
+    }
 }
 
 @media (max-width: 767px) {
+  /* Raden till anslagstavlan lite lägre och smalare, så att den tar mindre plats i klubbens ruta. */
+  .club-board-link {
+      width: auto;
+      min-height: 2.6rem;
+      padding: 0.25rem 0.75rem 0.25rem 0.55rem;
+      gap: 0.5rem;
+      font-size: 1.2rem;
+    }
+
+  .club-board-link img,
+    .club-board-link .club-link-icon {
+      width: 2rem;
+      height: 2rem;
+    }
+
+  /* Tavlan och chatten som två lika stora rutor bredvid varandra: ikonen överst och namnet under, utan pil. */
+  .club-view-links:has(> .is-chat) {
+      display: flex;
+      gap: 0.6rem;
+    }
+
+  .club-view-links:has(> .is-chat) > .club-board-link {
+      flex: 1 1 0;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.15rem;
+      min-width: 0;
+      min-height: 4.6rem;
+      padding: 0.45rem 0.4rem;
+      text-align: center;
+    }
+
+  .club-view-links:has(> .is-chat) .club-link-arrow {
+      display: none;
+    }
+
+  /* Anslagstavlan och klubbchatten som egna vyer: de fyller blocket ända ner till menyn, och lapparna och
+     meddelandena scrollar inuti. Lapparna behåller sin storlek, två i bredd, och ett tryck på en lapp visar hela
+     texten. Rubriken och "+ Sätt upp en lapp" på samma rad, knappen i övre högra hörnet, och lapparna börjar direkt
+     under. */
+  .map-pad-page:has(.board-full, .group-chat-full),
+    .map-pad-page:has(.board-full, .group-chat-full) .map-pad-app-page,
+    .map-pad-page:has(.board-full, .group-chat-full) .app-section {
+      display: flex;
+      flex-direction: column;
+    }
+
+  .map-pad-page:has(.board-full, .group-chat-full) .map-pad-app-page,
+    .map-pad-page:has(.board-full, .group-chat-full) .app-section {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+  .group-chat-full {
+      flex: 1 1 auto;
+      align-self: stretch;
+      min-height: 18rem;
+    }
+
   .board-full {
-      min-height: 28rem;
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+  .board-full .board-head {
+      flex-wrap: nowrap;
+      margin-bottom: 0.4rem;
+    }
+
+  .board-full .board-actions {
+      flex: none;
+      margin-left: auto;
+    }
+
+  /* "+ Sätt upp en lapp" lite mindre, så att rubriken och knappen får plats på raden. .map-pad för att gå före
+     knapparnas 44 px på pekskärm i map.css: tryckytan är ändå hög nog, med .touch-target. */
+  .map-pad .board-full .board-actions .button-small {
+      min-height: 1.9rem;
+      padding: 0.2rem 0.6rem;
+      font-size: var(--text-xs);
+    }
+
+  .board-full .board-notes {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: none;
+      align-content: start;
     }
 
   /* Mobil: två lappar bredvid varandra i ett rutnät, alla lappar, och tavlan har

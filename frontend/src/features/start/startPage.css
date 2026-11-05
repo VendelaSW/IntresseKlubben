@@ -85,7 +85,9 @@
   stroke: var(--color-accent);
   stroke-width: 10;
   stroke-linecap: round;
-  stroke-dasharray: 1;
+  /* Strecket (hela linjen, pathLength 1) och ett mellanrum som är dubbelt så långt. Med lika långt mellanrum börjar
+     nästa streck precis där linjen slutar, och dess runda ände syns som en gul prick innan linjen har dragits. */
+  stroke-dasharray: 1 2;
   stroke-dashoffset: 1;
 }
 
