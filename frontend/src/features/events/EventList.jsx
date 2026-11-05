@@ -77,6 +77,12 @@ export function ticketTimeText(event) {
   return `${weekdayFormat.format(start).replace('.', '')} ${timeFormat.format(start)}${end || ''}`
 }
 
+// Platsens svarta ruta i eventets kvitto: ett långt namn får mindre text, så att det ryms på kvittots två rader (se
+// .event-ticket-box.is-long i index.css).
+export function placeBoxClass(event) {
+  return `event-ticket-box${event.place_name.length > 24 ? ' is-long' : ''}`
+}
+
 // Biljettens färger efter eventets intresse: raden överst (--poster) och kvittot (--poster-soft).
 export function ticketColors(event) {
   const colors = areaColors(event.interest_area_slug)
