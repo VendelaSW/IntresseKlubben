@@ -470,8 +470,8 @@ function StyleGuide() {
           På telefonen (upp till 767 px) ligger korten ett per rad över hela bredden, utan lutning och utan "EVENT"
           eller "KLUBB" överst. Eventbiljetten har kvittot (datum, tid och plats) som en flik till höger, och intresset,
           rollen och stämpeln på en rad nederst. På klubbkortet står Öppen/Privat uppe till höger, namnet kortas med
-          "…" efter två rader och beskrivningen efter tre. Sökikonen flyter nere i blockets vänstra hörn och skapa-knappen
-          i det högra (PadFloatAction, .map-pad-float), ovanför menyn. Öppen blir sökningen en ruta längs nederkanten.
+          "…" efter två rader och beskrivningen efter tre. Sökningen står under flikarna och skapa-knappen flyter nere i blockets högra hörn
+          (PadFloatAction, .map-pad-float), ovanför menyn.
           I eventets egen vy står kvittot överst, med urtagen under sig. Klubbens egen
           vy har en rad i intressets färg överst, namnet i tryckbokstäver och antalet medlemmar i en svart ruta.
         </p>
