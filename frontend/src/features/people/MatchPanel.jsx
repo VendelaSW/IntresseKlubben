@@ -81,9 +81,16 @@ function useFitToPad(panelRef) {
     const observer = new ResizeObserver(measure)
     observer.observe(pad)
     if (panel.parentElement) observer.observe(panel.parentElement)
+    // Kortet kommer efter första mätningen (förslagen laddas), och byts när man går vidare. Panelen har då samma höjd,
+    // så storleken ovan ändras inte: mät om när innehållet ändras, annars kan knapparna hamna utanför kortet.
+    const content = new MutationObserver(measure)
+    content.observe(panel, { childList: true, subtree: true })
     // Typsnitten kan komma efter första mätningen, och då ändras radernas höjd.
     document.fonts?.ready.then(measure)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      content.disconnect()
+    }
   }, [panelRef])
 }
 
