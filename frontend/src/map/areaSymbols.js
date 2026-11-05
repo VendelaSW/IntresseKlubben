@@ -23,8 +23,9 @@ import { FULL_ZOOM } from './activities'
 import { LANDSKAP_LABELS, LAN_LABELS } from './style'
 
 // Var symbolerna för hela Sverige och landsdelarna står: ungefär mitt i varje
-// landsdel, och hela Sverige i fjällen, där inga namn står.
-const COUNTRY_POINT = [13.2, 63.6]
+// landsdel, och hela Sverige ute i Östersjön söder om landet, utanför länen, så
+// att den inte ser ut att höra till ett av dem.
+const COUNTRY_POINT = [18.3, 55.6]
 const LANDSDEL_POINTS = { gotaland: [14.6, 57.3], svealand: [15.4, 59.7], norrland: [18.6, 65.6] }
 
 // Länets namnpunkt: den största delen av länet (ett län kan ligga i flera landskap).
