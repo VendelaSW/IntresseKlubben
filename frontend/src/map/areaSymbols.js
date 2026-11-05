@@ -2,12 +2,12 @@
 // område i stället för en lapp per klubb eller event, så att de inte staplas på
 // varandra. Klubbarna och eventen har var sin symbol (vit respektive rosa hög).
 // Symbolen står på den nivå klubbarna eller eventen hör till:
-//   - Sverige-nivån: hela Sverige och de tre landsdelarna (kartan har ingen egen
-//     nivå för landsdelarna),
-//   - landskapsnivån: det valda landskapet,
 //   - länsvyn: det valda länet,
 //   - kommunnivån: den valda kommunen (kommunklubbar utan nål, och events utan
 //     nål och utan större område, i den kommun de hör till, se activitiesFrom).
+// Klubbar och events för hela Sverige, en landsdel eller ett landskap har ingen
+// symbol: på de nivåerna låg högarna över länen man klickar sig in på. De hittas
+// i Klubbar och Events (i Klubbar visar filtret på en kommun också dem).
 // Ett klick på symbolen öppnar en lista, och ett klick i listan öppnar klubben
 // eller eventet. Klubbar och events med nål har kvar sina lappar (se
 // map/activities.js).
@@ -22,10 +22,9 @@ import klubbarIcon from '../assets/klubbar.png'
 import { FULL_ZOOM } from './activities'
 import { LANDSKAP_LABELS, LAN_LABELS } from './style'
 
-// Var symbolerna för hela Sverige och landsdelarna står: ungefär mitt i varje
-// landsdel, och hela Sverige ute i Östersjön söder om landet, utanför länen, så
-// att den inte ser ut att höra till ett av dem.
-const COUNTRY_POINT = [18.3, 55.6]
+// Var symbolerna för hela Sverige och landsdelarna skulle stå (de visas inte, se
+// ovan): ungefär mitt i varje landsdel, och hela Sverige i fjällen.
+const COUNTRY_POINT = [13.2, 63.6]
 const LANDSDEL_POINTS = { gotaland: [14.6, 57.3], svealand: [15.4, 59.7], norrland: [18.6, 65.6] }
 
 // Länets namnpunkt: den största delen av länet (ett län kan ligga i flera landskap).
@@ -114,12 +113,9 @@ export function attachAreaSymbols(map, layer, { getView, onOpen }) {
 
   // Vilka symboler som hör till nivån man är på.
   function visible() {
-    const { mode, landskap, lan, kommun } = getView()
-    if (mode === 'sverige') return areas.filter((a) => a.scope === 'country' || a.scope === 'landsdel')
-    if (mode === 'landskap') {
-      const code = String(LANDSKAP_LABELS.find((l) => l.name === landskap)?.id ?? '')
-      return areas.filter((a) => a.scope === 'landskap' && a.code === code)
-    }
+    const { mode, lan, kommun } = getView()
+    // Inga symboler på Sverige- och landskapsnivån (se ovan).
+    if (mode === 'sverige' || mode === 'landskap') return []
     if (kommun) return areas.filter((a) => a.scope === 'kommun' && a.code === kommun)
     if (lan) return areas.filter((a) => a.scope === 'lan' && a.code === lan)
     return []
