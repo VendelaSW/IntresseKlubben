@@ -15,7 +15,7 @@ import LocationPicker from '../../shared/LocationPicker'
 import BackButton from '../../shared/BackButton'
 import ChatSender from '../letters/ChatSender'
 import ConversationCard from '../letters/ConversationCard'
-import LetterFriends from '../letters/LetterFriends'
+import LetterFriends, { NoLetterFriends } from '../letters/LetterFriends'
 import CreateButton from '../../shared/CreateButton'
 import DateField from '../../shared/DateField'
 import EventDayFilter from '../events/EventDayFilter'
@@ -609,9 +609,11 @@ function StyleGuide() {
         <p className="hint-text">
           Längst ner i Brev: runda bilder och förnamn på en rad, och ett klick öppnar ett nytt brev. Får de inte plats
           tonar raden ut åt det håll där det finns fler, utan rullningslist. På dator finns en pil åt det hållet, och
-          på mobil sveper man. Raden syns inte när det inte finns någon kvar att skriva till.
+          på mobil sveper man. Finns det ingen kvar att skriva till säger Intressekompisen det under samma rubrik
+          (NoLetterFriends).
         </p>
         <LetterFriends friends={EXAMPLE_FRIENDS} />
+        <NoLetterFriends hasFriends />
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
           Anteckningspapper (.notepad .lined-paper), för en konversation

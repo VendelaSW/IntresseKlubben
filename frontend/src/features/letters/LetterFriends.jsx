@@ -3,6 +3,27 @@ import { Link } from 'react-router-dom'
 import { shortNames } from '../../utils/shortNames'
 import Avatar from '../../shared/Avatar'
 import DrawnArrow from '../../shared/DrawnArrow'
+import EmptyState from '../../shared/EmptyState'
+
+const TITLE = 'Skriv ett första brev till'
+
+// Samma plats i Brev när det inte finns någon kvar att skriva till: Intressekompisen säger att det är tomt.
+// `hasFriends`: har man kompisar alls, eller bara brev med andra?
+export function NoLetterFriends({ hasFriends }) {
+  return (
+    <div className="letter-friends">
+      <h2>{TITLE}</h2>
+      <EmptyState
+        compact
+        text={
+          hasFriends
+            ? 'Du har skrivit till alla dina kompisar. Hitta fler under Medlemmar.'
+            : 'Du har inga kompisar att skriva till än. Hitta några under Medlemmar.'
+        }
+      />
+    </div>
+  )
+}
 
 // Kompisar man inte har skrivit till än, längst ner i Brev (SCRUM-320): runda bilder på en rad. Får de inte plats
 // tonar raden ut åt det håll där det finns fler, och på dator finns en pil åt det hållet. På mobil sveper man.
@@ -31,7 +52,7 @@ function LetterFriends({ friends }) {
 
   return (
     <div className="letter-friends">
-      <h2 className="hint-text">Skriv ett första brev till</h2>
+      <h2>{TITLE}</h2>
       <div className={`letter-friends-row${more.left ? ' has-more-left' : ''}${more.right ? ' has-more-right' : ''}`}>
         <ul ref={listRef} onScroll={update}>
           {friends.map((friend) => {

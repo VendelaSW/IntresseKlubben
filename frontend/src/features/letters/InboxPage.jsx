@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import ConversationCard from './ConversationCard'
 import DrawnArrow from '../../shared/DrawnArrow'
 import EmptyState from '../../shared/EmptyState'
-import LetterFriends from './LetterFriends'
+import LetterFriends, { NoLetterFriends } from './LetterFriends'
 import LoadError from '../../shared/LoadError'
 import { contactsQuery } from '../../services/contacts'
 import { conversationsQuery } from '../../services/messages'
@@ -14,13 +14,13 @@ import { shortNames } from '../../utils/shortNames'
 const PAGE_SIZE = 8
 
 // Alla konversationer som kuvert: de man inte har öppnat först och sedan de öppnade, nyast först i båda (SCRUM-319).
-// Längst ner kompisar man inte har några brev med än (SCRUM-320), om det finns några.
+// Längst ner kompisar man inte har några brev med än (SCRUM-320). Finns det inga säger Intressekompisen det.
 function InboxPage() {
   // Konversationerna ur det delade minnet (se services/queryClient.js): har man
   // varit här nyss visas listan direkt, och hämtas om i bakgrunden.
   const { data: conversations = [], isSuccess, isError, refetch, isFetching } = useQuery(conversationsQuery)
   const status = isSuccess ? 'ready' : isError ? 'error' : 'loading'
-  const { data: contactsData } = useQuery(contactsQuery)
+  const { data: contactsData, isSuccess: contactsReady } = useQuery(contactsQuery)
 
   if (status === 'error') {
     return (
@@ -60,6 +60,11 @@ function InboxPage() {
       )}
 
       {friends.length > 0 && <LetterFriends friends={friends} />}
+      {/* Utan brev säger kompisen redan att det är tomt, så då räcker det med den ovanför. Vänta in kompislistan, så
+          att kompisen inte blinkar till innan kompisarna har kommit. */}
+      {status === 'ready' && contactsReady && friends.length === 0 && conversations.length > 0 && (
+        <NoLetterFriends hasFriends={contactsData.contacts.length > 0} />
+      )}
     </section>
   )
 }
