@@ -52,7 +52,7 @@ function PersonActions({ userId, relation, busy, onSend, onAccept, onDecline, on
       <div className="card-actions">
         <span className="status-pill status-pill-success">Kompis</span>
         {write}
-        <button type="button" className="text-button" disabled={busy} onClick={onRemove}>
+        <button type="button" className="secondary-button button-small" disabled={busy} onClick={onRemove}>
           Ta bort
         </button>
       </div>
@@ -61,11 +61,12 @@ function PersonActions({ userId, relation, busy, onSend, onAccept, onDecline, on
 
   return (
     <div className="card-actions">
+      {/* "Skicka förfrågan", inte "Skicka kompisförfrågan", så att knapparna ryms på en rad också på mobil. */}
       <button type="button" className="primary-button button-small" disabled={busy} onClick={onSend}>
-        Skicka kompisförfrågan
+        Skicka förfrågan
       </button>
       {write}
-      <button type="button" className="text-button" disabled={busy} onClick={onDismiss}>
+      <button type="button" className="secondary-button button-small" disabled={busy} onClick={onDismiss}>
         Ta bort förslag
       </button>
     </div>

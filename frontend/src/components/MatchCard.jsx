@@ -20,7 +20,7 @@ function reasonLines(reasons) {
 
 // Ett förslag i Matcha-fliken: personkortet (PersonCard) med nivån i hörnet, personens Om mig-text i sin helhet och
 // "Därför matchar ni" med skälen som punkter, som en affisch (components/Poster.jsx). `match` är ett förslag från GET /matches.
-// Knapparna är Skicka kompisförfrågan och Ta bort förslag (försvinner för gott, med Ångra); vidare och tillbaka går man
+// Knapparna är Skicka förfrågan och Ta bort förslag (försvinner för gott, med Ångra); vidare och tillbaka går man
 // med pilarna vid kortet (MatchPanel). `sharedInterestIds` (en Set) markerar gemensamma intressen med en bock, och bara de:
 // skälen har egna punkter.
 function MatchCard({ match, sharedInterestIds, busy, onSend, onDismiss }) {
@@ -49,11 +49,12 @@ function MatchCard({ match, sharedInterestIds, busy, onSend, onDismiss }) {
       }
       actions={
         <div className="match-actions">
+          {/* "Skicka förfrågan", inte "Skicka kompisförfrågan", så att texten ryms också på mobil. */}
           <button type="button" className="primary-button" disabled={busy} onClick={onSend}>
-            Skicka kompisförfrågan
+            Skicka förfrågan
           </button>
           <div className="match-actions-row">
-            <button type="button" className="text-button" disabled={busy} onClick={onDismiss}>
+            <button type="button" className="secondary-button button-small" disabled={busy} onClick={onDismiss}>
               Ta bort förslag
             </button>
           </div>
