@@ -136,7 +136,6 @@ from app.crud.dismissed_suggestion import (
 from app.crud.group import shared_group_names
 from app.crud.interest import profile_interests
 from app.crud.profile import (
-    calculate_age,
     count_people_by_municipality,
     get_profile,
     list_people,

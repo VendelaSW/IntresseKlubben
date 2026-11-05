@@ -8,7 +8,6 @@ from app.core import error_messages as msg
 from app.crud.contact import accepted_contact_ids, blocked_by_me_ids, blocked_user_ids
 from app.crud.group import get_group, get_membership
 from app.crud.notification import delete_link_notifications, mark_request_answered, notify
-from app.models.contact import Contact
 from app.models.event import Event, EventAnswer, EventHost, EventInvitation, EventJoinRequest, EventResponse, EventVisibility
 from app.models.notification import NotificationKind
 from app.models.group import Group, GroupMember, GroupVisibility

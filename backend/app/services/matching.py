@@ -58,8 +58,6 @@ MIN_SHOWN_PERCENT = LEVELS[-1][0]
 THIN_INTERESTS = 5
 THIN_CHARS = 200
 
-PART_NAMES = ("intressen", "narliggande", "text")
-
 # Skälen till ett förslag (se services/match_suggestions.py): hur lika två intressen ska vara för att visas som "liknar", hur många
 # par som visas, och hur hög textdelen (0..1) ska vara för att säga att beskrivningarna liknar varandra.
 NEAR_REASON_MIN = 0.60
