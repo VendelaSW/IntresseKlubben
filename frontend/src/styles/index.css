@@ -1667,6 +1667,7 @@ label:has(> input[type='radio']:not(:disabled)) {
 
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -5382,4 +5383,31 @@ label.person-list-item {
         linear-gradient(var(--poster), var(--poster)) top / 100% 8px no-repeat,
         var(--poster-soft);
     }
+}
+
+/* De smalaste telefonerna (320 px bred). */
+@media (max-width: 360px) {
+  .service-heading {
+    font-size: 2rem;
+  }
+
+  /* Den röda marginalen tar annars halva raden från det man skriver. */
+  .notepad {
+    --paper-margin: 1.5rem;
+    --notepad-right: 0.75rem;
+  }
+}
+
+/* Långa alternativ får inte göra ett fält bredare än blocket. */
+.form-field {
+  min-width: 0;
+}
+
+.form-field select {
+  max-width: 100%;
+}
+
+/* Stilguiden har breda exempel, som inte ska göra hela sidan bredare än skärmen. */
+.page:has(> .logo) {
+  overflow-x: clip;
 }

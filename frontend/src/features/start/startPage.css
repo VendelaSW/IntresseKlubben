@@ -164,6 +164,8 @@
 
 .start-page {
   color: var(--color-text);
+  /* Klottren får sticka ut mot kanten, men aldrig göra sidan bredare än skärmen. */
+  overflow-x: clip;
 }
 
 .start-page a.primary-button,
