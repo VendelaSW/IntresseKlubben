@@ -125,7 +125,8 @@ function PeoplePage() {
   const [error, setError] = useState('')
   // Den man nyss tog bort från Sök ({ id, name }), med "Ångra" en stund.
   const [removed, setRemoved] = useState(null)
-  // På en smal skärm står bara "Intresse", "Kommun" och "Kön" i tomma fält, så att alla tre får plats på en rad.
+  // På en smal skärm står bara "Intresse", "Kommun" och "Kön" i tomma fält, så att de får plats (i Sök står kön på raden
+  // under, se genderInAgeRow).
   const narrow = useMediaQuery('(max-width: 767px)')
 
   useEffect(() => {
@@ -349,28 +350,30 @@ function PeoplePage() {
     />
   )
   // Kommun och kön. I Sök står intressefiltret först på samma rad. Intresse och kommun fylls på: varje val blir en
-  // lapp under Filter-knappen, och fältet står kvar tomt för nästa. Kön kryssas i, flera på en gång.
-  const demographics = (
-    <>
-      <MunicipalityPicker
-        aria-label="Lägg till en kommun"
-        municipalities={municipalities}
-        value=""
-        onChange={(code) =>
-          code &&
-          !municipalityCodes.includes(code) &&
-          setFilters({ ...filters, municipalityCodes: [...municipalityCodes, code] })
-        }
-        emptyLabel={narrow ? 'Kommun' : municipalityCodes.length > 0 ? 'Lägg till kommun' : 'Alla kommuner'}
-      />
-      <MultiOptionPicker
-        aria-label="Filtrera på kön"
-        values={genders}
-        onChange={(next) => setFilters({ ...filters, genders: next })}
-        options={GENDER_FILTER_OPTIONS}
-        emptyLabel={narrow ? 'Kön' : 'Alla kön'}
-      />
-    </>
+  // lapp under Filter-knappen, och fältet står kvar tomt för nästa. Kön kryssas i, flera på en gång. I Sök på mobil
+  // står kön i stället på raden under, bredvid åldern, så att intresse och kommun får plats på den första raden.
+  const genderInAgeRow = narrow && tab === 'suggested'
+  const municipalityPicker = (
+    <MunicipalityPicker
+      aria-label="Lägg till en kommun"
+      municipalities={municipalities}
+      value=""
+      onChange={(code) =>
+        code &&
+        !municipalityCodes.includes(code) &&
+        setFilters({ ...filters, municipalityCodes: [...municipalityCodes, code] })
+      }
+      emptyLabel={narrow ? 'Kommun' : municipalityCodes.length > 0 ? 'Lägg till kommun' : 'Alla kommuner'}
+    />
+  )
+  const genderPicker = (
+    <MultiOptionPicker
+      aria-label="Filtrera på kön"
+      values={genders}
+      onChange={(next) => setFilters({ ...filters, genders: next })}
+      options={GENDER_FILTER_OPTIONS}
+      emptyLabel={narrow ? 'Kön' : 'Alla kön'}
+    />
   )
 
   return (
@@ -387,8 +390,9 @@ function PeoplePage() {
       {(tab === 'suggested' || tab === 'match') && (
         <>
           {/* Samma kompakta fält som på Klubbar och Events, bakom sökikonen: intresse (i Sök), kommun och kön på en
-              rad, och åldern på raden under. I Matcha står åldern på samma rad som kommun och kön (på en smal skärm
-              bryts den till raden under). De valda filtren står under, som lappar med kryss. */}
+              rad, och åldern på raden under. I Sök på mobil står kön bredvid åldern i stället, och den raden börjar under
+              sökikonen (se .filter-age-row.has-gender). I Matcha står åldern på samma rad som kommun och kön (på en smal
+              skärm bryts den till raden under). De valda filtren står under, som lappar med kryss. */}
           {/* Filtren är öppna från början (sökglaset stänger dem), som på Klubbar och Events. */}
           <SearchToggle key={tab} count={activeFilters.length} defaultOpen>
             <div className="filter-panel">
@@ -408,11 +412,15 @@ function PeoplePage() {
                     }
                   />
                 )}
-                {demographics}
+                {municipalityPicker}
+                {!genderInAgeRow && genderPicker}
                 {ageInRow && ageSlider}
               </div>
               {!ageInRow && (
-                <div className="filter-age-row filter-select-row-paper">{ageSlider}</div>
+                <div className={`filter-age-row filter-select-row-paper${genderInAgeRow ? ' has-gender' : ''}`}>
+                  {genderInAgeRow && genderPicker}
+                  {ageSlider}
+                </div>
               )}
             </div>
           </SearchToggle>
@@ -471,7 +479,7 @@ function PeoplePage() {
         <p className="hint-text">Laddar...</p>
       ) : tab === 'incoming' ? (
         <>
-          <h2>Inkommande</h2>
+          <h2 className="people-list-title">Inkommande</h2>
           {contactsData.incoming_requests.length === 0 ? (
             <EmptyState compact image={kompisMedGlasogon} text={EMPTY_TEXT.incoming} />
           ) : (
@@ -495,7 +503,7 @@ function PeoplePage() {
             </div>
           )}
 
-          <h2>Skickade</h2>
+          <h2 className="people-list-title">Skickade</h2>
           {contactsData.outgoing_requests.length === 0 ? (
             <EmptyState compact image={kompisMedGlasogon} text={EMPTY_TEXT.outgoing} />
           ) : (
@@ -527,7 +535,7 @@ function PeoplePage() {
         <>
           {matchGroups.length > 0 && (
             <>
-              <h2>Medlemmar med liknande intressen</h2>
+              <h2 className="people-list-title">Medlemmar med liknande intressen</h2>
               {matchGroups.map((group) => (
                 <section key={group.count} className="match-group">
                   <h3 className="match-group-title">{sharedCountText(group.count)}</h3>
@@ -538,7 +546,7 @@ function PeoplePage() {
           )}
           {others.length > 0 && (
             <>
-              <h2>Fler i Intresseklubben</h2>
+              <h2 className="people-list-title">Fler i Intresseklubben</h2>
               <div className="card-grid card-grid-compact">{others.map(suggestionCard)}</div>
             </>
           )}
@@ -557,7 +565,7 @@ function PeoplePage() {
         <>
           {tab === 'contacts' && friendInterests.length > 1 && (
             <SearchToggle count={friendInterest ? 1 : 0} defaultOpen>
-              <div className="filter-select-row filter-select-row-compact">
+              <div className="filter-select-row filter-select-row-compact filter-select-row-single">
                 <select
                   aria-label="Visa kompisar med intresset"
                   value={friendInterest}

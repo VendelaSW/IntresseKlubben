@@ -49,7 +49,7 @@ const COLORS = [
   { name: '--color-accent-soft', hex: '#fdf6e0', label: 'Blekgul (Om mig-ruta)' },
   { name: '--color-border', hex: 'rgba(58, 47, 37, 0.2)', label: 'Ram (fält, knappar, kort och popups)' },
   { name: '--color-line', hex: '#bfd7ed', label: 'Ljusblå (avatarer och linjerat papper)' },
-  { name: '--color-white', hex: '#ffffff', label: 'Vit (kort/boxar)' },
+  { name: '--color-white', hex: '#fffdf7', label: 'Vit, lite varm (kort, rutor, knappar och kartans ikoner)' },
   { name: '--color-muted', hex: '#6b6b6b', label: 'Dämpad (platshållartext)' },
   { name: '--color-success', hex: '#3b6d11', label: 'Success (bekräftelser)' },
   { name: '--color-error', hex: '#a32d2d', label: 'Error (felmeddelanden)' },
@@ -57,7 +57,6 @@ const COLORS = [
   { name: '--color-paper-margin', hex: '#e7a1a1', label: 'Brevpapprets röda marginal' },
   { name: '--color-envelope-paper', hex: '#f1e4c8', label: 'Kuvertets papper' },
   { name: '--color-envelope-inside', hex: '#ddc8a1', label: 'Kuvertets insida' },
-  { name: '--color-warm-white', hex: '#fdf9f0', label: 'Varm vit (bakom kartans ikoner och knappar)' },
   { name: '--tag-ink', hex: '#3a2f25', label: 'Bläck (kanter och hårda skuggor på taggar, kuvert och anteckningsblocket)' },
 ]
 
@@ -420,10 +419,12 @@ function StyleGuide() {
         <p className="hint-text">
           På telefonen (upp till 767 px) är sidornas lappar på kartan en flytande, halvgenomskinlig och rundad meny
           längst ned, med bara ikonerna: Brev, Medlemmar, kartan, Klubbar och Events. Namnen finns för skärmläsare.
-          Kartan (inget block öppet) är en större gul knapp i mitten (.map-page-widget-home). En gul bubbla
+          Kartan (inget block öppet) är en större gul knapp i mitten (.map-page-widget-home), utan skugga. En gul bubbla
           (.map-nav-blob) glider till den öppna sidan och töjs ut på vägen, och runt kartans knapp blir den en ring.
-          Blocken går ända ner under menyn. Med minskad rörelse byter bubblan bara plats. På surfplattan och datorn är
-          lapparna som förut, och kartans knapp och bubblan syns inte.
+          Menyn ligger 4 px från nederkanten, så att sidorna får så mycket plats som möjligt. Kartans källhänvisning, sök-
+          och skapa-knapparna i blockets hörn (.map-pad-float) och kompassen står ovanför den. Blocken går ända ner under
+          menyn. Med minskad rörelse byter bubblan bara plats. På surfplattan och datorn är lapparna som förut, och
+          kartans knapp och bubblan syns inte.
         </p>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
@@ -449,7 +450,14 @@ function StyleGuide() {
         <p className="hint-text">
           I klubbens ruta öppnar en ljusgul rad med tavlans ikon (assets/anslagstavla.png) anslagstavlan, under
           knapparna. På mobil ligger klubbchatten i rutan under medlemmarna, ihopfälld till en rad med "Klubbchatt" och
-          en pil, och fälls ut med ett tryck. På datorn står chatten bredvid klubben.
+          en pil, och fälls ut med ett tryck. På datorn står chatten bredvid klubben. På mobil är raden till tavlan lägre
+          och bara så bred som sin text.
+        </p>
+        <p className="hint-text">
+          Tavlans egen sida (GroupPosts med `full`, .board-full): på mobil fyller tavlan blocket ända ner till menyn, och
+          lapparna scrollar inuti den, två i bredd och i sin vanliga storlek. Ett tryck på en lapp visar hela texten.
+          Rubriken och "+ Sätt upp en lapp" står på samma rad, knappen i övre högra hörnet, och lapparna börjar direkt
+          under.
         </p>
         <div className="swatch-grid" style={{ marginTop: '1rem' }}>
           <div className="swatch" style={{ width: '16rem' }}>
@@ -741,8 +749,11 @@ function StyleGuide() {
           Medlemmar, Klubbar och Events, också i kartans block). Lägg .app-section-centered på sidans
           .app-section för sidor med kort i rutnät (Klubbar och Events): "+ Skapa"-knappen direkt efter
           rubriken och tätare avstånd. Flikarna är sammanhängande knappar med en ram runt, och den
-          valda är gul (FilterTabs). På mobil fyller de bredden i en jämn rad, med korta namn (`short`) och antalet som
-          en bricka, så att de aldrig bryts på två rader. En tom flik har en knapp vidare. Vald flik sparas i adressen med useTabParam (?flik=kompisar),
+          valda är gul (FilterTabs). På mobil ligger de på en rad över hela bredden, med korta namn (`short`): varje flik
+          är så bred som sin text, den första står vid vänsterkanten och den sista vid högerkanten, med lika stora
+          mellanrum. Antalet står som en liten bricka till höger om namnet, och bara på flikar där det finns något nytt
+          att se. Har sidan bara två flikar (t.ex. Moderering) står de tillsammans till vänster. Under flikarna kommer
+          korten direkt, med sidans vanliga avstånd. En tom flik har en knapp vidare. Vald flik sparas i adressen med useTabParam (?flik=kompisar),
           så att Tillbaka kommer tillbaka till samma flik.
         </p>
         <section className="app-section app-section-centered" style={{ padding: 0, marginTop: '1rem' }}>
@@ -786,6 +797,14 @@ function StyleGuide() {
           klubb och Skapa event. Med tomt fält visas ens egna intressen som snabbval (.interest-picker-heading). Man
           skriver och får träffar i hela biblioteket, även på andra namn, med var intresset hör hemma under namnet
           (.interest-picker-path). Det valda tas bort med krysset (.field-clear) eller genom att tömma fältet.
+        </p>
+        <p className="hint-text">
+          Sök under Medlemmar på mobil: intresse och kommun på första raden bredvid sökikonen, och kön och åldern på raden
+          under (.filter-age-row.has-gender), som börjar direkt under sökikonen. Kön är smal: "Kön" syns innan man har
+          valt något, och valen kortas med "…". Ett ensamt filter, som intresset under Kompisar, får en egen bredd
+          (.filter-select-row-single) i stället för halva raden. Rubrikerna över listorna under Medlemmar (Inkommande,
+          Skickade, Medlemmar med liknande intressen och Fler i Intresseklubben, .people-list-title) är mindre på mobil, så
+          att de får plats på en rad.
         </p>
 
         <p className="swatch-label" style={{ marginTop: '2rem' }}>
@@ -924,6 +943,10 @@ function StyleGuide() {
         </p>
         <p className="swatch-label" style={{ marginTop: '1rem' }}>
           "← Tillbaka" (BackButton) ligger ovanför rutan, inte inuti den
+        </p>
+        <p className="hint-text">
+          I kartans block blir blockets rubrik tillbaka-knappen ("← Klubbar", .map-pad-back). Den står alltid i övre
+          vänstra hörnet, också på mobil där vanliga rubriker står i mitten.
         </p>
         <div style={{ marginTop: '0.5rem' }}>
           <BackButton onClick={() => {}} />

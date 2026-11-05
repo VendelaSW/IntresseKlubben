@@ -44,7 +44,8 @@
   /* Ramar runt fält, knappar, kort och popups: en svag varm brun, som pappret, i stället för den blå --color-line
      (som finns kvar för ljusblå bakgrunder, t.ex. tomma profilbilder, och linjerna på det linjerade papperet). */
   --color-border: rgba(58, 47, 37, 0.2);
-  --color-white: #ffffff;
+  /* Vit, lite varm (samma som klubbkortens papper), för kort, rutor, knappar och kartans ikoner i hela appen. */
+  --color-white: #fffdf7;
   --color-muted: #6b6b6b;
   --color-ink: #3a2f25;
   /* TILLFÄLLIGT: mjuka bakgrundsfärger för de nya klubbkorten i testläget (se .club-card). */
@@ -65,8 +66,6 @@
   --color-paper-margin: #e7a1a1;
   --color-envelope-paper: #f1e4c8;
   --color-envelope-inside: #ddc8a1;
-  /* Varm vit: bakgrunden bakom kartans ikoner och knappar (menylapparna, verktygen, zoomen), i stället för helt vitt. */
-  --color-warm-white: #fdf9f0;
   /* Det handritade: bläck och ojämna frihandshörn, på taggar, kuvert och anteckningsblocket. */
   --tag-ink: var(--color-ink);
   --tag-shape: 12px 225px 12px 255px / 255px 12px 225px 12px;
@@ -2769,9 +2768,11 @@ button.answer-summary-box:disabled {
   padding-inline: 0.35rem;
 }
 
+/* Kuvertet i sina egna proportioner (bilden är bredare än hög), inte ihoptryckt till en fyrkant. */
 .card-write img {
-  width: 1.25rem;
+  width: 1.6rem;
   height: 1.25rem;
+  object-fit: contain;
 }
 
 /* "Skriv ett brev" på någons profil (UserProfilePage): en länk som ser ut som
@@ -3905,30 +3906,27 @@ button.answer-summary-box:disabled {
   display: none;
 }
 
-/* Mobil: flikarna fyller bredden i en jämn rad, lika breda, så att de aldrig
-   bryts på två rader. Kortare namn där det finns (`short` i FilterTabs), och
-   antalet som en liten rund bricka under namnet. Minst 48 px höga. Namnen står
-   överst i alla flikar, så att de ligger på samma höjd också när bara några
-   har ett antal under sig. */
+/* Mobil: flikarna på en rad över hela bredden, så breda som sin text och med lika stort mellanrum emellan: den första
+   vid vänsterkanten och den sista vid högerkanten (lika breda flikar gav korta namn som "Matcha" och "Mina" mycket luft
+   runt sig). Kortare namn där det finns (`short` i FilterTabs), och antalet som en liten rund bricka till höger om
+   namnet. Minst 48 px höga. */
 @media (max-width: 767px) {
   .filter-tabs {
-    display: grid;
-    grid-auto-columns: minmax(0, 1fr);
-    grid-auto-flow: column;
+    display: flex;
+    justify-content: space-between;
     width: 100%;
   }
 
   .filter-tabs > .tag {
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: 0.1rem;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 0.2rem;
     min-width: 0;
     min-height: 48px;
     padding: 0.35rem 0.1rem;
     font-size: 0.76rem;
     line-height: 1.15;
     letter-spacing: -0.01em;
-    text-align: center;
     white-space: nowrap;
   }
 
@@ -3942,6 +3940,18 @@ button.answer-summary-box:disabled {
 
   .filter-tab-count {
     margin: 0;
+  }
+
+  /* Bara två flikar (t.ex. Nya och Hanterade i Moderering): tillsammans till vänster, inte en vid varje kant. */
+  .filter-tabs:has(> .tag:nth-child(2):last-child) {
+    justify-content: flex-start;
+    gap: 1.25rem;
+  }
+
+  /* Korten direkt under flikarna (Klubbar och Events) utan den extra luften ovanför rutnätet (se
+     .app-section-centered .card-grid), bara sidans vanliga avstånd. */
+  .app-section-centered .filter-tabs + .card-grid {
+    margin-top: 0.25rem;
   }
 }
 
@@ -4234,6 +4244,22 @@ button.answer-summary-box:disabled {
   stroke-linejoin: round;
 }
 
+/* Mobil: raden till anslagstavlan lite lägre och smalare, så att den tar mindre plats i klubbens ruta. */
+@media (max-width: 767px) {
+  .club-board-link {
+    width: auto;
+    min-height: 2.6rem;
+    padding: 0.25rem 0.75rem 0.25rem 0.55rem;
+    gap: 0.5rem;
+    font-size: 1.2rem;
+  }
+
+  .club-board-link img {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
 /* Klubbchatten på mobil, i klubbens ruta under medlemmarna (GroupsPanel): ihopfälld till en rad med "Klubbchatt",
    som fälls ut med ett tryck (details). Chattens egen rubrik behövs inte då. */
 .group-chat-dropdown {
@@ -4510,9 +4536,53 @@ button.answer-summary-box:disabled {
   min-height: 34rem;
 }
 
+/* Mobil: tavlan fyller blocket ända ner till menyn, och lapparna scrollar inuti den (i stället för den låga höjden
+   på klubbens sida, se .board-notes nedan). Lapparna behåller sin storlek, två i bredd, och ett tryck på en lapp visar
+   hela texten. Rubriken och "+ Sätt upp en lapp" på samma rad, knappen i övre högra hörnet, och lapparna börjar
+   direkt under. */
 @media (max-width: 767px) {
+  .map-pad-page:has(.board-full),
+  .map-pad-page:has(.board-full) .map-pad-app-page,
+  .map-pad-page:has(.board-full) .app-section {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .map-pad-page:has(.board-full) .map-pad-app-page,
+  .map-pad-page:has(.board-full) .app-section {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
   .board-full {
-    min-height: 28rem;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .board-full .board-head {
+    flex-wrap: nowrap;
+    margin-bottom: 0.4rem;
+  }
+
+  .board-full .board-actions {
+    flex: none;
+    margin-left: auto;
+  }
+
+  /* "+ Sätt upp en lapp" lite mindre, så att rubriken och knappen får plats på raden. */
+  .board-full .board-actions .button-small {
+    min-height: 1.9rem;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.72rem;
+  }
+
+  .board-full .board-notes {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    align-content: start;
   }
 }
 
@@ -5154,6 +5224,63 @@ button.board-note:focus-visible {
   .filter-age-row .age-range {
     width: 100%;
   }
+
+  /* Rubrikerna över listorna under Medlemmar (Inkommande, Skickade, Medlemmar med liknande intressen och Fler i
+     Intresseklubben) lite mindre, så att de får plats på en rad. */
+  .people-list-title {
+    font-size: 1.05rem;
+  }
+
+  /* Sök (PeoplePage): intresse och kommun på första raden bredvid sökikonen, och kön och åldern på raden under, som
+     börjar direkt under sökikonen och går över hela bredden. */
+  .search-toggle-row:has(.filter-age-row.has-gender) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .search-toggle-row:has(.filter-age-row.has-gender) > .search-toggle-panel,
+  .search-toggle-row:has(.filter-age-row.has-gender) .filter-panel {
+    display: contents;
+  }
+
+  .search-toggle-row:has(.filter-age-row.has-gender) .filter-select-row {
+    grid-column: 2;
+  }
+
+  .filter-age-row.has-gender {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  /* Kön smal, så att reglaget får plats: "Kön" syns innan man har valt något, och valen kortas med "…" (de syns när
+     man öppnar knappen). */
+  .filter-age-row.has-gender > .multi-option-picker {
+    flex: 0 0 4.6rem;
+    min-width: 0;
+  }
+
+  .filter-age-row.has-gender .multi-option-picker-button {
+    width: 100%;
+    min-width: 0;
+    padding-left: 0.55rem;
+    padding-right: 1.4rem;
+    background-position: right 0.45rem center;
+  }
+
+  .filter-age-row.has-gender .multi-option-picker-label {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .filter-age-row.has-gender > .age-range {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 }
 
 /* Lika bred hela tiden ("Upp till 99 år" är längst), så att reglaget inte
@@ -5691,6 +5818,12 @@ select.club-filter:focus-visible,
   .filter-select-row-compact {
     max-width: none;
     width: 100%;
+  }
+
+  /* Ett ensamt filter (intresset under Kompisar) får inte bara halva raden, så att "Alla intressen" får plats bredvid
+     listans pil. */
+  .filter-select-row.filter-select-row-single {
+    grid-template-columns: minmax(0, 11rem);
   }
 }
 
