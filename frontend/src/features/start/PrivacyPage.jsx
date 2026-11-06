@@ -8,14 +8,11 @@ import logo from '../../assets/intresseklubben.png'
 // fot och längst ner på Att göra-sidan), och skriven på enkel svenska. Texten bygger på vad koden faktiskt gör, så den ska ändras när något av det
 // ändras (en ny tjänst som tar emot uppgifter, ett nytt fält som sparas).
 //
-// Kontaktuppgifterna: de som får frågor om uppgifterna.
+// Kontaktuppgifterna: projektets egen adress för frågor om uppgifterna, så att ingens privata adress står öppet.
+const CONTACT_EMAIL = 'intresseklubben.kontakt@gmail.com'
+
 function Contact() {
-  return (
-    <>
-      <a href="mailto:waltalex2@hotmail.com">waltalex2@hotmail.com</a> eller{' '}
-      <a href="mailto:nicklas.thegerstrom@gmail.com">nicklas.thegerstrom@gmail.com</a>
-    </>
-  )
+  return <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
 }
 
 function PrivacyPage() {
