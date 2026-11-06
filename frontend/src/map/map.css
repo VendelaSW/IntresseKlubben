@@ -165,14 +165,17 @@
    rödbrun som datumet, så att namnet och tiden går att skilja åt. */
 .map-calm-event {
   display: flex;
-  gap: 0.3em;
+  gap: 0.2em;
   min-width: 0;
 }
 
+/* Handstilen ritar sista tecknet en bit utanför sin ruta, och den biten klipps annars bort (overflow): lite luft till
+   höger, i namnet och på hela raden nedan, så att sista bokstaven och tidens sista siffra syns hela. */
 .map-calm-title {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding-right: 0.15em;
 }
 
 .map-calm-when {
@@ -221,6 +224,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding-right: 0.3em;
 }
 
 .map-calm-line:focus-visible span {
