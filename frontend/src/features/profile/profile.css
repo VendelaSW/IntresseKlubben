@@ -1,0 +1,249 @@
+/* Profil. Allt här används bara här, det gemensamma ligger i styles/index.css. */
+
+.profile-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1.5rem;
+  width: 100%;
+  max-width: 320px;
+  margin: 0;
+  text-align: left;
+}
+
+.profile-details dt {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.profile-details dd {
+  margin: 0;
+}
+
+/* Profilhuvudet (features/profile/ProfileHeader.jsx): bilden till vänster, namnet och
+   en rad med det viktigaste till höger, i stället för en stor centrerad bild och
+   en tabell. Tar en bråkdel av höjden, så att man slipper scrolla. */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+  text-align: left;
+}
+
+/* Två klasser, så att storleken vinner över .profile-avatar längre ner. */
+.profile-header .profile-header-avatar {
+  flex: none;
+  width: 88px;
+  height: 88px;
+}
+
+.profile-header .profile-header-avatar.profile-avatar-empty {
+  font-size: 2.6rem;
+}
+
+.profile-header-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.profile-header-name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-card-title);
+  font-weight: 700;
+  line-height: 1.05;
+  /* Långa namn bryts mellan orden, och ett ord som ändå inte får plats med
+     bindestreck, inte mitt i ("Maximilian-a"). */
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+/* Smal skärm: mindre bild och namn, så att namnet får plats bredvid. */
+@media (max-width: 480px) {
+  .profile-header {
+      gap: 0.9rem;
+    }
+
+  .profile-header .profile-header-avatar {
+      width: 64px;
+      height: 64px;
+    }
+
+  .profile-header .profile-header-avatar.profile-avatar-empty {
+      font-size: 2rem;
+    }
+
+  .profile-header-name {
+      font-size: 1.8rem;
+    }
+}
+
+.profile-header-facts {
+  margin: 0;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+/* Konto och inställningar på Min profil: ihopfällt, eftersom det sällan behövs. */
+.profile-account {
+  width: 100%;
+  text-align: left;
+}
+
+.profile-account summary {
+  padding: 0.5rem 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profile-account[open] > summary {
+  margin-bottom: 0.75rem;
+}
+
+.profile-account > * + * {
+  margin-top: 0.75rem;
+}
+
+.profile-edit-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.profile-edit-save,
+.profile-edit-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.profile-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.profile-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-actions-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .profile-columns {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 2rem;
+    }
+}
+
+/* Avsnittet Intressen på profilen. */
+/* Intressena och personens events på en profil: en vänsterställd kolumn. */
+.profile-interests,
+.profile-events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 320px;
+  text-align: left;
+}
+
+/* Stämplar bredvid varandra, t.ex. "E-post bekräftad" och "Medlem sedan mars 2026" på en profil. Radbryts på
+   smal skärm, med luft emellan så att de sneda ramarna inte nuddar varandra. */
+.trust-stamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  padding-block: 0.25rem;
+}
+
+.trust-stamps:empty {
+  display: none;
+}
+
+/* "Skriv ett brev" på någons profil (UserProfilePage): en länk som ser ut som
+   en primärknapp. */
+.profile-write {
+  display: inline-block;
+  text-decoration: none;
+}
+
+/* ---------- Profilbild ---------- */
+.profile-image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-avatar {
+  width: 128px;
+  height: 128px;
+  border-radius: var(--radius-round);
+  object-fit: cover;
+  border: 2px solid var(--color-border);
+  background: var(--color-white);
+}
+
+.profile-avatar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 3.5rem;
+  font-weight: 700;
+  background: var(--color-line);
+}
+
+.profile-image label:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* E-postadressen över två kolumner, men inte bredare än en lång adress behöver. */
+@container (min-width: 48rem) {
+  .profile-edit .profile-email {
+      max-width: 22rem;
+    }
+}
+
+/* Min profil: profilkortet och "Vad gillar du?" under varandra på mobil, och
+   bredvid varandra när det finns plats. Korten följer sin egen höjd. */
+.profile-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+@media (min-width: 900px) {
+  .profile-layout {
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 2rem;
+    }
+}

@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.schemas.contact import ContactUser
+from app.schemas.text import message_text
 
 
 class MessageCreate(BaseModel):
@@ -14,12 +15,7 @@ class MessageCreate(BaseModel):
     @field_validator("text")
     @classmethod
     def text_not_empty_or_too_long(cls, v: str) -> str:
-        v = v.strip()
-        if len(v) == 0:
-            raise ValueError("Meddelandet får inte vara tomt")
-        if len(v) > 2000:
-            raise ValueError("Meddelandet får max vara 2000 tecken")
-        return v
+        return message_text(v)
 
 
 class MessageOut(BaseModel):

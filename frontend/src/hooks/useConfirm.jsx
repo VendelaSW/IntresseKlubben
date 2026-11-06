@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react'
-import Modal from '../components/Modal'
+import Modal from '../shared/Modal'
 
 // "Är du säker?" i appens egen ruta (Modal) i stället för webbläsarens confirm(), som ser ut som en annan app och
 // inte visas överallt (och då svarar nej av sig själv). Används så här:
@@ -57,7 +57,7 @@ export function ConfirmProvider({ children }) {
                   <button type="button" onClick={() => close(true)}>
                     {confirmLabel}
                   </button>
-                  <button type="button" className="button-secondary" onClick={() => close(false)}>
+                  <button type="button" className="secondary-button" onClick={() => close(false)}>
                     {cancelLabel}
                   </button>
                 </>

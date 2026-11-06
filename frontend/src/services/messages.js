@@ -48,10 +48,6 @@ export function conversationQuery(userId) {
   return { queryKey: ['conversation', String(userId)], queryFn: () => apiGet(`/messages/${userId}`), staleTime: 0 }
 }
 
-export function getConversation(userId) {
-  return queryClient.fetchQuery(conversationQuery(userId))
-}
-
 // Alla konversationer, nyast först. Sparas i minnet en kort stund.
 export const CONVERSATIONS_KEY = ['conversations']
 
@@ -59,8 +55,4 @@ export const conversationsQuery = {
   queryKey: CONVERSATIONS_KEY,
   queryFn: () => apiGet('/messages'),
   staleTime: 15 * SECOND,
-}
-
-export function getConversations() {
-  return queryClient.fetchQuery(conversationsQuery)
 }

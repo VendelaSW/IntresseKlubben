@@ -1,0 +1,285 @@
+/* Intervjun. Allt här används bara här, det gemensamma ligger i styles/index.css. */
+
+/* Registreringens fält och knappar med samma varma ramar som Redigera profil
+   (se --field-border i .auth-form input), i stället för de ljusblå. */
+.interview-card,
+.interview-summary {
+  --field-border: rgba(58, 47, 37, 0.2);
+  --field-focus: rgba(58, 47, 37, 0.55);
+  --field-radius: 5px;
+}
+
+/* Intervjun (ProfileInterview): Intressekompisen (videon och undertexten) till
+   vänster och frågan med formuläret till höger på dator, under varandra på
+   smalare skärmar. */
+.interview-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 960px;
+  margin-top: 2rem;
+}
+
+.interview-kompis {
+  flex: 0 1 380px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.interview-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+/* Undertexten. Platsen är reserverad, så att inget under hoppar när texten byts. */
+.interview-caption {
+  min-height: 3.2rem;
+  margin: 0.75rem 0 0;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+/* Ljudknappen (ikonen för ljud på eller av) i övre högra hörnet av kompisens yta, så att den inte tar en egen rad. Rutan är
+   lika stor för båda ikonerna, som har lite olika höjd. */
+.interview-kompis {
+  position: relative;
+}
+
+.interview-sound {
+  position: absolute;
+  top: -0.5rem;
+  right: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.interview-sound img {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+  transition: transform 0.15s ease;
+}
+
+.interview-sound:focus-visible img {
+  transform: scale(1.1);
+}
+
+@media (hover: hover) {
+  .interview-sound:hover img {
+    transform: scale(1.1);
+  }
+}
+
+.interview-main {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.interview-question {
+  text-align: left;
+  white-space: pre-line;
+}
+
+.interview-progress {
+  margin: 0.5rem 0;
+  text-align: left;
+}
+
+/* Framstegsstapeln syns bara på mobil (se nedan). */
+.interview-progress-bar {
+  display: none;
+}
+
+/* Knapparna sist i intervjun (ProfileInterview): "Skapa min profil" stor och
+   "Börja om" liten tätt under, så att man inte trycker fel. */
+.interview-save-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (max-width: 767px) {
+  /* Mobil (upp till 767 px). Byggd efter de vanliga riktlinjerna för formulär på
+     telefon (se CONTRIBUTING.md, "Mobil"):
+     - en fråga och dess formulär syns utan att man scrollar
+     - en kolumn, etiketten ovanför fältet, fälten över hela bredden
+     - knappar och fält minst 48 px höga (Material 48 dp, Apple 44 pt, WCAG 2.5.8)
+     - huvudknappen ("Nästa") störst och längst till höger, där tummen når
+     - framsteget ("Fråga 2 av 5" och en stapel) ovanför frågan
+     Intressekompisen står högst upp, med det den säger bredvid som en pratbubbla,
+     också på startskärmen. */
+  /* Under sidan finns lika mycket plats som tangentbordet tar (--keyboard-height, mäts i useKeepFieldAboveKeyboard i
+       ProfileInterview), så att fältet man skriver i kan scrollas upp ovanför det. */
+
+  .interview-page {
+      padding: 1rem 1rem calc(2rem + var(--keyboard-height, 0px));
+      gap: 1rem;
+    }
+
+  .interview-layout {
+      flex-direction: column;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      gap: 1.25rem;
+      margin-top: 0;
+    }
+
+  .interview-kompis,
+    .interview-main {
+      flex: none;
+    }
+
+  .interview-start {
+      width: 100%;
+      min-height: 44px;
+      font-size: var(--text-subheading);
+    }
+
+  /* Kompisen med det den säger i en pratbubbla bredvid, på startskärmen och medan frågorna ställs. "Spela upp", om den
+       visas, ligger under raden. */
+
+  .interview-kompis {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+    }
+
+  .interview-kompis-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+  /* Kompisen syns hel och så stor att man ser vad den gör. Klippen har tom bakgrund runt honom (cirka 22 % överst, 9 %
+       nederst, 16 % till vänster och 20 % till höger). Den tomma ytan dras bort med negativ marginal, så att han blir större
+       utan att raden blir högre eller bubblan smalare. Tangentbordet täcker en del av skärmen när man skriver, och då
+       scrollar webbläsaren fram fältet, så det behövs ingen plats åt det här. */
+
+  .interview-kompis .interview-video {
+      --kompis: 200px;
+      flex: none;
+      width: var(--kompis);
+      margin: calc(var(--kompis) * -0.2) calc(var(--kompis) * -0.2) calc(var(--kompis) * -0.1) calc(var(--kompis) * -0.16);
+    }
+
+  /* Pratbubblan, med en liten spets mot kompisen. Den är lika bred som texten (högst så bred som platsen bredvid kompisen),
+       inte hela raden. Tom bubbla syns inte, men raden behåller sin höjd (kompisen), så inget hoppar. */
+
+  .interview-kompis .interview-caption {
+      position: relative;
+      flex: 0 1 auto;
+      min-height: 0;
+      margin: 0;
+      padding: 0.5rem 0.75rem;
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      background: var(--color-white);
+      font-size: var(--text-body);
+      line-height: 1.35;
+      text-align: left;
+      text-wrap: balance;
+    }
+
+  .interview-kompis .interview-caption::before {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: 50%;
+      width: 12px;
+      height: 12px;
+      border-left: 2px solid var(--color-border);
+      border-bottom: 2px solid var(--color-border);
+      background: var(--color-white);
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+  .interview-kompis .interview-caption.is-empty {
+      visibility: hidden;
+    }
+
+  /* Frågan: framsteget först, sedan frågan i en storlek som ryms på några rader. */
+
+  .interview-heading {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-bottom: 1rem;
+      text-align: left;
+    }
+
+  .interview-heading .interview-progress {
+      order: -2;
+      margin: 0;
+      font-size: var(--text-small);
+    }
+
+  .interview-progress-bar {
+      order: -1;
+      display: block;
+      height: 6px;
+      border-radius: var(--radius-sm);
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      overflow: hidden;
+    }
+
+  .interview-progress-bar span {
+      display: block;
+      height: 100%;
+      background: var(--color-accent);
+      transition: width 0.3s ease;
+    }
+
+  .interview-page .interview-card label {
+      font-size: var(--text-body);
+    }
+
+  .interview-page .interview-card input,
+    .interview-page .interview-card select {
+      min-height: 44px;
+    }
+
+  /* Knapparna: Tillbaka liten till vänster (syns inte på första frågan),
+       Nästa resten av raden. .interview-page före, så att reglerna går före
+       .form-compact, som kommer senare i filen. */
+
+  .interview-page .interview-actions {
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+  .interview-page .interview-actions button {
+      min-height: 44px;
+      margin: 0;
+      font-size: var(--text-body);
+    }
+
+  .interview-page .interview-back:disabled {
+      display: none;
+    }
+
+  .interview-page .interview-next {
+      flex: 1;
+    }
+
+  .interview-summary .interview-save-buttons {
+      position: sticky;
+      bottom: 0;
+      margin: 0 -1rem -1rem;
+      padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+      background: var(--color-white);
+      border-top: 1px solid var(--color-border);
+    }
+}

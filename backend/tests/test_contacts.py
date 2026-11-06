@@ -16,7 +16,6 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.crud.profile import calculate_age
-from app.models import interest
 from app.models.contact import Contact
 from app.models.interest import Interest
 from app.models.municipality import Municipality
