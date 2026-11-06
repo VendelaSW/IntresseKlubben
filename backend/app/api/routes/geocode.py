@@ -14,13 +14,13 @@ omvända sökningen har en egen, högre gräns: adressen följer nålen medan ma
 sekunden), och sökningen ska ändå fungera efteråt.
 """
 
-import time
 from collections import defaultdict, deque
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.auth.security import get_current_user, require_profile
 from app.core import error_messages as msg
+from app.core.rate_limit import check_rate_limit
 from app.schemas.geocode import GeocodeResult, ReverseGeocodeResult
 from app.schemas.position import check_position
 from app.services.geocoding import GeocodingFailed, get_geocoder
@@ -40,13 +40,7 @@ _recent_reverse: dict[int, deque[float]] = defaultdict(deque)
 
 
 def _check_rate_limit(user_id: int, recent: dict[int, deque[float]] = _recent, limit: int = RATE_LIMIT) -> None:
-    now = time.monotonic()
-    calls = recent[user_id]
-    while calls and now - calls[0] > RATE_WINDOW_SECONDS:
-        calls.popleft()
-    if len(calls) >= limit:
-        raise HTTPException(status_code=429, detail=msg.GEOCODE_TOO_MANY_REQUESTS)
-    calls.append(now)
+    check_rate_limit(recent, user_id, limit, RATE_WINDOW_SECONDS, msg.GEOCODE_TOO_MANY_REQUESTS)
 
 
 @router.get("", response_model=list[GeocodeResult])

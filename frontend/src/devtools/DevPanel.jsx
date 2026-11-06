@@ -7,7 +7,6 @@ import { PHONE_URL } from './devMode'
 import MobilePreview, { SIZES } from './MobilePreview'
 import { announce, listen, refreshEverything } from './sync'
 import { useDevLogin } from './useDevLogin'
-import StylePickers from './PadBackgroundPicker'
 import './devtools.css'
 
 // Är det här appen i mobilvyns ram (se MobilePreview)? Då visas ingen panel där, den finns redan bredvid.
@@ -145,8 +144,6 @@ function Panel() {
             )}
           </select>
 
-          {/* TILLFÄLLIGT: jämför utseenden (förvalt: som nu, pre-dev). */}
-          <StylePickers />
 
           {user && scenarios.length > 0 && (
             <>

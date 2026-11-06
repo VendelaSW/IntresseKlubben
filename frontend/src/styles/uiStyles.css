@@ -1,0 +1,120 @@
+/* Flikarna (FilterTabs) och sökraden i det valda utseendet. */
+
+/* ---------- 2. Tunn bläcklinje ----------
+   Samma upplägg som nu, men runt och med en tunn, varm bläcklinje i stället för den tjocka svarta ramen.
+   Den valda fliken är en gul kapsel inne i raden. */
+
+/* ---------- 3. Klistermärken ----------
+   Varje flik och varje fält är en egen handritad lapp, som lapparna i kartans meny och "+ Skapa klubb": tunn
+   bläckkant, lite ojämna hörn och en hård skugga som trycks ner. Texten i en läsvänligare handstil än Caveat
+   (rubrikerna). Tre typsnitt att jämföra, laddade från Google Fonts bara i testläget; det valda sparas sedan i
+   public/fonts som de andra. */
+
+/* ---------- 4. Registerflikar ----------
+   Som flikarna i en pärm: rundade överkanter som står på en linje, den valda i papperets färg och ihop med
+   sidan under, med en gul rand överst. Handstil i flikarna. Sökraden som ljusa papperslappar. */
+
+/* ---------- 5. Handskrivet ----------
+   Inga rutor alls: flikarna är ord i handstil, och den valda är överstruken med en gul överstrykningspenna.
+   Sökfältet och filtren är bara en tunn linje att skriva på, som på ett papper. */
+:root[data-ui-style='handskrivet'] .filter-tabs {
+  gap: 1.1rem;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+/* Mobil: fördelas med justify-content, så att flikarna får plats på en rad också på de smalaste telefonerna. */
+@media (max-width: 767px) {
+  :root[data-ui-style='handskrivet'] .filter-tabs {
+    gap: 0.25rem;
+  }
+}
+
+:root[data-ui-style='handskrivet'] .filter-tabs > .tag {
+  padding: 0 0.25rem;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #5a5148;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+}
+
+@media (hover: hover) {
+  :root[data-ui-style='handskrivet'] .filter-tabs > .tag:hover {
+    background: linear-gradient(transparent 58%, rgba(244, 196, 48, 0.35) 58%, rgba(244, 196, 48, 0.35) 90%, transparent 90%);
+    color: var(--color-text);
+  }
+}
+
+:root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected {
+  background: linear-gradient(176deg, transparent 52%, rgba(244, 196, 48, 0.8) 52%, rgba(244, 196, 48, 0.8) 88%, transparent 88%);
+  color: var(--color-text);
+}
+
+@media (hover: hover) {
+  :root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected:hover {
+    background: linear-gradient(176deg, transparent 52%, rgba(244, 196, 48, 0.8) 52%, rgba(244, 196, 48, 0.8) 88%, transparent 88%);
+    color: var(--color-text);
+  }
+}
+
+/* Mobil: flikarna är smala (fyra i en rad), så handstilen blir mindre där, och fälten behåller vanlig text
+   (telefonen tvingar fälten till 16 px, och handstil blir då för liten att läsa). */
+@media (max-width: 767px) {
+
+  
+  :root[data-ui-style='handskrivet'] .filter-tabs > .tag {
+    padding: 0.2rem 0.1rem;
+    font-size: var(--text-subheading);
+  }
+
+  :root[data-ui-style='handskrivet'] .filter-tabs {
+    gap: 0.3rem;
+  }
+
+  /* Överstrykningen på namnet i stället för på hela fliken, som är högre när den har ett antal under namnet. */
+  :root[data-ui-style='handskrivet'] .filter-tabs > .tag,
+  :root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected {
+    background: transparent;
+  }
+
+  @media (hover: hover) {
+    :root[data-ui-style='handskrivet'] .filter-tabs > .tag:hover {
+      background: transparent;
+    }
+  }
+
+  @media (hover: hover) {
+    :root[data-ui-style='handskrivet'] .filter-tabs > .tag:hover :is(.filter-tab-label, .filter-tab-short) {
+      background: linear-gradient(transparent 58%, rgba(244, 196, 48, 0.35) 58%, rgba(244, 196, 48, 0.35) 90%, transparent 90%);
+    }
+  }
+
+  :root[data-ui-style='handskrivet'] .filter-tabs > .tag-selected :is(.filter-tab-label, .filter-tab-short) {
+    padding-inline: 0.3rem;
+    background: linear-gradient(176deg, transparent 52%, rgba(244, 196, 48, 0.8) 52%, rgba(244, 196, 48, 0.8) 88%, transparent 88%);
+  }
+}
+
+/* ---------- Öppen/privat-etiketten på klubbkorten (data-vis-style) ----------
+   Grundstilen (mjuk färg med hänglås) ligger i index.css. Varianterna här. */
+
+/* ---------- Sökraden: två till som passar ihop med handskrivna flikar ---------- */
+
+/* Mjuk fylld: ingen kant, en ljus varm fyllning och runda hörn. Lugn och tydlig, och skiljer sig från flikarna. */
+:root[data-search-style='mjuk'] .club-search,
+:root[data-search-style='mjuk'] select.club-filter,
+:root[data-search-style='mjuk'] .club-filter-kommun input,
+:root[data-search-style='mjuk'] .club-filters .sort-menu-button {
+  border: 1px solid transparent;
+  background-color: rgba(255, 255, 255, 0.72);
+}
+
+:root[data-search-style='mjuk'] .club-search:focus-within,
+:root[data-search-style='mjuk'] select.club-filter:focus-visible,
+:root[data-search-style='mjuk'] .club-filter-kommun input:focus-visible {
+  border-color: rgba(58, 47, 37, 0.45);
+  background-color: var(--color-white);
+}

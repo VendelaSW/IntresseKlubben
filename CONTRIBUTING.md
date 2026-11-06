@@ -29,7 +29,7 @@ feat/... ──PR──▶ pre-dev ──PR──▶ dev ──PR──▶ main
 
 ```
 Webbläsaren                Frontend                         Backend                        Databas
- klick på "Spara" ──▶ pages/ProfilePage.jsx
+ klick på "Spara" ──▶ features/profile/ProfilePage.jsx
                        └▶ services/profile.js
                            └▶ services/api.js  ── HTTP + token ──▶ api/routes/profile.py
                                                                     ├▶ auth/security.py   (vem är inloggad?)
@@ -62,13 +62,19 @@ backend/
 └── tests/                      tester (pytest)
 
 frontend/src/
-├── App.jsx                     alla sidor/routes
-├── pages/                      hela sidor
-├── components/                 återanvändbara delar
-├── hooks/                      delad logik (t.ex. inloggningsstatus)
+├── main.jsx                    startar appen
+├── app/                        App.jsx (alla routes), AppShell, inloggningsvakter, valt utseende
+├── map/                        kartan (MapPage.jsx) och blocken som sidorna öppnas i (MapPagePad.jsx)
+├── features/                   en mapp per del av appen, med dess sidor, komponenter och CSS:
+│   ├── start/  account/  profile/  interview/  people/  letters/ (Brev)
+│   └── clubs/ (Klubbar)  events/  interests/  notifications/  moderation/  styleguide/
+├── shared/                     komponenter som flera delar använder (Modal, Avatar, FormField ...)
+├── hooks/  utils/              delad logik och små hjälpfunktioner
 ├── services/                   anrop till backend, en fil per resurs
-├── devtools/                   testlägets "Logga in som ..." och testpanel
-└── styles/                     CSS
+├── styles/                     gemensam CSS: index.css och det valda utseendet
+├── assets/                     bilder och filmer
+├── demo/                       klickbara demon på /demo
+└── devtools/                   testlägets "Logga in som ..." och testpanel
 ```
 
 ### Kopiera en färdig feature: intressen
@@ -84,8 +90,8 @@ Intressen är byggd hela vägen och följer alla konventioner. Öppna filerna i 
 | Endpoints | `backend/app/api/routes/interests.py` |
 | Tester | `backend/tests/test_interests.py` |
 | Frontend-anrop | `frontend/src/services/interests.js` |
-| Komponenter | `frontend/src/components/InterestExplorer.jsx`, `InterestTree.jsx` (profilens intressen som träd), `InterestTags.jsx` (platta taggar) |
-| Används i | `frontend/src/pages/ProfilePage.jsx`, `UserProfilePage.jsx` |
+| Komponenter | `frontend/src/features/interests/InterestExplorer.jsx`, `InterestTree.jsx` (profilens intressen som träd), `InterestTags.jsx` (platta taggar) |
+| Används i | `frontend/src/features/profile/ProfilePage.jsx`, `UserProfilePage.jsx` |
 
 ---
 
@@ -214,6 +220,25 @@ De flesta använder appen på telefonen. Vi följer de vanliga riktlinjerna för
 - **Stäng aldrig av zoom med två fingrar** (`maximum-scale` eller `user-scalable=no` i viewport-taggen). Det behövs för den som ser dåligt.
 
 Testa på en riktig telefon innan merge (se [testa-pa-mobilen.md](testa-pa-mobilen.md)).
+
+### CSS och skärmstorlekar
+
+**Var CSS:en ligger**
+- Något som bara en del av appen använder ligger i dess mapp, t.ex. `features/clubs/clubs.css`, med mobilreglerna i samma fil.
+- `styles/index.css` har det gemensamma: tokens, typsnitt, knappar, formulär och det som flera delar använder. Lägg inte funktionsspecifika regler där.
+- Använd tokens (`var(--text-small)`, `var(--radius-sm)`, färgerna) i stället för egna värden, och återanvänd knappklasserna i stället för att skapa nya.
+
+**Vad som ska styra vad**
+| Fråga | Använd |
+|---|---|
+| Hur ser sidans ram ut på telefon? | `@media (max-width: 767px)`, och `useIsMobile()` i React |
+| Hur ser något ut inuti blocket på kartan? | `@container`: blocket kan vara smalare än skärmen |
+| Är det en pekskärm? | `@media (pointer: coarse)` eller `(hover: hover)`, inte bredden |
+| Ska en sida fylla skärmen? | `dvh` i stället för `vh`, så att adressfältet räknas med |
+
+Skriv aldrig `767px` i JS: gränsen finns på ett ställe, i `hooks/useMediaQuery.js`. Ändra helst layouten i CSS, och rita olika i React bara när innehållet verkligen skiljer sig.
+
+Snabbkollen i testpanelen har 320, 375 och 390 bred, mobil på sidan och surfplatta.
 
 ---
 
